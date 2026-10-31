@@ -1,0 +1,29 @@
+#version 430 core
+layout(local_size_x=8, local_size_y=8) in;
+
+layout(std430, binding=0) buffer PaletteOutput { uint outPalette[]; };
+layout(std430, binding=1) readonly buffer TilePriorities { uint tilePriority[]; };
+layout(std430, binding=2) readonly buffer SpritePixels { uint spritePixel[]; };
+layout(std430, binding=3) buffer ShadowOutput { uint outShadow[]; };
+
+void main() {
+    uvec2 p = gl_GlobalInvocationID.xy;
+    if (p.x >= 320u || p.y >= 224u) return;
+
+    uint i = p.y * 320u + p.x;
+    uint sprite = spritePixel[i];
+    outShadow[i] = 0u;
+    if (sprite == 0xffffu) return;
+
+    uint priority = (sprite >> 10u) & 3u;
+    if ((1u << priority) <= tilePriority[i]) return;
+
+    // Match segas16b_v.cpp: color 0x3f is the shadow pen and increments
+    // the underlying palette index into the shadow palette bank.
+    if ((sprite & 0x03f0u) == 0x03f0u) {
+        outPalette[i] += 0x800u;
+        outShadow[i] = 1u;
+    } else {
+        outPalette[i] = 0x400u | (sprite & 0x03ffu);
+    }
+}

@@ -1,0 +1,255 @@
+# CPS-1/2 progress
+
+## Separation and current state
+
+CPS builds use `tools/recompile.py --system cps1|cps2 --game ...`; generated code,
+work files, and binaries stay under `build/cps1/` or `build/cps2/`. Neo Geo is
+frozen at its current KOF98 prototype. CPS-1 and CPS-2 share CPU recompiler
+work where it fits, but each board and its audio/video devices have separate
+runtime profiles.
+
+Cadillacs and Dinosaurs (`dino`) is a CPS-1 board with QSound and a Kabuki
+encrypted sound Z80. Its sound-ROM extraction, Kabuki opcode view, and native
+Z80 generation are now handled by the local CPS1 build path; the old CPS2Recomp
+board execution path is not used. Its sound path is QSound, not YM2151/OKI.
+
+## Street Fighter II: Champion Edition (`sf2ce`)
+
+### Current prototype status (2026-10-31)
+
+`cps1_boot` now accepts the extracted 6 MiB graphics region and writes a
+384x224 PPM framebuffer after the requested CPU cycle budget. The initial
+renderer decodes CPS-1 8x8/16x16/32x32 graphics, tile maps, palette RAM and
+buffered sprite RAM. Its first output is currently black: CPU execution reaches
+the expected startup loop and writes CPS-A/CPS-B registers, gfx RAM, YM2151
+registers and sound commands, but the renderer's palette/layer interpretation
+does not yet produce visible pixels. This is a visible integration checkpoint,
+not a successful game boot.
+
+The latest 120M-cycle run had 14,746,223 native 68000 instructions, 466,103
+native 68000 blocks, zero Musashi instructions, 466,300 native Z80 blocks and
+zero interpreted Z80 instructions for the paths reached in that run. The bus
+reported 67 nonzero YM register values and sound command `$f0`. Those writes
+are captured only: YMFM generation and an OKI MSM6295 core are not yet wired to
+the CPS-1 runner, despite the shared project already having a YM2151 engine.
+The renderer also needs validation against MAME's CPS-A palette copy timing,
+tile priorities and sprite buffering. Current generated image:
+`build/cps1/work/sf2ce/sf2ce-frame.ppm` (converted preview:
+`build/cps1/work/sf2ce/sf2ce-frame.png`).
+
+The runner uses the full 0x40000-byte CPS-A gfx-RAM address aperture for video
+base registers while exposing the mapped 0x30000-byte CPU window, matching the
+masking behavior in MAME's `cps1_base`.
+
+The startup graphics-RAM diagnostic stays on the real Musashi fallback. No
+CPU-side shortcut is used for that test; palette timing, sprite priorities and
+the exact RAM test still need the full hardware implementation in the next
+video pass.
+
+The current pass now follows MAME's CPS-B-21 layer-control masks for SF2CE
+(`0x02`, `0x04`, `0x08`, `0x30`) and its four priority slots, and applies the
+CPS-A video-control bits when enabling the 16x16 and 32x32 tilemaps. CPU
+fallback behavior is unchanged and still executes individual missing 68000 or
+Z80 instructions through the respective interpreter.
+
+The CPS-1 tilemap details were cross-checked against the local `cps1recomp`
+video implementation: SF2CE Scroll 1 `$40xx` entries are 16x16 glyphs built
+from four 8x8 graphics tiles, and the title/test text uses an unscrolled
+Scroll-1 view. That behavior is now implemented in the MameRecomp renderer;
+the board bus and CPU execution remain MameRecomp code.
+
+`cps1_boot` has an optional SDL3 live presenter. Passing `--window` after the
+frame path updates a 768x448 window from the same 384x224 framebuffer used for
+PPM capture at each VBlank. The normal build driver leaves the window off while
+the CPU/video pipeline is still being debugged. Headless runs remain the
+reference path while CPS-A/CPS-B is being completed.
+
+The local command validates/extracts the main and audio ROM regions, generates
+an entry-reachable 68000 prototype, and statically translates the fixed Z80 program using the shared MameRecomp Z80
+recompiler (`tools/z80/recomp.py`). It does not use a CPS1Recomp/CPS2Recomp Z80
+runtime. ROM sizes and CRC32 values are checked against MAME before generation.
+
+The 68000 translator consumes the three MAME word-swapped program ROMs and
+starts from the reset PC (`0x236`). Pointer scanning is disabled in this first
+prototype because the broad scan interpreted arbitrary data as code and
+ballooned the output. The current entry-reachable result is 1,095 instructions,
+44 routines and 667 dispatch entries (about 336 KiB generated source). This is
+deliberately incomplete: it does not include RAM-resident code, dynamic entry
+discovery, or a CPS-1 runtime dispatcher. Generated files are rebuilt in place
+under `build/cps1/work/sf2ce/gen/m68k/`.
+The generated C translation is now compiled into
+`libmamerecomp_cps1_m68k_aot.a` as a build artifact. It still uses the vendored
+Neo Geo `ng_*` helper ABI and is intentionally not linked into a CPS-1 runner;
+the next 68000 integration step is to provide a board-neutral helper/bus ABI
+before connecting execution to CPS-1 memory and devices.
+
+The first run generated 1,448 Z80 instructions (2,898 bytes) in 244 blocks and
+37 routines, with zero instructions delegated to the Z80 interpreter. Sources
+are under `build/cps1/work/sf2ce/gen/z80/`; the shared target is
+`mamerecomp_z80_aot`, with no system-specific CPU target. The Z80 ROM's second 0x8000 bytes
+are bank data mapped through the CPS-1 sound program's bank window; they are
+preserved separately at `build/cps1/work/sf2ce/z80_banked.bin`. The two 0x20000
+sample ROMs are concatenated in board order at `build/cps1/work/sf2ce/oki_samples.bin`.
+
+Reproduce the generation step:
+
+```sh
+python3 tools/recompile.py --system cps1 --game sf2ce \
+  --rom-dir /home/luiz/git/mame/roms/sf2ce.zip
+```
+
+### Clock profile and audio status
+
+MAME's SF2CE machine configuration is `cps1_12MHz`: main 68000 at
+12 MHz, Z80 at 3.579545 MHz, YM2151 at 3.579545 MHz, OKI MSM6295 at 1 MHz
+(16 MHz / 4 / 4), and CPS pixel clock at 8 MHz. The raw screen timing is
+512x262, giving 59.637 Hz, 201,216 68000 cycles per frame, and VBlank beginning
+at 184,320 cycles. Other CPS1 boards can differ; QSound configurations in MAME,
+for example, use a 12 MHz 68000 and 8 MHz Z80.
+
+The runner had mistakenly used 10 MHz for SF2CE's 68000 and for the Z80/main
+clock ratio. Both now use the standard SF2CE values above. Window presentation
+is paced to the CPS pixel-derived frame period; a 2M-cycle window probe took
+0.256 seconds including startup, close to the expected 0.2 seconds of guest
+time. The Z80 translator runs natively at the correct ratio. YM2151 and OKI are
+still bus stubs here: register writes are counted, but neither audio device is
+currently clocked or producing sound in this CPS1 runner.
+
+The earlier 10 MHz screenshots and cycle labels in this note predate the clock
+correction and must not be used for frame-for-frame timing comparisons.
+
+### Work remaining for a solid `sf2ce` prototype
+
+- Continue dynamic 68000 discovery for the graphics-RAM/runtime entry points;
+  Musashi still handles a small set of instructions/entries during gameplay.
+- Compare CPS-A/CPS-B composition, per-layer alignment, sprite priorities, and
+  attract timing against MAME beyond the title logo.
+- Implement and connect YM2151 and OKI devices, then synchronize writes and
+  sample playback to sound-Z80 timestamps.
+- Verify sustained attract/gameplay, input handling, and audio against MAME.
+
+The shared CPU/fallback contract and the System 16/18 migration status are in
+[Z80_PROGRESS.md](Z80_PROGRESS.md).
+
+## MAME findings
+
+MAME's `sf2ce` profile uses the normal CPS-1 68000 map and has no main-program
+cipher. It declares three 0x80000 program ROMs as word-swapped data, an audio
+region with 0x8000 fixed Z80 bytes and 0x8000 banked bytes loaded at region
+offset 0x10000, and two 0x20000 OKI sample ROMs. Its 68000 code can execute from
+graphics RAM at `0x900000-0x92ffff`; a ROM-only static scan cannot discover all
+such runtime code, so dynamic entry discovery or an explicit fallback is
+needed for the main CPU.
+
+MAME source: `/home/luiz/git/mame/src/mame/capcom/cps1.cpp`, `ROM_START(sf2ce)`,
+`machine_start`, and the CPS-1 sound/memory maps.
+
+### Current SF2CE POST behavior
+
+The native runner is now reaching the CPS-1 RAM POST with zero Musashi
+instructions and zero uncovered ROM entries. SF2CE writes and verifies several
+large regions before it initializes the tilemaps; therefore an early PPM can be
+black even though the CPU is progressing correctly. MAME's `cps1_v.cpp` calls
+these checks board self-tests and notes that some variants take effectively
+forever. The runner lets native routines run up to the next exact VBlank boundary while preserving the
+exact VBlank boundary, reducing dispatch overhead without skipping instructions.
+For visual probing, pass `--until-video` after the PPM path. The runner probes
+at VBlank boundaries but writes the PPM only after non-transparent tile pens
+are produced; a POST-only budget reports that no video target was reached
+instead of leaving a misleading black capture.
+
+The renderer audit against MAME also removed a CPS1Recomp-only Scroll-1 glyph
+special case (MAME treats `$4000-$4fff` as normal banked Scroll-1 codes),
+corrected Scroll-2/Scroll-3 video-control gating to bits 2/3, and made
+horizontal offsets profile-specific. SF2CE has zero scroll kludge offsets in
+MAME; the `-0x10` values apply to selected conversion/bootleg configurations.
+
+### SF2CE boot and CPS-B compositor (in progress)
+
+The POST restart cause was an incorrect VBlank interrupt level. MAME disables
+the 68000 interrupt mixer for CPS1; its asserted `M68K_IRQ_IPL1` input is thus
+priority level 2. The runner previously delivered level 1/vector 25. It now
+delivers level 2/vector 26 and uses MAME's `autovector(offset + 1)` mapping for
+CPU-space acknowledge reads. The repeating reset stopped: a 120M-cycle run now
+reports one `TRAP #$e`, zero uncovered ROM entries, zero Musashi instructions,
+and reaches the disclaimer.
+
+The compositor now clears with CPS1 backdrop pen `$bff`, treats tile pen 15 as
+transparent, follows the CPS-B layer order and enable bits, uses the SF2CE
+CPS-B-21 priority registers to mark high-priority tile pixels that mask sprites,
+and walks the buffered CPS-A object table in MAME order with 9-bit coordinate
+wrap. It maps each sprite base through the S9263B PAL before expanding `nx × ny`
+tile blocks, and applies CPS-A OTHER-RAM row scroll to Scroll2 when video-control
+bit 0 is set. MAME writes zero to SF2CE's four priority-mask registers, so the
+priority bitmap does not hide tiles in this set; sprite order and CPS-B layer
+order remain active.
+
+At 300M 68000 cycles (30 seconds), the AOT runner produces the full SF2CE title
+logo; the frame differs from MAME only at the blinking `INSERT COIN` message.
+The interleaved logo during its animation is normal, as confirmed by the user.
+At 500M cycles the runner reaches the Air Force attract round. In the 50-second
+MAME comparison, the sky and aircraft pixels match exactly; remaining frame
+differences are concentrated around the animated fighters, crowd, and temporary
+`INSERT COIN` overlay. At 600M cycles it reaches the fight; 34 new 68000 entry
+points were uncovered and 30,406 instructions used Musashi. The user's title
+camera/building transition and reported fighter/crowd depth still need a direct
+frame-by-frame comparison. `MAMERECOMP_CPS1_DUMP_LAYERS=/tmp/prefix` writes the
+four intermediate compositor layers for diagnosis. SDL window pacing is tied
+to the 59.637 Hz hardware frame cadence rather than host speed.
+
+The title/building transition diagnostic shows three visible depth groups
+split across the CPS planes: the crowd is in the buffered sprite list, while
+MAME draws the foreground fighter artwork on Scroll 1. Scroll 2 and
+Scroll 3 carry the sky/building/bush scenery behind them. This produces the
+three visible depth groups the user pointed out (scenery, crowd, fighters),
+with the scenery itself split across two tilemaps.
+
+The MAME `render_layers` sequence for the title animation is CPS-B `$26 =
+$12ce`: Scroll 3, Scroll 2, sprites, then Scroll 1. The last Scroll-1 pass
+puts the fighters in front of the crowd. The native run later writes `$078e`,
+which decodes as Scroll 2, Scroll 3, Scroll 1, then sprites and therefore puts
+the crowd in front. The ROM does this by storing `$078e` at work RAM `$ff804e`
+from code at `$671a`; subsequent code copies that word to CPS-B `$26`. MAME's
+frame-900 sample remains at `$12ce`, so the next investigation is why the
+native CPU path reaches the alternate layer setup. The normal MAME sprite-list
+walk itself is forward in both implementations. Set
+`MAMERECOMP_CPS1_TRACE_LAYER_CONTROL=1` to log CPS-B `$26` writes and the
+work-RAM writes that supply the layer-control word.
+
+The CPS-1 board renderer exposes three tilemaps plus sprites, so the Russia and
+Guile stage comparison should use the same four layer dumps and log each
+game's CPS-B order register. That stage-by-stage capture is still pending; the
+title animation already confirms why the order must be taken from the game's
+register writes rather than hard-coded by stage name.
+
+#### Layer-order diagnosis
+
+The local CPS compositor extracts the four two-bit layer selectors from
+CPS-B `$26` and executes them in that order. This matches MAME's
+`cps_state::render_layers` in `src/mame/capcom/cps1_v.cpp`, including preparing
+the preceding tile layer's high-priority mask immediately before a sprite pass.
+For SF2CE, MAME's `CPS_B_21_DEF` also places the layer-control register at `$26`
+and uses enable masks `$02/$04/$08`, matching this runner's `$800166` mapping.
+
+The title depth change is therefore driven by guest-visible state: MAME's
+reference frame uses `$12ce` (Scroll 3, Scroll 2, sprites, Scroll 1), while the
+native run later writes `$078e` (Scroll 2, Scroll 3, Scroll 1, sprites). The ROM
+stores that second value at work RAM `$ff804e` from code at `$671a`, then copies
+it to CPS-B `$26`. This is evidence of a CPU execution/state divergence or a
+frame/timing mismatch relative to the MAME capture; it is not evidence that the
+compositor is randomly reordering layers. Compare both emulators at the same
+guest frame and inspect the registers and flags at `$671a` before changing the
+layer renderer.
+
+The local `cps1recomp` renderer is useful for tile scan and graphics-layout
+cross-checks, but it is not authoritative for layer order: its `video.c` uses a
+fixed Scroll 3/Scroll 2/sprites/Scroll 1 sequence and contains an SF2-specific
+Scroll-1 unscrolling workaround that MAME does not use. Keep that prototype
+separate from this CPS1 board implementation. The remaining NeoGeoRecomp ABI
+dependency in `cps1_boot` is an integration debt in CPU dispatch only; its
+Neo Geo board runtime, bus, video, and audio are not used by CPS1.
+
+The direct `cps1_boot` command currently exposes all extracted ROM artifacts
+because it is an internal harness. For a normal build-and-run pass, use the
+system entry point documented above (`tools/recompile.py`); the large internal
+argument list should not be presented as the regular game launch interface.

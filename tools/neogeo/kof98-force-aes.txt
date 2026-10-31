@@ -1,0 +1,2 @@
+# UniBIOS 4.0 hardware test: choose "B = Force to AES".
+300 b
