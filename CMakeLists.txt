@@ -16,8 +16,13 @@ set(MAMERECOMP_SYSTEM16B_GENERATED_DIRS "" CACHE STRING "Semicolon-separated Sys
 set(MAMERECOMP_SYSTEM18_GENERATED_DIRS "" CACHE STRING "Semicolon-separated System 18 game translation directories")
 set(MAMERECOMP_Z80_AOT_GENERATED_DIR "" CACHE PATH "Generated native Z80 source directory for one game")
 set(MAMERECOMP_CPS1_M68K_GENERATED_DIR "" CACHE PATH "Generated CPS-1 68000 source directory for one game")
+set(MAMERECOMP_CPS1_GAME_ID "unknown" CACHE STRING "CPS-1 game identifier used for generated game module output")
 set(MAMERECOMP_NEOGEO_GENERATED_DIR "" CACHE PATH "KOF98 Neo Geo AOT output directory")
 set(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR "" CACHE PATH "KOF98 Neo Geo Z80 AOT output root (BIOS and cart subdirectories)")
+set(MAMERECOMP_TMS34010_AOT_SOURCE "" CACHE FILEPATH "Generated per-game TMS34010 AOT C++ source for the T-Unit board module")
+set(MAMERECOMP_M6809_AOT_SOURCE "" CACHE FILEPATH "Generated per-game MC6809(E) sound CPU AOT C++ source")
+set(MAMERECOMP_ADSP2105_AOT_SOURCE "" CACHE FILEPATH "Generated per-game ADSP-2105 sound CPU AOT C++ source")
+set(MAMERECOMP_MK2_TMS34010_AOT_SOURCE "" CACHE FILEPATH "Generated Mortal Kombat II TMS34010 AOT C++ source")
 set(MAMERECOMP_NAOMI_TRANSLATED_SOURCES "" CACHE STRING "Semicolon-separated generated Naomi SH-4 C++ sources")
 option(MAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION "Build the captured, decrypted Naomi boot-RAM translation" OFF)
 option(MAMERECOMP_NAOMI_HAS_MAIN_ROM_TRANSLATION "Build the MvC2 REIOS diagnostic game-ROM translation" OFF)
@@ -50,12 +55,130 @@ add_executable(mamerecomp
     core/cpus/mcs48/mcs48.cpp
     src/system16/system16_m68k_bus.cpp
 )
+
+# Midway T-Unit board adapter for the shared TMS34010 core. The generated
+# per-game CPU tables will be linked by the Mortal Kombat build pipeline;
+# board memory, VRAM, I/O registers and graphics-ROM windows stay in this SO.
+add_library(mamerecomp_tunit SHARED
+    core/cpus/tms34010/interpreter.cpp
+    core/cpus/tms34010/mame_interpreter.cpp
+    core/cpus/interpreter_trace.cpp
+    src/mk/tunit.cpp
+    src/mk/williams_adpcm.cpp
+    src/mk/mk_machine.cpp)
+if(MAMERECOMP_TMS34010_AOT_SOURCE)
+    if(NOT EXISTS "${MAMERECOMP_TMS34010_AOT_SOURCE}")
+        message(FATAL_ERROR "TMS34010 AOT source does not exist: ${MAMERECOMP_TMS34010_AOT_SOURCE}")
+    endif()
+    target_sources(mamerecomp_tunit PRIVATE "${MAMERECOMP_TMS34010_AOT_SOURCE}")
+    target_compile_definitions(mamerecomp_tunit PUBLIC MAMERECOMP_TMS34010_HAS_AOT=1)
+
+    # Bounded developer runner for tracing reachable MK code and inspecting a
+    # post-run T-Unit VRAM snapshot. This is not the interactive machine app.
+    add_executable(mamerecomp_mk_trace tools/mk/trace.cpp)
+    target_link_libraries(mamerecomp_mk_trace PRIVATE mamerecomp_tunit)
+    set_target_properties(mamerecomp_mk_trace PROPERTIES
+        BUILD_RPATH "$ORIGIN")
+endif()
+target_include_directories(mamerecomp_tunit PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core)
+set_target_properties(mamerecomp_tunit PROPERTIES
+    OUTPUT_NAME mamerecomp_tunit
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+target_link_libraries(mamerecomp_tunit PRIVATE ymfm_opm)
+
+# Shared MC6809/MC6809E fallback backend. It contains CPU semantics only;
+# the MK sound board remains in mamerecomp_tunit and is accessed via a bus.
+add_library(mamerecomp_m6809 STATIC core/cpus/m6809/interpreter.cpp)
+target_include_directories(mamerecomp_m6809 PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core)
+if(TARGET mamerecomp_mk_trace)
+    target_link_libraries(mamerecomp_mk_trace PRIVATE mamerecomp_m6809)
+endif()
+
+# Shared ADSP-2105 CPU backend for DCS audio boards. Keep the DCS host protocol,
+# ROM banking and DAC runtime in the board module, outside this CPU library.
+if(MAMERECOMP_ADSP2105_AOT_SOURCE)
+    if(NOT EXISTS "${MAMERECOMP_ADSP2105_AOT_SOURCE}")
+        message(FATAL_ERROR "ADSP-2105 AOT source does not exist: ${MAMERECOMP_ADSP2105_AOT_SOURCE}")
+    endif()
+endif()
+add_library(mamerecomp_adsp2105 STATIC
+    core/cpus/adsp2105/interpreter.cpp
+    core/cpus/adsp2105/runtime.cpp)
+target_include_directories(mamerecomp_adsp2105 PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core)
+
+# MK2 gets an isolated T-Unit module so its generated TMS table and DCS audio
+# adapter do not replace or alter the MK1 prototype's AOT module.
+if(MAMERECOMP_MK2_TMS34010_AOT_SOURCE AND
+   NOT EXISTS "${MAMERECOMP_MK2_TMS34010_AOT_SOURCE}")
+    message(FATAL_ERROR "MK2 TMS34010 AOT source does not exist: ${MAMERECOMP_MK2_TMS34010_AOT_SOURCE}")
+endif()
+if(MAMERECOMP_MK2_TMS34010_AOT_SOURCE)
+    set(MAMERECOMP_MK2_TMS_AOT_INPUT "${MAMERECOMP_MK2_TMS34010_AOT_SOURCE}")
+else()
+    set(MAMERECOMP_MK2_TMS_AOT_INPUT core/cpus/tms34010/aot_stub.cpp)
+endif()
+if(MAMERECOMP_ADSP2105_AOT_SOURCE)
+    set(MAMERECOMP_MK2_ADSP_AOT_INPUT "${MAMERECOMP_ADSP2105_AOT_SOURCE}")
+else()
+    set(MAMERECOMP_MK2_ADSP_AOT_INPUT core/cpus/adsp2105/aot_stub.cpp)
+endif()
+add_library(mamerecomp_tunit_mk2 SHARED
+    core/cpus/tms34010/interpreter.cpp
+    core/cpus/tms34010/mame_interpreter.cpp
+    ${MAMERECOMP_MK2_TMS_AOT_INPUT}
+    core/cpus/interpreter_trace.cpp
+    src/mk/tunit.cpp
+    src/mk/williams_adpcm.cpp
+    src/mk2/dcs2k.cpp
+    src/mk2/protection.cpp
+    src/mk2/mk2_machine.cpp
+    ${MAMERECOMP_MK2_ADSP_AOT_INPUT})
+if(MAMERECOMP_MK2_TMS34010_AOT_SOURCE)
+    target_compile_definitions(mamerecomp_tunit_mk2 PUBLIC
+        MAMERECOMP_TMS34010_HAS_AOT=1)
+endif()
+target_include_directories(mamerecomp_tunit_mk2 PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core)
+target_link_libraries(mamerecomp_tunit_mk2 PRIVATE
+    mamerecomp_adsp2105)
+set_target_properties(mamerecomp_tunit_mk2 PROPERTIES
+    OUTPUT_NAME mamerecomp_tunit_mk2
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+# The Williams ADPCM sound CPU is a shared MC6809(E) backend with a
+# per-machine/per-game generated AOT table. Keep its translation artifact
+# separate from the board library until the sound CPU scheduler is connected.
+if(MAMERECOMP_M6809_AOT_SOURCE)
+    if(NOT EXISTS "${MAMERECOMP_M6809_AOT_SOURCE}")
+        message(FATAL_ERROR "MC6809(E) AOT source does not exist: ${MAMERECOMP_M6809_AOT_SOURCE}")
+    endif()
+    add_library(mamerecomp_m6809_aot STATIC "${MAMERECOMP_M6809_AOT_SOURCE}")
+    target_include_directories(mamerecomp_m6809_aot PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/core)
+    if(TARGET mamerecomp_mk_trace)
+        target_link_libraries(mamerecomp_mk_trace PRIVATE mamerecomp_m6809_aot)
+        target_compile_definitions(mamerecomp_mk_trace PRIVATE
+            MAMERECOMP_M6809_HAS_AOT=1)
+    endif()
+endif()
 target_include_directories(mamerecomp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/core
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/mcs48
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/z80)
+target_compile_definitions(mamerecomp PRIVATE
+    MAMERECOMP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    MAMERECOMP_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}")
 
 # One shared Z80 AOT backend. Generated tables are per game; the CPU, decoder,
 # instruction helpers and optional fallback are common across board profiles.
