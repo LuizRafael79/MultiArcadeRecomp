@@ -8,12 +8,16 @@ Williams/MC6809 audio board.
 
 The ROM pipeline verifies the MAME parent set's filenames, sizes, and CRC32s,
 interleaves the TMS program and graphics regions, reconstructs the DCS sound
-region, and emits per-ROMset TMS and ADSP AOT sources. The generated ADSP source
-currently translates NOP, group-0 immediate register loads, and the DCS boot's
-no-op MAC plus DAG2 program read. Other instructions remain interpreter
-fallback candidates. The interpreter currently covers a small subset of the
-ADSP-2105 ISA and stalls with a categorized fallback when it reaches an
-unsupported opcode; this is deliberately visible in diagnostics.
+region, and emits per-ROMset TMS and ADSP AOT sources. The ADSP AOT currently
+includes bootstrap loads, immediate DAG1/DAG2 writes, shifts, data-register
+moves, ALU/MAC operations (including the ALU-to-AF move op used by MK2),
+absolute and DAG memory transfers, and conditional branches/calls. AOT entries
+verify the live program word before execution, so
+unchanged instructions copied into writable ADSP RAM can run natively while
+rewritten instructions safely fall back to the shared interpreter. The
+firmware's unconditional wait loop also has a scheduler-bounded fast path.
+Remaining instructions use the shared ADSP interpreter where implemented;
+unsupported opcodes remain visible as categorized stops.
 
 MK2 uses MAME's DSW default `0xfc7d` (CMOS coinage, Powerup Test off). Unlike
 MK1, its MAME input table has no `Skip Post Test` DIP; the diagnostic runner
@@ -37,10 +41,20 @@ cmake --build build --target mamerecomp_mk2_trace -j4
 ```
 
 The trace executable runs a fixed TMS cycle budget, saves a PPM, and reports
-native/interpreted instruction counts and DCS latch/ADSP state. It uses the
-ported MAME TMS interpreter on AOT misses before trying the local subset. It
-is a bring-up diagnostic, not an interactive game frontend. SPORT/DAC sample
-output, accurate DCS timing, full host command protocol, and complete ADSP
-instruction coverage are still pending. The frame output is currently not
-validated against MAME; the 30M-cycle capture remains black after pressing
-Start even though TMS advances and DCS receives commands.
+native/interpreted instruction counts for both TMS34010 and ADSP-2105, plus DCS
+latch/SPORT state. On exit it writes categorized interpreter totals and CPU
+instruction totals to `build/mk2/work/mk2-runtime-summary.log` by default; pass
+`--summary-log=PATH` to choose another file. It uses the
+ported MAME TMS interpreter on AOT misses before trying the local subset.
+`--window` presents the T-Unit framebuffer and queues the DCS SPORT1 mono
+stream to SDL at the DCS board's 31.25 kHz external sample clock. The PPM's
+400x254 active display area was compared pixel-for-pixel with a MAME MK2 story
+frame. The T-Unit display profile and framebuffer path therefore work for that
+scene; dynamic timing changes still need coverage.
+
+The DCS data RAM mirrors all four `0x0000-0x1fff` windows, matching MAME's
+`0x0000-0x07ff` map mirrored by `0x1800`. The DCS runtime owns host handshake,
+banked ROM and boot loading, local/shared RAM, SPORT1 autobuffer transfers,
+wrap interrupts, and mono DAC samples; ADSP instruction semantics remain in the
+shared CPU backend. ADSP ISA coverage and exact DCS reset/SPORT/DAC timing remain
+incomplete, so MK2 is still a prototype runtime.

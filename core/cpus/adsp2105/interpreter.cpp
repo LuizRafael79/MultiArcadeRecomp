@@ -2,6 +2,8 @@
 
 #include "dag.hpp"
 
+#include <algorithm>
+
 namespace mamerecomp::adsp2105 {
 namespace {
 constexpr std::uint16_t kPcEmpty = 0x01;
@@ -167,6 +169,83 @@ std::uint16_t alu_y(const State& state, unsigned reg) noexcept {
     }
 }
 
+std::uint16_t shift_x(const State& state, unsigned reg) noexcept {
+    const auto& c = state.core;
+    switch (reg & 7) {
+    case 0: case 1: return static_cast<std::uint16_t>(c.si);
+    case 2: return static_cast<std::uint16_t>(c.ar);
+    case 3: return static_cast<std::uint16_t>(c.mr);
+    case 4: return static_cast<std::uint16_t>(c.mr >> 16);
+    case 5: return static_cast<std::uint16_t>(c.mr >> 32);
+    case 6: return c.sr[0];
+    default: return c.sr[1];
+    }
+}
+
+bool shift_execute(State& state, std::uint32_t opcode,
+                   std::int8_t shift) noexcept {
+    const unsigned xreg = (opcode >> 8) & 7;
+    const unsigned operation = (opcode >> 11) & 15;
+    const std::uint32_t x = shift_x(state, xreg);
+    std::uint32_t value = 0;
+    std::uint32_t result = 0;
+    bool merge = (operation & 1) != 0;
+    switch (operation) {
+    case 0: case 1: {
+        value = x << 16;
+        if (shift >= 0) result = shift < 32 ? value << shift : 0;
+        else result = shift > -32 ? value >> -shift : 0;
+        break;
+    }
+    case 2: case 3:
+        if (shift >= 0) result = shift < 32 ? x << shift : 0;
+        else result = shift > -32 ? x >> -shift : 0;
+        break;
+    case 4: case 5: {
+        value = static_cast<std::uint32_t>(
+            static_cast<std::int32_t>(static_cast<std::int16_t>(x))) << 16;
+        if (shift >= 0) result = shift < 32 ? value << shift : 0;
+        else result = shift > -32
+            ? static_cast<std::uint32_t>(static_cast<std::int32_t>(value) >> -shift)
+            : ((value & 0x80000000u) ? 0xffffffffu : 0u);
+        break;
+    }
+    case 6: case 7: {
+        const auto signed_x = static_cast<std::int32_t>(
+            static_cast<std::int16_t>(x));
+        if (shift >= 0) result = shift < 32
+            ? static_cast<std::uint32_t>(signed_x) << shift : 0;
+        else result = shift > -32
+            ? static_cast<std::uint32_t>(signed_x >> -shift)
+            : (signed_x < 0 ? 0xffffffffu : 0u);
+        break;
+    }
+    case 8: case 9: {
+        value = static_cast<std::uint32_t>(
+            static_cast<std::int32_t>(static_cast<std::int16_t>(x))) << 16;
+        if (shift > 0) {
+            value = (value >> 1) | ((state.astat & kAstatC) ? 0x80000000u : 0u);
+            result = shift < 32 ? value >> (shift - 1) : 0;
+        } else result = shift > -32 ? value << -shift : 0;
+        break;
+    }
+    case 10: case 11:
+        if (shift > 0) result = shift < 32 ? x >> shift : 0;
+        else result = shift > -32 ? x << -shift : 0;
+        break;
+    default:
+        return false;
+    }
+    if (merge) {
+        const auto old = (static_cast<std::uint32_t>(state.core.sr[1]) << 16) |
+                         state.core.sr[0];
+        result |= old;
+    }
+    state.core.sr[0] = static_cast<std::uint16_t>(result);
+    state.core.sr[1] = static_cast<std::uint16_t>(result >> 16);
+    return true;
+}
+
 std::uint16_t alu_execute(State& state, std::uint32_t opcode) noexcept {
     const unsigned xreg = (opcode >> 8) & 7;
     const unsigned yreg = (opcode >> 11) & 3;
@@ -256,6 +335,35 @@ void mac_to_mr(State& state, std::uint32_t opcode) noexcept {
     state.astat &= static_cast<std::uint16_t>(~0x40u);
     if (extension != 0 && extension != 0x1ff) state.astat |= 0x40;
     state.core.mr = result;
+}
+
+void mac_to_mf(State& state, std::uint32_t opcode) noexcept {
+    const unsigned operation = (opcode >> 13) & 15;
+    if (!operation) return;
+    const auto xb = alu_x(state, (opcode >> 8) & 7);
+    const auto yb = alu_y(state, (opcode >> 11) & 3);
+    const bool xu = operation == 6 || operation == 7 || operation == 10 ||
+                    operation == 11 || operation == 14 || operation == 15;
+    const bool yu = operation == 5 || operation == 7 || operation == 9 ||
+                    operation == 11 || operation == 13 || operation == 15;
+    const std::int64_t x = xu ? xb : static_cast<std::int16_t>(xb);
+    const std::int64_t y = yu ? yb : static_cast<std::int16_t>(yb);
+    const std::int64_t product = x * y * ((state.mstat & kMstatInteger) ? 1 : 2);
+    std::int64_t result{};
+    if (operation <= 3) {
+        result = operation == 1 ? product : operation == 2
+            ? state.core.mr + product : state.core.mr - product;
+        result += 0x8000;
+        if ((product & 0xffff) == 0x8000) result &= ~std::int64_t{0x10000};
+    } else if (operation <= 7) {
+        result = product;
+    } else if (operation <= 11) {
+        result = state.core.mr + product;
+    } else {
+        result = state.core.mr - product;
+    }
+    state.core.mf = static_cast<std::int16_t>(
+        static_cast<std::uint32_t>(result) >> 16);
 }
 
 bool condition(State& state, unsigned code) noexcept {
@@ -408,13 +516,163 @@ const char* instruction_name(std::uint32_t opcode) noexcept {
     case 0x0b: return "JUMP_INDIRECT";
     case 0x0c: return "MODE_CONTROL";
     case 0x0d: return "INTERNAL_DATA_MOVE";
+    case 0x0e: return "SHIFT_CONDITIONAL";
+    case 0x0f: return "SHIFT_IMMEDIATE";
     case 0x14: case 0x15: case 0x16: case 0x17: return "DO_UNTIL";
     case 0x18: case 0x19: case 0x1a: case 0x1b: return "JUMP_IMMEDIATE";
     case 0x1c: case 0x1d: case 0x1e: case 0x1f: return "CALL_IMMEDIATE";
+    case 0x28: case 0x29: return "MAC_MR_MOVE";
+    case 0x2a: case 0x2b: return "ALU_AR_MOVE";
+    case 0x2c: case 0x2d: return "MAC_MF_MOVE";
+    case 0x2e: case 0x2f: return "ALU_AF_MOVE";
+    case 0xa0: case 0xa1: case 0xa2: case 0xa3:
+    case 0xa4: case 0xa5: case 0xa6: case 0xa7:
+    case 0xa8: case 0xa9: case 0xaa: case 0xab:
+    case 0xac: case 0xad: case 0xae: case 0xaf:
+        return "DATA_WRITE_IMMEDIATE_DAG1";
+    case 0xb0: case 0xb1: case 0xb2: case 0xb3:
+    case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+    case 0xb8: case 0xb9: case 0xba: case 0xbb:
+    case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+        return "DATA_WRITE_IMMEDIATE_DAG2";
     default: return "UNSUPPORTED";
     }
 }
 } // namespace
+
+bool native_shift(State& state, std::uint32_t opcode,
+                  std::int8_t shift) noexcept {
+    return shift_execute(state, opcode, shift);
+}
+
+bool native_execute_instruction(State& state, Bus& bus,
+                                std::uint32_t opcode) noexcept {
+    opcode &= opcode_mask;
+    const unsigned group = (opcode >> 16) & 0xff;
+    const auto pc = static_cast<std::uint16_t>(state.pc & pc_mask);
+    if (state.loop == pc) return false;
+    if (bus.read_program24 &&
+        (bus.read_program24(bus.opaque, pc) & opcode_mask) != opcode)
+        return false;
+
+    state.previous_pc = pc;
+    switch (group) {
+    case 0x0d: {
+        const unsigned dst_group = (opcode >> 10) & 3;
+        const unsigned src_group = (opcode >> 8) & 3;
+        const unsigned dst = (opcode >> 4) & 15;
+        const unsigned src = opcode & 15;
+        std::int32_t value = src_group == 0 ? read_reg0(state, src) :
+            (src_group == 3 ? read_reg3(state, bus, src) :
+                              read_reg12(state, src_group, src));
+        if (dst_group == 0) write_reg0(state, dst, value);
+        else if (dst_group == 3) write_reg3(state, bus, dst, value);
+        else write_reg12(state, dst_group, dst, value);
+        break;
+    }
+    case 0x22: case 0x23:
+        if (condition(state, opcode & 15))
+            state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+        break;
+    case 0x28: case 0x29: case 0x2a: case 0x2b:
+    case 0x2c: case 0x2d: case 0x2e: case 0x2f: {
+        const auto value = read_reg0(state, opcode & 15);
+        switch (group) {
+        case 0x28: case 0x29: mac_to_mr(state, opcode); break;
+        case 0x2a: case 0x2b:
+            state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+            break;
+        case 0x2c: case 0x2d: mac_to_mf(state, opcode); break;
+        default:
+            state.core.af = static_cast<std::int16_t>(alu_execute(state, opcode));
+            break;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x60: case 0x61: case 0x62: case 0x63: {
+        if (!bus.read_data16) return false;
+        if (group < 0x62) mac_to_mr(state, opcode);
+        else state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+        std::uint16_t value{};
+        if (!dag1_read(state, bus, opcode, value)) return false;
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x68: case 0x69:
+        if (((opcode >> 13) & 15) != 0) return false;
+        if (!dag1_write(state, bus, opcode,
+                        static_cast<std::uint16_t>(read_reg0(state, (opcode >> 4) & 15))))
+            return false;
+        break;
+    case 0x70: case 0x71: {
+        if (((opcode >> 13) & 15) != 0) return false;
+        std::uint16_t value{};
+        if (!dag2_read(state, bus, opcode, value)) return false;
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x78: case 0x79:
+        if (((opcode >> 13) & 15) != 0 ||
+            !dag2_write(state, bus, opcode,
+                        static_cast<std::uint16_t>(read_reg0(state, (opcode >> 4) & 15))))
+            return false;
+        break;
+    case 0x80: case 0x81: case 0x82: case 0x83:
+    case 0x84: case 0x85: case 0x86: case 0x87:
+    case 0x88: case 0x89: case 0x8a: case 0x8b:
+    case 0x8c: case 0x8d: case 0x8e: case 0x8f: {
+        if (!bus.read_data16) return false;
+        const unsigned destination_group = (group - 0x80) >> 2;
+        const unsigned destination = opcode & 15;
+        const auto value = bus.read_data16(bus.opaque,
+            static_cast<std::uint16_t>((opcode >> 4) & 0x3fff));
+        if (destination_group == 0) write_reg0(state, destination, value);
+        else if (destination_group == 1 || destination_group == 2)
+            write_reg12(state, destination_group, destination, value);
+        else write_reg3(state, bus, destination, value);
+        break;
+    }
+    case 0x90: case 0x91: case 0x92: case 0x93:
+    case 0x94: case 0x95: case 0x96: case 0x97:
+    case 0x98: case 0x99: case 0x9a: case 0x9b:
+    case 0x9c: case 0x9d: case 0x9e: case 0x9f: {
+        if (!bus.write_data16) return false;
+        const unsigned source_group = (group - 0x90) >> 2;
+        const unsigned source = opcode & 15;
+        const std::int32_t value = source_group == 0 ? read_reg0(state, source) :
+            (source_group == 3 ? read_reg3(state, bus, source) :
+                                 read_reg12(state, source_group, source));
+        bus.write_data16(bus.opaque,
+            static_cast<std::uint16_t>((opcode >> 4) & 0x3fff),
+            static_cast<std::uint16_t>(value));
+        break;
+    }
+    case 0x18: case 0x19: case 0x1a: case 0x1b:
+        if (condition(state, opcode & 15))
+            state.pc = static_cast<std::uint16_t>((opcode >> 4) & pc_mask);
+        else state.pc = (state.pc + 1) & pc_mask;
+        ++state.cycles;
+        ++state.native_instructions;
+        return true;
+    case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+        if (condition(state, opcode & 15)) {
+            state.pc = (state.pc + 1) & pc_mask;
+            push_pc(state);
+            state.pc = static_cast<std::uint16_t>((opcode >> 4) & pc_mask);
+        } else state.pc = (state.pc + 1) & pc_mask;
+        ++state.cycles;
+        ++state.native_instructions;
+        return true;
+    default:
+        return false;
+    }
+
+    state.pc = (state.pc + 1) & pc_mask;
+    ++state.cycles;
+    ++state.native_instructions;
+    return true;
+}
 
 BlockExit interpreter_step(State& state, Bus& bus,
                            std::uint64_t stop_cycle,
@@ -520,34 +778,39 @@ BlockExit interpreter_step(State& state, Bus& bus,
         }
         break;
     }
-    case 0x0f: {
-        const unsigned xreg = (opcode >> 8) & 7;
-        const unsigned shift_op = (opcode >> 11) & 15;
-        const int shift = static_cast<std::int8_t>(opcode);
-        if (shift_op > 7) {
+    case 0x0e:
+        if (condition(state, opcode & 15) &&
+            !shift_execute(state, opcode, state.core.se)) {
             state.pc = pc;
             return BlockExit::NeedsInterpreter;
         }
-        std::uint32_t x = alu_x(state, xreg);
-        if (shift_op < 2 || (shift_op >= 4 && shift_op < 6)) x <<= 16;
-        std::uint32_t result = 0;
-        if (shift >= 0) result = shift < 32 ? x << shift : 0;
-        else if (shift_op >= 4) {
-            const auto signed_x = static_cast<std::int32_t>(x);
-            result = shift > -32 ? static_cast<std::uint32_t>(signed_x >> -shift)
-                                 : static_cast<std::uint32_t>(signed_x >> 31);
-        } else result = shift > -32 ? x >> -shift : 0;
-        std::uint32_t sr = (static_cast<std::uint32_t>(state.core.sr[1]) << 16) |
-                           state.core.sr[0];
-        if (shift_op & 1) result |= sr;
-        state.core.sr[0] = static_cast<std::uint16_t>(result);
-        state.core.sr[1] = static_cast<std::uint16_t>(result >> 16);
         break;
-    }
+    case 0x0f:
+        if (!shift_execute(state, opcode, static_cast<std::int8_t>(opcode))) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        break;
     case 0x22: case 0x23:
         if (condition(state, opcode & 15))
             state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
         break;
+    case 0x28: case 0x29: case 0x2a: case 0x2b:
+    case 0x2c: case 0x2d: case 0x2e: case 0x2f: {
+        const auto value = read_reg0(state, opcode & 15);
+        switch (group) {
+        case 0x28: case 0x29: mac_to_mr(state, opcode); break;
+        case 0x2a: case 0x2b:
+            state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+            break;
+        case 0x2c: case 0x2d: mac_to_mf(state, opcode); break;
+        default:
+            state.core.af = static_cast<std::int16_t>(alu_execute(state, opcode));
+            break;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
     case 0x20: case 0x21:
         if (condition(state, opcode & 15)) mac_to_mr(state, opcode);
         break;
@@ -703,6 +966,26 @@ BlockExit interpreter_step(State& state, Bus& bus,
             static_cast<std::uint16_t>(value));
         break;
     }
+    case 0xa0: case 0xa1: case 0xa2: case 0xa3:
+    case 0xa4: case 0xa5: case 0xa6: case 0xa7:
+    case 0xa8: case 0xa9: case 0xaa: case 0xab:
+    case 0xac: case 0xad: case 0xae: case 0xaf:
+        if (!dag1_write(state, bus, opcode,
+                        static_cast<std::uint16_t>((opcode >> 4) & 0xffff))) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        break;
+    case 0xb0: case 0xb1: case 0xb2: case 0xb3:
+    case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+    case 0xb8: case 0xb9: case 0xba: case 0xbb:
+    case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+        if (!dag2_write(state, bus, opcode,
+                        static_cast<std::uint16_t>((opcode >> 4) & 0xffff))) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        break;
     case 0x14: case 0x15: case 0x16: case 0x17:
         push_loop(state, opcode & 0x3ffff);
         push_pc(state);
@@ -732,6 +1015,39 @@ BlockExit interpreter_step(State& state, Bus& bus,
     mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
         reason, pc, opcode, 24, cycles_before, state.cycles, state.pc,
         instruction_name(opcode));
+    return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
+}
+
+BlockExit native_nop_counter_loop(State& state, std::uint16_t pc,
+                                  std::uint64_t stop_cycle) noexcept {
+    pc &= pc_mask;
+    if ((state.pc & pc_mask) != pc || state.loop != pc ||
+        state.loop_condition != 14 || pc_stack_top(state) != pc)
+        return BlockExit::NeedsInterpreter;
+    if (state.cycles >= stop_cycle) return BlockExit::Budget;
+
+    // For condition 14, the hardware decrements the counter before testing.
+    // The PC stack check proves that the loop body is this single NOP, so its
+    // iterations have no side effects between the counter tests.
+    const auto signed_counter = static_cast<std::int32_t>(state.counter);
+    const std::uint64_t iterations = signed_counter > 0
+        ? static_cast<std::uint32_t>(signed_counter) : 1;
+    const auto available = stop_cycle - state.cycles;
+    const auto executed = std::min(iterations, available);
+    state.previous_pc = pc;
+    state.cycles += executed;
+    state.native_instructions += executed;
+
+    if (executed < iterations) {
+        state.counter -= static_cast<std::uint32_t>(executed);
+        return BlockExit::Budget;
+    }
+
+    state.counter -= static_cast<std::uint32_t>(iterations);
+    pop_counter(state);
+    pop_loop(state);
+    (void)pop_pc_value(state);
+    state.pc = (state.pc + 1) & pc_mask;
     return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
 }
 

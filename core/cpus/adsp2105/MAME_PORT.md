@@ -76,17 +76,26 @@ boundary for that connection.
 
 - `dag.hpp`: circular addressing, bit reversal, DAG1/DAG2 data access and DAG2
   program transfers are shared helpers.
-- `interpreter.cpp`: prototype interpreter currently handles a small control
-  flow subset (NOP, flags, branches/calls, stack control, mode control, DO
-  UNTIL, and MODIFY). All other opcodes report a categorized fallback and stop;
-  it is **not** yet a complete ADSP interpreter.
-- `tools/adsp2105/recomp.py`: initial AOT emitter translates only statically
-  identified NOP words to native blocks. Other instructions still need native
-  emitters. Its input format is a packed decoded program image: three big-endian
-  bytes per 24-bit instruction.
+- `interpreter.cpp`: the partial interpreter covers control flow, register
+  moves, immediate loads, shifts, ALU/MAC subsets, direct and DAG memory
+  transfers, and ALU/MAC register-move groups. The latest opcode work is
+  ADSP-2105 group `0x28–0x2f`, including `0x2e7b0a` (ALU to AF with an internal
+  register move); matching groups are emitted by the AOT generator. This is
+  the rollback marker for the latest opcode change. Other unsupported variants
+  still stop with categorized fallbacks; the interpreter is not complete.
+- `tools/adsp2105/recomp.py`: emits native entries for bootstrap loads,
+  immediate DAG1/DAG2 writes, shifts, register moves, ALU/MAC operations,
+  absolute/DAG memory transfers, and conditional control flow. Each entry
+  checks the live 24-bit program word before executing, so a changed writable
+  program word falls back instead of running stale translated code. The
+  unconditional self-wait branch fast-forwards only to the current scheduler
+  deadline and is disabled for hardware-loop/timer cases. Input is the decoded
+  program image: three big-endian bytes per 24-bit word.
 - `runtime.cpp`: executes generated blocks and falls back to the interpreter;
-  it is CPU dispatch only. Interrupt delivery and the DCS-2K/AD1851 runtime are
-  not implemented yet.
+  it is CPU dispatch only and handles ADSP interrupt entry. `src/mk2/dcs2k.*`
+  owns DCS-2K maps, host latches, ROM banking/boot, SPORT1 autobuffer cadence,
+  IRQ1 buffer wraps, and the AD1851 mono sample queue. The MK2 trace drains that
+  stream at the board's 31.25 kHz clock. Reset/handshake timing and DAC output
+  still need broader frame-by-frame comparison with MAME.
 
-Do not wire this into MK1. That prototype remains frozen; the next board
-integration is MK2, after the ADSP semantics and DCS host protocol are complete.
+Do not wire this into MK1. Its Williams/MC6809 sound board remains separate.
