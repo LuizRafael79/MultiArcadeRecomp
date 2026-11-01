@@ -1,6 +1,7 @@
 // Bounded diagnostic runner for the MK2 T-Unit prototype.
 #include "mk2/mk2_machine.hpp"
 #include "core/cpus/tms34010/interpreter.hpp"
+#include "core/cpus/tms34010/mame_interpreter.hpp"
 #include "core/cpus/tms34010/runtime.hpp"
 #include "core/cpus/adsp2105/runtime.hpp"
 #include "core/cpus/interpreter_trace.h"
@@ -40,16 +41,30 @@ void write_ppm(std::span<const std::uint32_t> frame,
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2 || argc > 4) {
-        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm]\n";
+    if (argc < 2) {
+        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--press-start-at=CYCLES]\n";
         return 2;
     }
     try {
         const std::filesystem::path work = argv[1];
-        const auto limit = argc > 2 ? std::stoull(argv[2], nullptr, 0)
-                                    : 50'000'000ull;
-        const auto frame_path = argc > 3 ? std::filesystem::path(argv[3])
-                                         : work / "mk2-frame.ppm";
+        std::uint64_t limit = 50'000'000ull;
+        std::uint64_t start_cycle = 0;
+        bool start_scheduled = false;
+        std::filesystem::path frame_path = work / "mk2-frame.ppm";
+        int next_arg = 2;
+        if (next_arg < argc && argv[next_arg][0] != '-')
+            limit = std::stoull(argv[next_arg++], nullptr, 0);
+        if (next_arg < argc && argv[next_arg][0] != '-')
+            frame_path = argv[next_arg++];
+        for (; next_arg < argc; ++next_arg) {
+            const std::string arg = argv[next_arg];
+            if (arg.rfind("--press-start-at=", 0) == 0) {
+                start_cycle = std::stoull(arg.substr(17), nullptr, 0);
+                start_scheduled = true;
+            } else {
+                throw std::runtime_error("unknown option " + arg);
+            }
+        }
         const auto main = read_file(work / "maincpu.bin");
         const auto graphics = read_file(work / "video.bin");
         const auto sound = read_file(work / "dcs_sound.bin");
@@ -66,13 +81,22 @@ int main(int argc, char** argv) {
         auto next_sound_cycle = std::uint64_t{0};
         std::uint64_t sound_ratio_remainder = 0;
         while (cpu.cycles < limit) {
+            auto system = board.input(1);
+            if (start_scheduled && cpu.cycles >= start_cycle)
+                system &= static_cast<std::uint16_t>(~0x0004u);
+            else
+                system |= 0x0004u;
+            board.set_input(1, system);
             const auto before = cpu.cycles;
             auto result = mamerecomp::tms34010::BlockExit::NeedsInterpreter;
             if (const auto block = mamerecomp::tms34010::lookup(cpu.pc))
                 result = block(cpu, tms_bus, limit);
             if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter) {
-                result = mamerecomp::tms34010::interpreter_step(
-                    cpu, tms_bus, limit, reason);
+                result = mamerecomp::tms34010::execute_mame_interpreter(
+                    cpu, tms_bus, limit);
+                if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter)
+                    result = mamerecomp::tms34010::interpreter_step(
+                        cpu, tms_bus, limit, reason);
                 if (result == mamerecomp::tms34010::BlockExit::Dispatch)
                     ++interpreted;
             } else if (result == mamerecomp::tms34010::BlockExit::Dispatch) {

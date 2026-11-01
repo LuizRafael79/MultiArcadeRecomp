@@ -224,6 +224,40 @@ std::uint16_t alu_execute(State& state, std::uint32_t opcode) noexcept {
     return static_cast<std::uint16_t>(result);
 }
 
+void mac_to_mr(State& state, std::uint32_t opcode) noexcept {
+    const unsigned operation = (opcode >> 13) & 15;
+    if (!operation) return;
+    const unsigned xr = (opcode >> 8) & 7;
+    const unsigned yr = (opcode >> 11) & 3;
+    const auto xbits = alu_x(state, xr);
+    const auto ybits = alu_y(state, yr);
+    std::int64_t x = (operation & 2) ? xbits : static_cast<std::int16_t>(xbits);
+    std::int64_t y = (operation & 1) ? ybits : static_cast<std::int16_t>(ybits);
+    std::int64_t product = x * y;
+    if (!(state.mstat & kMstatInteger)) product <<= 1;
+    std::int64_t result = product;
+    if (operation <= 3) {
+        if (operation == 2) result += state.core.mr;
+        if (operation == 3) result = state.core.mr - product;
+        if (operation == 1 || operation == 2 || operation == 3) {
+            const auto low = static_cast<std::uint16_t>(product);
+            result += 0x8000;
+            if (low == 0x8000) result &= ~std::int64_t{0x10000};
+        }
+    } else if (operation >= 8 && operation <= 11) {
+        result += state.core.mr;
+    } else if (operation >= 12) {
+        result = state.core.mr - product;
+    }
+    constexpr std::int64_t mask40 = (std::int64_t{1} << 40) - 1;
+    result &= mask40;
+    if (result & (std::int64_t{1} << 39)) result |= ~mask40;
+    const auto extension = static_cast<unsigned>((result >> 31) & 0x1ff);
+    state.astat &= static_cast<std::uint16_t>(~0x40u);
+    if (extension != 0 && extension != 0x1ff) state.astat |= 0x40;
+    state.core.mr = result;
+}
+
 bool condition(State& state, unsigned code) noexcept {
     const bool z = (state.astat & kAstatZ) != 0;
     const bool n = (state.astat & kAstatN) != 0;
@@ -486,10 +520,57 @@ BlockExit interpreter_step(State& state, Bus& bus,
         }
         break;
     }
+    case 0x0f: {
+        const unsigned xreg = (opcode >> 8) & 7;
+        const unsigned shift_op = (opcode >> 11) & 15;
+        const int shift = static_cast<std::int8_t>(opcode);
+        if (shift_op > 7) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        std::uint32_t x = alu_x(state, xreg);
+        if (shift_op < 2 || (shift_op >= 4 && shift_op < 6)) x <<= 16;
+        std::uint32_t result = 0;
+        if (shift >= 0) result = shift < 32 ? x << shift : 0;
+        else if (shift_op >= 4) {
+            const auto signed_x = static_cast<std::int32_t>(x);
+            result = shift > -32 ? static_cast<std::uint32_t>(signed_x >> -shift)
+                                 : static_cast<std::uint32_t>(signed_x >> 31);
+        } else result = shift > -32 ? x >> -shift : 0;
+        std::uint32_t sr = (static_cast<std::uint32_t>(state.core.sr[1]) << 16) |
+                           state.core.sr[0];
+        if (shift_op & 1) result |= sr;
+        state.core.sr[0] = static_cast<std::uint16_t>(result);
+        state.core.sr[1] = static_cast<std::uint16_t>(result >> 16);
+        break;
+    }
     case 0x22: case 0x23:
         if (condition(state, opcode & 15))
             state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
         break;
+    case 0x20: case 0x21:
+        if (condition(state, opcode & 15)) mac_to_mr(state, opcode);
+        break;
+    case 0x60: case 0x61: {
+        mac_to_mr(state, opcode);
+        std::uint16_t value = 0;
+        if (!dag1_read(state, bus, opcode, value)) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x62: case 0x63: {
+        state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+        std::uint16_t value = 0;
+        if (!dag1_read(state, bus, opcode, value)) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
     case 0x26: case 0x27:
         if (condition(state, opcode & 15))
             state.core.af = static_cast<std::int16_t>(alu_execute(state, opcode));
@@ -564,6 +645,20 @@ BlockExit interpreter_step(State& state, Bus& bus,
             return BlockExit::NeedsInterpreter;
         }
         if (!dag2_write(state, bus, opcode,
+                        static_cast<std::uint16_t>(
+                            read_reg0(state, (opcode >> 4) & 15)))) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        break;
+    case 0x68: case 0x69:
+        // MAC function zero is a no-op; store the selected core register
+        // through DAG1 (including MSTAT bit-reversed addressing).
+        if (((opcode >> 13) & 15) != 0) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        if (!dag1_write(state, bus, opcode,
                         static_cast<std::uint16_t>(
                             read_reg0(state, (opcode >> 4) & 15)))) {
             state.pc = pc;

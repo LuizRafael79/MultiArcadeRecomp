@@ -15,6 +15,11 @@ fallback candidates. The interpreter currently covers a small subset of the
 ADSP-2105 ISA and stalls with a categorized fallback when it reaches an
 unsupported opcode; this is deliberately visible in diagnostics.
 
+MK2 uses MAME's DSW default `0xfc7d` (CMOS coinage, Powerup Test off). Unlike
+MK1, its MAME input table has no `Skip Post Test` DIP; the diagnostic runner
+can hold active-low Start 1 at a selected TMS cycle, letting the POST appear
+before it is skipped.
+
 ## Build and bounded run
 
 From the repository root:
@@ -27,13 +32,15 @@ cmake -S . -B build \
   -DMAMERECOMP_MK2_TMS34010_AOT_SOURCE="$PWD/build/mk2/work/tms34010_aot.cpp" \
   -DMAMERECOMP_ADSP2105_AOT_SOURCE="$PWD/build/mk2/work/adsp2105_aot.cpp"
 cmake --build build --target mamerecomp_mk2_trace -j4
-./build/mamerecomp_mk2_trace build/mk2/work 5000000
+./build/mamerecomp_mk2_trace build/mk2/work 30000000 \
+  build/mk2/work/mk2-frame.ppm --press-start-at=5000000
 ```
 
-The trace executable runs a fixed TMS cycle budget and saves `mk2-frame.ppm`,
-plus reports native/interpreted instruction counts and DCS latch/ADSP state. It
+The trace executable runs a fixed TMS cycle budget, saves a PPM, and reports
+native/interpreted instruction counts and DCS latch/ADSP state. It uses the
+ported MAME TMS interpreter on AOT misses before trying the local subset. It
 is a bring-up diagnostic, not an interactive game frontend. SPORT/DAC sample
 output, accurate DCS timing, full host command protocol, and complete ADSP
 instruction coverage are still pending. The frame output is currently not
-validated against MAME and may be corrupted while the board runtime is
-incomplete.
+validated against MAME; the 30M-cycle capture remains black after pressing
+Start even though TMS advances and DCS receives commands.
