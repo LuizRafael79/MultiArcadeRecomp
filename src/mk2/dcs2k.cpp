@@ -29,7 +29,7 @@ constexpr std::uint16_t kSystemControl = 31;
 Dcs2K::Dcs2K(std::span<const std::uint8_t> sound_region)
     : m_sound_region(sound_region.begin(), sound_region.end()),
       m_internal_program(0x400), m_external_program(0x1800),
-      m_local_ram(0x200) {
+      m_program_written(0x2000), m_local_ram(0x200) {
     m_control[0] = 0;
     boot();
 }
@@ -63,6 +63,7 @@ void Dcs2K::host_data_write(std::uint16_t data) noexcept {
     m_input_full = true;
     m_cpu.irq[2] = true;
     m_cpu.irq_latched[2] = true;
+    m_cpu_stalled = false;
     ++m_host_commands;
 }
 
@@ -83,10 +84,13 @@ void Dcs2K::set_reset(bool released) noexcept {
 }
 
 mamerecomp::adsp2105::BlockExit Dcs2K::run_until(std::uint64_t cycle_limit) noexcept {
-    if (m_reset_asserted) return mamerecomp::adsp2105::BlockExit::Idle;
+    if (m_reset_asserted || m_cpu_stalled)
+        return mamerecomp::adsp2105::BlockExit::Idle;
     auto bus = cpu_bus();
     const auto start = m_cpu.cycles;
     const auto result = mamerecomp::adsp2105::run_until(m_cpu, bus, cycle_limit);
+    if (result == mamerecomp::adsp2105::BlockExit::NeedsInterpreter)
+        m_cpu_stalled = true;
     advance_cycles(m_cpu.cycles - start);
     return result;
 }
@@ -123,7 +127,8 @@ void Dcs2K::advance_cycles(std::uint64_t cycles) noexcept {
 DcsDiagnostics Dcs2K::diagnostics() const noexcept {
     return {m_host_commands, m_host_reads, m_input_reads, m_output_writes,
             m_boot_count, m_sport_words, m_sound_bank, m_input_latch,
-            m_output_latch, m_input_full, m_output_full, m_reset_asserted};
+            m_output_latch, m_input_full, m_output_full, m_reset_asserted,
+            m_cpu_stalled};
 }
 
 std::uint32_t Dcs2K::program_read(void* opaque, std::uint16_t address) noexcept {
@@ -182,8 +187,7 @@ std::uint32_t Dcs2K::sport_rx(void*, unsigned) noexcept { return 0; }
 bool Dcs2K::mutable_program(void* opaque, std::uint16_t address) noexcept {
     const auto& self = *static_cast<Dcs2K*>(opaque);
     address &= mamerecomp::adsp2105::pc_mask;
-    return address < self.m_internal_program.size() ||
-           (address >= 0x0800 && address < 0x2000);
+    return address < self.m_program_written.size() && self.m_program_written[address];
 }
 
 std::uint32_t Dcs2K::read_program(std::uint16_t address) const noexcept {
@@ -197,9 +201,13 @@ std::uint32_t Dcs2K::read_program(std::uint16_t address) const noexcept {
 void Dcs2K::write_program(std::uint16_t address, std::uint32_t value) noexcept {
     address &= mamerecomp::adsp2105::pc_mask;
     value &= 0x00ffffff;
-    if (address < m_internal_program.size()) m_internal_program[address] = value;
-    else if (address >= 0x0800 && address < 0x2000)
+    if (address < m_internal_program.size()) {
+        m_internal_program[address] = value;
+        m_program_written[address] = true;
+    } else if (address >= 0x0800 && address < 0x2000) {
         m_external_program[address - 0x0800] = value;
+        m_program_written[address] = true;
+    }
 }
 
 std::uint16_t Dcs2K::read_data(std::uint16_t address) noexcept {
@@ -298,6 +306,7 @@ void Dcs2K::boot() noexcept {
     }
     const std::size_t count = (static_cast<std::size_t>(buffer[3]) + 1) * 8;
     const std::size_t bounded_count = std::min(count, m_internal_program.size());
+    std::fill(m_program_written.begin(), m_program_written.end(), false);
     for (std::size_t i = 0; i < bounded_count; ++i) {
         const std::size_t offset = i * 4;
         m_internal_program[i] = (static_cast<std::uint32_t>(buffer[offset]) << 16) |
@@ -307,6 +316,7 @@ void Dcs2K::boot() noexcept {
     m_cpu = {};
     m_cpu.loop = 0xffff;
     m_cpu.sstat = 0x55;
+    m_cpu_stalled = false;
     ++m_boot_count;
 }
 
@@ -314,6 +324,7 @@ void Dcs2K::acknowledge_input() noexcept {
     m_input_full = false;
     m_cpu.irq[2] = false;
     m_cpu.irq_latched[2] = false;
+        m_cpu_stalled = false;
 }
 void Dcs2K::acknowledge_output() noexcept { m_output_full = false; }
 

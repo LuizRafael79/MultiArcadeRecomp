@@ -135,7 +135,6 @@ add_library(mamerecomp_tunit_mk2 SHARED
     ${MAMERECOMP_MK2_TMS_AOT_INPUT}
     core/cpus/interpreter_trace.cpp
     src/mk/tunit.cpp
-    src/mk/williams_adpcm.cpp
     src/mk2/dcs2k.cpp
     src/mk2/protection.cpp
     src/mk2/mk2_machine.cpp
@@ -153,6 +152,9 @@ target_link_libraries(mamerecomp_tunit_mk2 PRIVATE
 set_target_properties(mamerecomp_tunit_mk2 PROPERTIES
     OUTPUT_NAME mamerecomp_tunit_mk2
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+add_executable(mamerecomp_mk2_trace tools/mk2/trace.cpp)
+target_link_libraries(mamerecomp_mk2_trace PRIVATE mamerecomp_tunit_mk2)
+set_target_properties(mamerecomp_mk2_trace PROPERTIES BUILD_RPATH "$ORIGIN")
 
 # The Williams ADPCM sound CPU is a shared MC6809(E) backend with a
 # per-machine/per-game generated AOT table. Keep its translation artifact

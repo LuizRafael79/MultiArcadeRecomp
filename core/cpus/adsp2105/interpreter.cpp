@@ -146,6 +146,84 @@ void write_reg3(State& state, Bus& bus, unsigned reg,
     }
 }
 
+std::uint16_t alu_x(const State& state, unsigned reg) noexcept {
+    const auto& c = state.core;
+    switch (reg & 7) {
+    case 0: return c.ax[0]; case 1: return c.ax[1];
+    case 2: return c.ar;
+    case 3: return static_cast<std::uint16_t>(c.mr);
+    case 4: return static_cast<std::uint16_t>(c.mr >> 16);
+    case 5: return static_cast<std::uint16_t>(c.mr >> 32);
+    case 6: return c.sr[0]; default: return c.sr[1];
+    }
+}
+
+std::uint16_t alu_y(const State& state, unsigned reg) noexcept {
+    switch (reg & 3) {
+    case 0: return state.core.ay[0];
+    case 1: return state.core.ay[1];
+    case 2: return state.core.af;
+    default: return 0;
+    }
+}
+
+std::uint16_t alu_execute(State& state, std::uint32_t opcode) noexcept {
+    const unsigned xreg = (opcode >> 8) & 7;
+    const unsigned yreg = (opcode >> 11) & 3;
+    const auto x = static_cast<std::uint32_t>(alu_x(state, xreg));
+    const auto y = static_cast<std::uint32_t>(alu_y(state, yreg));
+    const unsigned operation = (opcode >> 13) & 15;
+    std::uint32_t result = 0;
+    std::uint16_t flags = state.astat;
+    const auto clear = static_cast<std::uint16_t>(~(
+        kAstatC | kAstatN | kAstatZ |
+        ((state.mstat & kMstatStickyV) ? 0 : kAstatV)));
+    auto set_nz = [&] {
+        flags &= clear;
+        if ((result & 0xffff) == 0) flags |= kAstatZ;
+        if (result & 0x8000) flags |= kAstatN;
+    };
+    auto set_add = [&](std::uint32_t a, std::uint32_t b) {
+        set_nz();
+        if ((~(a ^ b) & (a ^ result) & 0x8000) != 0) flags |= kAstatV;
+        if (result & 0x10000) flags |= kAstatC;
+    };
+    auto set_sub = [&](std::uint32_t a, std::uint32_t b) {
+        set_nz();
+        if (((a ^ b) & (a ^ result) & 0x8000) != 0) flags |= kAstatV;
+        if ((~result) & 0x10000) flags |= kAstatC;
+    };
+    switch (operation) {
+    case 0: result = y; set_nz(); break;
+    case 1: result = y + 1; set_nz(); if (y == 0x7fff) flags |= kAstatV; else if (y == 0xffff) flags |= kAstatC; break;
+    case 2: result = x + y + ((state.astat & kAstatC) ? 1u : 0u); set_add(x, y); break;
+    case 3: result = x + y; set_add(x, y); break;
+    case 4: result = y ^ 0xffff; set_nz(); break;
+    case 5: result = 0u - y; set_nz(); if (y == 0x8000) flags |= kAstatV; if (y == 0) flags |= kAstatC; break;
+    case 6: result = x - y + ((state.astat & kAstatC) ? 1u : 0u) - 1u; set_sub(x, y); break;
+    case 7: result = x - y; set_sub(x, y); break;
+    case 8: result = y - 1; set_nz(); if (y == 0x8000) flags |= kAstatV; else if (!y) flags |= kAstatC; break;
+    case 9: result = y - x; set_sub(y, x); break;
+    case 10: result = y - x + ((state.astat & kAstatC) ? 1u : 0u) - 1u; set_sub(y, x); break;
+    case 11: result = x ^ 0xffff; set_nz(); break;
+    case 12: result = x & y; set_nz(); break;
+    case 13: result = x | y; set_nz(); break;
+    case 14: result = x ^ y; set_nz(); break;
+    case 15:
+        result = (x & 0x8000) ? 0u - x : x;
+        flags &= static_cast<std::uint16_t>(~(kAstatS | kAstatN | kAstatZ |
+                                              kAstatV));
+        if ((result & 0xffff) == 0) flags |= kAstatZ;
+        if (x == 0x8000) flags |= kAstatN | kAstatV;
+        if (x & 0x8000) flags |= kAstatS;
+        break;
+    }
+    if ((state.mstat & kMstatSaturate) && (flags & kAstatV))
+        result = (flags & kAstatC) ? 0x8000 : 0x7fff;
+    state.astat = flags;
+    return static_cast<std::uint16_t>(result);
+}
+
 bool condition(State& state, unsigned code) noexcept {
     const bool z = (state.astat & kAstatZ) != 0;
     const bool n = (state.astat & kAstatN) != 0;
@@ -406,6 +484,128 @@ BlockExit interpreter_step(State& state, Bus& bus,
         case 1: case 2: write_reg12(state, dst_group, dst, value); break;
         case 3: write_reg3(state, bus, dst, value); break;
         }
+        break;
+    }
+    case 0x22: case 0x23:
+        if (condition(state, opcode & 15))
+            state.core.ar = static_cast<std::int16_t>(alu_execute(state, opcode));
+        break;
+    case 0x26: case 0x27:
+        if (condition(state, opcode & 15))
+            state.core.af = static_cast<std::int16_t>(alu_execute(state, opcode));
+        break;
+    case 0x30: case 0x31: case 0x32: case 0x33:
+    case 0x34: case 0x35: case 0x36: case 0x37:
+    case 0x38: case 0x39: case 0x3a: case 0x3b:
+    case 0x3c: case 0x3d: case 0x3e: case 0x3f: {
+        const std::uint32_t raw = (opcode >> 4) & 0x3fff;
+        const auto immediate = static_cast<std::int32_t>(
+            (raw & 0x2000) ? (raw | 0xffffc000u) : raw);
+        const unsigned destination = opcode & 15;
+        if (group <= 0x33) write_reg0(state, destination, immediate);
+        else if (group <= 0x37) write_reg12(state, 1, destination, immediate);
+        else if (group <= 0x3b) write_reg12(state, 2, destination, immediate);
+        else write_reg3(state, bus, destination, immediate);
+        break;
+    }
+    case 0x40: case 0x41: case 0x42: case 0x43:
+    case 0x44: case 0x45: case 0x46: case 0x47:
+    case 0x48: case 0x49: case 0x4a: case 0x4b:
+    case 0x4c: case 0x4d: case 0x4e: case 0x4f:
+        // MAME: load a 16-bit immediate into a group-0 core register.
+        write_reg0(state, opcode & 15,
+                   static_cast<std::int16_t>((opcode >> 4) & 0xffff));
+        break;
+    case 0x50: case 0x51: {
+        // MAC function 0 is the defined no-op form used by the DCS bootstrap;
+        // the instruction still performs its program-space DAG read.
+        if (((opcode >> 13) & 15) != 0) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        std::uint16_t value = 0;
+        if (!dag2_program_read(state, bus, opcode, value)) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x58: case 0x59:
+        // MAC function zero is a no-op; this variant performs a DAG2 program
+        // write from the selected core register and PX byte first.
+        if (((opcode >> 13) & 15) != 0) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        if (!dag2_program_write(state, bus, opcode,
+                                static_cast<std::uint16_t>(
+                                    read_reg0(state, (opcode >> 4) & 15)))) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        break;
+    case 0x70: case 0x71: {
+        if (((opcode >> 13) & 15) != 0) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        std::uint16_t value = 0;
+        if (!dag2_read(state, bus, opcode, value)) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        write_reg0(state, (opcode >> 4) & 15, value);
+        break;
+    }
+    case 0x78: case 0x79:
+        if (((opcode >> 13) & 15) != 0) {
+            state.pc = pc;
+            return BlockExit::NeedsInterpreter;
+        }
+        if (!dag2_write(state, bus, opcode,
+                        static_cast<std::uint16_t>(
+                            read_reg0(state, (opcode >> 4) & 15)))) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        break;
+    case 0x80: case 0x81: case 0x82: case 0x83:
+    case 0x84: case 0x85: case 0x86: case 0x87:
+    case 0x88: case 0x89: case 0x8a: case 0x8b:
+    case 0x8c: case 0x8d: case 0x8e: case 0x8f: {
+        if (!bus.read_data16) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        const unsigned destination_group = (group - 0x80) >> 2;
+        const unsigned destination = opcode & 15;
+        const auto value = bus.read_data16(bus.opaque,
+            static_cast<std::uint16_t>((opcode >> 4) & 0x3fff));
+        if (destination_group == 0) write_reg0(state, destination, value);
+        else if (destination_group == 1 || destination_group == 2)
+            write_reg12(state, destination_group, destination, value);
+        else write_reg3(state, bus, destination, value);
+        break;
+    }
+    case 0x90: case 0x91: case 0x92: case 0x93:
+    case 0x94: case 0x95: case 0x96: case 0x97:
+    case 0x98: case 0x99: case 0x9a: case 0x9b:
+    case 0x9c: case 0x9d: case 0x9e: case 0x9f: {
+        const unsigned source_group = (group - 0x90) >> 2;
+        const unsigned source = opcode & 15;
+        std::int32_t value = 0;
+        if (source_group == 0) value = read_reg0(state, source);
+        else if (source_group == 1 || source_group == 2)
+            value = read_reg12(state, source_group, source);
+        else value = read_reg3(state, bus, source);
+        if (!bus.write_data16) {
+            state.pc = pc;
+            return BlockExit::BusFault;
+        }
+        bus.write_data16(bus.opaque,
+            static_cast<std::uint16_t>((opcode >> 4) & 0x3fff),
+            static_cast<std::uint16_t>(value));
         break;
     }
     case 0x14: case 0x15: case 0x16: case 0x17:

@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 
+#include "mk/tunit.hpp"
 #include "ymfm_opm.h"
 
 namespace mamerecomp::mk {
@@ -12,7 +13,8 @@ namespace mamerecomp::mk {
 // Williams ADPCM sound-board bus used by T-unit Mortal Kombat. This models
 // the MC6809E address map and latches; CPU execution and chip synthesis are
 // attached through the supplied callbacks.
-class WilliamsAdpcmBoard final : private ymfm::ymfm_interface {
+class WilliamsAdpcmBoard final : public SoundCommandInterface,
+                                 private ymfm::ymfm_interface {
 public:
     struct AudioDiagnostics {
         std::uint64_t ym_writes{};
@@ -42,8 +44,8 @@ public:
 
     std::uint8_t sound_cpu_read(std::uint16_t address) noexcept;
     void sound_cpu_write(std::uint16_t address, std::uint8_t value) noexcept;
-    void write_main_command(std::uint8_t value) noexcept;
-    void reset_write(bool asserted) noexcept;
+    void write_main_command(std::uint8_t value) noexcept override;
+    void reset_write(bool asserted) noexcept override;
     void advance_sound_cycles(std::uint32_t cycles) noexcept;
 
     bool irq_asserted() const noexcept;

@@ -9,7 +9,12 @@
 
 namespace mamerecomp::mk {
 
-class WilliamsAdpcmBoard;
+class SoundCommandInterface {
+public:
+    virtual ~SoundCommandInterface() = default;
+    virtual void write_main_command(std::uint8_t value) noexcept = 0;
+    virtual void reset_write(bool asserted) noexcept = 0;
+};
 
 class SoundHostInterface {
 public:
@@ -111,7 +116,7 @@ public:
     void note_cpu_pc(std::uint32_t pc) noexcept;
     bool load_cmos(std::span<const std::uint8_t> data) noexcept;
     std::span<const std::uint8_t> cmos() const noexcept;
-    void attach_sound_board(WilliamsAdpcmBoard* board) noexcept;
+    void attach_sound_board(SoundCommandInterface* board) noexcept;
     void attach_dcs_board(SoundHostInterface* board) noexcept;
     void attach_protection(ProtectionInterface* protection) noexcept;
     std::uint8_t sound_command() const noexcept;
@@ -205,7 +210,7 @@ private:
     mutable std::uint8_t m_fake_sound_state{};
     std::uint8_t m_sound_command{0xff};
     bool m_sound_reset_asserted{};
-    WilliamsAdpcmBoard* m_sound_board{};
+    SoundCommandInterface* m_sound_board{};
     SoundHostInterface* m_dcs_board{};
     ProtectionInterface* m_protection{};
     bool m_cpu_halted{};

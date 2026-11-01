@@ -4,7 +4,6 @@
 // code. Keep the upstream attribution with the board module's license record.
 
 #include "mk/tunit.hpp"
-#include "mk/williams_adpcm.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -727,7 +726,7 @@ std::span<const std::uint8_t> TUnit::cmos() const noexcept {
     return m_cmos;
 }
 
-void TUnit::attach_sound_board(WilliamsAdpcmBoard* board) noexcept {
+void TUnit::attach_sound_board(SoundCommandInterface* board) noexcept {
     m_sound_board = board;
 }
 

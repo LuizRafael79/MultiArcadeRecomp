@@ -23,6 +23,7 @@ struct DcsDiagnostics {
     bool input_full{};
     bool output_full{};
     bool reset_asserted{};
+    bool cpu_stalled{};
 };
 
 // DCS Audio 2K runtime for the MK2 T-Unit board. This is the board-side
@@ -66,6 +67,7 @@ private:
     std::vector<std::uint8_t> m_sound_region;
     std::vector<std::uint32_t> m_internal_program;
     std::vector<std::uint32_t> m_external_program;
+    std::vector<bool> m_program_written;
     std::vector<std::uint16_t> m_local_ram;
     std::vector<std::int16_t> m_samples;
     mamerecomp::adsp2105::State m_cpu{};
@@ -80,6 +82,7 @@ private:
     bool m_sport1_enabled{};
     bool m_sport1_autobuffer{};
     bool m_dma_active{};
+    bool m_cpu_stalled{};
     std::uint8_t m_dma_ireg{};
     std::uint16_t m_dma_length{};
     std::uint16_t m_dma_base{};
