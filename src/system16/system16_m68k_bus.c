@@ -1,11 +1,9 @@
 #include "system16_m68k_bus.h"
+#include "cpus/m68000/runtime/cpu_runtime.h"
 
 #include <neogeorecomp/bus.h>
 #include <neogeorecomp/cpu.h>
 #include <string.h>
-
-/* Generated modules and the host must share this hook through the core .so. */
-ng_debug_instruction_hook_t ng_debug_instruction_hook = 0;
 
 /* The generated 68000 code uses the NeoGeoRecomp bus ABI. Leave page entries
  * null so every access passes through the System 16 callbacks and preserves
@@ -36,6 +34,7 @@ void m68k_system16_bus_bind(const M68kBusCallbacks *callbacks)
     if (callbacks != NULL) {
         s_callbacks = *callbacks;
     }
+    mame_recomp_m68k_set_exception_bus(ng_r16_slow, ng_w16_slow);
     m68k_system16_bus_clear_fault();
 }
 

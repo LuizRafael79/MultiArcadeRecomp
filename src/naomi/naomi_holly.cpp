@@ -256,12 +256,14 @@ bool MapleDma::runTable() {
                 g_maple_trace_requests < 64) {
                 ++g_maple_trace_requests;
                 std::fprintf(stderr,
-                             "Naomi Maple DMA #%llu descriptor=%u bus=%u header=%08x destination=%08x frame=%08x command=%02x payload_words=%u data0=%08x data1=%08x response_words=%zu response0=%08x\n",
+                             "Naomi Maple DMA #%llu descriptor=%u bus=%u header=%08x destination=%08x frame=%08x command=%02x payload_words=%u data0=%08x data1=%08x data2=%08x data3=%08x response_words=%zu response0=%08x\n",
                              static_cast<unsigned long long>(g_maple_trace_requests),
                              descriptor, bus, header, destination, maple_frame,
                              maple_frame & 0xffu, (maple_frame >> 24) & 0xffu,
                              request.size() > 1 ? request[1] : 0u,
                              request.size() > 2 ? request[2] : 0u,
+                             request.size() > 3 ? request[3] : 0u,
+                             request.size() > 4 ? request[4] : 0u,
                              response.size(), response.empty() ? 0u : response[0]);
             }
             if (std::getenv("MAMERECOMP_NAOMI_TRACE_MAPLE") &&
@@ -269,12 +271,14 @@ bool MapleDma::runTable() {
                 g_maple_post_firmware_trace_requests < 64) {
                 ++g_maple_post_firmware_trace_requests;
                 std::fprintf(stderr,
-                             "Naomi Maple post-firmware #%llu descriptor=%u bus=%u destination=%08x frame=%08x command=%02x payload_words=%u data0=%08x data1=%08x response_words=%zu response0=%08x\n",
+                             "Naomi Maple post-firmware #%llu descriptor=%u bus=%u destination=%08x frame=%08x command=%02x payload_words=%u data0=%08x data1=%08x data2=%08x data3=%08x response_words=%zu response0=%08x\n",
                              static_cast<unsigned long long>(g_maple_post_firmware_trace_requests),
                              descriptor, bus, destination, maple_frame,
                              maple_frame & 0xffu, (maple_frame >> 24) & 0xffu,
                              request.size() > 1 ? request[1] : 0u,
                              request.size() > 2 ? request[2] : 0u,
+                             request.size() > 3 ? request[3] : 0u,
+                             request.size() > 4 ? request[4] : 0u,
                              response.size(), response.empty() ? 0u : response[0]);
             }
             if (std::getenv("MAMERECOMP_NAOMI_TRACE_MAPLE") &&

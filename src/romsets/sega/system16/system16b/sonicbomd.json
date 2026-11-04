@@ -1,0 +1,218 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "sonicbomd",
+  "gamename": "Sonic Boom (bootleg of FD1094 317-0053 set)",
+  "parent": "sonicbom",
+  "romof": "sonicbom",
+  "mame": {
+    "name": "sonicbomd",
+    "description": "Sonic Boom (bootleg of FD1094 317-0053 set)",
+    "cloneof": "sonicbom",
+    "romof": "sonicbom",
+    "year": "1987",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "bootleg_epr-11342.a4",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "089158ef",
+          "sha1": "25c2685a39a0341dcb59f55dd0b5c7a7b8ee70d4"
+        },
+        {
+          "file": "bootleg_epr-11340.a1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "253cbd27",
+          "sha1": "72dd84ce85fe651747477153b0bbaa870d3166f8"
+        },
+        {
+          "file": "epr-11343.a5",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "edfeb7d4",
+          "sha1": "0f703e028f9ca9f3c4f5563f3c65ec9b938074a5",
+          "merge": "epr-11343.a5"
+        },
+        {
+          "file": "epr-11341.a2",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "0338f771",
+          "sha1": "a1a2928eb3f9826733bad54bbf17f622d9307285",
+          "merge": "epr-11341.a2"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "opr-11344.b9",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "59a9f940",
+          "sha1": "b1c13cfa9609a22cbe047ee39681ccf8d0b3cf9c",
+          "merge": "opr-11344.b9"
+        },
+        {
+          "file": "opr-11345.b10",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "b44c068b",
+          "sha1": "05e875dc418aef12fc48d1df44f680249f6952de",
+          "merge": "opr-11345.b10"
+        },
+        {
+          "file": "opr-11346.b11",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "e5ada66c",
+          "sha1": "7e8e34ea909848d0d1b1fcccf628bf9ec169ae9b",
+          "merge": "opr-11346.b11"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "opr-11350.b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "525ba1df",
+          "sha1": "e35487c8bf4009a767e54258d9a55056d13ba02a",
+          "merge": "opr-11350.b1"
+        },
+        {
+          "file": "opr-11354.b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "793fa3ac",
+          "sha1": "14d5a71667b4745d5b556cc15334dd9bff8de93f",
+          "merge": "opr-11354.b5"
+        },
+        {
+          "file": "opr-11351.b2",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "63b1f1ca",
+          "sha1": "1f19a3af099d4a6ad196968b0a3c17a11384e474",
+          "merge": "opr-11351.b2"
+        },
+        {
+          "file": "opr-11355.b6",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "fe0fa332",
+          "sha1": "15ea820f87399e35b798969d3800614701a61161",
+          "merge": "opr-11355.b6"
+        },
+        {
+          "file": "opr-11352.b3",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "047fa4b0",
+          "sha1": "d6c6f920a71db7734000cb64f3001145c4e05c6e",
+          "merge": "opr-11352.b3"
+        },
+        {
+          "file": "opr-11356.b7",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "aea3c39d",
+          "sha1": "2a4f01463b3f29c8d6858c3e99ef70ac548598b4",
+          "merge": "opr-11356.b7"
+        },
+        {
+          "file": "opr-11353.b4",
+          "size": 65536,
+          "offset": 393217,
+          "status": "good",
+          "optional": false,
+          "crc32": "4e0791f8",
+          "sha1": "3278bfd478a2fdbcf2d641268c9ca4ccd5a5bd2f",
+          "merge": "opr-11353.b4"
+        },
+        {
+          "file": "opr-11357.b8",
+          "size": 65536,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "a7c5ea41",
+          "sha1": "405e6ebd2cff22179de70fd31fae5ff967fbaf63",
+          "merge": "opr-11357.b8"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-11347.a7",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b41f0ced",
+          "sha1": "946b58c0f5b4541fac93add065916319302fe5e0",
+          "merge": "epr-11347.a7"
+        },
+        {
+          "file": "epr-11348.a8",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "89924588",
+          "sha1": "9b97da0f562c5faaf12e0f3f8943cdb4fe7a9d24",
+          "merge": "epr-11348.a8"
+        },
+        {
+          "file": "epr-11349.a9",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "8e4b6204",
+          "sha1": "ec0a2812b4726b5ff236f2fbb63fd2dd13cf4935",
+          "merge": "epr-11349.a9"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

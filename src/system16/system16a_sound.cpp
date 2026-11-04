@@ -30,7 +30,12 @@ System16ASound::System16ASound(std::span<const std::uint8_t> sound_rom,
     : m_rom(sound_rom.begin(), sound_rom.end()),
       m_upd7751_rom(upd7751_rom.begin(), upd7751_rom.end()),
       m_upd7751_data(upd7751_data.begin(), upd7751_data.end()),
-      m_ym2151(*this), m_stereo_spread(stereo_spread), m_master_volume(std::min<std::uint8_t>(master_volume, 100)) {
+      m_z80_bus([this](std::uint16_t address) { return memory_read(address); },
+          [this](std::uint16_t address, std::uint8_t value) { memory_write(address, value); },
+          [this](std::uint16_t port) { return port_read(static_cast<std::uint8_t>(port)); },
+          [this](std::uint16_t port, std::uint8_t value) { port_write(static_cast<std::uint8_t>(port), value); }),
+      m_cpu(m_z80_bus), m_ym2151(*this), m_stereo_spread(stereo_spread),
+      m_master_volume(std::min<std::uint8_t>(master_volume, 100)) {
     if (m_rom.size() != 0x8000) {
         throw std::invalid_argument("System 16A sound CPU ROM must be exactly 0x8000 bytes");
     }
@@ -38,12 +43,7 @@ System16ASound::System16ASound(std::span<const std::uint8_t> sound_rom,
         throw std::invalid_argument("System 16A uPD7751 ROM regions have invalid sizes");
     }
 
-    z80_init(&m_cpu);
-    m_cpu.userdata = this;
-    m_cpu.read_byte = &System16ASound::read_memory;
-    m_cpu.write_byte = &System16ASound::write_memory;
-    m_cpu.port_in = &System16ASound::read_port;
-    m_cpu.port_out = &System16ASound::write_port;
+    m_cpu.Reset();
     m_ym2151.reset();
 
     Mcs48::Bus upd_bus;
@@ -94,22 +94,6 @@ System16ASound::~System16ASound() {
 #endif
 }
 
-std::uint8_t System16ASound::read_memory(void* userdata, std::uint16_t address) {
-    return static_cast<System16ASound*>(userdata)->memory_read(address);
-}
-
-void System16ASound::write_memory(void* userdata, std::uint16_t address, std::uint8_t value) {
-    static_cast<System16ASound*>(userdata)->memory_write(address, value);
-}
-
-std::uint8_t System16ASound::read_port(z80* cpu, std::uint8_t port) {
-    return static_cast<System16ASound*>(cpu->userdata)->port_read(port);
-}
-
-void System16ASound::write_port(z80* cpu, std::uint8_t port, std::uint8_t value) {
-    static_cast<System16ASound*>(cpu->userdata)->port_write(port, value);
-}
-
 std::uint8_t System16ASound::memory_read(std::uint16_t address) {
     if (address < 0x8000) return m_rom[address];
     if (address == 0xe800) return read_sound_latch();
@@ -124,7 +108,7 @@ void System16ASound::memory_write(std::uint16_t address, std::uint8_t value) {
 std::uint8_t System16ASound::port_read(std::uint8_t port) {
     const std::uint8_t page = port & 0xc0U;
     if (page == 0x00U) {
-        synchronize_ym2151(m_cpu.cyc);
+        synchronize_ym2151(m_cpu.BusCallbackCycles());
         return (port & 1U) ? m_ym2151.read(1) : 0xff;
     }
     if (page == 0xc0U) return read_sound_latch();
@@ -134,7 +118,7 @@ std::uint8_t System16ASound::port_read(std::uint8_t port) {
 void System16ASound::port_write(std::uint8_t port, std::uint8_t value) {
     const std::uint8_t page = port & 0xc0U;
     if (page == 0x00U) {
-        synchronize_ym2151(m_cpu.cyc);
+        synchronize_ym2151(m_cpu.BusCallbackCycles());
         std::uint8_t chip_value = value;
         if ((port & 1U) == 0) {
             m_ym2151_address = value;
@@ -176,11 +160,11 @@ void System16ASound::port_write(std::uint8_t port, std::uint8_t value) {
 
 void System16ASound::advance_to_main_cycles(std::uint64_t main_cycles) {
     const auto target = main_cycles_to_sound_cycles(main_cycles);
-    while (m_cpu.cyc < target) {
-        z80_step(&m_cpu);
+    while (m_cpu.cycles < target) {
+        m_cpu.cycles += m_cpu.Step();
         ++m_z80_instructions;
-        advance_upd7751_to_sound_cycles(m_cpu.cyc);
-        synchronize_ym2151(m_cpu.cyc);
+        advance_upd7751_to_sound_cycles(m_cpu.cycles);
+        synchronize_ym2151(m_cpu.cycles);
     }
     advance_upd7751_to_sound_cycles(target);
     synchronize_ym2151(target);
@@ -259,7 +243,7 @@ void System16ASound::advance_upd7751_to_sound_cycles(std::uint64_t z80_cycles) {
 
 void System16ASound::set_nmi_line(bool asserted) {
     if (asserted && !m_nmi_line_asserted) {
-        z80_gen_nmi(&m_cpu);
+        m_cpu.RaiseNmi();
         ++m_nmi_edges;
     }
     m_nmi_line_asserted = asserted;

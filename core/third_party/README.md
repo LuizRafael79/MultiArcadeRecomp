@@ -10,3 +10,7 @@ the dependency. Do not merge upstream license texts into a single file or imply
 that all vendored code has the same license.
 
 Build outputs and generated game code belong under `build/`, not here.
+
+The MAME SH-4 vector/approximation FPU algorithm port lives in
+`mame-sh4-fpu/`; its MIT attribution and upstream revision are recorded in
+that directory.

@@ -17,7 +17,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--system", required=True,
-        choices=("system16", "system16a", "system16b", "system18", "cps1", "cps2", "neogeo"),
+        choices=("system16", "system16a", "system16b", "system18", "cps1", "cps2", "neogeo", "ki"),
     )
     parser.add_argument("--game", required=True, help="game/set short name, such as kof98, dino, or sfa2")
     parser.add_argument("--rom-dir", type=Path, help="ROM set directory or zip for the selected backend")
@@ -30,12 +30,19 @@ def main() -> int:
         command = [sys.executable, str(ROOT / "tools/neogeo/build_kof98_prototype.py"),
                    "--jobs", str(args.jobs), *backend_args]
     elif args.system in {"cps1", "cps2"}:
-        backend = ROOT / "tools" / args.system / "build.py"
+        backend_root = ROOT / "tools" / "generators" if args.system == "cps1" else ROOT / "tools"
+        backend = backend_root / args.system / "build.py"
         command = [sys.executable, str(backend), "--game", args.game, "--jobs", str(args.jobs)]
         if args.rom_dir:
             command.extend(["--rom-dir", str(args.rom_dir)])
         if args.source_dir:
             command.extend(["--source-dir", str(args.source_dir)])
+        command.extend(backend_args)
+    elif args.system == "ki":
+        command = [sys.executable, str(ROOT / "tools/ki/build.py"),
+                   "--game", args.game, "--jobs", str(args.jobs)]
+        if args.rom_dir:
+            command.extend(["--rom-dir", str(args.rom_dir)])
         command.extend(backend_args)
     elif args.system in {"system16", "system16a", "system16b", "system18"}:
         parser.error(

@@ -1,0 +1,259 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "aceattaca",
+  "gamename": "Ace Attacker (Japan, System 16A, FD1094 317-0060)",
+  "parent": "aceattac",
+  "romof": "aceattac",
+  "mame": {
+    "name": "aceattaca",
+    "description": "Ace Attacker (Japan, System 16A, FD1094 317-0060)",
+    "cloneof": "aceattac",
+    "romof": "aceattac",
+    "year": "1988",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "aceattaca_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-11573.43",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ca116367",
+          "sha1": "ca09b01568dafec48354072267accb73a97a670f"
+        },
+        {
+          "file": "epr-11571.26",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "5631d1d6",
+          "sha1": "08a2d375e3e4caf392cf2da2dc5497fd1142ab15"
+        },
+        {
+          "file": "epr-11574.42",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "8d3ed7bd",
+          "sha1": "0cb947a796071b0b787638a85fce39135ad8d3cb"
+        },
+        {
+          "file": "epr-11572.25",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "35c27c25",
+          "sha1": "ac983db30edb4c4b71f04359cd22c663940435f5"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0060.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f4ee940f",
+          "sha1": "13cca3f19bd9761d484185a3476bec3c8c18efcf"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "epr-11575.95",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "bab9fbf3",
+          "sha1": "53d78dfc003e04730c7679c830cc086cbf3e3548"
+        },
+        {
+          "file": "epr-11576.94",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "067ed682",
+          "sha1": "13e2e1f812e5a3994a0f1d35eb210881645e74cd"
+        },
+        {
+          "file": "epr-11577.93",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "f67cf331",
+          "sha1": "457b9e618dfa678ae374cdeb25488af3de2e8949"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-11501.10",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "09179ead",
+          "sha1": "3e6bf04e1e9ea867d087a47ff04ad0a064a8e299",
+          "merge": "epr-11501.b1"
+        },
+        {
+          "file": "epr-11505.11",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b67f1ecf",
+          "sha1": "3a26cdf91e5a1a11c1a8857e713a9e00cc1bfce0",
+          "merge": "epr-11505.b5"
+        },
+        {
+          "file": "epr-11502.17",
+          "size": 65536,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "7464bae4",
+          "sha1": "c6b6ca240cee72e7fbd17bad5ca2d5cfe8e835c6",
+          "merge": "epr-11502.b2"
+        },
+        {
+          "file": "epr-11506.18",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "b0104def",
+          "sha1": "c81a66ec3a600c1d4c5d058caef15936c59b2574",
+          "merge": "epr-11506.b6"
+        },
+        {
+          "file": "epr-11503.23",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "344c0692",
+          "sha1": "3125701f6bb91d8f64515e214b571e169c30a444",
+          "merge": "epr-11503.b3"
+        },
+        {
+          "file": "epr-11507.24",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "a2af710a",
+          "sha1": "1c8b75b72797146c2eb788511f8cb1b367fc3e0d",
+          "merge": "epr-11507.b7"
+        },
+        {
+          "file": "epr-11504.29",
+          "size": 65536,
+          "offset": 196609,
+          "status": "good",
+          "optional": false,
+          "crc32": "42b4a5f8",
+          "sha1": "efb7beee7b45023861711f56b7cc907400cb266e",
+          "merge": "epr-11504.b4"
+        },
+        {
+          "file": "epr-11508.30",
+          "size": 65536,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "5cbb833c",
+          "sha1": "dc7041b6a4fa75d050bfc2176d0f9e242b55a0b8",
+          "merge": "epr-11508.b8"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-11578.12",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "3d58e39a",
+          "sha1": "3e3591ac96903376698cf95d1b1a5f5db590db3c"
+        }
+      ]
+    },
+    "upd7751": {
+      "roms": [
+        {
+          "file": "7751.bin",
+          "size": 1024,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6a9534fc",
+          "sha1": "67ad94674db5c2aab75785668f610f6f4eccd158"
+        }
+      ]
+    },
+    "upd7751data": {
+      "roms": [
+        {
+          "file": "epr-11579.1",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "1a994135",
+          "sha1": "f42444521a878d32b189876f8854f6363e1b353b"
+        },
+        {
+          "file": "epr-11580.2",
+          "size": 32768,
+          "offset": 32768,
+          "status": "good",
+          "optional": false,
+          "crc32": "961646ed",
+          "sha1": "4c8f87a10ffd7035145dedba86deb373368b0e49"
+        },
+        {
+          "file": "epr-11581.4",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "d271a6e5",
+          "sha1": "de303f70abfa28e599e5eb0c2b314f43faa1b484"
+        },
+        {
+          "file": "epr-11582.5",
+          "size": 32768,
+          "offset": 98304,
+          "status": "good",
+          "optional": false,
+          "crc32": "bcbe3d8a",
+          "sha1": "2e4bb0ebffdd594b192c5b854ea425029d92fdb1"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

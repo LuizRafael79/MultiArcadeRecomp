@@ -252,13 +252,17 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--list", default=None)
     ap.add_argument("--opcodes", default=None, help="the program as opcode reads see it, where they decipher it another way")
+    ap.add_argument("--data", default=None, help="the program as ordinary data/operand reads see it, where those differ from the ROM image")
     ap.add_argument("--symbol-prefix", default="", help="prefix generated routine and table symbols when combining images")
     ap.add_argument("--precise-cycle-yield", action="store_true",
                     help="yield at instruction boundaries to respect device deadlines and interrupts")
     args = ap.parse_args()
 
-    mem = open(args.program, "rb").read()
-    ops = open(args.opcodes, "rb").read() if args.opcodes else mem
+    program = open(args.program, "rb").read()
+    mem = open(args.data, "rb").read() if args.data else program
+    ops = open(args.opcodes, "rb").read() if args.opcodes else program
+    if len(mem) != len(program) or len(ops) != len(program):
+        ap.error("--program, --opcodes and --data images must have equal lengths")
     entries = [0x0000, 0x0038]  # reset; the interrupt (mode 1)
     if args.entries and os.path.exists(args.entries):
         for line in open(args.entries):

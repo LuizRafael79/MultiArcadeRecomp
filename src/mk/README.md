@@ -24,6 +24,14 @@ module; the source links and license text are recorded in
 See [`RUNTIME_PORT.md`](RUNTIME_PORT.md) for the MAME-to-MameRecomp source map,
 CPU/runtime ownership boundaries and explicit remaining port work.
 
+## TMS AOT optimization hypothesis
+
+- [ ] Investigate whether the UltraCombo ADSP translator's larger generated
+  chunks and internal label dispatch can improve the TMS34010 recompilers.
+  Measure dispatch overhead and preserve TMS PC/opcode validation, mutable-code
+  invalidation, and interrupt/DMA boundaries. This is an unverified hypothesis;
+  the ADSP result does not establish that the same change is correct for TMS.
+
 ## Runtime coverage
 
 - TMS34010 bit-addressed maps for program mirrors, work RAM, VRAM, CMOS,
@@ -33,6 +41,10 @@ CPU/runtime ownership boundaries and explicit remaining port work.
 - T-Unit VRAM bank selection, xRGB555 palette RAM, one-shot CMOS write enable,
   graphics bank selection, MK's protection sequence and the main sound-command
   latch/status behavior.
+- Separate MK1/MK2 graphics-ROM profiles. MAME's `mk2()` enables
+  `set_gfx_rom_large(true)`: MK2 control bit 7 selects the 8 MiB graphics bank,
+  and its DMA source addresses are decoded without the normal T-Unit
+  `0x02000000` window-base subtraction. MK1 keeps the normal profile.
 - Initial graphics DMA implementation for the command's 1–8 bpp data modes,
   flips, clipping, skip headers and fixed-point scaling, based on MAME's
   `dma_draw` path. DMA busy time now follows MAME's 41 ns per output pixel,

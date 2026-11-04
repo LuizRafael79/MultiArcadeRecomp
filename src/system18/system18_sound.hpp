@@ -1,9 +1,7 @@
 #pragma once
 
+#include "callback_bus.hpp"
 #include "ymfm_opn.h"
-extern "C" {
-#include "z80.h"
-}
 
 #include <array>
 #include <cstdint>
@@ -28,7 +26,7 @@ public:
     void set_sound_reply_callback(std::function<void(std::uint8_t)> callback) {
         m_sound_reply_callback = std::move(callback);
     }
-    std::uint64_t z80_cycles() const { return m_cpu.cyc; }
+    std::uint64_t z80_cycles() const { return m_cpu.cycles; }
     std::uint64_t ym_writes(unsigned chip) const { return m_ym_writes[chip & 1U]; }
     std::uint64_t pcm_memory_writes() const { return m_pcm_memory_writes; }
     std::uint8_t pcm_enabled_channels() const { return m_pcm_enabled_channels; }
@@ -50,10 +48,6 @@ private:
         unsigned m_chip;
     };
 
-    static std::uint8_t read_memory(void*, std::uint16_t);
-    static void write_memory(void*, std::uint16_t, std::uint8_t);
-    static std::uint8_t read_port(z80*, std::uint8_t);
-    static void write_port(z80*, std::uint8_t, std::uint8_t);
     std::uint8_t memory_read(std::uint16_t);
     void memory_write(std::uint16_t, std::uint8_t);
     std::uint8_t port_read(std::uint8_t);
@@ -73,7 +67,8 @@ private:
         bool enabled = false;
     };
     std::array<PcmChannel, 8> m_pcm_channels{};
-    z80 m_cpu{};
+    z80::CallbackBus m_z80_bus;
+    z80::Z80 m_cpu;
     YmInterface m_ym_interface0;
     YmInterface m_ym_interface1;
     ymfm::ym3438 m_ym0;

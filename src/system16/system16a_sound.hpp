@@ -1,10 +1,8 @@
 #pragma once
 
 #include "mcs48.hpp"
+#include "callback_bus.hpp"
 #include "ymfm_opm.h"
-extern "C" {
-#include "z80.h"
-}
 
 #include <array>
 #include <cstdint>
@@ -33,7 +31,7 @@ public:
     std::uint8_t read_sound_latch();
     void set_latch_read_callback(std::function<void()> callback) { m_latch_read_callback = std::move(callback); }
 
-    std::uint64_t z80_cycles() const { return m_cpu.cyc; }
+    std::uint64_t z80_cycles() const { return m_cpu.cycles; }
     std::uint64_t z80_instructions() const { return m_z80_instructions; }
     std::uint64_t ym2151_writes() const { return m_ym2151_writes; }
     std::uint64_t ym2151_key_ons() const { return m_ym2151_key_ons; }
@@ -56,11 +54,6 @@ public:
     std::uint32_t active_voice_count() const;
 
 private:
-    static std::uint8_t read_memory(void* userdata, std::uint16_t address);
-    static void write_memory(void* userdata, std::uint16_t address, std::uint8_t value);
-    static std::uint8_t read_port(z80* cpu, std::uint8_t port);
-    static void write_port(z80* cpu, std::uint8_t port, std::uint8_t value);
-
     std::uint8_t memory_read(std::uint16_t address);
     void memory_write(std::uint16_t address, std::uint8_t value);
     std::uint8_t port_read(std::uint8_t port);
@@ -83,7 +76,8 @@ private:
     std::vector<std::uint8_t> m_upd7751_rom;
     std::vector<std::uint8_t> m_upd7751_data;
     std::array<std::uint8_t, 0x800> m_ram{};
-    z80 m_cpu{};
+    z80::CallbackBus m_z80_bus;
+    z80::Z80 m_cpu;
     std::unique_ptr<Mcs48> m_upd7751;
     ymfm::ym2151 m_ym2151;
     std::uint8_t m_sound_latch = 0xff;

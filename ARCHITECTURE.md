@@ -5,10 +5,9 @@ This document records the current implementation direction. It is intentionally 
 ## Shared implementation layout
 
 Reusable execution engines and chip models live under `core/`, independently
-of any board. The intended shared CPU set is `core/cpus/m68000/`,
+of any board. The shared CPU set is `core/cpus/m68000/`,
 `core/cpus/z80/`, and `core/cpus/mcs48/`; reusable chip models live in
-`core/chips/`. Imported sources remain isolated by upstream under
-`core/third_party/`.
+`core/chips/`. Imported sources remain grouped under `core/third_party/`.
 
 Each board module under `src/` selects only the shared CPUs and chips it needs,
 then implements its own memory map, timing, interrupts, device wiring, video
@@ -16,18 +15,17 @@ register interpretation, and game/board quirks. CPS1, Neo Geo, System 16, and
 System 18 must not copy or depend on one another's board implementation merely
 because they share a CPU family or imported ABI.
 
-There is one intended 68000 decode/discovery/emission frontend for all boards.
-The current tree is still transitional: CPS1 and the generated board modules
-use the imported `m68krecomp_frontend`, while the System 16 executable still
-uses the earlier partial decoder in `core/cpus/m68000/m68k.cpp`. Consolidating
-that route onto the shared frontend is required before claiming a single
-68000 recompilation pipeline. Musashi remains the interpreter fallback and
-reference while native instruction coverage is incomplete.
+There is one 68000 decode/discovery/emission frontend for all boards:
+`m68krecomp_frontend`. The prototype-only local decoder and its `translate`
+command have been removed. Board modules keep their own bus adapters,
+interrupts, timing, and device maps. Musashi remains the interpreter fallback
+for instructions the recompiler does not yet cover, including code reached at
+runtime in RAM; do not remove it until that coverage exists elsewhere.
 
 ## Execution model
 
 - **Motorola 68000:** translate guest instructions into native C, then compile that generated C with the host compiler. The board runtime supplies the System 16 address map, interrupt timing, and peripheral behavior.
-- **Zilog Z80:** use one shared CPU implementation and native AOT recompiler across boards. Per-game ROMs produce separate generated tables; board adapters provide memory/I/O maps, banking, interrupts, clock conversion, and device scheduling. Do not fork CPU implementations by board (for example, `cps1_z80` or `system16_z80`). Existing System 16A/B and System 18 sound paths still use the older interpreter and are migration work; CPS1/Neo Geo currently exercise the shared AOT path.
+- **Zilog Z80:** use one shared CPU implementation and native AOT recompiler across boards. Its interpreter remains the required fallback for uncovered instructions and runtime code. Per-game ROMs produce separate generated tables; board adapters provide memory/I/O maps, banking, interrupts, clock conversion, and device scheduling. Do not fork CPU implementations by board (for example, `cps1_z80` or `system16_z80`). System 16A/B and System 18 now link the shared Z80 interpreter engine; generated AOT tables are not yet connected to those sound modules.
 - **NEC uPD7751 / MCS-48 family:** model the chip's board interface and timing. If recompilation becomes useful, investigate a reusable MCS-48-family translator rather than a uPD7751-only translator. Confirm the exact embedded core, instruction subset, and chip-specific memory/I/O behavior first.
 - **Video tile/sprite hardware:** interpret the board's video RAM, registers, graphics ROM formats, and composition rules in a software model. Keep guest timing renderer-backend-neutral; the indexed CPU framebuffer remains the reference for GPU parity.
 - **FM synthesis:** interpret register writes and chip clocks in an accurate synthesizer core. An FM chip consumes register commands and advances operators/envelopes/phase; it does not execute a CPU instruction stream, so a CPU-style recompilation is not applicable. If profiling justifies it, specialize or JIT portions of the synthesis model as a separate optimization.
@@ -48,13 +46,13 @@ Initial models now exist for all three 16B ASICs. The 315-5197 has separate CPU 
 
 ## Board modules and game packages
 
-The prototype builds `mamerecomp_system16a.so`, `mamerecomp_system16b.so`, and `mamerecomp_system18.so` with a versioned module ABI and per-profile generated-code table selection. The host loads only the module matching the selected board family; ROM sets remain ordinary ZIP files passed to `run-full`. The generated C tables are in those modules, but board video/audio/bus behavior still lives in the host and must be moved behind the module ABI in a later step. The common 68000/bus runtime is currently `libmamerecomp_core.so`; the planned name is `mamerecomp_68k.so`. A game package such as `.mrom` with exact ROM bytes plus a versioned manifest (set ID, region placement/stride, lengths, CRCs and SHA-256 hashes) is deferred. A future repacker can import and validate the original ZIP and write a compressed XZ/LZMA container; never bake ROM bytes into a shared library.
+The intended runtime shape is a small executable/dispatcher loading a board module and a per-game AOT module. The board module owns its bus, timing, interrupts, video, sound, and device wiring. A game module contains only that title's translated routines, dispatch tables, and metadata; it links to the board and shared CPU/chip libraries it needs. The executable selects both modules using the game profile. ROM images remain external inputs, and no module embeds ROM bytes. System 16/18 currently put generated tables for several games inside `mamerecomp_system16a.so`, `mamerecomp_system16b.so`, or `mamerecomp_system18.so`; those tables need extraction into per-game modules, and much of the board runtime still lives in the `mamerecomp` host. CPS-1 now has distinct `libmamerecomp_cps1.so` board runtime and `libmamerecomp_game_<id>.so` AOT module, with `mamerecomp_<game>` as a small runner. Shared CPU runtime libraries are `libmamerecomp_cpu_m68000.so` and `libmamerecomp_cpu_z80.so`; board/game modules link the same runtime instance rather than carrying private CPU state. Neo Geo still builds as `kof98recomp` with a statically linked `neogeorecomp_runtime`; that board runtime needs to move into a loadable board module. A game package such as `.mrom` with exact ROM bytes plus a versioned manifest (set ID, region placement/stride, lengths, CRCs and SHA-256 hashes) is deferred. Never bake ROM images into a shared library.
 
 ## Multi-game and multi-board structure
 
 The target is a reusable 68000 recompilation core with board/game profiles, not a separate CPU translator for every title. Keep these boundaries explicit as coverage grows:
 
-Generated 68000 code is produced from a set's program ROM during the development/build pipeline; the game runtime does not recompile ROMs while launching. Keep the generated dispatch table per game (for example, a small mamerecomp_game_shdancer.so) so adding a title rebuilds only its code package and does not inflate a board library with every game's translated instructions. Keep the board package separate: it selects the map, timing, and device graph for that hardware. Device libraries are per chip, independently built and loaded only when the chosen board needs them. The 315-5195 model is now extracted to `core/chips/315_5195/` and builds as `libmamerecomp_chip_3155195.so`; System 16B currently links it as a normal dependency, so runtime `dlopen` on demand still requires a stable device ABI. The generic 68000 runtime remains reusable across all sets. The current transition still groups game tables in board-family modules; moving them into per-game modules is planned. Split generated C into multiple translation units to bound compiler memory.
+Generated 68000 code is produced from a set's program ROM during the development/build pipeline; the game runtime does not recompile ROMs while launching. Package one title per AOT module so adding a title does not rebuild or enlarge a board module. The dispatcher opens the matching board and game modules and passes the game table to the shared CPU runtime. Build each CPU family once as a shared runtime library; share one instance of CPU state/helpers across the board and AOT modules. Device models belong under `core/chips/` and should be shared similarly where their API is stable. The 315-5195 model is extracted to `core/chips/315_5195/`; its current shared library is linked by the host, and a stable device ABI is still needed before on-demand loading. Split generated C into multiple translation units to bound compiler memory.
 
 1. **CPU translation/runtime:** instruction decoding, generated native C, 68000 architectural state, and generic exception mechanics. Reuse this across boards using a compatible 68000 variant; model CPU-specific protection or encryption as a separate layer.
 2. **Board profile:** clocks, address map, ROM/RAM regions, interrupt sources, input/DIP wiring, and device connections. A title profile selects a board profile and supplies that game's ROM layout and configuration.
@@ -65,7 +63,7 @@ Generated 68000 code is produced from a set's program ROM during the development
 
 System 18 has separate profiles/tables in the `mamerecomp_system18.so` package for `shdancer` and the decrypted bootleg `mwalkd`. `System18AddressSpace` selects board-specific MAME wiring: 171-SHADOW leaves region 2 unused and maps the VDP through region 1, while 171-5874 maps the VDP through region 2 and leaves the 512 KiB bootleg's ROM bank 1 empty. Both mirror the VDP at `0xC00000–0xDFFFFF` and keep tile/text RAM windows separate. The interpreted 315-5313 feeds the System 18 compositor at four `vdp_mixing` insertion points; its current Mode 5 scanline renderer covers Plane A/B, Window, and basic linked-list sprites. Shadow Dancer leaves its VDP disabled in observed scenes, while MAME activates it in Moonwalker attract mode; active `mwalkd` output in MameRecomp remains unverified because its 8 MHz I8751 firmware is only validated by an explicit stub, not yet interpreted. Do not link or load the complete System 16B board module as a runtime dependency. Where MAME confirms identical ASICs, split their model into chip-specific libraries (315-5196 sprite generator and 315-5197 tile generator) and keep their APIs/state independent. The generic 68000 translator/runtime and host infrastructure remain common.
 
-System 18 audio has its own `System18Sound`: interpreted 8 MHz Z80, 315-5195 PBF command/reply latch, 8 MHz dual YM3438 chips through YMFM OPN, and an initial RF5C68 model with 8 PCM voices and 64 KiB sample RAM. The YM1 timer IRQ is routed to Z80 IRQ0 and the board's sound-command latch pulses Z80 NMI. The sound map follows MAME's fixed/banked ROM, `0xC000–0xDFFF` RF5C68 window, `0xE000–0xFFFF` RAM, and `0x80/0x90/0xA0/0xC0` ports. Mixer timing is still a first pass and must be checked against actual gameplay audio.
+System 18 audio has its own `System18Sound`: the shared interpreter runs the 8 MHz Z80, with the 315-5195 PBF command/reply latch, dual 8 MHz YM3438 chips through YMFM OPN, and an initial RF5C68 model with 8 PCM voices and 64 KiB sample RAM. The YM1 timer IRQ is routed to Z80 IRQ0 and the board's sound-command latch pulses Z80 NMI. The sound map follows MAME's fixed/banked ROM, `0xC000–0xDFFF` RF5C68 window, `0xE000–0xFFFF` RAM, and `0x80/0x90/0xA0/0xC0` ports. Mixer timing is still a first pass and must be checked against actual gameplay audio.
 
 Board packages are responsible for clocks, address maps, interrupts, and physical connections between chip interfaces. Load device libraries on demand from the selected board package; do not load every board family's devices.
 

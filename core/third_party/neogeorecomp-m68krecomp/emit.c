@@ -92,6 +92,7 @@ static void exit_to(FILE *o, uint32_t pc) { fprintf(o, "CPU.pc = 0x%06Xu; return
 
 /* An internal branch is also a scheduler boundary when an event is due. */
 static void branch(FILE *o, const rc_ctx_t *ctx, uint32_t target) {
+    if (ctx->single_step) { exit_to(o, target); return; }
     if (!rc_in_routine(ctx, target)) { exit_to(o, target); return; }
     fprintf(o, "if (ng_cycles >= ng_next_event) { CPU.pc = 0x%06Xu; return; } ", target);
     fprintf(o, "goto L_%06X; ", target);

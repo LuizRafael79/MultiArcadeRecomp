@@ -20,7 +20,6 @@
 
 uint8_t *ng_rmap[256];
 uint8_t *ng_wmap[256];
-int ng_protection_active;
 
 static ng_board_t s_board;
 static uint8_t s_wram[0x10000];

@@ -1,0 +1,118 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "tetrisd",
+  "gamename": "Tetris (set 4, Japan, System 16A) (bootleg of FD1094 317-0093 set)",
+  "parent": "tetris",
+  "romof": "tetris",
+  "mame": {
+    "name": "tetrisd",
+    "description": "Tetris (set 4, Japan, System 16A) (bootleg of FD1094 317-0093 set)",
+    "cloneof": "tetris",
+    "romof": "tetris",
+    "year": "1988",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "system16a_no7751"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "bootleg_epr-12201.rom",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "0b694740",
+          "sha1": "c480e14c36f063851732d0a5985a6c744fa96062"
+        },
+        {
+          "file": "bootleg_epr-12200.rom",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "343c0670",
+          "sha1": "cc0b7eeea411d533e973e71fe3121285e24869b0"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "epr-12202.rom",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2f7da741",
+          "sha1": "51a685673b4a57a13818eca65d122230f20bd9a0",
+          "merge": "epr-12202.rom"
+        },
+        {
+          "file": "epr-12203.rom",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "a6e58ec5",
+          "sha1": "5a6c43c989768270e0ab61cfaa5ef86d4607fe20",
+          "merge": "epr-12203.rom"
+        },
+        {
+          "file": "epr-12204.rom",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "0ae98e23",
+          "sha1": "f067b81b85f9e03a6373c7c53ff52d5395b8a985",
+          "merge": "epr-12204.rom"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-12169.b1",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "dacc6165",
+          "sha1": "87b1a7643e3630ff73b2b117752496e1ea5da23d",
+          "merge": "epr-12169.b1"
+        },
+        {
+          "file": "epr-12170.b5",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "87354e42",
+          "sha1": "e7fd55aee59b51d82cb9b619fbb815ad6839560c",
+          "merge": "epr-12170.b5"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12205.rom",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6695dc99",
+          "sha1": "08123aa24c302bc9243329384bd9c2545a4d50c3",
+          "merge": "epr-12205.rom"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

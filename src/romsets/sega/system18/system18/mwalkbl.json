@@ -1,0 +1,353 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "mwalkbl",
+  "gamename": "Michael Jackson's Moonwalker (bootleg)",
+  "parent": "mwalk",
+  "romof": "mwalk",
+  "mame": {
+    "name": "mwalkbl",
+    "description": "Michael Jackson's Moonwalker (bootleg)",
+    "cloneof": "mwalk",
+    "romof": "mwalk",
+    "year": "1990",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/system16.cpp",
+    "machine_config": "mwalkbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "mwalkbl.01",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f49cdb16",
+          "sha1": "34b7e98d31c3b9db2f0f055d7b249b0e5e5cb746"
+        },
+        {
+          "file": "mwalkbl.05",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "c483f29f",
+          "sha1": "8fdfa764d8e49754844a9dc001400d439f9af9f0"
+        },
+        {
+          "file": "mwalkbl.02",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "0bde1896",
+          "sha1": "42731ae90d56918dc50c0dcb53d092dcfb957159"
+        },
+        {
+          "file": "mwalkbl.06",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "5b9fc688",
+          "sha1": "53d8143c3876548f63b392f0ea16c0e7c30a7917"
+        },
+        {
+          "file": "mwalkbl.03",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "0c5fe15c",
+          "sha1": "626e3f37f019448c3c96bf73b2d2b5fe4b3716c0"
+        },
+        {
+          "file": "mwalkbl.07",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "9e600704",
+          "sha1": "efd3d450b26f81dc2b74f44b4aaf906fa017e437"
+        },
+        {
+          "file": "mwalkbl.04",
+          "size": 65536,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "64692f79",
+          "sha1": "ad7f32997b78863e3aa3214018cdd24e3ec9c5cb"
+        },
+        {
+          "file": "mwalkbl.08",
+          "size": 65536,
+          "offset": 393217,
+          "status": "good",
+          "optional": false,
+          "crc32": "546ca530",
+          "sha1": "51f74878fdc221fee026e2e6a7ca96f290c8947f"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr13216.b1",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "862d2c03",
+          "sha1": "3c5446d702a639b62a602c6d687f9875d8450218",
+          "merge": "mpr-13216.b1"
+        },
+        {
+          "file": "mpr13217.b2",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "7d1ac3ec",
+          "sha1": "8495357304f1df135bba77ef3b96e79a883b8ff0",
+          "merge": "mpr-13217.b2"
+        },
+        {
+          "file": "mpr13218.b3",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "56d3393c",
+          "sha1": "50a2d065060692c9ecaa56046a781cb21d93e554",
+          "merge": "mpr-13218.b3"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mwb22obj.bin",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "57f533d9",
+          "sha1": "9cb4412974a86ee2f472cbdad9acf1f9d83489a6"
+        },
+        {
+          "file": "mwb29obj.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "54988614",
+          "sha1": "40c7dc8a5df48412c6d97f330c47cad6a3150542"
+        },
+        {
+          "file": "mwb20obj.bin",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "542d217a",
+          "sha1": "153c32a263d6df5254ce1a5f8c72a1803e430899"
+        },
+        {
+          "file": "mwb27obj.bin",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "f249363a",
+          "sha1": "ae52ceb67eb943fc6da9a0819a5bbd8fdddfda4b"
+        },
+        {
+          "file": "mwb18obj.bin",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "78d7410d",
+          "sha1": "d4b18fa62252960b5d1fdcc2b61fb535b6821101"
+        },
+        {
+          "file": "mwb25obj.bin",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "a8f8190f",
+          "sha1": "be9d4c61cf3f09c20354fd7a1841ae0beac4639d"
+        },
+        {
+          "file": "mwb16obj.bin",
+          "size": 131072,
+          "offset": 1572865,
+          "status": "good",
+          "optional": false,
+          "crc32": "160611d3",
+          "sha1": "c091b197635e8d35c8b605189597e5f9749ed7fb"
+        },
+        {
+          "file": "mwb23obj.bin",
+          "size": 131072,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "786f9f76",
+          "sha1": "19adc8731625ca0b53fff85cc2f9c6118ad61cf2"
+        },
+        {
+          "file": "mwb31obj.bin",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "9cf9f268",
+          "sha1": "85c6e62c4d7d2f8e6222986c049ae752f4338da8"
+        },
+        {
+          "file": "mwb30obj.bin",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "1a819d08",
+          "sha1": "cf12f3f1c964232d57d02578bf96a7e1e9438768"
+        },
+        {
+          "file": "mwb21obj.bin",
+          "size": 131072,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "bc0f0a21",
+          "sha1": "c5d28de33f520f91b15df645d28072b1b6f638a5"
+        },
+        {
+          "file": "mwb28obj.bin",
+          "size": 131072,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "12dc375b",
+          "sha1": "7958120eb6c9c5a1b8bd6ad8a8119189eab8d851"
+        },
+        {
+          "file": "mwb19obj.bin",
+          "size": 131072,
+          "offset": 1310721,
+          "status": "good",
+          "optional": false,
+          "crc32": "4e91d106",
+          "sha1": "a137f8a46d55e4f17165a2a5cb625e77132ca773"
+        },
+        {
+          "file": "mwb26obj.bin",
+          "size": 131072,
+          "offset": 1310720,
+          "status": "good",
+          "optional": false,
+          "crc32": "660d43b2",
+          "sha1": "eb4cd62642b63d0120fda6598bdc7f39c4b7a8ea"
+        },
+        {
+          "file": "mwb17obj.bin",
+          "size": 131072,
+          "offset": 1835009,
+          "status": "good",
+          "optional": false,
+          "crc32": "97353bad",
+          "sha1": "ea830478c96237a95382367bf60c765f4f6bb67e"
+        },
+        {
+          "file": "mwb24obj.bin",
+          "size": 131072,
+          "offset": 1835008,
+          "status": "good",
+          "optional": false,
+          "crc32": "a0ec7855",
+          "sha1": "f4e69eccfc3f93bd1531c4674afb1eade6ddc08c"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "mwb5snd.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f8f9817e",
+          "sha1": "e23595891cee84c5bce15021ce0643acb4520da9"
+        }
+      ]
+    },
+    "oki": {
+      "roms": [
+        {
+          "file": "mwb10snd.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "5325c4e6",
+          "sha1": "d6e3e6a34f5b8a63eece877dc8fe03f534f74cff"
+        },
+        {
+          "file": "mwb11snd.bin",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "6f2b6250",
+          "sha1": "de3b0a553a195ef9b120b768a98628837f0d0a2d"
+        },
+        {
+          "file": "mwb12snd.bin",
+          "size": 131072,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "239a4c59",
+          "sha1": "323ded2fe7c50f400c21332b1adefe2df7ba7fad"
+        },
+        {
+          "file": "mwb13snd.bin",
+          "size": 131072,
+          "offset": 327680,
+          "status": "good",
+          "optional": false,
+          "crc32": "9af67cc4",
+          "sha1": "bc9fbbea63b0c15c0f47e12c83a5aba35c6897c5"
+        },
+        {
+          "file": "mwb14snd.bin",
+          "size": 131072,
+          "offset": 458752,
+          "status": "good",
+          "optional": false,
+          "crc32": "9d8f84ad",
+          "sha1": "1e1e645dcf974edb58adc58f0ead9041bb0af0a7"
+        },
+        {
+          "file": "mwb15snd.bin",
+          "size": 131072,
+          "offset": 589824,
+          "status": "good",
+          "optional": false,
+          "crc32": "05d5abcb",
+          "sha1": "c8ac197a655c8f8fa0f4a38cbc4b7adbf256cd48"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

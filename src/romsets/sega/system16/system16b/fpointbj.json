@@ -1,0 +1,165 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "fpointbj",
+  "gamename": "Flash Point (Japan, bootleg set 1)",
+  "parent": "fpoint",
+  "romof": "fpoint",
+  "mame": {
+    "name": "fpointbj",
+    "description": "Flash Point (Japan, bootleg set 1)",
+    "cloneof": "fpoint",
+    "romof": "fpoint",
+    "year": "1989",
+    "manufacturer": "bootleg (Datsu)",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "fpointbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "boot2.003",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6c00d1b0",
+          "sha1": "fd0c47b8ca010a64d3ef91980f93854ebc98fbda"
+        },
+        {
+          "file": "boot2.002",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "c1fcd704",
+          "sha1": "697bef464e53fb9891ed15ee2d6210107b693b20"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "flpoint.006",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "c539727d",
+          "sha1": "56674effe1d273128dddd2ff9e02974ec10f3fff"
+        },
+        {
+          "file": "flpoint.005",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "82c0b8b0",
+          "sha1": "e1e2e721cb8ad53df33065582dc90edeba9c3cab"
+        },
+        {
+          "file": "flpoint.004",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "522426ae",
+          "sha1": "90fd0a19b30a8a61dc4cfa66a64115596333dcc6"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "12596.bin",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "4a4041f3",
+          "sha1": "4c52b30223d8aa80ccdbb196098cb17e64ad6583",
+          "merge": "opr-12596.b1"
+        },
+        {
+          "file": "12597.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6961e676",
+          "sha1": "7639d2da086b57a9a8d6100fdacf40d97d7c4772",
+          "merge": "opr-12597.b5"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "flpoint.001",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "c5b8e0fe",
+          "sha1": "6cf8c67151d8604326fc6dbf976c0635b452a844"
+        }
+      ]
+    },
+    "proms": {
+      "roms": [
+        {
+          "file": "82s129.1",
+          "size": 256,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a7c22d96",
+          "sha1": "160deae8053b09c09328325246598b3518c7e20b"
+        },
+        {
+          "file": "82s123.2",
+          "size": 32,
+          "offset": 256,
+          "status": "good",
+          "optional": false,
+          "crc32": "58bcf8bd",
+          "sha1": "e4d3d179b08c0f3424a6bec0f15058fb1b56f8d8"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "fpointbj_gal16v8_1.bin",
+          "size": 279,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ba7f292c",
+          "sha1": "c383700d05663c9c5f29d5d04d16b05cd6adceb8"
+        },
+        {
+          "file": "fpointbj_gal16v8_3.bin",
+          "size": 279,
+          "offset": 512,
+          "status": "good",
+          "optional": false,
+          "crc32": "ce1ab1e1",
+          "sha1": "dcfc0015d8595ee6cb6bb02c95655161a7f3b017"
+        },
+        {
+          "file": "fpointbj_gal20v8.bin",
+          "size": 413,
+          "offset": 1024,
+          "status": "nodump",
+          "optional": false
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "bloxeedbl",
+  "gamename": "Bloxeed (bootleg)",
+  "parent": "bloxeed",
+  "romof": "bloxeed",
+  "mame": {
+    "name": "bloxeedbl",
+    "description": "Bloxeed (bootleg)",
+    "cloneof": "bloxeed",
+    "romof": "bloxeed",
+    "year": "1990",
+    "manufacturer": "bootleg (Impeuropex)",
+    "sourcefile": "sega/system16.cpp",
+    "machine_config": "bloxeedbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "a",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "44dba2ae",
+          "sha1": "587ef8e966ce5cbd5046d2848cc52a8f6a958549"
+        },
+        {
+          "file": "b",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "936768c9",
+          "sha1": "30238b98e2f55d1e490ca101e307a94f48e77942"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "25.ic31",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "56256957",
+          "sha1": "75e52c48cbe3d52142679a5cd34b3b84ee9676cd"
+        }
+      ]
+    },
+    "mcu": {
+      "roms": [
+        {
+          "file": "p8749h.mcu",
+          "size": 4096,
+          "offset": 0,
+          "status": "nodump",
+          "optional": false
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "29.ic167",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "e9185a96",
+          "sha1": "f1f02a67633b19c9e9b5597c43bb2e58b001a5c8"
+        },
+        {
+          "file": "21.ic196",
+          "size": 65536,
+          "offset": 65536,
+          "status": "baddump",
+          "optional": false,
+          "crc32": "897d48b1",
+          "sha1": "38fc1b63d1ef517850bca270eeba8297869cf618"
+        },
+        {
+          "file": "28.ic166",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "d70ed8fb",
+          "sha1": "5af3714c4dfdaa7ba746938e5f29b3cbb4099c5d"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "ic168",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "90d31a8c",
+          "sha1": "1747652a5109ce65add197cf06535f2463a99fdc",
+          "merge": "opr-12891.a11"
+        },
+        {
+          "file": "ic197",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "f0c0f49d",
+          "sha1": "7ecd591265165f3149241e2ceb5059faab88360f",
+          "merge": "opr-12887.b11"
+        }
+      ]
+    },
+    "oki": {
+      "roms": [
+        {
+          "file": "21.ic2",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "daf5bb20",
+          "sha1": "99e04672a9785a143b0d472e276673b6d323fd2b"
+        },
+        {
+          "file": "22.ic3",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "16f5668e",
+          "sha1": "adb2c3a5ae40627e6110db531427a4f15211ab9b"
+        },
+        {
+          "file": "23.ic4",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "2b2c3d8b",
+          "sha1": "543f622e7139c22bc491583cbb276acfc827b5d0"
+        },
+        {
+          "file": "24.ic5",
+          "size": 131072,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "107b141b",
+          "sha1": "e3fe19b4c7ba8ff60638df17dc4ae50f42a6b024"
+        }
+      ]
+    },
+    "proms": {
+      "roms": [
+        {
+          "file": "82s129.ic32",
+          "size": 256,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b921d13f",
+          "sha1": "d9d8a1571d974fd512e66097d5d83dd69035cbcb"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "pal16l8_maincpu",
+          "size": 260,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "7f533a7b",
+          "sha1": "daf22a628bd9653432d991601031fb6b4a52ba49"
+        },
+        {
+          "file": "pal16r4.ic23",
+          "size": 260,
+          "offset": 512,
+          "status": "good",
+          "optional": false,
+          "crc32": "d1c63646",
+          "sha1": "57dc89ed6e677b0cceb104613693b055b8ce81de"
+        },
+        {
+          "file": "pal16r4.ic24",
+          "size": 260,
+          "offset": 1024,
+          "status": "good",
+          "optional": false,
+          "crc32": "3ff4774a",
+          "sha1": "161c5ca868fe26a99455cbfaae4afcba221738c9"
+        },
+        {
+          "file": "pal16l8.ic29",
+          "size": 260,
+          "offset": 1536,
+          "status": "good",
+          "optional": false,
+          "crc32": "75ab9e6d",
+          "sha1": "38ec8432d86889c999759de8a0b01dbf7a86fda3"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "mame-identified"
+  },
+  "runnable": false
+}

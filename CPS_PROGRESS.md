@@ -1,5 +1,13 @@
 # CPS-1/2 progress
 
+## Status: prototipagem
+
+`sf2ce` permanece congelado como protótipo. O usuário retomou explicitamente
+Cadillacs and Dinosaurs (`dino`) para revisar o runtime CPS1/QSound e Kabuki;
+os resultados abaixo não representam suporte completo. A CPU 68000 continua
+no frontend compartilhado atual, sem retrabalho nesta etapa. Pendências em
+[TODO.md](TODO.md).
+
 ## Separation and current state
 
 CPS builds use `tools/recompile.py --system cps1|cps2 --game ...`; generated code,
@@ -12,6 +20,64 @@ Cadillacs and Dinosaurs (`dino`) is a CPS-1 board with QSound and a Kabuki
 encrypted sound Z80. Its sound-ROM extraction, Kabuki opcode view, and native
 Z80 generation are now handled by the local CPS1 build path; the old CPS2Recomp
 board execution path is not used. Its sound path is QSound, not YM2151/OKI.
+
+### Dino runtime checkpoint (2026-11-02)
+
+The MAME `dino_decode(0x76543210, 0x24601357, 0x4343, 0x43)` keys are applied
+before translation to the fixed 0x8000-byte Z80 ROM. Generation supplies the
+decoded opcode view to instruction discovery and AOT, and the decoded data
+view for immediates/ordinary reads. The runtime Z80 bus uses those same two
+views in native execution and interpreter fallback. A 12M-cycle forced-
+interpreter comparison matched AOT's framebuffer SHA-256 and QSound writes
+(360 writes, 24,037 generated samples); the interpreter executed 792,945 Z80
+instructions, while the AOT run used 63,207 native blocks. At 600M cycles the
+native run reached the Capcom logo with 46,512,211 native 68000 instructions,
+zero Musashi instructions, 8,742,380 native Z80 blocks, zero interpreted Z80
+instructions, 1,008 QSound writes and 1,201,899 generated samples.
+
+The QSound main map now handles the MAME IN2/IN3 reads, coin control writes,
+EEPROM serial lines and the 93C46 8-bit serial storage (optional persisted
+image via `--eeprom`). The framebuffer is available in PPM and SDL window mode
+(`--window`). The EEPROM serial timing/persistence has not yet been compared
+against MAME, and the game has not been confirmed through attract/gameplay.
+
+The first post-wiring captures still showed isolated sprites on black because
+the renderer ignored the driver's `mapper_CD63B` and applied the SF2CE
+`S9263B` mapping ranges. The MAME CD63B mapper exposes two 0x8000 banks to all
+three scroll layers and sprites, with per-type address shifts. That mapping is
+now selected from the game profile. A fresh 600M-cycle capture displays the
+green background, Capcom logo and disclaimer; `video-pens` rose from 20,061 to
+215,732 in the comparable run. This fixes the missing tilemap banks, not the
+separate priority/composition concerns also seen in SF2CE. The shared
+compositor still needs pixel-level comparison with MAME for both games.
+
+### Shared sprite/tile composition follow-up (2026-11-02)
+
+The attempt to invert CPS-B priority polarity was wrong and was reverted: MAME
+passes `priority_reg ^ 0xffff` as a *transparent-pen* mask to `set_transmask`,
+so set bits in the register become opaque layer-0 pens. The user's gameplay
+capture showed the inverse made the player disappear behind the foreground.
+The normal sprite-list traversal (entry 0 forward) also matches MAME, but the
+pixel write rule was incomplete: MAME's `prio_transpen` marks each opaque
+sprite pixel with priority 31, and its implicit mask bit 31 prevents later
+objects from overwriting it. MameRecomp previously overwrote those pixels,
+which put the 1P marker behind Hannah. The CPS1 compositor now preserves the
+first opaque sprite pixel, while still honoring the preceding tilemap's high
+priority mask.
+
+An automated MAME run (one coin + 1P start + one right tap) captured the Dino
+character-select screen at frames 400 and 500. The object list is identical in
+MAME and MameRecomp at frame 500, as are `control=06d6`, order `3,2,1,0`, video
+control `000e` and priority words `0000,7e01,00ff,01ff`. With the per-pixel
+sprite priority behavior restored, the 1P marker appears over Hannah's arm as
+in MAME. References are `/tmp/dino-mame-select-0500.png` and
+`/tmp/dino-recomp-select-hannah-fixed.png`; the MAME trace helper is
+`tools/cps1/mame_dino_composition_trace.lua`. Dino gameplay and the separate
+SF2CE composition mismatch still need validation.
+
+Earlier MAME select capture frame 400 reports
+`control=06d6`, order `3,2,1,0`, video control `000e` and priority words
+`0000,7e01,00ff,01ff`; MameRecomp reports the same values.
 
 ## Street Fighter II: Champion Edition (`sf2ce`)
 
@@ -64,24 +130,38 @@ PPM capture at each VBlank. The normal build driver leaves the window off while
 the CPU/video pipeline is still being debugged. Headless runs remain the
 reference path while CPS-A/CPS-B is being completed.
 
-The local command validates/extracts the main and audio ROM regions, generates
+The CPS-1 pipeline source is `tools/generators/cps1/build.py`; `tools/recompile.py`
+dispatches to it, while the old `tools/cps1/build.py` path remains a thin
+compatibility entry point. It validates/extracts the main and audio ROM regions, generates
 an entry-reachable 68000 prototype, and statically translates the fixed Z80 program using the shared MameRecomp Z80
 recompiler (`tools/z80/recomp.py`). It does not use a CPS1Recomp/CPS2Recomp Z80
 runtime. ROM sizes and CRC32 values are checked against MAME before generation.
 
-The 68000 translator consumes the three MAME word-swapped program ROMs and
-starts from the reset PC (`0x236`). Pointer scanning is disabled in this first
-prototype because the broad scan interpreted arbitrary data as code and
-ballooned the output. The current entry-reachable result is 1,095 instructions,
-44 routines and 667 dispatch entries (about 336 KiB generated source). This is
-deliberately incomplete: it does not include RAM-resident code, dynamic entry
-discovery, or a CPS-1 runtime dispatcher. Generated files are rebuilt in place
-under `build/cps1/work/sf2ce/gen/m68k/`.
-The generated C translation is now compiled into
-`libmamerecomp_cps1_m68k_aot.a` as a build artifact. It still uses the vendored
-Neo Geo `ng_*` helper ABI and is intentionally not linked into a CPS-1 runner;
-the next 68000 integration step is to provide a board-neutral helper/bus ABI
-before connecting execution to CPS-1 memory and devices.
+The 68000 translator consumes the MAME program ROMs and starts from the reset
+PC. Pointer scanning remains disabled because broad scanning can interpret data
+as code. Dynamic entries discovered by the runner are fed into subsequent
+generation passes. Generated 68000 routines/table and the generated Z80 code
+are compiled into `libmamerecomp_game_<game>.so`, with a small game ABI adapter.
+The board runtime is `libmamerecomp_cps1.so`; both depend on shared CPU runtime
+libraries. `mamerecomp_<game>` remains a small runner that uses those modules.
+ROM bytes stay external. The CPS-1 runtime adapts the imported `ng_*` ABI
+without linking the Neo Geo board runtime. Musashi remains the fallback for
+uncovered instructions and code reached dynamically in RAM.
+
+The first full SF2CE translation emitted 82,931 instructions across 5,174
+routines and 52,090 dispatch addresses. This was excessive: `--no-pointer-scan`
+only disables a full-ROM scan, while the shared Neo Geo frontend still inferred
+code pointers from PC-relative data references and scanned indirect jump
+tables. The raw recompiler now accepts `--board cps1`; its conservative policy
+uses direct control flow and runtime-observed entry addresses. The `neogeo`
+policy keeps its indirect pointer/jump-table scans, and raw builds default to
+the conservative `generic` policy. Starting with 49 observed entries already
+in the worklist, SF2CE emitted 1,180 instructions, 51 routines and 325 dispatch
+entries. One discovery pass added observed PCs and reached 2,185 instructions,
+97 routines and 533 dispatch entries; a 12M-cycle run then had zero
+Musashi/Z80 interpreter instructions and zero uncovered ROM entries. Its
+framebuffer hash matched the previous oversized build, so reducing false code
+discovery did not itself fix the independent layer-order issue.
 
 The first run generated 1,448 Z80 instructions (2,898 bytes) in 244 blocks and
 37 routines, with zero instructions delegated to the Z80 interpreter. Sources

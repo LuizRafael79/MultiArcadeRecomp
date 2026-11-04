@@ -62,7 +62,7 @@ inline bool dag_read_data(State& state, Bus& bus, unsigned ireg,
     if (!bus.read_data16 || ireg >= 8 || mreg >= 8) return false;
     const auto address = bit_reverse && (state.mstat & mstat_reverse)
         ? dag_reverse14(state.i[ireg]) : state.i[ireg];
-    value = bus.read_data16(bus.opaque, address);
+    value = data_read(state, bus, address);
     dag_advance(state, ireg, mreg);
     return true;
 }
@@ -73,7 +73,7 @@ inline bool dag_write_data(State& state, Bus& bus, unsigned ireg,
     if (!bus.write_data16 || ireg >= 8 || mreg >= 8) return false;
     const auto address = bit_reverse && (state.mstat & mstat_reverse)
         ? dag_reverse14(state.i[ireg]) : state.i[ireg];
-    bus.write_data16(bus.opaque, address, value);
+    data_write(state, bus, address, value);
     dag_advance(state, ireg, mreg);
     return true;
 }

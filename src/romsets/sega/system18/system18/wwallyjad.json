@@ -1,0 +1,188 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "wwallyjad",
+  "gamename": "Wally wo Sagase! (rev A, Japan) (bootleg of FD1094 317-0197A set)",
+  "parent": "wwallyj",
+  "romof": "wwallyj",
+  "mame": {
+    "name": "wwallyjad",
+    "description": "Wally wo Sagase! (rev A, Japan) (bootleg of FD1094 317-0197A set)",
+    "cloneof": "wwallyj",
+    "romof": "wwallyj",
+    "year": "1992",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas18.cpp",
+    "machine_config": "wwally"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "bootleg_epr-14730a.a4",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "0d9fb6df",
+          "sha1": "ea9c6ff545e31a8269c2e23620582e95817dac60"
+        },
+        {
+          "file": "bootleg_epr-14731a.a6",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "b88c140d",
+          "sha1": "407ded758caf76644d728e046d94b464fa03ca02"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-14719.c1",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "8b58c743",
+          "sha1": "ee50baa184d68558d62d1817b2b9c138226ed25a",
+          "merge": "mpr-14719.c1"
+        },
+        {
+          "file": "mpr-14720.c2",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "f96d19f4",
+          "sha1": "e350b551db8d01062397cd9a0c952a7b5dbf3fe6",
+          "merge": "mpr-14720.c2"
+        },
+        {
+          "file": "mpr-14721.c3",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "c4ced91d",
+          "sha1": "4c8a070959ca10e2dddf407ddbba212415d78727",
+          "merge": "mpr-14721.c3"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-14726.c10",
+          "size": 1048576,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "7213d1d3",
+          "sha1": "b70346a1dd3aa112bc696a7f4dd9ca908c3e5afa",
+          "merge": "mpr-14726.c10"
+        },
+        {
+          "file": "mpr-14732.a10",
+          "size": 1048576,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "04ced549",
+          "sha1": "59fd6510f0e14613d830ac6527f12ccc0b9351a5",
+          "merge": "mpr-14732.a10"
+        },
+        {
+          "file": "mpr-14727.c11",
+          "size": 1048576,
+          "offset": 2097153,
+          "status": "good",
+          "optional": false,
+          "crc32": "3b74e0f0",
+          "sha1": "40432dbbbf75dae1e5e32b7cc2c4884f5e9e3bf5",
+          "merge": "mpr-14727.c11"
+        },
+        {
+          "file": "mpr-14733.a11",
+          "size": 1048576,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "6da0444f",
+          "sha1": "80c32895af19bda3277376fdbd1c163f0ed25665",
+          "merge": "mpr-14733.a11"
+        },
+        {
+          "file": "mpr-14728.c12",
+          "size": 524288,
+          "offset": 4194305,
+          "status": "good",
+          "optional": false,
+          "crc32": "5b921587",
+          "sha1": "2779dc658bb7a51f2399af5a6463ccb2dd388e88",
+          "merge": "mpr-14728.c12"
+        },
+        {
+          "file": "mpr-14734.a12",
+          "size": 524288,
+          "offset": 4194304,
+          "status": "good",
+          "optional": false,
+          "crc32": "6f3f5ed9",
+          "sha1": "01972c8bd5bfde58715bc0adc7dea73bf6350a26",
+          "merge": "mpr-14734.a12"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-14725.c7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2b29684f",
+          "sha1": "b83962a4f475f9b3e79d4f7ff577b170c4043156",
+          "merge": "epr-14725.c7"
+        },
+        {
+          "file": "mpr-14724.c6",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "47cbea86",
+          "sha1": "c70d1fed2912c7c05223ce0bb0941706f957295f",
+          "merge": "mpr-14724.c6"
+        },
+        {
+          "file": "mpr-14723.c5",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "bc5adc27",
+          "sha1": "09405002b940a3d3eb0f1258f37af51e0b7581b9",
+          "merge": "mpr-14723.c5"
+        },
+        {
+          "file": "mpr-14722.c4",
+          "size": 524288,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "1bd081f8",
+          "sha1": "e5b0b5d8334486f813d7c430bb7fce3f69605a21",
+          "merge": "mpr-14722.c4"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "ultracin",
+  "gamename": "Waku Waku Ultraman Racing",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "ultracin",
+    "description": "Waku Waku Ultraman Racing",
+    "cloneof": null,
+    "romof": null,
+    "year": "1996",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_5797"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-18945.ic1",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "22bc0fd9",
+          "sha1": "816ca64bcaa1e2c6daa23a54b576078c6eb355de"
+        },
+        {
+          "file": "epr-18946.ic2",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "7e70d62f",
+          "sha1": "70f4c14e847bd935f01a29069d3520824bf619cc"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "epr-18956.ic19",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "58ce183b",
+          "sha1": "090a4df17bc42912e7ab9b7f22bf172bae55c643"
+        },
+        {
+          "file": "epr-18957.ic20",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "c807b164",
+          "sha1": "969167bf965d756b45da2a29bfdb6bad1f0541d2"
+        },
+        {
+          "file": "epr-18958.ic21",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "b263bd0c",
+          "sha1": "12e86b52877dc6cf18839f7ce680461973c66662"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-18950.ic9",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "a2724dc5",
+          "sha1": "85dcf8f0e0cde48eefd11e7483e9140df33fbec7"
+        },
+        {
+          "file": "epr-18953.ic12",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f58fdf96",
+          "sha1": "e92f45c1c9d3e9270026883e72a610e1fde7c50a"
+        },
+        {
+          "file": "epr-18951.ic10",
+          "size": 262144,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "8a35ddca",
+          "sha1": "240022a7d2766726fe5f09c954c1e82400f7b426"
+        },
+        {
+          "file": "epr-18954.ic13",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "1255c0bf",
+          "sha1": "64f203c6039fac1987816c58042e424c81c559a6"
+        },
+        {
+          "file": "epr-18952.ic11",
+          "size": 262144,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "77634b5c",
+          "sha1": "856377482ccae0c5a323cd21c6260baab57c8f81"
+        },
+        {
+          "file": "epr-18955.ic14",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "8c161f97",
+          "sha1": "4a57078bfdea552508c7535008f7de49ed2a4332"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-18949.ic8",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "4f7f8bf5",
+          "sha1": "a57a5ca07fee9e168848da61466511272a6d2842"
+        },
+        {
+          "file": "epr-18947.ic6",
+          "size": 262144,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "23122c51",
+          "sha1": "6f923f09a03ce654674f5e0e1bfbb839dc980eae"
+        },
+        {
+          "file": "epr-18948.ic7",
+          "size": 262144,
+          "offset": 327680,
+          "status": "good",
+          "optional": false,
+          "crc32": "6d060a08",
+          "sha1": "c652efbc913678d6d8793c8982d2bd037408d827"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

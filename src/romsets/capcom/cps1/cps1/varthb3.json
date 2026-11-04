@@ -1,0 +1,488 @@
+{
+  "module": "cps1",
+  "board": "cps1",
+  "game": "varthb3",
+  "gamename": "Varth: Operation Thunderstorm (bootleg, set 3)",
+  "parent": "varth",
+  "romof": "varth",
+  "mame": {
+    "name": "varthb3",
+    "description": "Varth: Operation Thunderstorm (bootleg, set 3)",
+    "cloneof": "varth",
+    "romof": "varth",
+    "year": "1992",
+    "manufacturer": "bootleg",
+    "sourcefile": "capcom/cps1.cpp",
+    "isbios": false
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "pd1.bin",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "8208c0d7",
+          "sha1": "335cbc183abac9a79d7a84ef9c713217ccbf27bb"
+        },
+        {
+          "file": "c6.bin",
+          "size": 524288,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "7f654421",
+          "sha1": "05e87540bfe32a286c663782a788c5d573616dc1"
+        },
+        {
+          "file": "pd2.bin",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "d8325c94",
+          "sha1": "59c09948ad48e434782b97cfb1eefee0b23dc3da"
+        },
+        {
+          "file": "c5.bin",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "6152277d",
+          "sha1": "e93ae5c74cfe8d8c4bf6f3cd802f0e30192ffa2c"
+        }
+      ]
+    },
+    "gfx": {
+      "roms": [
+        {
+          "file": "rom1.bin",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "473961b3",
+          "sha1": "e969ead42629607cecd8f38005d65085a9dd5ee9"
+        },
+        {
+          "file": "rom3.bin",
+          "size": 524288,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "9b50384f",
+          "sha1": "a06efe61a4b74e3240807140d7704f7bffeb5f81"
+        },
+        {
+          "file": "rom5.bin",
+          "size": 524288,
+          "offset": 2,
+          "status": "good",
+          "optional": false,
+          "crc32": "516a4eea",
+          "sha1": "2e9b2d32344db926df2a980f1b0a8b34eda70126"
+        },
+        {
+          "file": "rom7.bin",
+          "size": 524288,
+          "offset": 3,
+          "status": "good",
+          "optional": false,
+          "crc32": "81023052",
+          "sha1": "a96dd88483807b6f7520fb42dbc0cdd7bfa105c9"
+        }
+      ]
+    },
+    "audiocpu": {
+      "roms": [
+        {
+          "file": "j4.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "7a99446e",
+          "sha1": "ca027f41e3e58be5abc33ad7380746658cb5380a",
+          "merge": "va_09.12b"
+        }
+      ]
+    },
+    "oki": {
+      "roms": [
+        {
+          "file": "j1.bin",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "1547e595",
+          "sha1": "27f47b1afd9700afd9e8167d7e4e2888be34a9e5"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  },
+  "runtime": {
+    "properties": {}
+  },
+  "driver_layout": {
+    "source": "cps1.cpp",
+    "regions": [
+      {
+        "name": "maincpu",
+        "size_expression": "0x400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 12281
+      },
+      {
+        "name": "gfx",
+        "size_expression": "0x600000",
+        "size": 6291456,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "ROMREGION_ERASE00",
+        "source_line": 12287
+      },
+      {
+        "name": "audiocpu",
+        "size_expression": "0x18000",
+        "size": 98304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 12293
+      },
+      {
+        "name": "oki",
+        "size_expression": "0x40000",
+        "size": 262144,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 12297
+      }
+    ],
+    "operations": [
+      {
+        "macro": "ROM_REGION",
+        "region": "maincpu",
+        "size_expression": "0x400000",
+        "flags_expression": "0",
+        "source_line": 12281
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "pd1.bin",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12282,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "8208c0d7",
+        "sha1": "335cbc183abac9a79d7a84ef9c713217ccbf27bb"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "c6.bin",
+        "offset_expression": "0x000001",
+        "offset": 1,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12283,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "7f654421",
+        "sha1": "05e87540bfe32a286c663782a788c5d573616dc1"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "pd2.bin",
+        "offset_expression": "0x100000",
+        "offset": 1048576,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 12284,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048576,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "d8325c94",
+        "sha1": "59c09948ad48e434782b97cfb1eefee0b23dc3da"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "c5.bin",
+        "offset_expression": "0x100001",
+        "offset": 1048577,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 12285,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048577,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "6152277d",
+        "sha1": "e93ae5c74cfe8d8c4bf6f3cd802f0e30192ffa2c"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "gfx",
+        "size_expression": "0x600000",
+        "flags_expression": "ROMREGION_ERASE00",
+        "source_line": 12287
+      },
+      {
+        "macro": "ROM_LOAD32_BYTE",
+        "region": "gfx",
+        "file": "rom1.bin",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12288,
+        "group_bytes": 1,
+        "stride": 4,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 4
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "473961b3",
+        "sha1": "e969ead42629607cecd8f38005d65085a9dd5ee9"
+      },
+      {
+        "macro": "ROM_LOAD32_BYTE",
+        "region": "gfx",
+        "file": "rom3.bin",
+        "offset_expression": "0x000001",
+        "offset": 1,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12289,
+        "group_bytes": 1,
+        "stride": 4,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 4
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "9b50384f",
+        "sha1": "a06efe61a4b74e3240807140d7704f7bffeb5f81"
+      },
+      {
+        "macro": "ROM_LOAD32_BYTE",
+        "region": "gfx",
+        "file": "rom5.bin",
+        "offset_expression": "0x000002",
+        "offset": 2,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12290,
+        "group_bytes": 1,
+        "stride": 4,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 4
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "516a4eea",
+        "sha1": "2e9b2d32344db926df2a980f1b0a8b34eda70126"
+      },
+      {
+        "macro": "ROM_LOAD32_BYTE",
+        "region": "gfx",
+        "file": "rom7.bin",
+        "offset_expression": "0x000003",
+        "offset": 3,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 12291,
+        "group_bytes": 1,
+        "stride": 4,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 3,
+            "length": 524288,
+            "group_bytes": 1,
+            "stride": 4
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "crc32": "81023052",
+        "sha1": "a96dd88483807b6f7520fb42dbc0cdd7bfa105c9"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "audiocpu",
+        "size_expression": "0x18000",
+        "flags_expression": "0",
+        "source_line": 12293
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "j4.bin",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_line": 12294,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          },
+          {
+            "source_offset": 32768,
+            "destination": 65536,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 65536,
+        "crc32": "7a99446e",
+        "sha1": "ca027f41e3e58be5abc33ad7380746658cb5380a",
+        "continuations": [
+          {
+            "macro": "ROM_CONTINUE",
+            "region": "audiocpu",
+            "arguments": [
+              "0x10000",
+              "0x08000"
+            ],
+            "source_line": 12295,
+            "offset_expression": "0x10000",
+            "offset": 65536,
+            "length_expression": "0x08000",
+            "length": 32768,
+            "source_offset": 32768
+          }
+        ]
+      },
+      {
+        "macro": "ROM_CONTINUE",
+        "region": "audiocpu",
+        "arguments": [
+          "0x10000",
+          "0x08000"
+        ],
+        "source_line": 12295,
+        "offset_expression": "0x10000",
+        "offset": 65536,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_offset": 32768
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "oki",
+        "size_expression": "0x40000",
+        "flags_expression": "0",
+        "source_line": 12297
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "oki",
+        "file": "j1.bin",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x40000",
+        "length": 262144,
+        "source_line": 12298,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 262144,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 262144,
+        "crc32": "1547e595",
+        "sha1": "27f47b1afd9700afd9e8167d7e4e2888be34a9e5"
+      }
+    ]
+  }
+}

@@ -1,11 +1,11 @@
 #include "naomi_module.hpp"
 
 #include "naomi_sh4_context.hpp"
+#include "../../core/cpus/sh4/flycast_interpreter.hpp"
 #include "naomi_address_space.hpp"
 #include "naomi_pvr2.hpp"
 #include "naomi_holly.hpp"
 #include "naomi_jvs_837_13551.hpp"
-#include "naomi_reios_boot.hpp"
 
 #include <cstring>
 #include <cstdlib>
@@ -18,12 +18,9 @@
 #include <span>
 #include <cstdio>
 
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
 namespace mamerecomp::naomi {
+#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
 void mamerecomp_register_sh4_mvsc2u_bios(Sh4Dispatcher& dispatcher);
-#if defined(MAMERECOMP_NAOMI_HAS_MAIN_ROM_TRANSLATION)
-void mamerecomp_register_sh4_mvsc2u_reios(Sh4Dispatcher& dispatcher);
-#endif
 void mamerecomp_register_sh4_naomi_bios_reset(Sh4Dispatcher& dispatcher);
 void mamerecomp_register_sh4_naomi_bios_reset_p1(Sh4Dispatcher& dispatcher);
 void mamerecomp_register_sh4_naomi_bootstrap(Sh4Dispatcher& dispatcher);
@@ -41,21 +38,11 @@ std::uint32_t mamerecomp_sh4_entry_mvsc2u();
 #endif
 #if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
 void mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_224e3c(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_2171c6(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_217ed2(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_2153e8(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_2156a0(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_218400(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_215880(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_217a40(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_224a6c(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_224a80(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_mvsc2u_reios_indirect_2266a0(Sh4Dispatcher& dispatcher);
+#endif
 #endif
 
 struct Sh4Probe {
-    bool use_reios_boot = false;
+    bool interpreter_only = false;
     Sh4Context cpu;
     std::array<bool, 3> irq_lines{};
     HollyInterrupts holly;
@@ -68,8 +55,8 @@ struct Sh4Probe {
     std::uint32_t entry = 0;
     bool started = false;
 
-    explicit Sh4Probe(bool reios_boot)
-        : use_reios_boot(reios_boot),
+    explicit Sh4Probe(bool interpreterOnly)
+        : interpreter_only(interpreterOnly),
           holly([this](unsigned irl, bool asserted) {
               const unsigned level = 15u - irl;
               const std::size_t index = level == 2 ? 0 : level == 4 ? 1 : 2;
@@ -121,6 +108,29 @@ struct Sh4Probe {
                   return true;
               }}),
           bus(memory.make_sh4_bus()) {
+        memory.setG1DmaIrq([this](unsigned bit) {
+            holly.raise(HollyInterrupts::Group::normal, bit);
+        });
+        memory.setAicaG2DmaIrq([this](unsigned bit) {
+            holly.raise(HollyInterrupts::Group::normal, bit);
+        });
+        memory.setAicaSh4Irq([this](bool asserted) {
+            if (asserted)
+                holly.raise(HollyInterrupts::Group::external, 1);
+            else
+                holly.clear(HollyInterrupts::Group::external, 1u << 1);
+        });
+        memory.setDmaWriteObserver([this](std::uint32_t address, unsigned width) {
+            cpu.noteAotCodeWrite(address, width);
+        });
+        pvr.setDmaBus(
+            [this](std::uint32_t address) { return memory.read32(address); },
+            [this](std::uint32_t address, std::uint32_t value) {
+                memory.writeDma32(address, value);
+            },
+            [this](unsigned bit) {
+                holly.raise(HollyInterrupts::Group::normal, bit);
+            });
         c2_dma = std::make_unique<HollyC2Dma>(HollyC2DmaBus{
             [this](std::uint32_t address, unsigned width) {
                 switch (width) {
@@ -131,9 +141,9 @@ struct Sh4Probe {
             },
             [this](std::uint32_t address, unsigned width, std::uint32_t value) {
                 switch (width) {
-                case 1: memory.write8(address, static_cast<std::uint8_t>(value)); break;
-                case 2: memory.write16(address, static_cast<std::uint16_t>(value)); break;
-                default: memory.write32(address, value); break;
+                case 1: memory.writeDma8(address, static_cast<std::uint8_t>(value)); break;
+                case 2: memory.writeDma16(address, static_cast<std::uint16_t>(value)); break;
+                default: memory.writeDma32(address, value); break;
                 }
             },
             [this](unsigned bit) { holly.raise(HollyInterrupts::Group::normal, bit); }});
@@ -144,60 +154,48 @@ struct Sh4Probe {
                     return true;
                 },
                 [this](std::uint32_t address, std::uint32_t value) {
-                    memory.write32(address, value);
+                    memory.writeDma32(address, value);
                     return true;
                 }},
             make_jvs_maple_endpoint(g_naomiJvs13551()), holly);
         wireCpu();
-        if (use_reios_boot) {
-#if defined(MAMERECOMP_NAOMI_HAS_MAIN_ROM_TRANSLATION)
-            // Diagnostic alternate startup: REIOS prepares the real cart image
-            // in RAM, so dispatch only translations built from those ROM bytes.
-            mamerecomp_register_sh4_mvsc2u_reios(dispatcher);
-#else
-            throw std::runtime_error("REIOS diagnostic boot requires the MvC2 ROM AOT translation");
-#endif
-#if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
-            mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_224e3c(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_2171c6(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_217ed2(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_2153e8(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_2156a0(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_218400(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_215880(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_217a40(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_224a6c(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_224a80(dispatcher);
-            mamerecomp_register_sh4_mvsc2u_reios_indirect_2266a0(dispatcher);
-#endif
-            mamerecomp_register_sh4_mvsc2u_bios(dispatcher);
-            entry = 0x0c021000u;
-        } else {
+#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
 #if defined(MAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
-            mamerecomp_register_sh4_mvsc2u_boot_ram(dispatcher);
+        mamerecomp_register_sh4_mvsc2u_boot_ram(dispatcher);
 #else
-            mamerecomp_register_sh4_mvsc2u(dispatcher);
+        mamerecomp_register_sh4_mvsc2u(dispatcher);
 #endif
 #if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
-            // The dynamic ROM set contains only entries whose bytes are verified
-            // as ROM-backed; 0x0c04b88c remains supplied by the RAM snapshot.
-            mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(dispatcher);
+        // The dynamic ROM set contains only entries whose bytes are verified
+        // as ROM-backed; 0x0c04b88c remains supplied by the RAM snapshot.
+        mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(dispatcher);
 #endif
-            mamerecomp_register_sh4_mvsc2u_bios(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_reset(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_reset_p1(dispatcher);
-            mamerecomp_register_sh4_naomi_bootstrap(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_ram_shadow(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_ram_vector(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_ram_irq(dispatcher);
-            mamerecomp_register_sh4_naomi_bios_copied_code(dispatcher);
-            entry = mamerecomp_sh4_entry_naomi_bios_reset();
-        }
+        mamerecomp_register_sh4_mvsc2u_bios(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_reset(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_reset_p1(dispatcher);
+        mamerecomp_register_sh4_naomi_bootstrap(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_ram_shadow(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_ram_vector(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_ram_irq(dispatcher);
+        mamerecomp_register_sh4_naomi_bios_copied_code(dispatcher);
+        entry = mamerecomp_sh4_entry_naomi_bios_reset();
+        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
+            std::fprintf(stderr,
+                         "SH-4 task trace armed entry=%08x callback-aot=%u\n",
+                         entry, dispatcher.contains(0x0c04b88cu) ? 1u : 0u);
+#else
+        // Both interpreter-only and hybrid paths start at the Naomi BIOS reset
+        // vector. The BIOS then performs the cartridge boot sequence.
+        entry = 0xa0000000u;
+#endif
     }
 
     void wireCpu() {
         cpu.bus = &bus;
+        cpu.interpreter_only = interpreter_only;
+        cpu.interpreter_step = [](Sh4Context& context) {
+            return mamerecomp::cpus::sh4::flycast::step(context);
+        };
         cpu.cycle_sink = [this](unsigned cycles) {
             memory.advanceSh4Cycles(cycles);
             pvr.advanceCycles(cycles, [this](unsigned bit) {
@@ -236,13 +234,12 @@ struct Sh4Probe {
                                    (static_cast<std::uint32_t>(bytes[1]) << 8) |
                                    (static_cast<std::uint32_t>(bytes[2]) << 16) |
                                    (static_cast<std::uint32_t>(bytes[3]) << 24);
-                memory.write32(destination + static_cast<std::uint32_t>(offset), value);
+                memory.writeDma32(destination + static_cast<std::uint32_t>(offset), value);
             }
         };
     }
 };
 } // namespace mamerecomp::naomi
-#endif
 
 namespace {
 
@@ -261,7 +258,7 @@ constexpr NaomiProfileRecord kProfiles[]{
 } // namespace
 
 extern "C" std::uint32_t mamerecomp_naomi_abi() {
-    return 4;
+    return 6;
 }
 
 extern "C" const NaomiProfileRecord* mamerecomp_naomi_profiles(std::size_t* count) {
@@ -305,13 +302,15 @@ extern "C" int mamerecomp_naomi_register_sh4(const char* set_id,
 }
 
 namespace {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
 void copy_probe_result(NaomiSh4ProbeResult* output,
                        mamerecomp::naomi::Sh4Probe& probe,
                        const mamerecomp::naomi::Sh4RunResult* run = nullptr) {
     if (!output) return;
     *output = {};
     output->entry = probe.entry;
+    output->instructions_executed = run ? run->instructions_executed : probe.cpu.instructions_executed;
+    output->native_instructions = run ? run->native_instructions : probe.cpu.native_instructions;
+    output->interpreted_instructions = run ? run->interpreted_instructions : probe.cpu.interpreted_instructions;
     output->pc = probe.cpu.pc;
     output->unresolved_target = probe.cpu.unresolved_target;
     output->exception_code = probe.cpu.exception_code;
@@ -320,6 +319,13 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
     output->pvr_vram_bytes = probe.pvr.vramBytesWritten();
     output->pvr_register_writes = probe.pvr.registerWrites();
     output->pvr_scanline = probe.pvr.scanline();
+    output->pvr_render_start_requests = probe.pvr.renderStartRequests();
+    output->pvr_framebuffer_enabled = probe.pvr.read(0x005f8044u, 4) & 1u;
+    output->pvr_ta_completed_lists = probe.pvr.taLists().size();
+    std::copy(probe.pvr.taParameterCounts().begin(), probe.pvr.taParameterCounts().end(),
+              output->pvr_ta_parameter_counts);
+    std::copy(probe.pvr.taListPacketCounts().begin(), probe.pvr.taListPacketCounts().end(),
+              output->pvr_ta_list_packet_counts);
     output->holly_normal_status = probe.holly.normalStatusWithSummary();
     output->holly_level2_mask = probe.holly.mask(2, mamerecomp::naomi::HollyInterrupts::Group::normal);
     output->holly_level4_mask = probe.holly.mask(4, mamerecomp::naomi::HollyInterrupts::Group::normal);
@@ -473,7 +479,6 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
         output->stopped_by_budget = run->stopped_by_budget ? 1 : 0;
     }
 }
-#endif
 
 void copy_error(NaomiSh4ProbeResult* output, const char* message) {
     if (!output) return;
@@ -484,27 +489,17 @@ void copy_error(NaomiSh4ProbeResult* output, const char* message) {
 }
 
 extern "C" void* mamerecomp_naomi_sh4_probe_create(const char* set_id,
-                                                       int use_reios_boot) {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
+                                                       int interpreter_only) {
     if (!set_id || std::strcmp(set_id, "mvsc2u") != 0) return nullptr;
     try {
-        return new mamerecomp::naomi::Sh4Probe(use_reios_boot != 0);
+        return new mamerecomp::naomi::Sh4Probe(interpreter_only != 0);
     } catch (...) {
         return nullptr;
     }
-#else
-    (void)set_id;
-    (void)use_reios_boot;
-    return nullptr;
-#endif
 }
 
 extern "C" void mamerecomp_naomi_sh4_probe_destroy(void* probe) {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
     delete static_cast<mamerecomp::naomi::Sh4Probe*>(probe);
-#else
-    (void)probe;
-#endif
 }
 
 extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
@@ -515,7 +510,6 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
                                                   const std::uint8_t* bios,
                                                   std::size_t bios_size,
                                                   NaomiSh4ProbeResult* result) {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
     auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !rom || rom_size == 0 || !board_id_eeprom ||
         board_id_eeprom_size == 0 || !bios || bios_size == 0) {
@@ -523,30 +517,34 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
         return 0;
     }
     try {
+        const bool eeprom_configured = mamerecomp::naomi::g_naomiJvs13551().configureSystemEeprom(
+            std::span<const std::uint8_t>(rom, rom_size));
+        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_ID")) {
+            const auto& eeprom = mamerecomp::naomi::g_naomiJvs13551().eeprom;
+            std::fprintf(stderr,
+                         "Naomi BootID EEPROM configured=%u game-id=%02x%02x%02x%02x cabinet=%02x vertical=%02x\n",
+                         eeprom_configured ? 1u : 0u, eeprom[3], eeprom[4], eeprom[5], eeprom[6],
+                         rom_size > 0x42au ? rom[0x429] : 0u,
+                         rom_size > 0x42bu ? rom[0x42b] : 0u);
+        }
         probe->memory.loadBios(std::span<const std::uint8_t>(bios, bios_size));
         probe->memory.loadM2RomBoard(
             std::span<const std::uint8_t>(rom, rom_size), 0x0002c840u,
             std::span<const std::uint8_t>(board_id_eeprom, board_id_eeprom_size));
+        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE"))
+            std::fprintf(stderr,
+                         "Naomi boot RAM initial [0c020000]=%08x [0c020004]=%08x [0c020008]=%08x\n",
+                         probe->memory.read32(0x0c020000u),
+                         probe->memory.read32(0x0c020004u),
+                         probe->memory.read32(0x0c020008u));
         probe->cpu = {};
         probe->wireCpu();
-        if (probe->use_reios_boot) {
-            const auto boot = mamerecomp::naomi::reios_boot_naomi(
-                std::span<const std::uint8_t>(rom, rom_size),
-                probe->memory, probe->cpu);
-            if (!boot.success) {
-                copy_error(result, boot.error.c_str());
-                return 0;
-            }
-            probe->entry = boot.entry;
-            std::fprintf(stderr,
-                         "Naomi REIOS diagnostic boot loaded %zu cart bytes at entry=%08x\n",
-                         boot.copied_bytes, boot.entry);
-        } else {
-            // Default startup remains the actual Naomi BIOS reset vector.
-            probe->cpu.sr = 0x700000f0u;
-            probe->cpu.vbr = 0xa0000000u;
-            probe->cpu.pc = 0xa0000000u;
-        }
+        // The official Naomi BIOS owns startup; no REIOS handoff is used.
+        probe->cpu.sr = 0x700000f0u;
+        probe->cpu.vbr = 0xa0000000u;
+        probe->cpu.pc = 0xa0000000u;
+        if (probe->interpreter_only)
+            probe->entry = 0xa0000000u;
         probe->started = true;
         copy_probe_result(result, *probe);
         return 1;
@@ -554,23 +552,11 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
         copy_error(result, error.what());
         return 0;
     }
-#else
-    (void)opaque;
-    (void)rom;
-    (void)rom_size;
-    (void)board_id_eeprom;
-    (void)board_id_eeprom_size;
-    (void)bios;
-    (void)bios_size;
-    copy_error(result, "this Naomi module has no generated SH-4 translation");
-    return 0;
-#endif
 }
 
 extern "C" int mamerecomp_naomi_sh4_probe_run(void* opaque,
                                                 std::uint64_t budget,
                                                 NaomiSh4ProbeResult* result) {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
     auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !probe->started || budget == 0) {
         copy_error(result, "Naomi SH-4 probe must be started with a nonzero budget");
@@ -579,19 +565,12 @@ extern "C" int mamerecomp_naomi_sh4_probe_run(void* opaque,
     const auto run = probe->dispatcher.run(probe->cpu, probe->entry, budget);
     copy_probe_result(result, *probe, &run);
     return 1;
-#else
-    (void)opaque;
-    (void)budget;
-    copy_error(result, "this Naomi module has no generated SH-4 translation");
-    return 0;
-#endif
 }
 
 extern "C" int mamerecomp_naomi_sh4_probe_frame(void* opaque,
                                                    NaomiPvrFrameInfo* frame_info,
                                                    std::uint8_t* rgb,
                                                    std::size_t rgb_capacity) {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
     auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !frame_info) return 0;
     const auto frame = probe->pvr.captureFramebuffer();
@@ -605,11 +584,4 @@ extern "C" int mamerecomp_naomi_sh4_probe_frame(void* opaque,
     if (rgb_capacity < frame.rgb.size()) return 0;
     std::copy(frame.rgb.begin(), frame.rgb.end(), rgb);
     return 1;
-#else
-    (void)opaque;
-    (void)frame_info;
-    (void)rgb;
-    (void)rgb_capacity;
-    return 0;
-#endif
 }

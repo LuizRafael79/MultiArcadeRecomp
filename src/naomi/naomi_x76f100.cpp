@@ -33,11 +33,11 @@ void NaomiX76F100::reset() {
     m_cs = false;
     m_rst = false;
     m_scl = false;
+    m_scl_changed = false;
     m_sdaw = false;
     m_sdar = false;
-    m_password_accepted = false;
     m_state = State::stop;
-    m_shift = m_bit = m_byte = m_command = m_password_retries = 0;
+    m_shift = m_bit = m_byte = m_command = 0;
 }
 
 void NaomiX76F100::writeCS(bool value) {
@@ -59,14 +59,7 @@ void NaomiX76F100::writeRST(bool value) {
     m_rst = value;
 }
 
-std::array<std::uint8_t, 8>& NaomiX76F100::password() {
-    if ((m_command & 0xe1u) == static_cast<std::uint8_t>(Command::read))
-        return m_read_password;
-    return m_write_password;
-}
-
 void NaomiX76F100::acceptPassword() {
-    m_password_retries = 0;
     if ((m_command & 0x81u) == static_cast<std::uint8_t>(Command::read))
         m_state = State::read_data;
     else if ((m_command & 0x81u) == static_cast<std::uint8_t>(Command::write))
@@ -114,23 +107,17 @@ void NaomiX76F100::writeSCL(bool value) {
                         m_write_buffer[m_byte++] = m_shift;
                         if (m_byte == m_write_buffer.size()) {
                             m_state = State::verify_password;
-                            m_password_accepted = (password() == m_write_buffer);
-                            traceX76("password", m_password_accepted ? 1u : 0u,
-                                     m_command);
-                            if (!m_password_accepted && ++m_password_retries >= 8) {
-                                m_read_password.fill(0);
-                                m_write_password.fill(0);
-                                m_data.fill(0);
-                                m_password_retries = 0;
-                            }
+                            // Flycast records the incoming password but
+                            // deliberately accepts it without validation.
+                            // Match that behavior: the Naomi ROM-board boot
+                            // handshake must not NAK or erase EEPROM data.
+                            traceX76("password-accepted", m_command);
                         }
                         break;
                     case State::verify_password:
                         if (m_shift == static_cast<std::uint8_t>(Command::ack_password)) {
-                            traceX76("ack", m_password_accepted ? 1u : 0u,
-                                     static_cast<unsigned>(m_command));
-                            if (m_password_accepted) acceptPassword();
-                            else m_sdar = true;
+                            traceX76("ack", 1u, static_cast<unsigned>(m_command));
+                            acceptPassword();
                         }
                         break;
                     case State::write_data:
@@ -178,11 +165,14 @@ void NaomiX76F100::writeSCL(bool value) {
             break;
         }
     }
+    m_scl_changed = m_scl != value;
     m_scl = value;
 }
 
 void NaomiX76F100::writeSDA(bool value) {
-    if (!m_cs && m_scl) {
+    // Flycast only detects START/STOP if SCL stayed stable through the
+    // preceding pin write. BSC port writes can change several lines at once.
+    if (!m_cs && m_scl && !m_scl_changed) {
         if (!m_sdaw && value) {
             m_state = State::stop;
             m_sdar = false;

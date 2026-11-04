@@ -36,6 +36,17 @@ constexpr std::uint32_t kSoundRamStart = 0x00800000;
 constexpr std::uint32_t kTextureRamStart = 0x04000000;
 constexpr std::uint32_t kFrameRamStart = 0x05000000;
 constexpr std::uint32_t kMainRamStart = 0x0c000000;
+// Flycast core/hw/naomi/naomi.cpp::naomi_reg_Init installs this default
+// image in both serial IDs at reset. The main-board copy is reached through
+// BSC.PDTRA; it is distinct from the ROM-board X76F100 loaded from the set.
+constexpr std::uint8_t kFlycastNaomiSerialId[NaomiX76F100::kImageSize]{
+    0x19, 0x00, 0xaa, 0x55,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x69, 0x79, 0x68, 0x6b, 0x74, 0x6d, 0x68, 0x6d,
+    0xa1, 0x09, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'
+};
 unsigned g_bsc_trace_events = 0;
 unsigned g_g1_trace_events = 0;
 unsigned g_g1_dma_trace_events = 0;
@@ -51,6 +62,7 @@ unsigned g_callback_table_nonzero_writes = 0;
 unsigned g_callback_table_nonzero_printed = 0;
 unsigned g_callback_table_zero_printed = 0;
 unsigned g_video_setup_write_events = 0;
+unsigned g_boot_ram_provenance_events = 0;
 
 bool isNaomiMmioWindow(std::uint32_t physical) {
     return (physical >= 0x005f0000u && physical < 0x00600000u) ||
@@ -90,6 +102,14 @@ NaomiAddressSpace::NaomiAddressSpace(NaomiDeviceBus devices)
       m_texture_ram(0x1000000),
       m_frame_ram(0x1000000),
       m_main_ram(0x2000000) {
+    // Flycast's dmac_Init installs DMAOR with reset value 0x00008307. PVR
+    // system-bus DMA tests the 0xffff8201 mask before doing any transfer.
+    m_sh4_dmac_regs[0x40u / 4u] = 0x00008307u;
+    // Flycast core/hw/holly/sb.cpp::sb_Reset sets Naomi SB_G1SYSM to 1.
+    // The MAME Naomi G1 map returns zero for this register, but Flycast's
+    // successful M2 board boot depends on matching its live reset contract.
+    m_g1_registers[0xb0u / 4u] = 1u;
+    m_main_board_serial_id.load(kFlycastNaomiSerialId);
     arm7::bind_memory(
         [this](std::uint32_t address, unsigned width) {
             return readAicaArm(address, width);
@@ -103,6 +123,14 @@ NaomiAddressSpace::NaomiAddressSpace(NaomiDeviceBus devices)
 }
 
 NaomiAddressSpace::~NaomiAddressSpace() {
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA"))
+        std::fprintf(stderr,
+                     "Naomi G1 DMA summary commands=%llu bytes=%llu active=%u source=%08x destination=%08x length=%08x completed=%08x\n",
+                     static_cast<unsigned long long>(m_g1_dma_commands),
+                     static_cast<unsigned long long>(m_g1_dma_bytes),
+                     m_g1_dma_active ? 1u : 0u, m_dma_offset,
+                     m_g1_dma_destination, m_g1_dma_length,
+                     m_g1_dma_completed);
     if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA")) {
         const auto arm_regs = arm7::register_snapshot();
         std::fprintf(stderr,
@@ -186,7 +214,25 @@ Sh4Bus NaomiAddressSpace::make_sh4_bus() {
         [this](std::uint32_t a, std::uint8_t v, std::uint32_t pc) { write8(a, v, pc); },
         [this](std::uint32_t a, std::uint16_t v, std::uint32_t pc) { write16(a, v, pc); },
         [this](std::uint32_t a, std::uint32_t v, std::uint32_t pc) { write32(a, v, pc); },
+        [this]() { return pendingSh4Interrupt(); },
     };
+}
+
+std::optional<Sh4PendingInterrupt> NaomiAddressSpace::pendingSh4Interrupt() const {
+    // Flycast's InterruptSourceList maps TMU0/1/2 to IPRA priority fields
+    // 3/2/1 and INTEVT 0x400/0x420/0x440 respectively.
+    constexpr std::array<unsigned, 3> shifts{12, 8, 4};
+    constexpr std::array<std::uint32_t, 3> events{0x400u, 0x420u, 0x440u};
+    const auto ipra = m_sh4_internal_regs[0x04u / 4u];
+    std::optional<Sh4PendingInterrupt> best;
+    for (std::size_t channel = 0; channel < m_tmu_tcr.size(); ++channel) {
+        const auto tcr = m_tmu_tcr[channel];
+        if ((tcr & 0x0120u) != 0x0120u) continue; // UNF and UNIE
+        const auto priority = (ipra >> shifts[channel]) & 0x0fu;
+        if (priority != 0 && (!best || priority > best->priority))
+            best = Sh4PendingInterrupt{priority, events[channel]};
+    }
+    return best;
 }
 
 std::uint32_t NaomiAddressSpace::physicalAddress(std::uint32_t address) {
@@ -279,7 +325,7 @@ void NaomiAddressSpace::writeM2Port(std::uint32_t offset, std::uint16_t value) {
         break;
     case 0x0c:
         m_dma_offset = (m_dma_offset & 0x0000ffffu) |
-                       (static_cast<std::uint32_t>(value) << 16);
+                       ((static_cast<std::uint32_t>(value) & 0x7fffu) << 16);
         break;
     case 0x10: m_dma_offset = (m_dma_offset & 0xffff0000u) | value; break;
     case 0x14: m_dma_count = value; break;
@@ -288,6 +334,170 @@ void NaomiAddressSpace::writeM2Port(std::uint32_t offset, std::uint16_t value) {
     if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") && g_m2_trace_events++ < 4096)
         std::fprintf(stderr, "Naomi M2 G1 W reg=%02x value=%04x rom=%08x dma=%08x\n",
                      offset, value, m_rom_pio_offset, m_dma_offset);
+}
+
+void NaomiAddressSpace::startG1Dma(std::uint32_t writer_pc) {
+    if (m_g1_dma_active || (m_g1_registers[0x14u / 4u] & 1u) == 0)
+        return;
+    const auto direction = m_g1_registers[0x0cu / 4u] & 1u;
+    if (direction == 0) {
+        if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA"))
+            std::fprintf(stderr,
+                         "Naomi G1 DMA unsupported direction=cart-write pc=%08x destination=%08x length=%08x\n",
+                         writer_pc, m_g1_registers[0x04u / 4u],
+                         m_g1_registers[0x08u / 4u]);
+        return;
+    }
+
+    m_g1_dma_destination = m_g1_registers[0x04u / 4u] & 0x1fffffe0u;
+    m_g1_dma_length = (m_g1_registers[0x08u / 4u] + 31u) & ~31u;
+    m_g1_dma_completed = 0;
+    m_g1_dma_cycle_remainder = 0;
+    m_g1_dma_active = m_g1_dma_length != 0;
+    m_g1_registers[0x14u / 4u] &= 1u;
+    m_g1_registers[0x18u / 4u] = m_g1_dma_active ? 1u : 0u;
+    m_g1_registers[0xf4u / 4u] = m_g1_dma_destination;
+    m_g1_registers[0xf8u / 4u] = 0;
+    if (!m_g1_dma_active) {
+        finishG1Dma();
+        return;
+    }
+    ++m_g1_dma_commands;
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+        g_g1_dma_trace_events < 128) {
+        ++g_g1_dma_trace_events;
+        std::fprintf(stderr,
+                     "Naomi G1 DMA start #%llu pc=%08x source=%08x destination=%08x length=%08x mode=%s\n",
+                     static_cast<unsigned long long>(m_g1_dma_commands), writer_pc,
+                     m_dma_offset, m_g1_dma_destination, m_g1_dma_length,
+                     (m_rom_pio_offset & 0x20000000u) ? "32MB" : "4MB");
+    }
+}
+
+void NaomiAddressSpace::finishG1Dma(bool aborted) {
+    m_g1_dma_active = false;
+    m_g1_dma_cycle_remainder = 0;
+    m_g1_registers[0x18u / 4u] = 0;
+    m_g1_registers[0xf4u / 4u] = m_g1_dma_destination;
+    m_g1_registers[0xf8u / 4u] = m_g1_dma_completed;
+    if (!aborted && m_g1_dma_irq)
+        m_g1_dma_irq(14); // Holly GD-ROM/ROM-board DMA complete.
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+        g_g1_dma_trace_events < 128) {
+        ++g_g1_dma_trace_events;
+        std::fprintf(stderr,
+                     "Naomi G1 DMA %s #%llu bytes=%u source=%08x destination=%08x\n",
+                     aborted ? "aborted" : "complete",
+                     static_cast<unsigned long long>(m_g1_dma_commands),
+                     m_g1_dma_completed, m_dma_offset, m_g1_dma_destination);
+    }
+}
+
+void NaomiAddressSpace::advanceG1Dma(std::uint32_t cycles) {
+    if (!m_g1_dma_active) return;
+    m_g1_dma_cycle_remainder += cycles;
+    while (m_g1_dma_active && m_g1_dma_cycle_remainder >= 10u) {
+        const auto cycles_per_chunk = std::min<std::uint32_t>(
+            1024u, m_g1_dma_length - m_g1_dma_completed) * 10u;
+        if (m_g1_dma_cycle_remainder < cycles_per_chunk) break;
+        m_g1_dma_cycle_remainder -= cycles_per_chunk;
+        auto bytes_to_copy = cycles_per_chunk / 10u;
+        // SB_GDSTARD is the live destination cursor, already advanced after
+        // every completed chunk below. Adding GDLEND here advances the
+        // second and later chunks twice, leaving holes in the game image.
+        auto destination = m_g1_dma_destination;
+
+        while (bytes_to_copy != 0) {
+            std::uint32_t source = m_dma_offset & 0x1fffffffu;
+            std::uint32_t available = static_cast<std::uint32_t>(
+                std::min<std::size_t>(bytes_to_copy, m_rom_board.size()));
+            if ((m_rom_pio_offset & 0x20000000u) == 0) {
+                source = (source & 0x103fffffu) | ((source & 0x07c00000u) << 1);
+                available = std::min(available, 0x400000u - (source & 0x3fffffu));
+            }
+            if (source >= m_rom_board.size()) available = 0;
+            else available = std::min<std::uint32_t>(available,
+                static_cast<std::uint32_t>(m_rom_board.size() - source));
+
+            if (available == 0) {
+                // Flycast fills the remainder with zero when the cart pointer
+                // runs past the image, then completes the bus transaction.
+                const auto window = memoryWindow(physicalAddress(destination));
+                const auto count = bytes_to_copy;
+                if (window && window->second + count <= window->first->size())
+                    std::fill_n(window->first->begin() + window->second, count, 0);
+                else
+                    for (std::uint32_t i = 0; i < count; ++i)
+                        write(destination + i, 1, 0);
+                observeDmaWrite(destination, count);
+                m_g1_dma_completed += count;
+                m_g1_dma_destination += count;
+                m_g1_dma_bytes += count;
+                bytes_to_copy = 0;
+                break;
+            }
+
+            const auto window = memoryWindow(physicalAddress(destination));
+            if (window && window->second + available <= window->first->size()) {
+                std::copy_n(m_rom_board.begin() + source, available,
+                            window->first->begin() + window->second);
+            } else {
+                for (std::uint32_t i = 0; i < available; ++i)
+                    write(destination + i, 1, m_rom_board[source + i]);
+            }
+            observeDmaWrite(destination, available);
+            destination += available;
+            m_dma_offset += available;
+            m_g1_dma_completed += available;
+            m_g1_dma_destination += available;
+            m_g1_dma_bytes += available;
+            bytes_to_copy -= available;
+        }
+
+        m_g1_registers[0xf4u / 4u] = m_g1_dma_destination;
+        m_g1_registers[0xf8u / 4u] = m_g1_dma_completed;
+        if (m_g1_dma_completed >= m_g1_dma_length)
+            finishG1Dma();
+    }
+}
+
+void NaomiAddressSpace::startAicaG2Dma() {
+    auto& regs = m_aica_g2_dma_registers;
+    if (m_aica_g2_dma_active || (regs[6] & 1u) == 0 || (regs[5] & 1u) == 0)
+        return;
+
+    auto source = regs[1]; // SB_ADSTAR, system memory
+    auto destination = regs[0]; // SB_ADSTAG, AICA G2 bus
+    const auto length = regs[2] & 0x7fffffffu;
+    if (regs[3] & 1u) std::swap(source, destination);
+
+    // Flycast executes the bus copy at the start edge and schedules the
+    // completion/IRQ after four SH-4 cycles per byte (16-bit, 25 MHz G2 bus).
+    // Buffering the read side preserves deterministic behavior for overlap.
+    std::vector<std::uint8_t> transfer(length);
+    for (std::uint32_t i = 0; i < length; ++i)
+        transfer[i] = static_cast<std::uint8_t>(read(source + i, 1));
+    for (std::uint32_t i = 0; i < length; ++i)
+        writeDma8(destination + i, transfer[i]);
+
+    m_aica_g2_dma_active = true;
+    m_aica_g2_dma_cycles_remaining = static_cast<std::uint64_t>(length) * 4u;
+    regs[7] &= ~0x10u; // SB_ADSUSP: transfer is in progress.
+    if (m_aica_g2_dma_cycles_remaining <= 512u) finishAicaG2Dma();
+}
+
+void NaomiAddressSpace::finishAicaG2Dma() {
+    auto& regs = m_aica_g2_dma_registers;
+    const auto length = regs[2] & 0x7fffffffu;
+    regs[1] += length;
+    regs[0] += length;
+    regs[7] |= 0x10u; // Flycast marks the channel paused/idle at completion.
+    regs[5] = (regs[2] & 0x80000000u) ? 0u : 1u; // SB_ADEN
+    regs[6] = 0; // SB_ADST
+    regs[2] = 0; // SB_ADLEN
+    m_aica_g2_dma_active = false;
+    m_aica_g2_dma_cycles_remaining = 0;
+    if (m_aica_g2_dma_irq) m_aica_g2_dma_irq(15); // Holly SPU/AICA DMA end.
 }
 
 std::uint32_t NaomiAddressSpace::readAicaArm(std::uint32_t address, unsigned width) {
@@ -303,14 +513,10 @@ std::uint32_t NaomiAddressSpace::readAicaArm(std::uint32_t address, unsigned wid
     }
 
     const auto offset = (address - 0x00800000u) & 0x7fffu;
-    const unsigned bytes = width == 4 ? 2u : width;
     std::uint32_t value = 0;
     if (offset == 0x2d00u) value = m_aica_arm_interrupt_level;
     else if (offset == 0x2d04u) value = m_aica_arm_interrupt_mode;
-    else {
-        for (unsigned i = 0; i < bytes; ++i)
-            value |= static_cast<std::uint32_t>(m_aica_registers[(offset + i) & 0x7fffu]) << (i * 8u);
-    }
+    else value = readAicaRegister(offset, width);
     if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") &&
         m_aica_arm_register_trace_events < 128) {
         ++m_aica_arm_register_trace_events;
@@ -371,7 +577,7 @@ void NaomiAddressSpace::writeAicaArm(std::uint32_t address, unsigned width,
     const auto offset = (address - 0x00800000u) & 0x7fffu;
     // Flycast models AICA control registers as 16-bit lanes on 32-bit ARM
     // accesses, while the shared RAM path above retains all four bytes.
-    const unsigned register_bytes = width == 4 ? 2u : width;
+    const unsigned register_bytes = offset >= 0x3000u ? width : (width == 4 ? 2u : width);
     writeAicaRegister(offset, register_bytes, value, true);
 }
 
@@ -380,7 +586,7 @@ void NaomiAddressSpace::writeAicaRegister(std::uint32_t offset, unsigned width,
     offset &= 0x7fffu;
     if (width != 1 && width != 2 && width != 4)
         throw std::runtime_error("unsupported AICA register write width");
-    const unsigned bytes = width == 4 ? 2u : width;
+    const unsigned bytes = offset >= 0x3000u ? width : (width == 4 ? 2u : width);
     auto read16 = [this](std::uint32_t address) {
         return static_cast<std::uint16_t>(m_aica_registers[address & 0x7fffu] |
             (static_cast<std::uint16_t>(m_aica_registers[(address + 1u) & 0x7fffu]) << 8));
@@ -406,6 +612,10 @@ void NaomiAddressSpace::writeAicaRegister(std::uint32_t offset, unsigned width,
                      "AICA ARM register W pc=%08x address=%08x width=%u value=%08x\n",
                      arm7::instruction_address(), 0x00800000u + offset, width, value);
     }
+    if (NaomiAicaDsp::ownsDataRegister(offset)) {
+        m_aica_dsp.writeDataRegister(offset, width, value);
+        return;
+    }
     if (offset == 0x289cu) {
         write16(offset, static_cast<std::uint16_t>(value & 0x07ffu)); // SCIEB
         updateAicaArmInterrupts();
@@ -422,6 +632,23 @@ void NaomiAddressSpace::writeAicaRegister(std::uint32_t offset, unsigned width,
         updateAicaArmInterrupts();
         return;
     }
+    if (offset == 0x28b4u) { // MCIEB
+        write16(offset, static_cast<std::uint16_t>(value & 0x07ffu));
+        updateAicaSh4Interrupts();
+        return;
+    }
+    if (offset == 0x28b8u) { // MCIPD: only SCPU is software-settable.
+        if (value & (1u << 5))
+            write16(offset, static_cast<std::uint16_t>(read16(offset) | (1u << 5)));
+        updateAicaSh4Interrupts();
+        return;
+    }
+    if (offset == 0x28bcu) { // MCIRE clears pending MCPU interrupt sources.
+        write16(0x28b8u,
+                static_cast<std::uint16_t>(read16(0x28b8u) & ~value));
+        updateAicaSh4Interrupts();
+        return;
+    }
     if (offset == 0x2890u || offset == 0x2894u || offset == 0x2898u) {
         for (unsigned i = 0; i < bytes; ++i)
             m_aica_registers[(offset + i) & 0x7fffu] = static_cast<std::uint8_t>(value >> (i * 8u));
@@ -436,6 +663,104 @@ void NaomiAddressSpace::writeAicaRegister(std::uint32_t offset, unsigned width,
     }
     for (unsigned i = 0; i < bytes; ++i)
         m_aica_registers[(offset + i) & 0x7fffu] = static_cast<std::uint8_t>(value >> (i * 8u));
+    if (offset < 0x2000u)
+        m_aica_voices.writeRegister(offset, bytes, m_aica_registers, m_sound_ram);
+    m_aica_dsp.noteRegisterWrite(offset, bytes);
+    if (offset == 0x288cu) // DEXE, DDIR, DLG
+        runAicaInternalDma();
+}
+
+std::uint32_t NaomiAddressSpace::readAicaRegister(std::uint32_t offset,
+                                                  unsigned width) {
+    offset &= 0x7fffu;
+    if (NaomiAicaDsp::ownsDataRegister(offset))
+        return m_aica_dsp.readDataRegister(offset, width, m_aica_registers);
+    if ((offset >= 0x2808u && offset <= 0x2809u) ||
+        (offset >= 0x2810u && offset <= 0x2811u) ||
+        (offset >= 0x2814u && offset <= 0x2815u))
+        m_aica_voices.readRegister(offset, width == 1, m_aica_registers, m_sound_ram);
+    const unsigned bytes = offset >= 0x3000u ? width : (width == 4 ? 2u : width);
+    std::uint32_t value = 0;
+    for (unsigned i = 0; i < bytes; ++i)
+        value |= static_cast<std::uint32_t>(m_aica_registers[(offset + i) & 0x7fffu]) << (i * 8u);
+    return value;
+}
+
+void NaomiAddressSpace::runAicaInternalDma() {
+    if (m_aica_internal_dma_active) return;
+    const auto read16 = [this](std::uint32_t address) {
+        return static_cast<std::uint16_t>(m_aica_registers[address & 0x7fffu] |
+            (static_cast<std::uint16_t>(m_aica_registers[(address + 1u) & 0x7fffu]) << 8));
+    };
+    const auto write16 = [this](std::uint32_t address, std::uint16_t value) {
+        m_aica_registers[address & 0x7fffu] = static_cast<std::uint8_t>(value);
+        m_aica_registers[(address + 1u) & 0x7fffu] = static_cast<std::uint8_t>(value >> 8);
+    };
+    const auto dma_control = read16(0x288cu);
+    if ((dma_control & 1u) == 0) return; // DEXE is clear.
+
+    // Flycast AicaInternalDMA: DMEA counts bytes in words; DLG counts
+    // 32-bit transfers. Naomi AICA exposes an 8 MiB wave RAM aperture.
+    constexpr std::uint32_t kWaveRamBytes = 0x800000u;
+    const auto dmea_hi = (read16(0x2880u) >> 9u) & 0x7fu;
+    const auto dmea_lo = (read16(0x2884u) >> 2u) & 0x3fffu;
+    const auto wave_address = ((dmea_hi << 16u) | (dmea_lo << 2u)) &
+                              (kWaveRamBytes - 1u);
+    const auto register_address =
+        static_cast<std::uint32_t>((read16(0x2888u) >> 2u) & 0x1fffu) << 2u;
+    const auto word_count = (dma_control >> 2u) & 0x1fffu;
+    const bool clear = (read16(0x2888u) & 0x8000u) != 0; // DGATE
+    const bool registers_to_wave = (dma_control & 0x8000u) != 0; // DDIR
+    const auto bounded_words = std::min(
+        word_count, (kWaveRamBytes - wave_address) / 4u);
+
+    m_aica_internal_dma_active = true;
+    if (clear && registers_to_wave) {
+        const auto byte_count = static_cast<std::size_t>(bounded_words) * 4u;
+        std::fill_n(m_sound_ram.begin() + wave_address, byte_count, 0);
+        constexpr std::size_t kPageSize = 0x1000u;
+        if (byte_count != 0 && !m_sound_ram_dirty_pages.empty()) {
+            const auto first = wave_address / kPageSize;
+            const auto last = (wave_address + byte_count - 1u) / kPageSize;
+            std::fill(m_sound_ram_dirty_pages.begin() + first,
+                      m_sound_ram_dirty_pages.begin() + last + 1u, 1u);
+            m_sound_ram_trace_write_bytes += byte_count;
+        }
+    } else if (clear) {
+        auto address = register_address;
+        for (std::uint32_t i = 0; i < word_count; ++i, address += 4u)
+            writeAicaRegister(address, 4, 0, false);
+    } else if (registers_to_wave) {
+        auto source = register_address;
+        auto destination = wave_address;
+        for (std::uint32_t i = 0; i < bounded_words; ++i, source += 4u, destination += 4u) {
+            const auto value = readAicaRegister(source, 4);
+            m_sound_ram[destination] = static_cast<std::uint8_t>(value);
+            m_sound_ram[destination + 1u] = static_cast<std::uint8_t>(value >> 8u);
+            m_sound_ram[destination + 2u] = static_cast<std::uint8_t>(value >> 16u);
+            m_sound_ram[destination + 3u] = static_cast<std::uint8_t>(value >> 24u);
+            if (!m_sound_ram_dirty_pages.empty())
+                m_sound_ram_dirty_pages[destination / 0x1000u] = 1u;
+        }
+        m_sound_ram_trace_write_bytes += static_cast<std::uint64_t>(bounded_words) * 4u;
+    } else {
+        auto source = wave_address;
+        auto destination = register_address;
+        for (std::uint32_t i = 0; i < bounded_words; ++i, source += 4u, destination += 4u) {
+            const auto value = static_cast<std::uint32_t>(m_sound_ram[source]) |
+                (static_cast<std::uint32_t>(m_sound_ram[source + 1u]) << 8u) |
+                (static_cast<std::uint32_t>(m_sound_ram[source + 2u]) << 16u) |
+                (static_cast<std::uint32_t>(m_sound_ram[source + 3u]) << 24u);
+            writeAicaRegister(destination, 4, value, false);
+        }
+    }
+
+    write16(0x288cu, static_cast<std::uint16_t>(dma_control & ~1u)); // DEXE clears.
+    write16(0x28a0u, static_cast<std::uint16_t>(read16(0x28a0u) | (1u << 4))); // SCIPD DMA_END
+    write16(0x28b8u, static_cast<std::uint16_t>(read16(0x28b8u) | (1u << 4))); // MCIPD DMA_END
+    m_aica_internal_dma_active = false;
+    updateAicaArmInterrupts();
+    updateAicaSh4Interrupts();
 }
 
 void NaomiAddressSpace::updateAicaArmInterrupts() {
@@ -471,6 +796,18 @@ void NaomiAddressSpace::updateAicaArmInterrupts() {
                      enabled, pending, active, m_aica_arm_interrupt_pending ? 1u : 0u,
                      m_aica_e68k_interrupt_out ? 1u : 0u, m_aica_arm_interrupt_level);
     }
+}
+
+void NaomiAddressSpace::updateAicaSh4Interrupts() {
+    const auto read16 = [this](std::uint32_t address) {
+        return static_cast<std::uint16_t>(m_aica_registers[address & 0x7fffu] |
+            (static_cast<std::uint16_t>(m_aica_registers[(address + 1u) & 0x7fffu]) << 8));
+    };
+    const bool asserted =
+        (read16(0x28b4u) & read16(0x28b8u) & 0x07ffu) != 0;
+    if (asserted == m_aica_sh4_irq_asserted) return;
+    m_aica_sh4_irq_asserted = asserted;
+    if (m_aica_sh4_irq) m_aica_sh4_irq(asserted);
 }
 
 void NaomiAddressSpace::aicaSampleStep() {
@@ -511,7 +848,10 @@ void NaomiAddressSpace::aicaSampleStep() {
     }
     write16(0x28a0u, scipd);
     write16(0x28b8u, mcipd);
+    m_aica_dsp.setVoiceMix(m_aica_voices.sample(m_aica_registers, m_sound_ram));
+    m_aica_dsp.runSample(m_aica_registers, m_sound_ram);
     updateAicaArmInterrupts();
+    updateAicaSh4Interrupts();
 }
 
 std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
@@ -525,11 +865,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
             return value;
         }
         if (offset == 0x2c01u && width == 1) return m_aica_vreg;
-        std::uint32_t value = 0;
-        const unsigned bytes = width == 4 ? 2u : width;
-        for (unsigned i = 0; i < bytes; ++i)
-            value |= static_cast<std::uint32_t>(m_aica_registers[(offset + i) & 0x7fffu]) << (i * 8u);
-        return value;
+        return readAicaRegister(offset, width);
     }
     // MAME: naomibd.cpp::boardid_r; the X76F100 SDA line is returned in bit
     // 15 of the 16-bit ROM-board port at byte address 0x5f707c.
@@ -543,8 +879,12 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         const auto word = readM2Port(offset);
         const auto shift = (physical & 1u) * 8u;
         if (width == 1) return (word >> shift) & 0xffu;
-        if (width == 2) return word;
-        return word | (static_cast<std::uint32_t>(readM2Port(offset + 2u)) << 16);
+        // Flycast NaomiCartridge::ReadMem performs exactly one 16-bit device
+        // transaction for each access to the ROM-board port, even when the
+        // SH-4 requests a wider value. In particular ROM_DATA advances the
+        // auto-incrementing PIO address by two bytes once, not once per
+        // halfword of a host-side 32-bit read.
+        return word;
     }
     // MAME: src/mame/sega/naomig1.cpp::amap and the corresponding Naomi G1
     // device handlers. These are distinct from the 16-bit ROM-board ports.
@@ -556,11 +896,11 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         case 0x005f7414u: case 0x005f7418u:
             value = m_g1_registers[(reg - 0x005f7400u) / 4u];
             break;
-        case 0x005f74b0u: // SB_G1SYSM: MAME returns 0 on Naomi.
-        case 0x005f74f4u: // SB_GDSTARD
-        case 0x005f74f8u: // SB_GDLEND
-            value = 0;
+        case 0x005f74b0u: // SB_G1SYSM: Flycast sb_Reset default is 1 on Naomi.
+            value = m_g1_registers[(reg - 0x005f7400u) / 4u];
             break;
+        case 0x005f74f4u: value = m_g1_dma_destination; break; // SB_GDSTARD
+        case 0x005f74f8u: value = m_g1_dma_completed; break; // SB_GDLEND
         default:
             value = width == 1 ? 0xffu : (width == 2 ? 0xffffu : 0xffffffffu);
             break;
@@ -577,6 +917,13 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
                          reg, width, value);
         }
         return value;
+    }
+    if (physical >= 0x005f7800u && physical <= 0x005f781cu) {
+        const auto index = (physical - 0x005f7800u) / 4u;
+        const auto value = m_aica_g2_dma_registers[index];
+        const auto shift = (physical & 3u) * 8u;
+        const auto shifted = value >> shift;
+        return width < 4 ? shifted & ((1u << (width * 8u)) - 1u) : shifted;
     }
     if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") &&
         (physical >= 0x005f7000u && physical < 0x005f7500u) &&
@@ -612,6 +959,10 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         const auto index = (aligned - kSh4BscStart) / 4;
         std::uint32_t value = index < m_bsc_registers.size() ? m_bsc_registers[index] : 0;
         if (aligned == kSh4BscRfcr) value = m_bsc_rfcr;
+        // Flycast's NaomiBoardIDRead is wired to the main-board X76F100 on
+        // PDTRA: SDA is bit 3 and bit 0 identifies the X76F100 device.
+        if (aligned == 0x1f800030u)
+            value = (m_main_board_serial_id.readSDA() ? 1u << 3u : 0u) | 1u;
         const auto shift = (physical & 3u) * 8u;
         value >>= shift;
         if (width < 4) value &= (1u << (width * 8u)) - 1u;
@@ -647,6 +998,13 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         if (std::getenv("MAMERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
             std::fprintf(stderr, "SH-4 SCIF2 SCFSR2 R [%08x] -> %04x\n",
                          address, m_scif2_status);
+        return value;
+    }
+    if (physical >= 0x1fa00000u && physical <= 0x1fa00040u) {
+        const auto offset = physical - 0x1fa00000u;
+        auto value = m_sh4_dmac_regs[offset / 4u];
+        if (width < 4) value >>= (offset & 3u) * 8u;
+        if (width < 4) value &= (1u << (width * 8u)) - 1u;
         return value;
     }
     if (physical >= kSh4InternalStart && physical < 0x20000000u) {
@@ -709,6 +1067,14 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
 void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32_t value,
                               std::uint32_t writer_pc) {
     const auto physical = physicalAddress(address);
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE") &&
+        physical >= kMainRamStart + 0x20000u &&
+        physical < kMainRamStart + 0x24000u &&
+        g_boot_ram_provenance_events++ < 256) {
+        std::fprintf(stderr,
+                     "Naomi boot RAM write pc=%08x address=%08x physical=%08x width=%u value=%08x\n",
+                     writer_pc, address, physical, width, value);
+    }
     if (physical >= kSoundRegsStart && physical < kSoundRegsStart + 0x8000u) {
         const auto offset = physical - kSoundRegsStart;
         if (offset == 0x2c00u) {
@@ -811,9 +1177,10 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             writeM2Port(offset, static_cast<std::uint16_t>((old & ~mask) |
                 ((value << shift) & mask)));
         } else {
+            // Match Flycast NaomiCartridge::WriteMem: one ROM-board
+            // transaction per CPU access. A 32-bit SH-4 access does not
+            // synthesize a second write to the adjacent 16-bit register.
             writeM2Port(offset, static_cast<std::uint16_t>(value));
-            if (width == 4)
-                writeM2Port(offset + 2u, static_cast<std::uint16_t>(value >> 16));
         }
         return;
     }
@@ -829,6 +1196,8 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             auto& stored = m_g1_registers[index];
             const auto old = stored;
             stored = (stored & ~mask) | ((value << shift) & mask);
+            if (reg == 0x005f7404u) stored &= 0x1fffffe0u; // SB_GDSTAR
+            if (reg == 0x005f7408u) stored &= 0x01ffffffu; // SB_GDLEN
             if (reg == 0x005f740cu || reg == 0x005f7414u || reg == 0x005f7418u)
                 stored &= 1u;
             if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
@@ -842,6 +1211,10 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
                              writer_pc, reg, width, value, old, stored,
                              start_edge ? 1u : 0u);
             }
+            if (reg == 0x005f7414u && (stored & 1u) == 0 && m_g1_dma_active)
+                finishG1Dma(true);
+            if (reg == 0x005f7418u && (stored & 1u) != 0)
+                startG1Dma(writer_pc);
             return;
         }
         // Naomi G1 counter/control writes are accepted but have no modeled
@@ -854,6 +1227,36 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         default:
             break;
         }
+    }
+    if (physical >= 0x005f7800u && physical <= 0x005f781cu) {
+        const auto reg = physical & ~3u;
+        const auto index = (reg - 0x005f7800u) / 4u;
+        auto& stored = m_aica_g2_dma_registers[index];
+        const auto shift = (physical & 3u) * 8u;
+        const auto mask = width == 4 ? 0xffffffffu :
+            ((1u << (width * 8u)) - 1u) << shift;
+        stored = (stored & ~mask) | ((value << shift) & mask);
+        switch (reg) {
+        case 0x005f7800u: case 0x005f7804u:
+            stored &= 0x1fffffe0u; // SB_ADSTAG / SB_ADSTAR
+            break;
+        case 0x005f7808u:
+            stored &= 0x81ffffe0u; // SB_ADLEN
+            break;
+        case 0x005f780cu:
+        case 0x005f7810u:
+        case 0x005f7814u:
+        case 0x005f7818u:
+            stored &= reg == 0x005f7810u ? 7u : 1u;
+            break;
+        case 0x005f781cu:
+            // Suspend control is retained; Flycast's AICA channel currently
+            // only consumes its resume bit at transfer boundaries.
+            break;
+        default: break;
+        }
+        if (reg == 0x005f7818u) startAicaG2Dma();
+        return;
     }
     if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") &&
         (physical >= 0x005f7000u && physical < 0x005f7500u) &&
@@ -888,6 +1291,15 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         if (aligned == kSh4BscRfcr) {
             m_bsc_rfcr = static_cast<std::uint16_t>(reg & 0x03ffu);
             reg = m_bsc_rfcr;
+        }
+        // Flycast core/hw/sh4/modules/bsc.cpp::write_BSC_PDTRA_arcade.
+        // Naomi uses PDTRA pins for the main-board X76F100 serial protocol.
+        if (aligned == 0x1f800030u) {
+            const auto pins = static_cast<std::uint16_t>(reg);
+            m_main_board_serial_id.writeCS((pins & 0x20u) != 0);
+            m_main_board_serial_id.writeRST((pins & 0x10u) != 0);
+            m_main_board_serial_id.writeSCL((pins & 0x04u) != 0);
+            m_main_board_serial_id.writeSDA((pins & 0x08u) != 0);
         }
         if (std::getenv("MAMERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
             std::fprintf(stderr, "SH-4 BSC W [%08x] <- %08x (%u)\n",
@@ -930,6 +1342,15 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         if (std::getenv("MAMERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
             std::fprintf(stderr, "SH-4 SCIF2 SCFSR2 W [%08x] <- %04x, now %04x\n",
                          address, written, m_scif2_status);
+        return;
+    }
+    if (physical >= 0x1fa00000u && physical <= 0x1fa00040u) {
+        const auto offset = physical - 0x1fa00000u;
+        auto& reg = m_sh4_dmac_regs[offset / 4u];
+        const auto shift = (offset & 3u) * 8u;
+        const auto mask = width == 4 ? 0xffffffffu :
+            ((1u << (width * 8u)) - 1u) << shift;
+        reg = (reg & ~mask) | ((value << shift) & mask);
         return;
     }
     if (physical >= kSh4InternalStart && physical < 0x20000000u) {
@@ -1004,6 +1425,29 @@ void NaomiAddressSpace::write32(std::uint32_t address, std::uint32_t value,
     write(address, 4, value, writer_pc);
 }
 
+void NaomiAddressSpace::writeDma8(std::uint32_t address, std::uint8_t value) {
+    write(address, 1, value);
+    observeDmaWrite(address, 1);
+}
+void NaomiAddressSpace::writeDma16(std::uint32_t address, std::uint16_t value) {
+    write(address, 2, value);
+    observeDmaWrite(address, 2);
+}
+void NaomiAddressSpace::writeDma32(std::uint32_t address, std::uint32_t value) {
+    write(address, 4, value);
+    observeDmaWrite(address, 4);
+}
+
+void NaomiAddressSpace::observeDmaWrite(std::uint32_t address, unsigned width) {
+    if (!m_dma_write_observer || width == 0) return;
+    const auto physical = physicalAddress(address);
+    const auto window = memoryWindow(physical);
+    if (!window || window->second >= window->first->size()) return;
+    const auto available = static_cast<unsigned>(std::min<std::size_t>(
+        width, window->first->size() - window->second));
+    m_dma_write_observer(address, available);
+}
+
 void NaomiAddressSpace::loadBios(std::span<const std::uint8_t> bytes) {
     if (bytes.size() != m_bios.size())
         throw std::invalid_argument("Naomi BIOS must be exactly 2 MiB");
@@ -1022,6 +1466,18 @@ void NaomiAddressSpace::loadM2RomBoard(
     m_rom_pio_autoincrement = false;
     m_dma_offset = 0;
     m_dma_count = 0xffff;
+    m_g1_dma_active = false;
+    m_g1_dma_destination = 0;
+    m_g1_dma_length = 0;
+    m_g1_dma_completed = 0;
+    m_g1_dma_cycle_remainder = 0;
+    m_g1_dma_commands = 0;
+    m_g1_dma_bytes = 0;
+    m_aica_g2_dma_registers.fill(0);
+    m_aica_g2_dma_active = false;
+    m_aica_g2_dma_cycles_remaining = 0;
+    m_g1_registers.fill(0);
+    m_g1_registers[0xb0u / 4u] = 1u; // Flycast SB_G1SYSM reset value.
     std::fill(m_m2_ram.begin(), m_m2_ram.end(), 0);
     m2crypt_reset();
     m2crypt_set_key(m_m2_key);
@@ -1030,24 +1486,33 @@ void NaomiAddressSpace::loadM2RomBoard(
         if ((word_address & 0xffff0000u) == 0x01000000u) {
             byte_offset = 2u * (word_address & 0x7fffu);
             if (byte_offset + 1u >= m_m2_ram.size()) return std::uint16_t{0xffff};
+            // Match Flycast M2Cartridge::ReadCipheredData: the cipher sees
+            // the first byte as the high byte of the 16-bit input word.
             return static_cast<std::uint16_t>(
-                (static_cast<std::uint16_t>(m_m2_ram[byte_offset + 1u]) << 8) |
-                m_m2_ram[byte_offset]);
+                (static_cast<std::uint16_t>(m_m2_ram[byte_offset]) << 8) |
+                m_m2_ram[byte_offset + 1u]);
         }
         if (byte_offset + 1u >= m_rom_board.size()) return std::uint16_t{0xffff};
         return static_cast<std::uint16_t>(
-            (static_cast<std::uint16_t>(m_rom_board[byte_offset + 1u]) << 8) |
-            m_rom_board[byte_offset]);
+            (static_cast<std::uint16_t>(m_rom_board[byte_offset]) << 8) |
+            m_rom_board[byte_offset + 1u]);
     });
 }
 
 void NaomiAddressSpace::advanceSh4Cycles(std::uint32_t cycles) {
+    advanceG1Dma(cycles);
+    if (m_aica_g2_dma_active) {
+        if (cycles >= m_aica_g2_dma_cycles_remaining)
+            finishAicaG2Dma();
+        else
+            m_aica_g2_dma_cycles_remaining -= cycles;
+    }
     m_aica_sample_cycle_remainder += cycles;
     while (m_aica_sample_cycle_remainder >= kAicaTickCycles) {
         m_aica_sample_cycle_remainder -= kAicaTickCycles;
         // Flycast's AicaUpdate calls arm::run(1): 512 ARM clocks, followed by
-        // one timer/sample step. This stub models control/IRQ timing only;
-        // it does not generate audio samples or emulate the AICA DSP/mixer.
+        // one timer/sample step. The sample step generates all AICA voices,
+        // feeds their MIXS buses into the DSP interpreter, then advances IRQs.
         arm7::run_cycles(kAicaArmCyclesPerSample);
         aicaSampleStep();
     }

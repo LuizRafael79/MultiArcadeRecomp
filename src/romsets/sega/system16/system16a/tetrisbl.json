@@ -1,0 +1,112 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "tetrisbl",
+  "gamename": "Tetris (bootleg)",
+  "parent": "tetris",
+  "romof": "tetris",
+  "mame": {
+    "name": "tetrisbl",
+    "description": "Tetris (bootleg)",
+    "cloneof": "tetris",
+    "romof": "tetris",
+    "year": "1988",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/system16.cpp",
+    "machine_config": "tetrisbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "rom2.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "4d165c38",
+          "sha1": "04706b1977ae18bd09bafaf8ea65f8e5f32e04b8"
+        },
+        {
+          "file": "rom1.bin",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "1e912131",
+          "sha1": "8f53504ac08942ee340489d84eab825e654d0a2c"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "epr12165.b9",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "62640221",
+          "sha1": "c311d3847a981d0e1609f9b3d80481565d32d78c"
+        },
+        {
+          "file": "epr12166.b10",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "9abd183b",
+          "sha1": "621b017cb34973f9227be383e26b5cd41aea9422"
+        },
+        {
+          "file": "epr12167.b11",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "2495fd4e",
+          "sha1": "2db94ead9223a67238a97e724668076fc43e5534"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "obj0-o.rom",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "2fb38880",
+          "sha1": "0e1b601bbda78d1887951c1f7e752531c281bc83"
+        },
+        {
+          "file": "obj0-e.rom",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "d6a02cba",
+          "sha1": "d80000f92e754e89c6ca7b7273feab448fc9a061"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr12168.a7",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "bd9ba01b",
+          "sha1": "fafa7dc36cc057a50ae4cdf7a35f3594292336f4"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

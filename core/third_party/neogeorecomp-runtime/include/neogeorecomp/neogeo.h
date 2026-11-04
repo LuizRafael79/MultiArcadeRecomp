@@ -23,6 +23,7 @@ typedef void (*ng_func_t)(void);
 typedef struct {
     uint32_t  addr;
     ng_func_t fn;
+    uint16_t  instruction_size; /* zero for legacy tables without source metadata */
 } ng_func_entry_t;
 
 /* A slice of a ROM file copied into a region. `file` is looked up in the

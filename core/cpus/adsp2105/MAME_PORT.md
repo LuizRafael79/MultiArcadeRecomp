@@ -72,17 +72,79 @@ sample queueing belong to the DCS/AD1851 runtime, not the ADSP instruction
 semantics. The current CPU `Bus` includes a SPORT transmit callback as the
 boundary for that connection.
 
+SPORT1 setup must update the selected I register through the DAG helper, not
+by assigning `I[n]` directly. MAME's `set_state_int(I[n], source)` calls
+`update_i()` and refreshes the circular base; omitting that side effect leaves
+the old base active after the aligned autobuffer start is installed. The DCS
+runtime now uses `dag_write_i()` both when SPORT1 starts and when its DMA
+reader advances the index. This is a runtime/DAG state fix, not an opcode
+change; rollback marker: the `dag_write_i()` calls in `audio_2k.cpp` and the
+SPORT1 register-write path in `interpreter.cpp`.
+
+For DCS Audio 2K, timer control writes are owned by the board bus, so they must
+also be mirrored into the shared ADSP state used by `advance_clock()`. The DCS
+register view stores `TIMER_SCALE` as `(raw & 0xff) + 1`, while the CPU state
+keeps the raw register and applies `+1` during cycle advancement. `TIMER_COUNT`
+reads must expose the live decremented CPU count. The timer phase resets when
+MSTAT.TIMER changes or a timer register restarts the timer, matching MAME's
+`timer_enable_callback()`/`reset_timer()` flow. Rollback marker: the MSTAT timer
+phase reset in `update_mstat()` and timer register mirroring in
+`DcsAudio2K::read_data()`/`write_data()`; no opcode semantics changed.
+The V-Unit trace also reports timer enable, scale/count/period, phase and
+pending timer IRQ so gameplay captures can verify whether the DSP is running
+against the expected timer configuration.
+
+The Cruis'n USA zero-sample trace exposed a separate CPU semantic mismatch:
+`mac_to_mr()` and `mac_to_mf()` were reading operands with the ALU selector
+tables. MAME has distinct MAC tables (`m_mac_xregs`/`m_mac_yregs` in
+`src/midway/vunit/mame_source/adsp2100.cpp`): MAC X selector 0 reads MX0
+(not AX0), and MAC Y selector 2 reads MF (not AF). The interpreter now has
+`mac_x()`/`mac_y()` helpers matching those tables and uses them for both MAC
+result paths. This is a shared ADSP semantic fix, not V-Unit audio glue. It is
+the first audio correction: the following gameplay trace reached nonzero
+samples. That trace then exposed a second MAC mismatch. The MAME helpers use
+signed×signed for rounded operations 1-3 and hold the multiplier intermediate
+in `int32_t` before extending it into the 40-bit accumulator. Our MAC-to-MR path
+incorrectly inferred signedness from those operation numbers' low bits, and
+both MR/MF paths retained a wider intermediate. `mac_product()` now applies
+the MAME signedness table and explicit 32-bit wrap before accumulation. The
+resulting PCM still needs comparison/listening; rollback marker is this helper
+and its call sites in `interpreter.cpp`.
+
 ## Current implementation status
+
+- KI1 sound-runtime update: the shared ADSP state now models internal data RAM,
+  control registers `0x3fe0-0x3fff`, timer ticks, and SPORT1 autobuffer output
+  at its configured period. The board opts into core-owned internal DM and
+  SPORT timing; the existing MK2 DCS-2K remains on its board-owned memory/DMA
+  path. The KI1 boot exposed ADSP program-memory DAG2 groups `0x50-0x5f`;
+  interpreter/native semantics now cover MAC/ALU program reads and writes.
+  Last opcode family added: `0x56-0x57` (ALU-to-AF plus DAG2 program read),
+  observed as `0x57696c` at boot PC `0x0007`; the complete `0x50-0x5f` family
+  was added together. A headless smoke now reports SPORT1 enabled and nonzero
+  samples, but audio quality and runtime parity still need user listening and
+  comparison against MAME. Keep the exact opcode marker here for rollback.
 
 - `dag.hpp`: circular addressing, bit reversal, DAG1/DAG2 data access and DAG2
   program transfers are shared helpers.
 - `interpreter.cpp`: the partial interpreter covers control flow, register
   moves, immediate loads, shifts, ALU/MAC subsets, direct and DAG memory
-  transfers, and ALU/MAC register-move groups. The latest opcode work is
-  ADSP-2105 group `0x28–0x2f`, including `0x2e7b0a` (ALU to AF with an internal
-  register move); matching groups are emitted by the AOT generator. This is
-  the rollback marker for the latest opcode change. Other unsupported variants
-  still stop with categorized fallbacks; the interpreter is not complete.
+  transfers, and ALU/MAC register-move groups. Latest opcode change: groups
+  `0x05–0x07` (saturate MR and DIVS/DIVQ), `0x0e`/`0x0f` exponent operations
+  (EXP HI/HIX/LO and EXPADJ), groups `0x10–0x13` (shift with internal move,
+  program-memory DAG2 transfer, data memory DAG1 transfer, and data memory
+  DAG2 transfer), and all data-memory DAG1/DAG2 read/write groups `0x60–0x7f`.
+  These match MAME's `adsp2100.cpp`/`2100ops.hxx` and shared `dag.hpp` helpers.
+  MK2 traces successively exposed `0x1210a1` at `PC=0x03f0`, `0x0e670f` at
+  `PC=0x008a`, `0x6ae0c1` at `PC=0x00bf`, and `0x050000` at `PC=0x0128`;
+  all four opcode families are implemented. A controlled 20M TMS-cycle run
+  then reached ADSP `PC=0x09fe` without a stop: hybrid ended at ADSP cycle
+  32,000,001 and interpreter-only at 32,000,006. Their final PCs differed by
+  four words, so AOT/interpreter equivalence is still not established. Both
+  had four host commands, no DCS output reads, and 240 zero samples. The newest
+  opcode family, `0x05–0x07`, is the rollback marker. Other unsupported
+  variants still stop with categorized fallbacks; the interpreter is not
+  complete.
 - `tools/adsp2105/recomp.py`: emits native entries for bootstrap loads,
   immediate DAG1/DAG2 writes, shifts, register moves, ALU/MAC operations,
   absolute/DAG memory transfers, and conditional control flow. Each entry
@@ -91,6 +153,18 @@ boundary for that connection.
   unconditional self-wait branch fast-forwards only to the current scheduler
   deadline and is disabled for hardware-loop/timer cases. Input is the decoded
   program image: three big-endian bytes per 24-bit word.
+- MK2 AOT checkpoint: latest addition is loop-end `0x5000b1` at boot PC `0x00ae`
+  (DAG2 program-space read); preceding coverage includes loop-end `0x090001` at boot PC `0x0093`
+  (DAG address modification); preceding additions include `0x0a000f` at boot PC `0x0125`
+  (conditional return), `0x680001` at boot PC `0x004e`
+  (DAG1 core-register store at a `DO UNTIL` loop boundary), `0x20980f` at PC
+  `0x006a` (conditional MAC-to-MR), `0x0c3000` at PC `0x006d` (MSTAT
+  mode-control), and loop-end `0x21600f` at `0x0072`. Loop-boundary execution
+  is implemented only for the verified DAG modify, conditional MAC, MAC-function-zero
+  DAG2 read and DAG1/DAG2 store forms; other loop-ending instructions still decline to the
+  interpreter. Rollback marker: `0x21600f`/group `0x20-0x21` in
+  `tools/adsp2105/recomp.py` and `native_execute_instruction` in
+  `interpreter.cpp`; loop boundary handling remains separately guarded.
 - `runtime.cpp`: executes generated blocks and falls back to the interpreter;
   it is CPU dispatch only and handles ADSP interrupt entry. `src/mk2/dcs2k.*`
   owns DCS-2K maps, host latches, ROM banking/boot, SPORT1 autobuffer cadence,

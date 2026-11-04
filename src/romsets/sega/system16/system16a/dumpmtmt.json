@@ -1,0 +1,272 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "dumpmtmt",
+  "gamename": "Dump Matsumoto (Japan, 8751 317-0011a)",
+  "parent": "bodyslam",
+  "romof": "bodyslam",
+  "mame": {
+    "name": "dumpmtmt",
+    "description": "Dump Matsumoto (Japan, 8751 317-0011a)",
+    "cloneof": "bodyslam",
+    "romof": "bodyslam",
+    "year": "1986",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "system16a_i8751"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-7704a.b9",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "96de6c7b",
+          "sha1": "f23edf86c5044c151a8502957af7ca0de420d55e"
+        },
+        {
+          "file": "epr-7701a.b6",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "786d1009",
+          "sha1": "c56ebd169c2792cde610a7130cffdc0363fca871"
+        },
+        {
+          "file": "epr-7705a.b10",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "fc584391",
+          "sha1": "27238408fba2dda67f29094a6700b634b6fdaa58"
+        },
+        {
+          "file": "epr-7702a.b7",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "2241a8fd",
+          "sha1": "d968ab57aa228dbb7ae6f17d7bf22991291e75ae"
+        },
+        {
+          "file": "epr-7706a.b11",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "6bbcc9d0",
+          "sha1": "e8e0b85867f11eec6b280f3ad9e2746d3d97ab28"
+        },
+        {
+          "file": "epr-7703a.b8",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "fcb0cd40",
+          "sha1": "999e107fe08fcb52729ddebc7714a85c47e748b1"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "epr-7707a.c9",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "45318738",
+          "sha1": "6885347321aec8c4829a71e4518d1742f939ea9c"
+        },
+        {
+          "file": "epr-7708a.c10",
+          "size": 32768,
+          "offset": 32768,
+          "status": "good",
+          "optional": false,
+          "crc32": "411be9a4",
+          "sha1": "808a9c941d353f34c3491ca2cde984e73cc7a87d"
+        },
+        {
+          "file": "epr-7709a.c11",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "74ceb5a8",
+          "sha1": "93ed6bb4a3c820f3a7ee5e9b2c2ce35d2bed8529"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-7715.c5",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "bf47e040",
+          "sha1": "5aa1b9adaa2095844c10993402a0597bb5768efb"
+        },
+        {
+          "file": "epr-7719.b2",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "fa5c5d6c",
+          "sha1": "6cac5d3fd705d1365348d57a18bbeb1eb9e412b8"
+        },
+        {
+          "file": "epr-10013.c6",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "9a0919c5",
+          "sha1": "e39e60c1e834b3b46bf2ef1c5952841bebe66ade",
+          "merge": "epr-10013.c6"
+        },
+        {
+          "file": "epr-10017.b3",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "62aafd95",
+          "sha1": "e1e3a95fd11cabf81f44ac2dd3f951d3094725e6",
+          "merge": "epr-10017.b3"
+        },
+        {
+          "file": "epr-7717.c7",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "fa64c86d",
+          "sha1": "ada722dd6efbf466a719ee1fe34a36ce1ea20184"
+        },
+        {
+          "file": "epr-7721.b4",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "62a9143e",
+          "sha1": "28f0dc0329163f0a6505dd34a24a843b35118c5e"
+        },
+        {
+          "file": "epr-10015.c8",
+          "size": 32768,
+          "offset": 196609,
+          "status": "good",
+          "optional": false,
+          "crc32": "582d3b6a",
+          "sha1": "4f1d0060682e3fc1147082286e00e6a296a95da2",
+          "merge": "epr-10015.c8"
+        },
+        {
+          "file": "epr-10019.b5",
+          "size": 32768,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "e020c38b",
+          "sha1": "d13d38a64f2afa7df3cbccef2fe505a4421b73ad",
+          "merge": "epr-10019.b5"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-7710a.b1",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a19b8ba8",
+          "sha1": "21b628d4ecbe38a6d96a39ca4252ff1cb728343f"
+        }
+      ]
+    },
+    "upd7751": {
+      "roms": [
+        {
+          "file": "7751.bin",
+          "size": 1024,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6a9534fc",
+          "sha1": "67ad94674db5c2aab75785668f610f6f4eccd158",
+          "merge": "7751.bin"
+        }
+      ]
+    },
+    "upd7751data": {
+      "roms": [
+        {
+          "file": "epr-7711.c1",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "efa9aabd",
+          "sha1": "b0928313b98159b95f3a6784c6279924774b9253"
+        },
+        {
+          "file": "epr-7712.c2",
+          "size": 32768,
+          "offset": 32768,
+          "status": "good",
+          "optional": false,
+          "crc32": "7bcd85cf",
+          "sha1": "9acba6998327e1074d7311a9b6d06da9baf69aa0"
+        },
+        {
+          "file": "epr-7713.c3",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "33f292e7",
+          "sha1": "4358cd3922a0dcbf109d2d697c7b8c4e090c3d52"
+        },
+        {
+          "file": "epr-7714.c4",
+          "size": 32768,
+          "offset": 98304,
+          "status": "good",
+          "optional": false,
+          "crc32": "8fd48c47",
+          "sha1": "1cba63a9e7e0b477683b7758d124f4949558ba7a"
+        }
+      ]
+    },
+    "mcu": {
+      "roms": [
+        {
+          "file": "317-0011a.mcu",
+          "size": 4096,
+          "offset": 0,
+          "status": "nodump",
+          "optional": false
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "i8751"
+  },
+  "runnable": false
+}

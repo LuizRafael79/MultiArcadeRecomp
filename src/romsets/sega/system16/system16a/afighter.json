@@ -1,0 +1,216 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "afighter",
+  "gamename": "Action Fighter (FD1089A 317-0018)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "afighter",
+    "description": "Action Fighter (FD1089A 317-0018)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1986",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "system16a_fd1089a_no7751"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-10350",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "f2cd6b3f",
+          "sha1": "380f75b8c1696b388179641866cd1d23f78664e7"
+        },
+        {
+          "file": "epr-10353",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "5a757dc9",
+          "sha1": "b0540844c8a09195f5d12312f8e27c334641d7b8"
+        },
+        {
+          "file": "epr-10349",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "4b434c37",
+          "sha1": "5f3afbdb9cdb0762e56b702a195274f30193b472"
+        },
+        {
+          "file": "epr-10352",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "f8abb143",
+          "sha1": "97e78291c15bdf95fd35adca6b9e002480137b12"
+        },
+        {
+          "file": "epr-10348",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "e51e3012",
+          "sha1": "bb5522aacb55b5f04aa4cb7a642e202f0ddd7c84"
+        },
+        {
+          "file": "epr-10351",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "ede21d8d",
+          "sha1": "b3e3944d706c606fd01e00d9511f020ce9aec9f0"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "epr-10281.95",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "30e92cda",
+          "sha1": "36293a2a8a22dca5350571f19f3d5d04e1b27458"
+        },
+        {
+          "file": "epr-10282.94",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "b67b8910",
+          "sha1": "f3f029a3e6547114cec28e5cf8fda65ef434c353"
+        },
+        {
+          "file": "epr-10283.93",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "e7dbfd2d",
+          "sha1": "91bae3fbc4a3c612dc507eecfa8de1c2e1e7afee"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-10285",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "98aa3d04",
+          "sha1": "1d26d17a72e55281e3444fee9c5af69ffb9e3c69"
+        },
+        {
+          "file": "epr-10286",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "8da050cf",
+          "sha1": "c28e8968dbd9c110672581f4486f70d5f45df7f5"
+        },
+        {
+          "file": "epr-10287",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "7989b74a",
+          "sha1": "a87acafe82b37a11d8f8b1f2ee4c9b2e1bb8161c"
+        },
+        {
+          "file": "epr-10288",
+          "size": 32768,
+          "offset": 196609,
+          "status": "good",
+          "optional": false,
+          "crc32": "d3ce551a",
+          "sha1": "0ff2170d9ef89058273025dd8d5e1021094adef1"
+        },
+        {
+          "file": "epr-10289",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "c59d1b98",
+          "sha1": "e232f2519234981c0e4ffecdd25c48083d9f93a8"
+        },
+        {
+          "file": "epr-10290",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "39354223",
+          "sha1": "d8a73d3f7fc2d83d23bb7434f43bc8804f35cc16"
+        },
+        {
+          "file": "epr-10291",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "6e4b245c",
+          "sha1": "1f8cecf7ea2d2dfa5ce18d7ee34b0da2cc40221e"
+        },
+        {
+          "file": "epr-10292",
+          "size": 32768,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "cef289a3",
+          "sha1": "7ab817b6348c168f79be325fb3cc2cca14ee0f8e"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-10284.12",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "8ff09116",
+          "sha1": "8b99b6d2499897cfbd037a7e7cf5bc53bce8a63a"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0018.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "65b5b1af",
+          "sha1": "9a236c0c223064f9a2a56561e10b9ffed0f567a3"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1089"
+  },
+  "runnable": false
+}

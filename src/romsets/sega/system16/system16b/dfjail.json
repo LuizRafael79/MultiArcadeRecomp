@@ -1,0 +1,301 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "dfjail",
+  "gamename": "The Destroyer From Jail (Korea)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "dfjail",
+    "description": "The Destroyer From Jail (Korea)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1991",
+    "manufacturer": "Philko",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "dfjail"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "1.b15",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "ee235fa5",
+          "sha1": "6f6e68628a3fbab83a3168419e921c10a9872367"
+        },
+        {
+          "file": "3.c15",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "dc763979",
+          "sha1": "03d97790cd66961ecd1bae94bf6c6d1d1d756109"
+        },
+        {
+          "file": "2.b16",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "49ff074d",
+          "sha1": "a44dfe46204976579265ba24fd99de75510f34ab"
+        },
+        {
+          "file": "4.c16",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "cdcbf6b1",
+          "sha1": "a3491600e40de4ceb7e72d9ef4bf12fe5f15e30a"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "29.f3",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "7f3ebb6a",
+          "sha1": "f265c6215ef457202686b31c9b503a0a371a1139"
+        },
+        {
+          "file": "28.g3",
+          "size": 131072,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "ed96d6b9",
+          "sha1": "3ad096e466150d0ca36fec8dd649554e7fb9f654"
+        },
+        {
+          "file": "27.g1",
+          "size": 131072,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "7a88e1c1",
+          "sha1": "b238b451522819a5a8c1a9e82058b86d33ac2272"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "9.f16",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b2a49d12",
+          "sha1": "052b96109abc18c562c09042664738bac68f66b4"
+        },
+        {
+          "file": "10.f17",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "7d9e8397",
+          "sha1": "7cb44cd3584ff9ee8fe1cd4fbbde1448ca27202c"
+        },
+        {
+          "file": "7.f14",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "549af682",
+          "sha1": "cc130a265e01b1fd416f237caebdb1955dbfb30b"
+        },
+        {
+          "file": "8.f15",
+          "size": 131072,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "625c118d",
+          "sha1": "d7554e4ec7a2ffc8a2081e0f2c7725a5a2c3ba1a"
+        },
+        {
+          "file": "5.f12",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "9d00656d",
+          "sha1": "91aa96a4fce7f9df557fa8a1e776f82a1f0d57bd"
+        },
+        {
+          "file": "6.f13",
+          "size": 131072,
+          "offset": 655360,
+          "status": "good",
+          "optional": false,
+          "crc32": "37b7bf90",
+          "sha1": "da184f5213269a68fbb36f3740cc7e32234d0fd2"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "19.h12",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f84f472b",
+          "sha1": "0c513c53e41234a6c290387ef4fc27a9f9550cb4"
+        },
+        {
+          "file": "11.g12",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "019662e6",
+          "sha1": "1106d3268a29c4ba001383cee5e69bdc963b8347"
+        },
+        {
+          "file": "20.h13",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "f28bdf76",
+          "sha1": "51bf2383909e713aed143064d1e72681209f58e3"
+        },
+        {
+          "file": "12.g13",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "d222e52b",
+          "sha1": "0319fe8387377bced4e6ae77745d88d64418d35b"
+        },
+        {
+          "file": "21.h14",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "0508cb29",
+          "sha1": "ba71cca7da1f5fc6a8e346aee220be72cbd824a0"
+        },
+        {
+          "file": "13.g14",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "f125b5b0",
+          "sha1": "52497e27b4cd8d7fd52f1f786d1f394a8e4c4e55"
+        },
+        {
+          "file": "22.h15",
+          "size": 131072,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "7329f038",
+          "sha1": "794cc571a3efba7f0f87cf8b552a8e6fc1f3e669"
+        },
+        {
+          "file": "14.g15",
+          "size": 131072,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "ca831a54",
+          "sha1": "ce4926a7713bfcf6191dafeb7684da21d0ee8f73"
+        },
+        {
+          "file": "23.h16",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "94ca23e8",
+          "sha1": "16b98ec952ea89cc52d798bab715efb1d5dcb5dc"
+        },
+        {
+          "file": "15.g16",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "db426709",
+          "sha1": "48c01388fc1c6c5fd2b2a1d6fc67bd6e79272053"
+        },
+        {
+          "file": "24.h17",
+          "size": 131072,
+          "offset": 1310720,
+          "status": "good",
+          "optional": false,
+          "crc32": "6628becc",
+          "sha1": "499b77cfaed861cdb2ec94160143cbb0baa7d5ad"
+        },
+        {
+          "file": "16.g17",
+          "size": 131072,
+          "offset": 1310721,
+          "status": "good",
+          "optional": false,
+          "crc32": "f7b2aad6",
+          "sha1": "595f5db13ca6e6bb7b000b8cf13654f92bff3d01"
+        },
+        {
+          "file": "25.h19",
+          "size": 131072,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "26ca591f",
+          "sha1": "2dfc9be451df633e114b86961b304b0d9eaffec3"
+        },
+        {
+          "file": "17.g19",
+          "size": 131072,
+          "offset": 1572865,
+          "status": "good",
+          "optional": false,
+          "crc32": "9302cfc3",
+          "sha1": "6a63df5e4dbc11404b46a0a7ea90298adba56c14"
+        },
+        {
+          "file": "26.h20",
+          "size": 131072,
+          "offset": 1835008,
+          "status": "good",
+          "optional": false,
+          "crc32": "5828e0af",
+          "sha1": "41d3118eae0c43ad25ef96d1c526a52dc46703d8"
+        },
+        {
+          "file": "18.g20",
+          "size": 131072,
+          "offset": 1835009,
+          "status": "good",
+          "optional": false,
+          "crc32": "fc8aced0",
+          "sha1": "12ffd552228893f2093c2d5617fc00cae262e2ed"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

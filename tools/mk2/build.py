@@ -36,6 +36,15 @@ SOUND = (
     ("l1_mortal_kombat_ii_sound_rom_u7.u7", 0xa00000, 0xb00000, 0x20387e0a),
 )
 
+# Additional ROM entry observed during hybrid execution. This fixed MK2 ROM
+# address is reachable through an indirect transfer and is not discovered from
+# the reset-vector control-flow graph alone.
+KNOWN_TMS_ENTRY_BITS = (
+    0xffa5a150, 0xffa5a190, 0xffa5a200, 0xffa5a2a0,
+    0xffa5a750, 0xffa5a7f0, 0xffa5aa30, 0xffa5aad0,
+    0xffa5a630, 0xffa5a6d0, 0xffa5ad30,
+)
+
 
 def verified(archive: zipfile.ZipFile, name: str, size: int, crc: int) -> bytes:
     members = {item.lower(): item for item in archive.namelist()}
@@ -91,6 +100,8 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("build/mk2/work"))
     parser.add_argument("--max-tms-instructions", type=int, default=300000)
     parser.add_argument("--entry-bits", action="append", type=lambda x: int(x, 0), default=[])
+    parser.add_argument("--adsp-overlay", type=Path, action="append", default=[],
+                        help="5-byte written-program-word snapshot from the MK2 trace")
     args = parser.parse_args()
     try:
         with zipfile.ZipFile(args.romset) as archive:
@@ -114,7 +125,8 @@ def main() -> int:
     tms = import_module("mk2_tms_recomp", Path(__file__).parents[1] / "tms34010" / "recomp.py")
     rom = tms.Rom(bytes(main_region), 0x1f800000, 0x800000)
     entry = rom.long(0xffffffe0) & 0xfffffff0
-    roots = list(dict.fromkeys([entry, *args.entry_bits]))
+    roots = list(dict.fromkeys(
+        [entry, *KNOWN_TMS_ENTRY_BITS, *args.entry_bits]))
     blocks, counts, unmapped = tms.compile_reachable(rom, roots, 128,
                                                        args.max_tms_instructions)
     tms_source = args.out / "tms34010_aot.cpp"
@@ -125,12 +137,25 @@ def main() -> int:
     decoded_path.write_bytes(decoded)
     adsp = import_module("mk2_adsp_recomp", Path(__file__).parents[1] / "adsp2105" / "recomp.py")
     adsp_source = args.out / "adsp2105_aot.cpp"
-    adsp.emit_aot(decoded, adsp_source, entry_pc=0)
+    overlay_words = []
+    try:
+        for path in args.adsp_overlay:
+            raw = path.read_bytes()
+            if len(raw) % 5:
+                raise ValueError(f"{path}: overlay size must be divisible by 5")
+            overlay_words.extend((int.from_bytes(raw[i:i + 2], "big"),
+                                  int.from_bytes(raw[i + 2:i + 5], "big"))
+                                 for i in range(0, len(raw), 5))
+        adsp_words, adsp_native = adsp.emit_aot(
+            decoded, adsp_source, entry_pc=0, overlay_words=tuple(overlay_words))
+    except (OSError, ValueError) as exc:
+        print(f"mk2-build: ADSP overlay: {exc}", file=sys.stderr)
+        return 2
 
     translated = sum(len(block.instructions) for block in blocks.values())
     print(f"MK2 regions: maincpu={len(main_region):#x} graphics={len(graphics):#x} DCS={len(sound):#x}")
     print(f"TMS34010 entry={entry:#010x} roots={len(roots)} translated={translated} blocks={len(blocks)} unmapped={len(unmapped)} AOT={tms_source}")
-    print(f"DCS boot program={len(decoded)//3} ADSP words, AOT={adsp_source}")
+    print(f"DCS boot program={adsp_words} ADSP words, overlay words={len(overlay_words)}, native entries={adsp_native}, AOT={adsp_source}")
     print(f"artifacts: {args.out}")
     return 0
 

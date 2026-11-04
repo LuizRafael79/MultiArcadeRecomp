@@ -1,0 +1,225 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "cltchitrj",
+  "gamename": "Clutch Hitter (Japan) (FD1094 317-0175)",
+  "parent": "cltchitr",
+  "romof": "cltchitr",
+  "mame": {
+    "name": "cltchitrj",
+    "description": "Clutch Hitter (Japan) (FD1094 317-0175)",
+    "cloneof": "cltchitr",
+    "romof": "cltchitr",
+    "year": "1991",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas18.cpp",
+    "machine_config": "system18_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-13783.a4",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "e2a1d5af",
+          "sha1": "cb6710fe2093889d5d159eaf55a3bd95c6f2ef87"
+        },
+        {
+          "file": "epr-13796.a6",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "06001c67",
+          "sha1": "3aa48631013e6dc55e4c1d222b465e6b41ece36b"
+        },
+        {
+          "file": "epr-13785.a5",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "09714762",
+          "sha1": "c75c88b1c313e172fdb7f9a570d57be38f959b2b"
+        },
+        {
+          "file": "epr-13797.a7",
+          "size": 262144,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "361ade9f",
+          "sha1": "a7fd48c55695fd322d0456ff7dc2d2b2bc3e561b"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0175.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "70d9d283",
+          "sha1": "ff309b2a221d9a03ccf301a208c76a7c2eaea790"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-13773.c1",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "3fc600e5",
+          "sha1": "8bec4ecf6a4e4b38d13133960036a5a4800a668e",
+          "merge": "mpr-13773.c1"
+        },
+        {
+          "file": "mpr-13774.c2",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "2411a824",
+          "sha1": "0e383ccc4e0830ffb395d5102e2950610c147007",
+          "merge": "mpr-13774.c2"
+        },
+        {
+          "file": "mpr-13775.c3",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "cf527bf6",
+          "sha1": "1f9cf1f0e92709f0465dc97ebbdaa715a419f7a7",
+          "merge": "mpr-13775.c3"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-13779.c10",
+          "size": 524288,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "c707f416",
+          "sha1": "e6a9d89849f7f1c303a3ca29a629f81397945a2d",
+          "merge": "mpr-13779.c10"
+        },
+        {
+          "file": "mpr-13787.a10",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f05c68c6",
+          "sha1": "b6a0535b6c734a0c89fdb6506c32ffe6ab3aa8cd",
+          "merge": "mpr-13787.a10"
+        },
+        {
+          "file": "mpr-13780.c11",
+          "size": 524288,
+          "offset": 2097153,
+          "status": "good",
+          "optional": false,
+          "crc32": "a4c341e0",
+          "sha1": "15a0b5a42b56465a7b7df98968cc2ed177ce6f59",
+          "merge": "mpr-13780.c11"
+        },
+        {
+          "file": "mpr-13788.a11",
+          "size": 524288,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "0106fea6",
+          "sha1": "e16e2a469ecbbc704021dee6264db30aa0898368",
+          "merge": "mpr-13788.a11"
+        },
+        {
+          "file": "mpr-13781.c12",
+          "size": 524288,
+          "offset": 4194305,
+          "status": "good",
+          "optional": false,
+          "crc32": "f33b13af",
+          "sha1": "d3eb64dcf12d532454bf3cd6c86528c0f11ee316",
+          "merge": "mpr-13781.c12"
+        },
+        {
+          "file": "mpr-13789.a12",
+          "size": 524288,
+          "offset": 4194304,
+          "status": "good",
+          "optional": false,
+          "crc32": "09ba8835",
+          "sha1": "72e83dd1793a7f4b2b881e71f262493e3d4992b3",
+          "merge": "mpr-13789.a12"
+        },
+        {
+          "file": "epr-13782.c13",
+          "size": 262144,
+          "offset": 6291457,
+          "status": "good",
+          "optional": false,
+          "crc32": "73790852",
+          "sha1": "891345cb8ce4b04bd293ee9bac9b1b9940d6bcb2"
+        },
+        {
+          "file": "epr-13790.a13",
+          "size": 262144,
+          "offset": 6291456,
+          "status": "good",
+          "optional": false,
+          "crc32": "23849101",
+          "sha1": "1aeb0fefb6688dfd841bd7d0b17ffdfce69f1dd9"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-13778.c7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "35e86146",
+          "sha1": "9be82165dc12d5f32ef26f37ea02b29e3621893f"
+        },
+        {
+          "file": "epr-13777.c6",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "d1524782",
+          "sha1": "121c5804927ed686ea50d5d81d0226e041f50f6f"
+        },
+        {
+          "file": "epr-13776.c5",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "282ac9fe",
+          "sha1": "4f54d93779c35c036d7c85fce6736df80f3bbe33"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

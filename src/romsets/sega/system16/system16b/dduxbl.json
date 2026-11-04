@@ -1,0 +1,239 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "dduxbl",
+  "gamename": "Dynamite Dux (Datsu bootleg)",
+  "parent": "ddux",
+  "romof": "ddux",
+  "mame": {
+    "name": "dduxbl",
+    "description": "Dynamite Dux (Datsu bootleg)",
+    "cloneof": "ddux",
+    "romof": "ddux",
+    "year": "1989",
+    "manufacturer": "bootleg (Datsu)",
+    "sourcefile": "sega/system16.cpp",
+    "machine_config": "dduxbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "dduxb03.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "e7526012",
+          "sha1": "a1798008bfa1ce9b87dc330f3817b1978052fcfd"
+        },
+        {
+          "file": "dduxb05.bin",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "459d1237",
+          "sha1": "55e9c0dc341c919d58cc789203642c397d7ac65e"
+        },
+        {
+          "file": "dduxb02.bin",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "d8ed3132",
+          "sha1": "a9d5ad8f79fb635cc234a99fad398688a5f15926",
+          "merge": "epr-11915.a8"
+        },
+        {
+          "file": "dduxb04.bin",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "30c6cb92",
+          "sha1": "2e17c74eeb37c9731fc2e365cc0114f7383c0106",
+          "merge": "epr-11913.a6"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "dduxb14.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "664bd135",
+          "sha1": "674b06e01c2c8f5b8057dd24d470330c3f140473"
+        },
+        {
+          "file": "dduxb15.bin",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "ce0d2b30",
+          "sha1": "e60521c46f1650c9bdc76f2ceb91a6d61aaa0a09"
+        },
+        {
+          "file": "dduxb16.bin",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "6de95434",
+          "sha1": "7bed2a0261cf6c2fbb3756633f05f0bb2173977c"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "dduxb06.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b0079e99",
+          "sha1": "9bb4d3fa804a3d05a6e06b45a1280d7064e96ac6"
+        },
+        {
+          "file": "dduxb10.bin",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "0be3aee5",
+          "sha1": "48fc779b7398abbb82cd0d0d28705ece75b3c4e3"
+        },
+        {
+          "file": "dduxb07.bin",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "0217369c",
+          "sha1": "b6ec2fa1279a27a602d79e1073c54193745ea816"
+        },
+        {
+          "file": "dduxb11.bin",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "cfb2af18",
+          "sha1": "1ad18f933a7b797f0364d1f4a6c8549351b4c9a6"
+        },
+        {
+          "file": "dduxb08.bin",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "8844f336",
+          "sha1": "18c1baaad3bcc658d4a6d03de8c97378b5284e88"
+        },
+        {
+          "file": "dduxb12.bin",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "28ce9b15",
+          "sha1": "1640df9c8f21893c0647ad2f4210c714a06e6f37"
+        },
+        {
+          "file": "dduxb09.bin",
+          "size": 65536,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "6b64f665",
+          "sha1": "df07fcf2bbec6fa78f89b95272762aebd6f3ec0e"
+        },
+        {
+          "file": "dduxb13.bin",
+          "size": 65536,
+          "offset": 393217,
+          "status": "good",
+          "optional": false,
+          "crc32": "efe57759",
+          "sha1": "69b8969b20ab9480df2735bd2bcd527069196bd7"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "dduxb01.bin",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "0dbef0d7",
+          "sha1": "8b9afb2fcb946cec467b1e691c267194b503f841"
+        }
+      ]
+    },
+    "proms": {
+      "roms": [
+        {
+          "file": "dduxb_5_82s129.b1",
+          "size": 256,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a7c22d96",
+          "sha1": "160deae8053b09c09328325246598b3518c7e20b"
+        },
+        {
+          "file": "dduxb_4_18s030.a17",
+          "size": 32,
+          "offset": 256,
+          "status": "good",
+          "optional": false,
+          "crc32": "58bcf8bd",
+          "sha1": "e4d3d179b08c0f3424a6bec0f15058fb1b56f8d8"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "dduxb_pal16l8.1",
+          "size": 260,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "3b406587",
+          "sha1": "76f875879fb041c39fb5e6527c0d3ab98b66e36e"
+        },
+        {
+          "file": "dduxb_p_gal16v8.a18",
+          "size": 279,
+          "offset": 512,
+          "status": "good",
+          "optional": false,
+          "crc32": "ce1ab1e1",
+          "sha1": "dcfc0015d8595ee6cb6bb02c95655161a7f3b017"
+        },
+        {
+          "file": "dduxb_pal20l8.2",
+          "size": 324,
+          "offset": 1024,
+          "status": "good",
+          "optional": false,
+          "crc32": "09098fbe",
+          "sha1": "ea251bbcc140b2c69a155bf2fc046c57b206335b"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

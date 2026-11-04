@@ -1,0 +1,55 @@
+// MAME parent set kinst2, default v1.4 BIOS. Board wiring and ROM identities
+// are taken from src/mame/rare/kinst.cpp; KI2 runtime behavior is not enabled
+// by this profile alone.
+#include "game.h"
+
+const game_t game_ki2 = {
+    .id = "ki2",
+    .title = "Killer Instinct 2",
+    .product = "UltraCombo 2",
+    .icon_text = "UC2",
+
+    .versions = {
+        { "v1.4", "ki2-l14.u98", 0x27d0285e },
+        { "v1.3", "ki2-l13.u98", 0x25ebde3b },
+        { "v1.1", "ki2-l11.u98", 0x0cb8de1e },
+        { "v1.0", "ki2-l10.u98", 0xb17b4b3d },
+        { "v1.4-anyide", "ki2_l14p.u98", 0xd80c937a },
+    },
+    .sound_roms = {
+        "ki2_l1.u10", "ki2_l1.u11", "ki2_l1.u12", "ki2_l1.u13",
+        "ki2_l1.u33", "ki2_l1.u34", "ki2_l1.u35", "ki2_l1.u36",
+    },
+    .sound_crc = {
+        0xfdf6ed51, 0xf9e70024, 0x2994c199, 0x3fe6327b,
+        0x6f4dcdcf, 0x5db48206, 0x7245ce69, 0x8920acbb,
+    },
+    // UltraCombo's KI2 profile records the boot page, bank-1 sound OS and two
+    // programs copied into external RAM. Reuse this layout for the first KI2
+    // ADSP AOT attempt, then compare it with a MAME runtime trace.
+    .sound_code = {
+        { 0x0000, 0x0000, 0, true }, { 0x1000, 0x0000, 0, true },
+        { 0x0800, 0x0800, 0x300, false }, { 0x2000, 0x0800, 0x400, false },
+    },
+    .set = "kinst2",
+    .disk = "kinst2.raw",
+    .chd = "kinst2.chd",
+    .chd_sha1 = "e7c9291b4648eae0012ea0cc230731ed4987d1d5",
+    .cyls = 1463, .heads = 13, .secs = 47,
+    .serial_offset = 11,
+
+    // kinst2_map() remaps the shared Seattle signals to these addresses.
+    .io = {
+        .p1 = 0x10000098, .p2 = 0x10000090,
+        .volume = 0x10000080, .unused = 0x100000a0,
+        .dsw = 0x10000088, .coin = 0x100000b8, .nop = 0x100000b0,
+    },
+    .snapshot_frames = 900,
+    .input_lag = 1,
+    .credits = 0x7ff124, .credits_needed = 2,
+    .health_p1 = 0x7fc105, .health_step = 0x100, .health_max = 120,
+    .timer_tick = 0x7f7a10, .timer_ones = 0x7f7a11, .timer_tens = 0x7f7a12,
+    .vars = 0x7f0000, .vars_len = 0x10000,
+    .adj_sum = 0xa00, .adj_data = 0xa04, .adj_len = 88,
+    .adj_difficulty = 0xa1c,
+};

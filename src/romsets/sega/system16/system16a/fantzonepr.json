@@ -1,0 +1,224 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "fantzonepr",
+  "gamename": "Fantasy Zone (prototype)",
+  "parent": "fantzone",
+  "romof": "fantzone",
+  "mame": {
+    "name": "fantzonepr",
+    "description": "Fantasy Zone (prototype)",
+    "cloneof": "fantzone",
+    "romof": "fantzone",
+    "year": "1986",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "system16a_no7751"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "ic43-prg-dd2c.bin",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "895436e1",
+          "sha1": "5cf294fc4fcbacab5d2696aa4f536a8f48d4c4ce"
+        },
+        {
+          "file": "ic26-prg20-658q.bin",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "a0d53b86",
+          "sha1": "02b8ba869c226d929b6b761982efc262467baafc"
+        },
+        {
+          "file": "ic42-prg13-eb1f.bin",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "a08e9d65",
+          "sha1": "e3f8b4f1dcdd7bcdd57ae295d721131b7cc33500"
+        },
+        {
+          "file": "ic25-prg15-2b8c.bin",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "7e6fdae0",
+          "sha1": "c00e7e4e78505ce731483275cfcad285999bbaf3"
+        },
+        {
+          "file": "epr-7387.41",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "0acd335d",
+          "sha1": "f39566a2069eefa7682c57c6521ea7a328738d06",
+          "merge": "epr-7387.41"
+        },
+        {
+          "file": "ic24-prg20-2f57.bin",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "fd909341",
+          "sha1": "2f1e01eb7d7b330c9c0dd98e5f8ed4973f0e93fb",
+          "merge": "epr-7384.24"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "ic95-1413.bin",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "158af770",
+          "sha1": "a02c500920770a987c9d8c78e0313cb3434c1873"
+        },
+        {
+          "file": "ic94-3e96.bin",
+          "size": 32768,
+          "offset": 32768,
+          "status": "good",
+          "optional": false,
+          "crc32": "2fea4fe7",
+          "sha1": "891dbf163378e9ef55b97b4cb8ac02dab05f206c"
+        },
+        {
+          "file": "ic93-de1b.bin",
+          "size": 32768,
+          "offset": 65536,
+          "status": "baddump",
+          "optional": false,
+          "crc32": "335fe57a",
+          "sha1": "93cfcfd1d06daa03b1b000460c4e0ff54aa9f317"
+        },
+        {
+          "file": "epr-7390.93",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "d90609c6",
+          "sha1": "4232f6ecb21f242c0c8d81e06b88bc742668609f",
+          "merge": "epr-7390.93"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-7392.10",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "5bb7c8b6",
+          "sha1": "eaa0ed63ac4f66ee285757e842bdd7b005292600",
+          "merge": "epr-7392.10"
+        },
+        {
+          "file": "ic11-6235.bin",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "74ae4b57",
+          "sha1": "1f24b1faea765994b85f0e7ac8e944c8da22103f",
+          "merge": "epr-7396.11"
+        },
+        {
+          "file": "ic17-5f7c.bin",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "9d5b5be8",
+          "sha1": "c54a6686e8d08525bafad24d40a17dae4b856e6c"
+        },
+        {
+          "file": "epr-7393.17",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "14fc7e82",
+          "sha1": "ca7caca989a3577dd30ad4f66b0fcce712a454ef",
+          "merge": "epr-7393.17"
+        },
+        {
+          "file": "ic18-2614.bin",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "e05a1e25",
+          "sha1": "9691d9f0763b7483ee6912437902f22ab4b78a05",
+          "merge": "epr-7397.18"
+        },
+        {
+          "file": "ic23",
+          "size": 32768,
+          "offset": 131073,
+          "status": "baddump",
+          "optional": false,
+          "crc32": "531ca13f",
+          "sha1": "19e68bc515f6021e1145cff4f3f0e083839ee8f3",
+          "merge": "epr-7394.23"
+        },
+        {
+          "file": "ic24",
+          "size": 32768,
+          "offset": 131072,
+          "status": "baddump",
+          "optional": false,
+          "crc32": "68807b49",
+          "sha1": "0a189da8cdd2090e76d6d06c55b478abce60542d",
+          "merge": "epr-7398.24"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "ic12-sound-56-5.bin",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "e62ddff6",
+          "sha1": "bd601f1e43d96b8bfae0a880d031b418e6c953b0"
+        }
+      ]
+    },
+    "mcu": {
+      "roms": [
+        {
+          "file": "8751.bin",
+          "size": 4096,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "c0d325e6",
+          "sha1": "dbce2ebfab704e70b9b4a0ba442b09c5d137c878"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

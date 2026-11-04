@@ -1,0 +1,286 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "wrestwar1",
+  "gamename": "Wrestle War (set 1, Japan) (FD1094 317-0090)",
+  "parent": "wrestwar",
+  "romof": "wrestwar",
+  "mame": {
+    "name": "wrestwar1",
+    "description": "Wrestle War (set 1, Japan) (FD1094 317-0090)",
+    "cloneof": "wrestwar",
+    "romof": "wrestwar",
+    "year": "1989",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-12145.a7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2af51e2e",
+          "sha1": "b9299f17a7b945a8c96a52288e6da8e20651e4e5"
+        },
+        {
+          "file": "epr-12143.a5",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "4131e345",
+          "sha1": "9f66e50cf76ad77b60f2bef97153d9fe6fc12339"
+        },
+        {
+          "file": "epr-12146.a8",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "b77ba665",
+          "sha1": "b6a01ca857b5127ebb763f18cd4123185a7765a6",
+          "merge": "epr-12146.a8"
+        },
+        {
+          "file": "epr-12144.a6",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "ddf075cb",
+          "sha1": "5d887f0d5786fa62757c593d937bba6f150c1b12",
+          "merge": "epr-12144.a6"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0090.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b7c24c4a",
+          "sha1": "8daaa03ea49c51b5462872948b0e06606c87f6b5"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-12150.a14",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6a821ab9",
+          "sha1": "e69f7e534835d4c820746ffc3ad76c3b7bb9b02e",
+          "merge": "mpr-12150.a14"
+        },
+        {
+          "file": "mpr-12151.a15",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "2b1a0751",
+          "sha1": "8cb1027ef3728f5bdfdb5e2df0f0421f743cdc0a",
+          "merge": "mpr-12151.a15"
+        },
+        {
+          "file": "mpr-12152.a16",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "f6e190fe",
+          "sha1": "4c8b334fb22c449d8d00c8f49f5eccbe008e244f",
+          "merge": "mpr-12152.a16"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-12153.b1",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "ffa7d368",
+          "sha1": "e5663ef1cbe8ab27be0919a3cd78d9a7747bbac6",
+          "merge": "mpr-12153.b1"
+        },
+        {
+          "file": "mpr-12157.b5",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "8d7794c1",
+          "sha1": "ace87970cfa02ab8200173622633d0d70ef7aa9e",
+          "merge": "mpr-12157.b5"
+        },
+        {
+          "file": "mpr-12154.b2",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "0ed343f2",
+          "sha1": "951bd616e63c5fe0aa3f387c9c12153b4f29675f",
+          "merge": "mpr-12154.b2"
+        },
+        {
+          "file": "mpr-12158.b6",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "99458d58",
+          "sha1": "87020267610c5784e066bb4e3551852d27b4cf61",
+          "merge": "mpr-12158.b6"
+        },
+        {
+          "file": "mpr-12155.b3",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "3087104d",
+          "sha1": "9ad0ea2b580820443c576cbb95d57467e32ea7b5",
+          "merge": "mpr-12155.b3"
+        },
+        {
+          "file": "mpr-12159.b7",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "abcf9bed",
+          "sha1": "4f755cfd0304e877b798c31de50e15995f8c4edf",
+          "merge": "mpr-12159.b7"
+        },
+        {
+          "file": "opr-12156.b4",
+          "size": 131072,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "41b6068b",
+          "sha1": "c1f1f51c4e0f4320cef7821bccac5b0c9e915d9b",
+          "merge": "opr-12156.b4"
+        },
+        {
+          "file": "opr-12160.b8",
+          "size": 131072,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "97eac164",
+          "sha1": "2bb62e6d8b2d662e9b31aa8d238a51af7c7905e8",
+          "merge": "opr-12160.b8"
+        },
+        {
+          "file": "opr-12141.a1",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "260311c5",
+          "sha1": "6b52b671252aef992c0546468c44b722bdb6a649",
+          "merge": "opr-12141.a1"
+        },
+        {
+          "file": "opr-12161.b10",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "35a4b1b1",
+          "sha1": "c3b8ba708f9f2822e48e52ea74d7e96f08182ac4",
+          "merge": "opr-12161.b10"
+        },
+        {
+          "file": "opr-12142.a2",
+          "size": 65536,
+          "offset": 1310721,
+          "status": "good",
+          "optional": false,
+          "crc32": "12e38a5c",
+          "sha1": "05558a370b4e8100d2fa5e700a5ab76771ff7729",
+          "merge": "opr-12142.a2"
+        },
+        {
+          "file": "opr-12162.b11",
+          "size": 65536,
+          "offset": 1310720,
+          "status": "good",
+          "optional": false,
+          "crc32": "fa06fd24",
+          "sha1": "20a578b82a75fe96a230c91645108fdc8b5bae21",
+          "merge": "opr-12162.b11"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12147.a10",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "c3609607",
+          "sha1": "2e0acb775c60851bf0b2037b91b07ead061d5862",
+          "merge": "epr-12147.a10"
+        },
+        {
+          "file": "mpr-12148.a11",
+          "size": 131072,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "fb9a7f29",
+          "sha1": "7ba79c18ab4e586be2deccd78e4479d55eb75a7e",
+          "merge": "mpr-12148.a11"
+        },
+        {
+          "file": "mpr-12149.a12",
+          "size": 131072,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "d6617b19",
+          "sha1": "aa36d257eaa52c8c871a39aaa2f29c203525dbaf",
+          "merge": "mpr-12149.a12"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328",
+          "merge": "315-5298.b9"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

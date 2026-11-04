@@ -1,0 +1,222 @@
+{
+  "module": "system16",
+  "board": "system16a",
+  "game": "shinobls",
+  "gamename": "Shinobi (Star bootleg, System 16A)",
+  "parent": "shinobi",
+  "romof": "shinobi",
+  "mame": {
+    "name": "shinobls",
+    "description": "Shinobi (Star bootleg, System 16A)",
+    "cloneof": "shinobi",
+    "romof": "shinobi",
+    "year": "1987",
+    "manufacturer": "bootleg (Star)",
+    "sourcefile": "sega/segas16a.cpp",
+    "machine_config": "system16a"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "b3",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "38e59646",
+          "sha1": "6a13015a93260ab99811b95950bb122eade01c27"
+        },
+        {
+          "file": "b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "8529d192",
+          "sha1": "202b912d20a2d82abe055b4a5e8c509ab7d69ff8"
+        },
+        {
+          "file": "b4",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "a2a620bd",
+          "sha1": "f8b135ce14d6c5eac5e40ddfd5ad2f1e6f2bc7a6"
+        },
+        {
+          "file": "b2",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "a3ceda52",
+          "sha1": "97a1c52a162fb1d43b3f8f16613b70ce582a8d26"
+        }
+      ]
+    },
+    "gfx1": {
+      "roms": [
+        {
+          "file": "b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "46627e7d",
+          "sha1": "66bb5b22a2100e7b9df303007a837bc2d52cf7ba",
+          "merge": "epr-11264.95"
+        },
+        {
+          "file": "b6",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "87d0f321",
+          "sha1": "885b38eaff2dcaeab4eeaa20cc8a2885d520abd6",
+          "merge": "epr-11265.94"
+        },
+        {
+          "file": "b7",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "efb4af87",
+          "sha1": "0b8a905023e1bc808fd2b1c3cfa3778cde79e659",
+          "merge": "epr-11266.93"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "b10",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "611f413a",
+          "sha1": "180f83216e2dfbfd77b0fb3be83c3042954d12df",
+          "merge": "epr-11290.10"
+        },
+        {
+          "file": "b14",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "5eb00fc1",
+          "sha1": "97e02eee74f61fabcad2a9e24f1868cafaac1d51",
+          "merge": "epr-11294.11"
+        },
+        {
+          "file": "b11",
+          "size": 65536,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "3c0797c0",
+          "sha1": "df18c7987281bd9379026c6cf7f96f6ae49fd7f9",
+          "merge": "epr-11291.17"
+        },
+        {
+          "file": "b15",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "25307ef8",
+          "sha1": "91ffbe436f80d583524ee113a8b7c0cf5d8ab286",
+          "merge": "epr-11295.18"
+        },
+        {
+          "file": "b12",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "c29ac34e",
+          "sha1": "b5e9b8c3233a7d6797f91531a0d9123febcf1660",
+          "merge": "epr-11292.23"
+        },
+        {
+          "file": "b16",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "04a437f8",
+          "sha1": "ea5fed64443236e3404fab243761e60e2e48c84c",
+          "merge": "epr-11296.24"
+        },
+        {
+          "file": "b13",
+          "size": 65536,
+          "offset": 196609,
+          "status": "good",
+          "optional": false,
+          "crc32": "7e98bd36",
+          "sha1": "069c51478af7567e704fc9e25c9e327f02db171d"
+        },
+        {
+          "file": "b17",
+          "size": 65536,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "0315cf42",
+          "sha1": "2d129171aece883cb9c2805f894b3867ec98332b"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "b8",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "dd50b745",
+          "sha1": "52e1977569d3713ad864d607170c9a61cd059a65",
+          "merge": "epr-11267.12"
+        }
+      ]
+    },
+    "upd7751": {
+      "roms": [
+        {
+          "file": "7751.bin",
+          "size": 1024,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6a9534fc",
+          "sha1": "67ad94674db5c2aab75785668f610f6f4eccd158",
+          "merge": "7751.bin"
+        }
+      ]
+    },
+    "upd7751data": {
+      "roms": [
+        {
+          "file": "b9",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "6d7966da",
+          "sha1": "90f55a99f784c21d7c135e630f4e8b1d4d043d66",
+          "merge": "epr-11268.1"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

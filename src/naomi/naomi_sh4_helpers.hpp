@@ -9,6 +9,9 @@ namespace mamerecomp::naomi {
 void load_sr(Sh4Context& ctx, std::uint32_t value);
 std::uint32_t host_store_sr(const Sh4Context& ctx);
 void host_rte(Sh4Context& ctx);
+void host_raise_exception(Sh4Context& ctx, std::uint32_t event,
+                          std::uint32_t exception_pc, std::uint32_t vector_offset,
+                          std::uint32_t tra = 0);
 void host_div1(Sh4Context& ctx, unsigned n, unsigned m);
 void host_load_fpscr(Sh4Context& ctx, std::uint32_t value);
 void host_frchg(Sh4Context& ctx);

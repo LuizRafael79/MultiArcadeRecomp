@@ -509,6 +509,10 @@ bool fill_xy(State& state, Bus& bus) noexcept {
 }
 } // namespace
 
+bool execute_pixblt_b_xy_native(State& state, Bus& bus) noexcept {
+    return pixblt_b_xy(state, bus);
+}
+
 bool write_pixel_operation(Bus& bus, std::uint32_t bit_address,
                            std::uint32_t source) noexcept {
     if (!bus.read_pixel || !bus.write_pixel) return false;
@@ -1689,6 +1693,7 @@ const char* fallback_instruction_name(std::uint16_t opcode) noexcept {
     if (graphics_family == 0xfa00) return "PIXT_R_R_I";
     if (graphics_family == 0xfc00) return "PIXT_R_R";
     if ((opcode & 0xfff0) == 0x0f20) return "PIXBLT_L_XY";
+    if ((opcode & 0xfff0) == 0x0fa0) return "PIXBLT_B_XY";
     if ((opcode & 0xfff0) == 0x0fe0) return "FILL_XY";
     if ((opcode & 0xfff0) == 0x0300) return "NOP";
     if ((opcode & 0xfff0) == 0x03e0) return "NOT";

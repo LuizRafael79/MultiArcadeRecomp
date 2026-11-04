@@ -23,6 +23,7 @@
 #include "romload.h"
 #include "m68k.h"
 #include "musashi_glue.h"
+#include "recomp_board_profile.h"
 #include <neogeorecomp/recomp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +44,8 @@ typedef struct {
 static region_t s_reg[8];
 static int s_nreg;
 static const char *s_prefix = "";   /* prepended to every emitted symbol */
+static int s_scan_indirect = 1;
+static const char *s_board_id = "generic";
 
 static region_t *find(uint32_t a) {
     a &= 0xFFFFFF;
@@ -223,25 +226,27 @@ static void explore(uint32_t seed) {
         if (nlist == caplist) { caplist = caplist ? caplist * 2 : 256; list = (uint32_t *)realloc(list, caplist * 4); }
         list[nlist++] = a;
         uint32_t next = a + (uint32_t)in->len, t;
-        if ((in->op == OP_LEA || in->op == OP_PEA) && in->src.mode == EA_PCD16) note_code_pointer(in->src.value);
-        if (in->src.mode == EA_IMM && in->size == 4 && (in->op == OP_MOVE || in->op == OP_MOVEA))
-            note_code_pointer(in->src.value);
-        if (in->op == OP_LEA && in->src.mode == EA_PCD16) lea_pc[in->dst.reg] = in->src.value;
-        if ((in->op == OP_MOVE || in->op == OP_MOVEA) && in->size == 4) {
-            if (in->src.mode == EA_PCIDX) scan_long_table(in->src.value);
-            if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) scan_long_table(lea_pc[in->src.reg] + in->src.disp);
-        }
-        if (in->op == OP_MOVE && in->size == 2 && in->dst.mode == EA_DN) {
-            if (in->src.mode == EA_PCIDX) word_table = in->src.value;
-            if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) word_table = lea_pc[in->src.reg] + in->src.disp;
-        }
-        if (in->op == OP_JMP || in->op == OP_JSR) {
-            uint32_t base = 0;
-            if (in->src.mode == EA_PCIDX) base = in->src.value;
-            if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) base = lea_pc[in->src.reg] + in->src.disp;
-            if (base) {
-                if (word_table) scan_word_table(word_table, base);
-                scan_branch_table(base);
+        if (s_scan_indirect) {
+            if ((in->op == OP_LEA || in->op == OP_PEA) && in->src.mode == EA_PCD16) note_code_pointer(in->src.value);
+            if (in->src.mode == EA_IMM && in->size == 4 && (in->op == OP_MOVE || in->op == OP_MOVEA))
+                note_code_pointer(in->src.value);
+            if (in->op == OP_LEA && in->src.mode == EA_PCD16) lea_pc[in->dst.reg] = in->src.value;
+            if ((in->op == OP_MOVE || in->op == OP_MOVEA) && in->size == 4) {
+                if (in->src.mode == EA_PCIDX) scan_long_table(in->src.value);
+                if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) scan_long_table(lea_pc[in->src.reg] + in->src.disp);
+            }
+            if (in->op == OP_MOVE && in->size == 2 && in->dst.mode == EA_DN) {
+                if (in->src.mode == EA_PCIDX) word_table = in->src.value;
+                if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) word_table = lea_pc[in->src.reg] + in->src.disp;
+            }
+            if (in->op == OP_JMP || in->op == OP_JSR) {
+                uint32_t base = 0;
+                if (in->src.mode == EA_PCIDX) base = in->src.value;
+                if (in->src.mode == EA_IDX && lea_pc[in->src.reg]) base = lea_pc[in->src.reg] + in->src.disp;
+                if (base) {
+                    if (word_table) scan_word_table(word_table, base);
+                    scan_branch_table(base);
+                }
             }
         }
         switch (in->op) {
@@ -319,7 +324,7 @@ static uint8_t flags_at(uint32_t a) {
 
 static void emit_routine(FILE *o, int idx) {
     const routine_t *rt = &s_rt[idx];
-    rc_ctx_t ctx = {rt->seed, rt->addrs, rt->n};
+    rc_ctx_t ctx = {rt->seed, rt->addrs, rt->n, 0};
     fprintf(o, "\n/* routine $%06X: %d instructions */\nvoid %sr_%06X(void) {\n    switch (CPU.pc) {\n",
             rt->seed, rt->n, s_prefix, rt->seed);
     for (int i = 0; i < rt->n; i++) {
@@ -334,8 +339,13 @@ static void emit_routine(FILE *o, int idx) {
         m68k_disassemble(dis, a, M68K_CPU_TYPE_68000);
         for (char *p = dis; *p; p++) if (*p == '*' && p[1] == '/') *p = '+';
         fprintf(o, "L_%06X: /* %06X: %s */\n    ", a, a, dis);
+        ctx.single_step = !strcmp(s_board_id, "cps1") && a >= 0x900000 && a <= 0x92ffff;
         rc_emit_insn(o, &ctx, in);
         uint32_t next = a + (uint32_t)in->len;
+        if (ctx.single_step && falls_through(in->op)) {
+            fprintf(o, "    CPU.pc = 0x%06Xu; return;\n", next & 0xFFFFFF);
+            continue;
+        }
         if (falls_through(in->op) && (i + 1 >= rt->n || rt->addrs[i + 1] != next)) {
             if (rc_in_routine(&ctx, next)) fprintf(o, "    goto L_%06X;\n", next);
             else fprintf(o, "    CPU.pc = 0x%06Xu; return;\n", next);
@@ -390,11 +400,27 @@ static int write_output(const char *dir, int nfiles, const char *game) {
         region_t *r = &s_reg[ri];
         for (uint32_t w = 0; w < r->size / 2; w++) {
             if (r->owner[w] < 0) continue;
-            fprintf(t, "    {0x%06Xu, %sr_%06X},\n", r->base + w * 2, s_prefix, s_rt[r->owner[w]].seed);
+            const uint32_t addr = r->base + w * 2;
+            const insn_t *insn = decode_at(addr);
+            fprintf(t, "    {0x%06Xu, %sr_%06X, %u},\n", addr, s_prefix,
+                s_rt[r->owner[w]].seed, insn ? (unsigned)insn->len : 0);
             count++;
         }
     }
     fprintf(t, "};\nconst size_t %sng_recomp_count = %zu;\n", s_prefix, count);
+    region_t *ram_region = NULL;
+    if (!strcmp(s_board_id, "cps1"))
+        for (int ri = 0; ri < s_nreg; ++ri)
+            if (s_reg[ri].base == 0x900000 && s_reg[ri].size == 0x30000) ram_region = &s_reg[ri];
+    if (ram_region) {
+        fprintf(t, "\nstatic const uint8_t %sram_snapshot[0x30000] = {\n", s_prefix);
+        for (uint32_t i = 0; i < ram_region->size; ++i)
+            fprintf(t, "0x%02x,%s", ram_region->data[i], (i & 15) == 15 ? "\n" : "");
+        fprintf(t, "\n};\nconst uint8_t* %sng_ram_snapshot(size_t* size) { *size=0x30000; return %sram_snapshot; }\n",
+            s_prefix, s_prefix);
+    } else {
+        fprintf(t, "\nconst uint8_t* %sng_ram_snapshot(size_t* size) { *size=0; return NULL; }\n", s_prefix);
+    }
     fclose(t);
     fprintf(stderr, "[m68krecomp] %d routines, %zu dispatch entries -> %s\n", s_nrt, count, dir);
     return 0;
@@ -469,7 +495,10 @@ static int generate(const char *out, int nfiles, const char *name, int scan_poin
 int ng_recomp_main(int argc, char **argv, const ng_game_t *game) {
     const char *rom_path = "roms", *bios_path = NULL, *bios_name = "sp-s2.sp1", *out = "generated";
     const char *entries[16];
-    int nentries = 0, nfiles = 16, scan_pointers = 1;
+    const M68kRecompBoardProfile *board = m68k_recomp_find_board_profile("neogeo");
+    int nentries = 0, nfiles = 16;
+    int scan_pointers = board ? board->scan_rom_pointer_words : 1;
+    s_scan_indirect = board ? board->infer_indirect_code_entries : 1;
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i], *next = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(a, "--rom-path") && next) { rom_path = next; i++; }
@@ -520,21 +549,44 @@ int ng_recomp_main(int argc, char **argv, const ng_game_t *game) {
  * this); pointer scanning is optional because arbitrary data words can look
  * like code addresses on large ROMs. */
 int rc_raw_main(int argc, char **argv) {
-    const char *raw = NULL, *out = "generated", *entries = NULL;
+    const char *raw = NULL, *out = "generated";
+    const char *entries[16];
+    const char *region_paths[7];
+    uint32_t region_bases[7];
+    int nentries = 0, nregions = 0;
     uint32_t base = 0, ents[32];
-    int nents = 0, nfiles = 1, scan_pointers = 1;
+    int nents = 0, nfiles = 1, scan_pointers = 0, scan_indirect = 0;
+    const char *board_id = "generic";
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i], *next = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(a, "--raw") && next) { raw = next; i++; }
         else if (!strcmp(a, "--base") && next) { base = (uint32_t)strtoul(next, NULL, 0); i++; }
         else if (!strcmp(a, "--entry") && next && nents < 32) { ents[nents++] = (uint32_t)strtoul(next, NULL, 0); i++; }
-        else if (!strcmp(a, "--entries") && next) { entries = next; i++; }
+        else if (!strcmp(a, "--entries") && next && nentries < 16) { entries[nentries++] = next; i++; }
+        else if (!strcmp(a, "--region") && next && i + 2 < argc && nregions < 7) {
+            region_bases[nregions] = (uint32_t)strtoul(next, NULL, 0);
+            region_paths[nregions] = argv[i + 2];
+            ++nregions;
+            i += 2;
+        }
         else if (!strcmp(a, "--prefix") && next) { s_prefix = next; i++; }
         else if (!strcmp(a, "--out") && next) { out = next; i++; }
         else if (!strcmp(a, "--files") && next) { nfiles = atoi(next); i++; }
+        else if (!strcmp(a, "--board") && next) {
+            board_id = next;
+            const M68kRecompBoardProfile *board = m68k_recomp_find_board_profile(board_id);
+            if (board == 0) {
+                fprintf(stderr, "error: unknown 68000 board profile '%s'\n", board_id);
+                return 2;
+            }
+            scan_pointers = board->scan_rom_pointer_words;
+            scan_indirect = board->infer_indirect_code_entries;
+            i++;
+        }
         else if (!strcmp(a, "--no-pointer-scan")) scan_pointers = 0;
+        else if (!strcmp(a, "--no-indirect-scan")) scan_indirect = 0;
         else {
-            fprintf(stderr, "usage: m68krecomp --raw FILE --base ADDR [--entry ADDR]... [--entries FILE] [--prefix P] [--out DIR] [--files N] [--no-pointer-scan]\n");
+            fprintf(stderr, "usage: m68krecomp --raw FILE --base ADDR [--region BASE FILE]... [--entry ADDR]... [--entries FILE]... [--prefix P] [--out DIR] [--files N] [--board generic|cps1|neogeo] [--no-pointer-scan] [--no-indirect-scan]\n");
             return 2;
         }
     }
@@ -549,10 +601,33 @@ int rc_raw_main(int argc, char **argv) {
     if (fread(img, 1, (size_t)n, f) != (size_t)n) { fclose(f); return 1; }
     fclose(f);
     add_region("raw", base, size, img);
+    for (int r = 0; r < nregions; ++r) {
+        FILE *region_file = fopen(region_paths[r], "rb");
+        if (!region_file) { fprintf(stderr, "error: cannot open region %s\n", region_paths[r]); return 1; }
+        if (fseek(region_file, 0, SEEK_END) != 0) { fclose(region_file); return 1; }
+        long region_size = ftell(region_file);
+        if (region_size <= 0 || (region_size & 1)) {
+            fclose(region_file);
+            fprintf(stderr, "error: invalid region size for %s\n", region_paths[r]);
+            return 1;
+        }
+        rewind(region_file);
+        uint8_t *region_data = (uint8_t *)malloc((size_t)region_size);
+        if (!region_data || fread(region_data, 1, (size_t)region_size, region_file) != (size_t)region_size) {
+            fclose(region_file); free(region_data); return 1;
+        }
+        fclose(region_file);
+        add_region(region_paths[r], region_bases[r], (uint32_t)region_size, region_data);
+    }
     m68k_init();
     m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+    s_scan_indirect = scan_indirect;
+    s_board_id = board_id;
+    fprintf(stderr, "[m68krecomp] board=%s pointer-scan=%s indirect-scan=%s\n",
+        board_id, scan_pointers ? "on" : "off", scan_indirect ? "on" : "off");
     for (int i = 0; i < nents; i++) add_seed(ents[i]);
-    if (entries && load_entries(entries)) return 1;
+    for (int i = 0; i < nentries; ++i)
+        if (load_entries(entries[i])) return 1;
     if (nfiles < 1) nfiles = 1;
     return generate(out, nfiles, raw, scan_pointers);
 }

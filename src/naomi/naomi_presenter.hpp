@@ -8,8 +8,7 @@
 
 namespace mamerecomp::naomi {
 
-// Small SDL diagnostic viewer for PVR direct-framebuffer readback. This is
-// intentionally separate from the System 16 presenter and has no game input.
+// SDL viewer for Naomi PVR direct-framebuffer readback.
 class NaomiPvrPresenter {
 public:
     explicit NaomiPvrPresenter(const std::string& title);
@@ -17,7 +16,9 @@ public:
     NaomiPvrPresenter(const NaomiPvrPresenter&) = delete;
     NaomiPvrPresenter& operator=(const NaomiPvrPresenter&) = delete;
 
-    void show(const NaomiPvrFrameInfo& info, std::span<const std::uint8_t> rgb);
+    void show(const NaomiPvrFrameInfo& info, std::span<const std::uint8_t> rgb,
+              bool active_scanout);
+    void waitUntilClosed();
 
 private:
     struct Impl;

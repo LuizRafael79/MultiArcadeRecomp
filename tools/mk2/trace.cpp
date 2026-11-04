@@ -33,6 +33,27 @@ std::vector<std::uint8_t> read_file(const std::filesystem::path& path) {
     return {std::istreambuf_iterator<char>(in), {}};
 }
 
+void save_cmos_file(const std::filesystem::path& path,
+                    std::span<const std::uint8_t> data) {
+    if (!path.parent_path().empty())
+        std::filesystem::create_directories(path.parent_path());
+    const auto temporary = path.string() + ".tmp";
+    {
+        std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+        if (!out) throw std::runtime_error("cannot write " + temporary);
+        out.write(reinterpret_cast<const char*>(data.data()),
+                  static_cast<std::streamsize>(data.size()));
+        if (!out) throw std::runtime_error("failed writing " + temporary);
+    }
+    std::error_code error;
+    std::filesystem::rename(temporary, path, error);
+    if (error) {
+        std::filesystem::remove(temporary);
+        throw std::runtime_error("cannot replace NVRAM " + path.string() +
+                                 ": " + error.message());
+    }
+}
+
 void write_ppm(std::span<const std::uint32_t> frame,
                const std::filesystem::path& path) {
     constexpr auto width = mamerecomp::mk::TUnit::frame_width;
@@ -181,7 +202,7 @@ struct LiveWindow {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--press-start-at=CYCLES] [--summary-log=PATH] [--tms-interpreter-only]\n";
+        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--press-continue-at=CYCLES] [--press-coin-at=CYCLES ...] [--press-start-at=CYCLES] [--nvram=PATH] [--summary-log=PATH] [--adsp-overlay-snapshot=PATH] [--dma-boundary-log=PATH] [--dma-command-log=PATH] [--tms-interpreter-only|--interpreter-only|--recompiler-only]\n";
         return 2;
     }
     try {
@@ -190,8 +211,17 @@ int main(int argc, char** argv) {
         bool explicit_limit = false;
         std::uint64_t start_cycle = 0;
         bool start_scheduled = false;
+        std::uint64_t continue_cycle = 0;
+        bool continue_scheduled = false;
+        std::vector<std::uint64_t> coin_cycles;
         bool window_requested = false;
         bool tms_interpreter_only = false;
+        bool interpreter_only = false;
+        bool recompiler_only = false;
+        std::filesystem::path dma_boundary_log;
+        std::filesystem::path dma_command_log;
+        std::filesystem::path adsp_overlay_snapshot;
+        std::filesystem::path nvram_path;
         std::filesystem::path frame_path = work / "mk2-frame.ppm";
         std::filesystem::path summary_path = work / "mk2-runtime-summary.log";
         int next_arg = 2;
@@ -207,15 +237,35 @@ int main(int argc, char** argv) {
                 window_requested = true;
             } else if (arg == "--tms-interpreter-only") {
                 tms_interpreter_only = true;
+            } else if (arg == "--interpreter-only") {
+                interpreter_only = true;
+                tms_interpreter_only = true;
+            } else if (arg == "--recompiler-only") {
+                recompiler_only = true;
             } else if (arg.rfind("--summary-log=", 0) == 0) {
                 summary_path = arg.substr(14);
+            } else if (arg.rfind("--dma-boundary-log=", 0) == 0) {
+                dma_boundary_log = arg.substr(19);
+            } else if (arg.rfind("--dma-command-log=", 0) == 0) {
+                dma_command_log = arg.substr(18);
+            } else if (arg.rfind("--adsp-overlay-snapshot=", 0) == 0) {
+                adsp_overlay_snapshot = arg.substr(24);
+            } else if (arg.rfind("--nvram=", 0) == 0) {
+                nvram_path = arg.substr(8);
             } else if (arg.rfind("--press-start-at=", 0) == 0) {
                 start_cycle = std::stoull(arg.substr(17), nullptr, 0);
                 start_scheduled = true;
+            } else if (arg.rfind("--press-continue-at=", 0) == 0) {
+                continue_cycle = std::stoull(arg.substr(20), nullptr, 0);
+                continue_scheduled = true;
+            } else if (arg.rfind("--press-coin-at=", 0) == 0) {
+                coin_cycles.push_back(std::stoull(arg.substr(16), nullptr, 0));
             } else {
                 throw std::runtime_error("unknown option " + arg);
             }
         }
+        if (interpreter_only && recompiler_only)
+            throw std::runtime_error("--interpreter-only and --recompiler-only are mutually exclusive");
 #ifndef MAMERECOMP_MK2_SDL
         if (window_requested)
             throw std::runtime_error("--window requires an SDL3-enabled build");
@@ -226,8 +276,16 @@ int main(int argc, char** argv) {
         const auto graphics = read_file(work / "video.bin");
         const auto sound = read_file(work / "dcs_sound.bin");
         mamerecomp::mk2::MK2Machine machine(main, graphics, sound);
+        if (nvram_path.empty()) nvram_path = work / "mk2.nvram";
+        if (std::filesystem::exists(nvram_path)) {
+            const auto saved_cmos = read_file(nvram_path);
+            if (!machine.tunit().load_cmos(saved_cmos))
+                throw std::runtime_error("NVRAM has wrong size: " + nvram_path.string());
+        }
         mamerecomp_interpreter_trace_set_summary_log(summary_path.c_str());
         auto& board = machine.tunit();
+        if (!dma_boundary_log.empty() || !dma_command_log.empty())
+            board.enable_dma_history(true);
         auto tms_bus = board.cpu_bus();
         mamerecomp::tms34010::State cpu{};
         cpu.pc = mamerecomp::tms34010::entry_pc();
@@ -237,6 +295,7 @@ int main(int argc, char** argv) {
         MamerecompFallbackReason reason = MAMERECOMP_UNCOVERED_ENTRY;
         auto& adsp = machine.dcs();
         adsp.set_reset(true);
+        bool recompiler_only_stop = false;
         auto next_sound_cycle = std::uint64_t{0};
         std::uint64_t sound_ratio_remainder = 0;
 #ifdef MAMERECOMP_MK2_SDL
@@ -248,10 +307,30 @@ int main(int argc, char** argv) {
             if (live && !live->running) break;
 #endif
             auto system = board.input(1);
+            constexpr std::uint64_t scripted_input_pulse_cycles = 2'500'000;
+            const auto scripted_pulse = [&](bool scheduled, std::uint64_t at) {
+                return scheduled && cpu.cycles >= at &&
+                    cpu.cycles - at < scripted_input_pulse_cycles;
+            };
+            auto controls = board.input(0);
+            if (scripted_pulse(continue_scheduled, continue_cycle))
+                controls &= static_cast<std::uint16_t>(~0x0040u);
+            else
+                controls |= 0x0040u;
+            board.set_input(0, controls);
+            const bool coin_pressed = std::any_of(coin_cycles.begin(), coin_cycles.end(),
+                [&](std::uint64_t at) { return scripted_pulse(true, at); });
+            // Keep live-window coin input when no scripted coin schedule was
+            // requested. Previously the runner forced the coin line high on
+            // every CPU dispatch and erased the one-frame SDL pulse.
+            if (!coin_cycles.empty()) {
+                if (coin_pressed)
+                    system &= static_cast<std::uint16_t>(~0x0001u);
+                else
+                    system |= 0x0001u;
+            }
             if (start_scheduled) {
-                constexpr std::uint64_t start_pulse_cycles = 120'000;
-                if (cpu.cycles >= start_cycle &&
-                    cpu.cycles - start_cycle < start_pulse_cycles)
+                if (scripted_pulse(true, start_cycle))
                     system &= static_cast<std::uint16_t>(~0x0004u);
                 else
                     system |= 0x0004u;
@@ -259,7 +338,7 @@ int main(int argc, char** argv) {
             board.set_input(1, system);
             const auto before = cpu.cycles;
             const auto instruction_pc = cpu.pc;
-            board.note_cpu_pc(instruction_pc);
+            board.note_cpu_state(cpu);
             auto result = mamerecomp::tms34010::BlockExit::NeedsInterpreter;
             bool native_candidate = false;
             if (!tms_interpreter_only) {
@@ -268,7 +347,8 @@ int main(int argc, char** argv) {
                     result = block(cpu, tms_bus, limit);
                 }
             }
-            if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter) {
+            if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter &&
+                !recompiler_only) {
                 result = mamerecomp::tms34010::execute_mame_interpreter(
                     cpu, tms_bus, limit);
                 if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter)
@@ -282,20 +362,53 @@ int main(int argc, char** argv) {
             }
             if (result != mamerecomp::tms34010::BlockExit::Dispatch &&
                 result != mamerecomp::tms34010::BlockExit::Budget) {
-                std::cerr << "TMS stopped at PC=0x" << std::hex << cpu.pc
-                          << " reason=" << static_cast<int>(result) << std::dec << '\n';
+                const auto stop_pc = cpu.pc;
+                const auto stop_opcode = tms_bus.read16
+                    ? tms_bus.read16(tms_bus.opaque, stop_pc) : 0;
+                const bool has_aot_block =
+                    mamerecomp::tms34010::lookup(stop_pc) != nullptr;
+                std::cerr << "TMS stopped at PC=0x" << std::hex << stop_pc
+                          << " opcode=0x" << stop_opcode << " reason="
+                          << static_cast<int>(result)
+                          << (has_aot_block ? " (AOT block declined execution)"
+                                            : " (no AOT block)")
+                          << std::dec << '\n';
                 break;
             }
             const auto elapsed = cpu.cycles - before;
-            board.advance_cycles(elapsed);
+            const auto already_advanced = board.take_pre_advanced_cycles();
+            if (already_advanced < elapsed)
+                board.advance_cycles(elapsed - already_advanced);
             if (result != mamerecomp::tms34010::BlockExit::Budget &&
                 mamerecomp::tms34010::service_interrupt(cpu, tms_bus))
                 ++interrupts;
             sound_ratio_remainder += elapsed * 8;
-            next_sound_cycle += sound_ratio_remainder / 5; // 6.25 : 10 MHz.
+            next_sound_cycle += sound_ratio_remainder / 5; // 6.25 MHz : 10 MHz.
             sound_ratio_remainder %= 5;
-            if (next_sound_cycle > adsp.cpu().cycles)
-                (void)adsp.run_until(next_sound_cycle);
+            if (next_sound_cycle > adsp.cpu().cycles) {
+                const auto adsp_exit = adsp.run_until(
+                    next_sound_cycle, interpreter_only, recompiler_only);
+                if (recompiler_only &&
+                    adsp_exit == mamerecomp::adsp2105::BlockExit::NeedsInterpreter) {
+                    const auto pc = adsp.cpu().pc & mamerecomp::adsp2105::pc_mask;
+                    const auto stop_opcode = adsp.diagnostics().stopped_opcode;
+                    const bool has_aot_address = mamerecomp::adsp2105::lookup(pc) != nullptr;
+                    const bool has_exact_aot_block =
+                        mamerecomp::adsp2105::lookup(pc, stop_opcode) != nullptr;
+                    const bool dynamic_code = machine.dcs().program_word_was_written(pc);
+                    std::cerr << "ADSP-2105 stopped at PC=0x" << std::hex
+                              << pc << " opcode=0x" << stop_opcode
+                              << (has_exact_aot_block
+                                  ? " (AOT block declined execution)"
+                                  : has_aot_address
+                                  ? " (no AOT variant for live opcode)"
+                                  : (dynamic_code
+                                      ? " (dynamic program word has no AOT block)"
+                                      : " (no AOT block)"))
+                              << std::dec << '\n';
+                    recompiler_only_stop = true;
+                }
+            }
 #ifdef MAMERECOMP_MK2_SDL
             if (live && board.take_completed_frames()) {
                 live->poll_inputs(board, start_scheduled, start_cycle, cpu.cycles);
@@ -303,6 +416,7 @@ int main(int argc, char** argv) {
                 live->present(board.framebuffer(), board.current_display_params(), samples);
             }
 #endif
+            if (recompiler_only_stop) break;
             if (result == mamerecomp::tms34010::BlockExit::Budget) break;
         }
         write_ppm(board.framebuffer(), frame_path);
@@ -394,6 +508,61 @@ int main(int argc, char** argv) {
                   << " last=0x" << dma.last_command
                   << " source=0x" << dma.last_source << std::dec
                   << " busy-cycles=" << dma.cycles_remaining << '\n';
+        if (!dma_boundary_log.empty()) {
+            std::ofstream dma_log(dma_boundary_log, std::ios::trunc);
+            if (!dma_log)
+                throw std::runtime_error("cannot write " + dma_boundary_log.string());
+            dma_log << "# T-Unit DMA commands near horizontal screen boundaries\n"
+                    << "# seq cmd x y width height clip-left clip-right source pixels-written\n";
+            std::uint64_t logged = 0;
+            for (const auto& command : board.dma_command_history()) {
+                const unsigned x = command.x_start & 0x03ff;
+                const unsigned width = command.width & 0x03ff;
+                const bool near_boundary = x < 64 || x >= 442 ||
+                    x + width > 506 || command.left_clip < 64 ||
+                    command.right_clip >= 442;
+                if (!near_boundary) continue;
+                dma_log << command.sequence << " 0x" << std::hex << command.command
+                        << std::dec << ' ' << x << ' '
+                        << (command.y_start & 0x01ff) << ' ' << width << ' '
+                        << (command.height & 0x03ff) << ' '
+                        << (command.left_clip & 0x03ff) << ' '
+                        << (command.right_clip & 0x03ff) << " 0x"
+                        << std::hex << command.source << std::dec << ' '
+                        << command.pixels_written << '\n';
+                ++logged;
+            }
+            std::cout << "MK2 DMA boundary log=" << dma_boundary_log
+                      << " records=" << logged << '\n';
+        }
+        if (!dma_command_log.empty()) {
+            std::ofstream dma_log(dma_command_log, std::ios::trunc);
+            if (!dma_log)
+                throw std::runtime_error("cannot write " + dma_command_log.string());
+            dma_log << "# seq cmd config source x y width height palette color xstep ystep "
+                       "r12 r13 r16 r17 cpu_pc cpu_cycles A0 A1 A2 A3 A4 A5 A6 A7 "
+                       "A8 A9 A10 A11 A12 A13 A14 B0 B1 B2 B3 B4 B5 B6 B7 "
+                       "B8 B9 B10 B11 B12 B13 B14\n";
+            for (const auto& command : board.dma_command_history()) {
+                dma_log << std::dec << command.sequence << " 0x" << std::hex << command.command
+                        << " 0x" << command.config << " 0x" << command.source
+                        << std::dec << ' ' << (command.x_start & 0x03ff) << ' '
+                        << (command.y_start & 0x01ff) << ' '
+                        << (command.width & 0x03ff) << ' '
+                        << (command.height & 0x03ff) << " 0x" << std::hex
+                        << command.palette << " 0x" << command.color << " 0x"
+                        << command.x_step << " 0x" << command.y_step << " 0x"
+                        << command.top_clip << " 0x" << command.bottom_clip << " 0x"
+                        << command.left_clip << " 0x" << command.right_clip << " 0x"
+                        << command.cpu_pc << ' ' << std::dec
+                        << command.cpu_cycles << std::hex;
+                for (const auto value : command.cpu_registers)
+                    dma_log << " 0x" << value;
+                dma_log << '\n';
+            }
+            std::cout << "MK2 DMA command log=" << dma_command_log
+                      << " records=" << board.dma_command_history().size() << '\n';
+        }
         std::cout << "MK2 palette entries:";
         for (std::size_t i = 0, shown = 0; i < palette.size() && shown < 16; ++i) {
             if (palette[i]) {
@@ -403,7 +572,9 @@ int main(int argc, char** argv) {
         }
         std::cout << std::dec << '\n';
         std::cout << "DCS2K commands=" << d.host_commands << " reads="
-                  << d.host_reads << " ADSP cycles=" << adsp.cpu().cycles
+                  << d.host_reads << " empty-reads=" << d.empty_output_reads
+                  << " host-stall-cycles=" << d.host_stall_cycles_total
+                  << " ADSP cycles=" << adsp.cpu().cycles
                   << " pc=0x" << std::hex << adsp.cpu().pc << std::dec
                   << " native=" << adsp.cpu().native_instructions
                   << " interpreted=" << adsp.cpu().interpreted_instructions
@@ -420,10 +591,33 @@ int main(int argc, char** argv) {
                   << d.local_ram_last_pc << std::dec
                   << " stream-I" << d.stream_ireg << "=0x" << std::hex
                   << d.stream_address << " base=0x" << d.stream_base
+                  << " stop-PC=0x" << d.stopped_pc
+                  << " stop-opcode=0x" << d.stopped_opcode
+                  << " stop-reason=0x" << static_cast<unsigned>(d.stop_reason)
                   << " L=0x" << d.stream_length
                   << " M=0x" << d.stream_increment
                   << " bank=0x" << d.sound_bank << std::dec
                   << " stalled=" << d.cpu_stalled << '\n';
+        save_cmos_file(nvram_path, board.cmos());
+        if (!adsp_overlay_snapshot.empty()) {
+            const auto overlay = machine.dcs().program_overlay();
+            if (!adsp_overlay_snapshot.parent_path().empty())
+                std::filesystem::create_directories(adsp_overlay_snapshot.parent_path());
+            std::ofstream out(adsp_overlay_snapshot, std::ios::binary | std::ios::trunc);
+            if (!out) throw std::runtime_error("cannot write " + adsp_overlay_snapshot.string());
+            for (const auto& [address, word] : overlay) {
+                const char record[] = {
+                    static_cast<char>(address >> 8), static_cast<char>(address),
+                    static_cast<char>(word >> 16), static_cast<char>(word >> 8),
+                    static_cast<char>(word)};
+                out.write(record, sizeof(record));
+            }
+            if (!out) throw std::runtime_error("failed writing " + adsp_overlay_snapshot.string());
+            std::cout << "ADSP program overlay snapshot=" << adsp_overlay_snapshot
+                      << " observed-variants=" << overlay.size() << '\n';
+        }
+        std::cout << "MK2 CMOS NVRAM=" << nvram_path << " bytes="
+                  << board.cmos().size() << '\n';
         std::cout << "frame: " << frame_path << '\n';
         std::cout << "interpreter/runtime summary: " << summary_path << '\n';
         return 0;

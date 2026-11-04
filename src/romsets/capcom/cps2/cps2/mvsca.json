@@ -1,0 +1,908 @@
+{
+  "module": "cps2",
+  "board": "cps2",
+  "game": "mvsca",
+  "gamename": "Marvel Vs. Capcom: Clash of Super Heroes (Asia 980123)",
+  "parent": "mvsc",
+  "romof": "mvsc",
+  "mame": {
+    "name": "mvsca",
+    "description": "Marvel Vs. Capcom: Clash of Super Heroes (Asia 980123)",
+    "cloneof": "mvsc",
+    "romof": "mvsc",
+    "year": "1998",
+    "manufacturer": "Capcom",
+    "sourcefile": "capcom/cps2.cpp",
+    "isbios": false
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "mvca.03a",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2ff4ae25",
+          "sha1": "74cc3656a265f912c72cc6e591de14791fa9a50d"
+        },
+        {
+          "file": "mvca.04a",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "f28427ef",
+          "sha1": "3e4c91753b19c6307abd0ad87a0184730a418efb"
+        },
+        {
+          "file": "mvc.05a",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "2d8c8e86",
+          "sha1": "b07d640a734c5d336054ed05195786224c9a6cd4",
+          "merge": "mvc.05a"
+        },
+        {
+          "file": "mvc.06a",
+          "size": 524288,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "8528e1f5",
+          "sha1": "cd065c05268ab581b05676da544baf6af642acac",
+          "merge": "mvc.06a"
+        },
+        {
+          "file": "mvc.07",
+          "size": 524288,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "c3baa32b",
+          "sha1": "d35589847e0753e869ffcd7c3abed925bfdb0fa2",
+          "merge": "mvc.07"
+        },
+        {
+          "file": "mvc.08",
+          "size": 524288,
+          "offset": 2621440,
+          "status": "good",
+          "optional": false,
+          "crc32": "bc002fcd",
+          "sha1": "0b6735a071a9274f7ab25c743271fc30411fe819",
+          "merge": "mvc.08"
+        },
+        {
+          "file": "mvc.09",
+          "size": 524288,
+          "offset": 3145728,
+          "status": "good",
+          "optional": false,
+          "crc32": "c67b26df",
+          "sha1": "6e9969246c57269d7ba0992a5cc319c8910bf8a9",
+          "merge": "mvc.09"
+        },
+        {
+          "file": "mvc.10",
+          "size": 524288,
+          "offset": 3670016,
+          "status": "good",
+          "optional": false,
+          "crc32": "0fdd1e26",
+          "sha1": "5fa684d823b4f4eec61ed9e9b8938af5272ae1ed",
+          "merge": "mvc.10"
+        }
+      ]
+    },
+    "gfx": {
+      "roms": [
+        {
+          "file": "mvc.13m",
+          "size": 4194304,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "fa5f74bc",
+          "sha1": "79a619248938a85ce4f7794a704647b9cf564fbc",
+          "merge": "mvc.13m"
+        },
+        {
+          "file": "mvc.15m",
+          "size": 4194304,
+          "offset": 2,
+          "status": "good",
+          "optional": false,
+          "crc32": "71938a8f",
+          "sha1": "6982f7203458c1c46a1c1c13c0d0f2a5e109d271",
+          "merge": "mvc.15m"
+        },
+        {
+          "file": "mvc.17m",
+          "size": 4194304,
+          "offset": 4,
+          "status": "good",
+          "optional": false,
+          "crc32": "92741d07",
+          "sha1": "ddfd70eab7c983ab452194b1860059f8ad694459",
+          "merge": "mvc.17m"
+        },
+        {
+          "file": "mvc.19m",
+          "size": 4194304,
+          "offset": 6,
+          "status": "good",
+          "optional": false,
+          "crc32": "bcb72fc6",
+          "sha1": "46ab98dcdf6f5d611646a22a7355939ef5b2bbe5",
+          "merge": "mvc.19m"
+        },
+        {
+          "file": "mvc.14m",
+          "size": 4194304,
+          "offset": 16777216,
+          "status": "good",
+          "optional": false,
+          "crc32": "7f1df4e4",
+          "sha1": "ede92b31c1fe87f91b4fe74ac211f2fb5f863bc2",
+          "merge": "mvc.14m"
+        },
+        {
+          "file": "mvc.16m",
+          "size": 4194304,
+          "offset": 16777218,
+          "status": "good",
+          "optional": false,
+          "crc32": "90bd3203",
+          "sha1": "ed83208c486ea0f407b7e5d16a8cf242a6f73774",
+          "merge": "mvc.16m"
+        },
+        {
+          "file": "mvc.18m",
+          "size": 4194304,
+          "offset": 16777220,
+          "status": "good",
+          "optional": false,
+          "crc32": "67aaf727",
+          "sha1": "e0e69104e31d2c41e18c0d24e9ab962406a7ca9a",
+          "merge": "mvc.18m"
+        },
+        {
+          "file": "mvc.20m",
+          "size": 4194304,
+          "offset": 16777222,
+          "status": "good",
+          "optional": false,
+          "crc32": "8b0bade8",
+          "sha1": "c5732361bb4bf284c4d12a82ac2c5750b1f9d441",
+          "merge": "mvc.20m"
+        }
+      ]
+    },
+    "audiocpu": {
+      "roms": [
+        {
+          "file": "mvc.01",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "41629e95",
+          "sha1": "36925c05b5fdcbe43283a882d021e5360c947061",
+          "merge": "mvc.01"
+        },
+        {
+          "file": "mvc.02",
+          "size": 131072,
+          "offset": 163840,
+          "status": "good",
+          "optional": false,
+          "crc32": "963abf6b",
+          "sha1": "6b784870e338701cefabbbe4669984b5c4e8a9a5",
+          "merge": "mvc.02"
+        }
+      ]
+    },
+    "qsound": {
+      "roms": [
+        {
+          "file": "mvc.11m",
+          "size": 4194304,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "850fe663",
+          "sha1": "81e519d05a08855f242ea2e17ee0859b449db895",
+          "merge": "mvc.11m"
+        },
+        {
+          "file": "mvc.12m",
+          "size": 4194304,
+          "offset": 4194304,
+          "status": "good",
+          "optional": false,
+          "crc32": "7ccb1896",
+          "sha1": "74caadf3282fcc6acffb1bbe3734106f81124121",
+          "merge": "mvc.12m"
+        }
+      ]
+    },
+    "key": {
+      "roms": [
+        {
+          "file": "mvsca.key",
+          "size": 20,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "31edaee8",
+          "sha1": "17267ef1939348ad1f840df4913ff04e43a3aac8"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "cps2-cipher"
+  },
+  "runtime": {
+    "properties": {}
+  },
+  "driver_layout": {
+    "source": "cps2.cpp",
+    "regions": [
+      {
+        "name": "maincpu",
+        "size_expression": "0x0400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 5865
+      },
+      {
+        "name": "gfx",
+        "size_expression": "0x2000000",
+        "size": 33554432,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 5875
+      },
+      {
+        "name": "audiocpu",
+        "size_expression": "0x50000",
+        "size": 327680,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 5885
+      },
+      {
+        "name": "qsound",
+        "size_expression": "0x800000",
+        "size": 8388608,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 5890
+      },
+      {
+        "name": "key",
+        "size_expression": "0x20",
+        "size": 32,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 5894
+      }
+    ],
+    "operations": [
+      {
+        "macro": "ROM_REGION",
+        "region": "maincpu",
+        "size_expression": "0x0400000",
+        "flags_expression": "0",
+        "source_line": 5865
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvca.03a",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5866,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "2ff4ae25",
+        "sha1": "74cc3656a265f912c72cc6e591de14791fa9a50d"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvca.04a",
+        "offset_expression": "0x080000",
+        "offset": 524288,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5867,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 524288,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "f28427ef",
+        "sha1": "3e4c91753b19c6307abd0ad87a0184730a418efb"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.05a",
+        "offset_expression": "0x100000",
+        "offset": 1048576,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5868,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048576,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "2d8c8e86",
+        "sha1": "b07d640a734c5d336054ed05195786224c9a6cd4"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.06a",
+        "offset_expression": "0x180000",
+        "offset": 1572864,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5869,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1572864,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "8528e1f5",
+        "sha1": "cd065c05268ab581b05676da544baf6af642acac"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.07",
+        "offset_expression": "0x200000",
+        "offset": 2097152,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5870,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2097152,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "c3baa32b",
+        "sha1": "d35589847e0753e869ffcd7c3abed925bfdb0fa2"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.08",
+        "offset_expression": "0x280000",
+        "offset": 2621440,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5871,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2621440,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "bc002fcd",
+        "sha1": "0b6735a071a9274f7ab25c743271fc30411fe819"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.09",
+        "offset_expression": "0x300000",
+        "offset": 3145728,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5872,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 3145728,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "c67b26df",
+        "sha1": "6e9969246c57269d7ba0992a5cc319c8910bf8a9"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "mvc.10",
+        "offset_expression": "0x380000",
+        "offset": 3670016,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 5873,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 3670016,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "0fdd1e26",
+        "sha1": "5fa684d823b4f4eec61ed9e9b8938af5272ae1ed"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "gfx",
+        "size_expression": "0x2000000",
+        "flags_expression": "0",
+        "source_line": 5875
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.13m",
+        "offset_expression": "0x0000000",
+        "offset": 0,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5876,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "fa5f74bc",
+        "sha1": "79a619248938a85ce4f7794a704647b9cf564fbc"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.15m",
+        "offset_expression": "0x0000002",
+        "offset": 2,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5877,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "71938a8f",
+        "sha1": "6982f7203458c1c46a1c1c13c0d0f2a5e109d271"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.17m",
+        "offset_expression": "0x0000004",
+        "offset": 4,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5878,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 4,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "92741d07",
+        "sha1": "ddfd70eab7c983ab452194b1860059f8ad694459"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.19m",
+        "offset_expression": "0x0000006",
+        "offset": 6,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5879,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 6,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "bcb72fc6",
+        "sha1": "46ab98dcdf6f5d611646a22a7355939ef5b2bbe5"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.14m",
+        "offset_expression": "0x1000000",
+        "offset": 16777216,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5880,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 16777216,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "7f1df4e4",
+        "sha1": "ede92b31c1fe87f91b4fe74ac211f2fb5f863bc2"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.16m",
+        "offset_expression": "0x1000002",
+        "offset": 16777218,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5881,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 16777218,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "90bd3203",
+        "sha1": "ed83208c486ea0f407b7e5d16a8cf242a6f73774"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.18m",
+        "offset_expression": "0x1000004",
+        "offset": 16777220,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5882,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 16777220,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "67aaf727",
+        "sha1": "e0e69104e31d2c41e18c0d24e9ab962406a7ca9a"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "mvc.20m",
+        "offset_expression": "0x1000006",
+        "offset": 16777222,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5883,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 16777222,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "8b0bade8",
+        "sha1": "c5732361bb4bf284c4d12a82ac2c5750b1f9d441"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "audiocpu",
+        "size_expression": "0x50000",
+        "flags_expression": "0",
+        "source_line": 5885
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "mvc.01",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_line": 5886,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          },
+          {
+            "source_offset": 32768,
+            "destination": 65536,
+            "length": 98304,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "41629e95",
+        "sha1": "36925c05b5fdcbe43283a882d021e5360c947061",
+        "continuations": [
+          {
+            "macro": "ROM_CONTINUE",
+            "region": "audiocpu",
+            "arguments": [
+              "0x10000",
+              "0x18000"
+            ],
+            "source_line": 5887,
+            "offset_expression": "0x10000",
+            "offset": 65536,
+            "length_expression": "0x18000",
+            "length": 98304,
+            "source_offset": 32768
+          }
+        ]
+      },
+      {
+        "macro": "ROM_CONTINUE",
+        "region": "audiocpu",
+        "arguments": [
+          "0x10000",
+          "0x18000"
+        ],
+        "source_line": 5887,
+        "offset_expression": "0x10000",
+        "offset": 65536,
+        "length_expression": "0x18000",
+        "length": 98304,
+        "source_offset": 32768
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "mvc.02",
+        "offset_expression": "0x28000",
+        "offset": 163840,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 5888,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 163840,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "963abf6b",
+        "sha1": "6b784870e338701cefabbbe4669984b5c4e8a9a5"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "qsound",
+        "size_expression": "0x800000",
+        "flags_expression": "0",
+        "source_line": 5890
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "mvc.11m",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5891,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "transform": "word_swap",
+        "crc32": "850fe663",
+        "sha1": "81e519d05a08855f242ea2e17ee0859b449db895"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "mvc.12m",
+        "offset_expression": "0x400000",
+        "offset": 4194304,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 5892,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 4194304,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "transform": "word_swap",
+        "crc32": "7ccb1896",
+        "sha1": "74caadf3282fcc6acffb1bbe3734106f81124121"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "key",
+        "size_expression": "0x20",
+        "flags_expression": "0",
+        "source_line": 5894
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "key",
+        "file": "mvsca.key",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x000014",
+        "length": 20,
+        "source_line": 5895,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 20,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 20,
+        "crc32": "31edaee8",
+        "sha1": "17267ef1939348ad1f840df4913ff04e43a3aac8"
+      }
+    ]
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "eswatud",
+  "gamename": "Cyber Police ESWAT (set 3, US) (bootleg of FD1094 317-0129 set)",
+  "parent": "eswat",
+  "romof": "eswat",
+  "mame": {
+    "name": "eswatud",
+    "description": "Cyber Police ESWAT (set 3, US) (bootleg of FD1094 317-0129 set)",
+    "cloneof": "eswat",
+    "romof": "eswat",
+    "year": "1989",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_5797"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "bootleg_epr-12657.a2",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "85b42ecc",
+          "sha1": "fccd1f841c47b85214ccc1662855133086719db0"
+        },
+        {
+          "file": "bootleg_epr-12656.a1",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "0509949f",
+          "sha1": "bf94f745cf733ae1c35e139f71145b45df270a0e"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-12624.b11",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "375a5ec4",
+          "sha1": "42b9116bdc0e0a5b1dd667ac1856b4c2252829ba",
+          "merge": "mpr-12624.b11"
+        },
+        {
+          "file": "mpr-12625.b12",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "3b8c757e",
+          "sha1": "0b66e8446d059a12e47e2a6fe8f0a333245bb95c",
+          "merge": "mpr-12625.b12"
+        },
+        {
+          "file": "mpr-12626.b13",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "3efca25c",
+          "sha1": "0d866bf53a16b52719f73081e933f4db27d72ece",
+          "merge": "mpr-12626.b13"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-12618.b1",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "0d1530bf",
+          "sha1": "bb8626cd98761c1c20cee117d00315c85621ba6a",
+          "merge": "mpr-12618.b1"
+        },
+        {
+          "file": "mpr-12621.b4",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "18ff0799",
+          "sha1": "5417223378aef16ee2b4f438d1f8f11a23fe7265",
+          "merge": "mpr-12621.b4"
+        },
+        {
+          "file": "mpr-12619.b2",
+          "size": 262144,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "32069246",
+          "sha1": "4913009bc72bf4f8b171b14fe06457f5784cab15",
+          "merge": "mpr-12619.b2"
+        },
+        {
+          "file": "mpr-12622.b5",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "a3dfe436",
+          "sha1": "640ccc552114d403f35d441574d2f3e4f1d4a8f9",
+          "merge": "mpr-12622.b5"
+        },
+        {
+          "file": "mpr-12620.b3",
+          "size": 262144,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "f6b096e0",
+          "sha1": "695ad1adbdc29f4d614645867e16de038cf92709",
+          "merge": "mpr-12620.b3"
+        },
+        {
+          "file": "mpr-12623.b6",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "6773fef6",
+          "sha1": "91e646ea447be02254d060daf255d26afe0cc79e",
+          "merge": "mpr-12623.b6"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12617.a13",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "7efecf23",
+          "sha1": "2b87af7cfaab5942a3f7b38c987fcba01d3475ab",
+          "merge": "epr-12617.a13"
+        },
+        {
+          "file": "mpr-12616.a11",
+          "size": 262144,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "254347c2",
+          "sha1": "bf2d83a69a5be375c7e42e9f7d6e65c1095a354c",
+          "merge": "mpr-12616.a11"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328",
+          "merge": "315-5298.b9"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

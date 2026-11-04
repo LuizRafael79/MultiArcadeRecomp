@@ -1,0 +1,401 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "shdancer",
+  "gamename": "Shadow Dancer (World)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "shdancer",
+    "description": "Shadow Dancer (World)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1989",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas18.cpp",
+    "machine_config": "system18"
+  },
+  "properties": {
+    "rom_board": "shadow_dancer_171",
+    "soundcpu_fill": 255,
+    "protection": "none"
+  },
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-12774b.a6",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "3d5b3fa9",
+          "sha1": "370dd6e8ab9fb9e77eee9262d13fbdb4cf575abc"
+        },
+        {
+          "file": "epr-12773b.a5",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "2596004e",
+          "sha1": "1b993aa74e7559f7e99253fd2144db9449c04cce"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-12712.b1",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "9bdabe3d",
+          "sha1": "4bb30fa2d4cdefe4a864cef7153b516bc5b02c42"
+        },
+        {
+          "file": "mpr-12713.b2",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "852d2b1c",
+          "sha1": "8e5bc83d45e48b621ea3016207f2028fe41701e6"
+        },
+        {
+          "file": "mpr-12714.b3",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "448226ce",
+          "sha1": "3060e4a43311069e2691d659c1e0c1a48edfeedb"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-12719.b11",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "d6888534",
+          "sha1": "2201f1921a68cf39e5a94b487c90e48d032d630f"
+        },
+        {
+          "file": "mpr-12726.a11",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ff344945",
+          "sha1": "2743778c42f53321f9691d60bbf94ea8baf1382f"
+        },
+        {
+          "file": "mpr-12718.b10",
+          "size": 262144,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "ba2efc0c",
+          "sha1": "459a1a280f870c94aefb70127ed007cb090ed203"
+        },
+        {
+          "file": "mpr-12725.a10",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "268a0c17",
+          "sha1": "2756054fa3c3aed30a1fce5e41acb0ceaebe90b5"
+        },
+        {
+          "file": "mpr-12717.b9",
+          "size": 262144,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "c81cc4f8",
+          "sha1": "22f364e85057ceef533e051c8d0755b9691c5ec4"
+        },
+        {
+          "file": "mpr-12724.a9",
+          "size": 262144,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "0f4903dc",
+          "sha1": "851bd60e877c9e39be23dc1fde91efc9da513c29"
+        },
+        {
+          "file": "epr-12716.b8",
+          "size": 262144,
+          "offset": 1572865,
+          "status": "good",
+          "optional": false,
+          "crc32": "a870e629",
+          "sha1": "29f6633240f9737ec19e16100decc7aa045b2060"
+        },
+        {
+          "file": "epr-12723.a8",
+          "size": 262144,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "c606cf90",
+          "sha1": "cb53ae9a6da1eb31c584173d1fbbd1c8539fb54c"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12987.a4",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "d1c020cc",
+          "sha1": "7823e31fc44180570ee2512a73e993533204b5ab"
+        },
+        {
+          "file": "mpr-12715.b4",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "07051a52",
+          "sha1": "d48658497f4a34665d3e051f893ff057c38925ae"
+        }
+      ]
+    }
+  },
+  "runtime_profile": true,
+  "romset_source": "MAME -listxml",
+  "runtime": {
+    "regions": {
+      "maincpu": {
+        "size": 524288,
+        "fill": 255,
+        "roms": [
+          {
+            "file": "epr-12774b.a6",
+            "size": 262144,
+            "crc32": "3d5b3fa9",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 0,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "epr-12773b.a5",
+            "size": 262144,
+            "crc32": "2596004e",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "tiles": {
+        "size": 786432,
+        "fill": 0,
+        "roms": [
+          {
+            "file": "mpr-12712.b1",
+            "size": 262144,
+            "crc32": "9bdabe3d",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 0,
+                "length": 262144,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "file": "mpr-12713.b2",
+            "size": 262144,
+            "crc32": "852d2b1c",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 262144,
+                "length": 262144,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "file": "mpr-12714.b3",
+            "size": 262144,
+            "crc32": "448226ce",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 524288,
+                "length": 262144,
+                "stride": 1
+              }
+            ]
+          }
+        ]
+      },
+      "sprites": {
+        "size": 2097152,
+        "fill": 0,
+        "roms": [
+          {
+            "file": "mpr-12719.b11",
+            "size": 262144,
+            "crc32": "d6888534",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "mpr-12726.a11",
+            "size": 262144,
+            "crc32": "ff344945",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 0,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "mpr-12718.b10",
+            "size": 262144,
+            "crc32": "ba2efc0c",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 524289,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "mpr-12725.a10",
+            "size": 262144,
+            "crc32": "268a0c17",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 524288,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "mpr-12717.b9",
+            "size": 262144,
+            "crc32": "c81cc4f8",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1048577,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "mpr-12724.a9",
+            "size": 262144,
+            "crc32": "0f4903dc",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1048576,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "epr-12716.b8",
+            "size": 262144,
+            "crc32": "a870e629",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1572865,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "file": "epr-12723.a8",
+            "size": 262144,
+            "crc32": "c606cf90",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 1572864,
+                "length": 262144,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "soundcpu": {
+        "size": 2097152,
+        "fill": 255,
+        "roms": [
+          {
+            "file": "epr-12987.a4",
+            "size": 131072,
+            "crc32": "d1c020cc",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 0,
+                "length": 131072,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "file": "mpr-12715.b4",
+            "size": 262144,
+            "crc32": "07051a52",
+            "segments": [
+              {
+                "source_offset": 0,
+                "destination": 524288,
+                "length": 262144,
+                "stride": 1
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

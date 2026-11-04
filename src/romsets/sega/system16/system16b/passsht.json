@@ -1,0 +1,198 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "passsht",
+  "gamename": "Passing Shot (World, 2 Players) (FD1094 317-0080)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "passsht",
+    "description": "Passing Shot (World, 2 Players) (FD1094 317-0080)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1988",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-11871.a4",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "0f9ccea5",
+          "sha1": "515a2721a35332df0303f4b9616122194b5c7170"
+        },
+        {
+          "file": "epr-11870.a1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "df43ebcf",
+          "sha1": "3ca11a25819e1e8d5162f7b36cccc928d8efe150"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0080.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "222d016f",
+          "sha1": "e426e5ea231e5b2ec1f40b0b2599269c14fef21a"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "opr-11854.b9",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "d31c0b6c",
+          "sha1": "610d04988da70c30300cc5614817eda9d2204f39"
+        },
+        {
+          "file": "opr-11855.b10",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "b78762b4",
+          "sha1": "d594ef846bd7fed8da91a89906b39c1a2867a1fe"
+        },
+        {
+          "file": "opr-11856.b11",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "ea49f666",
+          "sha1": "36ccd32cdcbb7fcc300628bb59c220ec3c324d82"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "opr-11862.b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "b6e94727",
+          "sha1": "0838e034f1f10d9cd1312c8c94b5c57387c0c271"
+        },
+        {
+          "file": "opr-11865.b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "17e8d5d5",
+          "sha1": "ac1074b0a705be13c6e3391441e6cfec1d2b3f8a"
+        },
+        {
+          "file": "opr-11863.b2",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "3e670098",
+          "sha1": "2cfc83f4294be30cd868738886ac546bd8489962"
+        },
+        {
+          "file": "opr-11866.b6",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "50eb71cc",
+          "sha1": "463b4917ca19c7f4ad2c2845caa104d5e4a2dda3"
+        },
+        {
+          "file": "opr-11864.b3",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "05733ca8",
+          "sha1": "1dbc7c99450ebe6a9fd8c0244fd3cb38b74984ef"
+        },
+        {
+          "file": "opr-11867.b7",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "81e49697",
+          "sha1": "a70fa409e3555ad6c8f28930a7026fdf2deb8c65"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-11857.a7",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "789edc06",
+          "sha1": "8c89c94e503513c287807d187de78a7fbd75a7cf"
+        },
+        {
+          "file": "epr-11858.a8",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "08ab0018",
+          "sha1": "0685f80a7d403208c9cfffea3f2035324f3924fe"
+        },
+        {
+          "file": "epr-11859.a9",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "8673e01b",
+          "sha1": "e79183ab30e683fdf61ced2e9dbe010567c324cb"
+        },
+        {
+          "file": "epr-11860.a10",
+          "size": 32768,
+          "offset": 196608,
+          "status": "good",
+          "optional": false,
+          "crc32": "10263746",
+          "sha1": "1f981fb185c6a9795208ecdcfba36cf892a99ed5"
+        },
+        {
+          "file": "epr-11861.a11",
+          "size": 32768,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "38b54a71",
+          "sha1": "68ec4ef5b115844214ff2213be1ce6678904fbd2"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

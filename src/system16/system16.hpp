@@ -22,6 +22,7 @@ struct RomLoad16Byte {
     std::uint32_t destination;
     std::uint32_t size;
     std::uint32_t crc32;
+    std::string_view merge_filename{};
 };
 
 struct RomRegionLoad {
@@ -32,6 +33,7 @@ struct RomRegionLoad {
     std::uint32_t destination;
     std::uint32_t length;
     std::uint8_t destination_stride;
+    std::string_view merge_filename{};
 };
 
 struct GameProfile {

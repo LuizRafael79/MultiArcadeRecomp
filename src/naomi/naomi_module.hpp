@@ -24,6 +24,8 @@ struct NaomiProfileRecord {
 
 struct NaomiSh4ProbeResult {
     std::uint64_t instructions_executed;
+    std::uint64_t native_instructions;
+    std::uint64_t interpreted_instructions;
     std::uint32_t entry;
     std::uint32_t pc;
     std::uint32_t unresolved_target;
@@ -33,6 +35,11 @@ struct NaomiSh4ProbeResult {
     std::uint64_t pvr_vram_bytes;
     std::uint32_t pvr_register_writes;
     std::uint32_t pvr_scanline;
+    std::uint64_t pvr_render_start_requests;
+    std::uint32_t pvr_framebuffer_enabled;
+    std::uint64_t pvr_ta_completed_lists;
+    std::uint64_t pvr_ta_parameter_counts[8];
+    std::uint64_t pvr_ta_list_packet_counts[5];
     std::uint32_t holly_normal_status;
     std::uint32_t holly_level2_mask;
     std::uint32_t holly_level4_mask;
@@ -73,7 +80,7 @@ const NaomiProfileRecord* mamerecomp_naomi_profiles(std::size_t* count);
 // `dispatcher` points to mamerecomp::naomi::Sh4Dispatcher in the C++ runtime ABI.
 int mamerecomp_naomi_register_sh4(const char* set_id, void* dispatcher,
                                   std::uint32_t* entry);
-void* mamerecomp_naomi_sh4_probe_create(const char* set_id, int use_reios_boot);
+void* mamerecomp_naomi_sh4_probe_create(const char* set_id, int interpreter_only);
 void mamerecomp_naomi_sh4_probe_destroy(void* probe);
 int mamerecomp_naomi_sh4_probe_start(void* probe, const std::uint8_t* rom,
                                      std::size_t rom_size,

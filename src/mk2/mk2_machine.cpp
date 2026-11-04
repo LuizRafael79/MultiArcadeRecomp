@@ -5,7 +5,8 @@ namespace mamerecomp::mk2 {
 MK2Machine::MK2Machine(std::span<const std::uint8_t> main_rom,
                        std::span<const std::uint8_t> graphics_rom,
                        std::span<const std::uint8_t> dcs_sound_region)
-    : m_dcs(dcs_sound_region), m_tunit(main_rom, graphics_rom) {
+    : m_dcs(dcs_sound_region), m_tunit(main_rom, graphics_rom, true) {
+    // MAME's mk2() enables the large-graphics-ROM T-Unit profile.
     // MAME's MK2 DSW defaults: CMOS coinage, POST powerup test disabled,
     // one board, coin counter 2, and the default attract/gameplay switches.
     m_tunit.set_input(3, 0xfc7d);

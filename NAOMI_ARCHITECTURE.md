@@ -138,7 +138,7 @@ double-pair operations are present, but FPU status/exception precision, TRAPA
 services, and PVR list parsing/rasterization remain incomplete. The CPU probe is
 not connected to normal game runtime scheduling, and no PVR frame or game audio
 is produced.
-`naomi_reios_boot.*` remains historical reference code and is excluded from the Naomi runtime build; `run-naomi-sh4` starts from the real BIOS reset vector. The BIOS reset AOT is generated from the locally supplied BIOS, and the SH-4 P4 reset state currently follows MAME (`EXPEVT=0`, Naomi CPU version `0x040206c8`, PRR=0). MAME remains
+The obsolete `naomi_reios_boot.*` implementation has been removed; Naomi runtime construction and `run-naomi-sh4` start from the real BIOS reset vector. The BIOS reset AOT is generated from the locally supplied BIOS, and the SH-4 P4 reset state currently follows MAME (`EXPEVT=0`, Naomi CPU version `0x040206c8`, PRR=0). MAME remains
 the primary board/map reference. The Maple/JVS HLE is in
 `src/naomi/naomi_jvs_837_13551.hpp` and adapts to the Holly endpoint. Per the
 user's clarification, use the applicable source license and preserve notices.

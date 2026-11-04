@@ -13,6 +13,7 @@ typedef struct {
     uint32_t  seed;
     uint32_t *addrs;
     int       n;
+    int       single_step;
 } rc_ctx_t;
 
 int  rc_in_routine(const rc_ctx_t *ctx, uint32_t addr);

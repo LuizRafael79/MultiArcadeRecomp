@@ -36,7 +36,11 @@ class MissingLeaderRegression(unittest.TestCase):
         self.assertNotIn("default: return;", generated)
         self.assertIn("case 0x00001002u:", generated)
         self.assertNotIn("case 0x00001006u:", generated)
-        self.assertIn("d.add(0x00001002u, &FUN_00001000);", generated)
+        self.assertRegex(
+            generated,
+            r"d\.add\(0x00001002u, &FUN_00001000, "
+            r"0x00001000u, 4u, 0x[0-9A-F]{16}ull\);",
+        )
 
     def test_p1_alias_reads_physical_image_offset(self) -> None:
         # The image is physically based at A0000000. The P1 guest alias

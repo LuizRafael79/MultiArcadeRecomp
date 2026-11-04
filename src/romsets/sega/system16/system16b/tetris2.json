@@ -1,0 +1,139 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "tetris2",
+  "gamename": "Tetris (set 2, Japan, System 16B) (FD1094 317-0092)",
+  "parent": "tetris",
+  "romof": "tetris",
+  "mame": {
+    "name": "tetris2",
+    "description": "Tetris (set 2, Japan, System 16B) (FD1094 317-0092)",
+    "cloneof": "tetris",
+    "romof": "tetris",
+    "year": "1988",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-12193.a7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "44466ed4",
+          "sha1": "ddb4f0310987e54ce4cd9ffa2813e2d1309aeaaa"
+        },
+        {
+          "file": "epr-12192.a5",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "a1c8af00",
+          "sha1": "a8e4b289eb3939d6798bb78df1b4ae51c8ccc2d6"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0092.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "d10e1ad9",
+          "sha1": "26e81b5f62d96ea50bf203f66dc3643f29dd1596"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "epr-12165.b9",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "62640221",
+          "sha1": "c311d3847a981d0e1609f9b3d80481565d32d78c"
+        },
+        {
+          "file": "epr-12166.b10",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "9abd183b",
+          "sha1": "621b017cb34973f9227be383e26b5cd41aea9422"
+        },
+        {
+          "file": "epr-12167.b11",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "2495fd4e",
+          "sha1": "2db94ead9223a67238a97e724668076fc43e5534"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-12194.b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "2fb38880",
+          "sha1": "0e1b601bbda78d1887951c1f7e752531c281bc83"
+        },
+        {
+          "file": "mpr-12195.b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "d6a02cba",
+          "sha1": "d80000f92e754e89c6ca7b7273feab448fc9a061"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12168.a7",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "bd9ba01b",
+          "sha1": "fafa7dc36cc057a50ae4cdf7a35f3594292336f4"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

@@ -1,0 +1,172 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "timescanbl",
+  "gamename": "Time Scanner (bootleg)",
+  "parent": "timescan",
+  "romof": "timescan",
+  "mame": {
+    "name": "timescanbl",
+    "description": "Time Scanner (bootleg)",
+    "cloneof": "timescan",
+    "romof": "timescan",
+    "year": "1987",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/system16.cpp",
+    "machine_config": "tetrisbl"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "ts_8.ic3",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a9b4e091",
+          "sha1": "2fa6cbd35498bc99c8099d4060defafd0d9c83b6"
+        },
+        {
+          "file": "ts_10.ic6",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "c1d620d0",
+          "sha1": "17b62390d384a97a45d7a16754e61b2283320fd6"
+        },
+        {
+          "file": "ts_7a.ic2",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "deab7e4e",
+          "sha1": "472a55b0ba289b0f4e538bb4c8b826dede3a40bb"
+        },
+        {
+          "file": "ts_9a.ic5",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "deab7e4e",
+          "sha1": "472a55b0ba289b0f4e538bb4c8b826dede3a40bb"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "ts_6a.ic68",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "42abf28e",
+          "sha1": "b1279c59f2d6c020b97b8fb60dadd35f9affcf0d"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "ts_3.ic119",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "9ba3e236",
+          "sha1": "88891b774d51d923a60392a89d2f26e144337e6b"
+        },
+        {
+          "file": "ts_4.ic118",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "e88abc47",
+          "sha1": "bd44bceeda3844bf35d220776f87b1e78ebb7923"
+        },
+        {
+          "file": "ts_5.ic117",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "9c1d7121",
+          "sha1": "44262391f778c4391abf65891ad53fae957c8853"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "ts_1.ic10",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b5e4b7c8",
+          "sha1": "a441b5c0db1adf9c34556af655149c1340c681c8"
+        },
+        {
+          "file": "ts_2.ic8",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "ef4bca57",
+          "sha1": "93fba50cdbf65b055cf89967e2c6a36a4059cddd"
+        }
+      ]
+    },
+    "proms": {
+      "roms": [
+        {
+          "file": "b_82s129.i22",
+          "size": 256,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "88962e80",
+          "sha1": "ebf3d57d53fcba727cf20e4bb26f12934f7d1bc7"
+        },
+        {
+          "file": "b_82s123.ic4",
+          "size": 32,
+          "offset": 256,
+          "status": "good",
+          "optional": false,
+          "crc32": "98d14190",
+          "sha1": "94f49830c98dbb54e10caa31100e382978813531"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "shinobi_gal16v8.ic3",
+          "size": 279,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "4d988385",
+          "sha1": "9be8db60bdd452b4013bab42c4b5592b387c927b"
+        },
+        {
+          "file": "cs_galv8v.ic13",
+          "size": 279,
+          "offset": 512,
+          "status": "nodump",
+          "optional": false
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

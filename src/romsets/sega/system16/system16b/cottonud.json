@@ -1,0 +1,330 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "cottonud",
+  "gamename": "Cotton (set 3, US) (bootleg of FD1094 317-0180 set)",
+  "parent": "cotton",
+  "romof": "cotton",
+  "mame": {
+    "name": "cottonud",
+    "description": "Cotton (set 3, US) (bootleg of FD1094 317-0180 set)",
+    "cloneof": "cotton",
+    "romof": "cotton",
+    "year": "1991",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "bootleg_cotton.a7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f6b585ca",
+          "sha1": "9ed3641f0a8112dfc34394ad78fc9981a1d16fe3"
+        },
+        {
+          "file": "bootleg_cotton.a5",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "6b328522",
+          "sha1": "f7284297ef4521c864310f19ca6e147d01a28087"
+        },
+        {
+          "file": "bootleg_cotton.a8",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "f9147b71",
+          "sha1": "f0604b536c6fcb8a0caf3d7d60add8a754acd9c7"
+        },
+        {
+          "file": "bootleg_cotton.a6",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "10365de4",
+          "sha1": "5662d0e3c9a05d1c40a27877e7b902adc81eec6f"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "opr-13862.a14",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a47354b6",
+          "sha1": "ce52813b245f1d491a134d4bd5ab074e71d20129",
+          "merge": "opr-13862.a14"
+        },
+        {
+          "file": "opr-13877.b14",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "d38424b5",
+          "sha1": "884ca190936aee2d2cac86491d4d0cdf4a45efe5",
+          "merge": "opr-13877.b14"
+        },
+        {
+          "file": "opr-13863.a15",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "8c990026",
+          "sha1": "07b4510936376c171f3b31d87ac6154361eb0cbc",
+          "merge": "opr-13863.a15"
+        },
+        {
+          "file": "opr-13878.b15",
+          "size": 131072,
+          "offset": 393216,
+          "status": "good",
+          "optional": false,
+          "crc32": "21c15b8a",
+          "sha1": "690d92420ec5465885e0f4870419992961420e33",
+          "merge": "opr-13878.b15"
+        },
+        {
+          "file": "opr-13864.a16",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "d2b175bf",
+          "sha1": "897b7c794d0e7229ea5e9a682f64266a947a818f",
+          "merge": "opr-13864.a16"
+        },
+        {
+          "file": "opr-13879.b16",
+          "size": 131072,
+          "offset": 655360,
+          "status": "good",
+          "optional": false,
+          "crc32": "b9d62531",
+          "sha1": "e8c5e7b93339c00f75a3b66ce18f7838255577be",
+          "merge": "opr-13879.b16"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "opr-13869.b5",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ab4b3468",
+          "sha1": "3071654a295152d609d2c2c1d4153b5ba3f174d5",
+          "merge": "opr-13869.b5"
+        },
+        {
+          "file": "opr-13865.b1",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "7024f404",
+          "sha1": "4b2f9cdfdd97218797a3e386106e53f713b8650d",
+          "merge": "opr-13865.b1"
+        },
+        {
+          "file": "opr-13870.b6",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "69b41ac3",
+          "sha1": "4c5a85e5a5ca9f8260557d4e97eb091dd857d63a",
+          "merge": "opr-13870.b6"
+        },
+        {
+          "file": "opr-13866.b2",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "6169bba4",
+          "sha1": "a24a418ee7cd0c1109870a2e7a91e430671897ed",
+          "merge": "opr-13866.b2"
+        },
+        {
+          "file": "opr-13871.b7",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "0801cf02",
+          "sha1": "3007bbbce2f327f4700e78e2b8672f4482189cd7",
+          "merge": "opr-13871.b7"
+        },
+        {
+          "file": "opr-13867.b3",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "b014f02d",
+          "sha1": "46f5ed0b44cee03a6aec9ec57b506bb15bf35e47",
+          "merge": "opr-13867.b3"
+        },
+        {
+          "file": "opr-13872.b8",
+          "size": 131072,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "f066f315",
+          "sha1": "bbeb24daaded994240d0cdb5cec2e662b677cb75",
+          "merge": "opr-13872.b8"
+        },
+        {
+          "file": "opr-13868.b4",
+          "size": 131072,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "e62a7cd6",
+          "sha1": "1e6d06345f7b6cef2e887d9b9cd45e0155140c5e",
+          "merge": "opr-13868.b4"
+        },
+        {
+          "file": "opr-13873.b10",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "1bd145f3",
+          "sha1": "4744ffe9fbda453785345b46eb61b56730048f42",
+          "merge": "opr-13873.b10"
+        },
+        {
+          "file": "opr-13852.a1",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "943aba8b",
+          "sha1": "d0dd1665a8d9495a92ae4e35d6b15b966e8d43cd",
+          "merge": "opr-13852.a1"
+        },
+        {
+          "file": "opr-13874.b11",
+          "size": 131072,
+          "offset": 1310720,
+          "status": "good",
+          "optional": false,
+          "crc32": "4fd59bff",
+          "sha1": "2b4630e49b60593d668fe34d8faf712ac6928c14",
+          "merge": "opr-13874.b11"
+        },
+        {
+          "file": "opr-13853.a2",
+          "size": 131072,
+          "offset": 1310721,
+          "status": "good",
+          "optional": false,
+          "crc32": "7ea93200",
+          "sha1": "8e2d8cd48a12306772653f25bddc99ad0597a698",
+          "merge": "opr-13853.a2"
+        },
+        {
+          "file": "opr-13894.b12",
+          "size": 131072,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "e3d0bee2",
+          "sha1": "503a78123ca9d6f3405972bca281dcdaba929c99",
+          "merge": "opr-13894.b12"
+        },
+        {
+          "file": "opr-13891.a3",
+          "size": 131072,
+          "offset": 1572865,
+          "status": "good",
+          "optional": false,
+          "crc32": "c6b3c414",
+          "sha1": "0f0d936e77eb483be8865e8d968d78260e88ca99",
+          "merge": "opr-13891.a3"
+        },
+        {
+          "file": "opr-13876.b13",
+          "size": 131072,
+          "offset": 1835008,
+          "status": "good",
+          "optional": false,
+          "crc32": "1c5ffad8",
+          "sha1": "13e5886ceece564cc71ba7f43a26d2b1782ccfc8",
+          "merge": "opr-13876.b13"
+        },
+        {
+          "file": "opr-13855.a4",
+          "size": 131072,
+          "offset": 1835009,
+          "status": "good",
+          "optional": false,
+          "crc32": "856f3ee2",
+          "sha1": "72346d887ff9738ebe93acb2e3f8cd80d494621e",
+          "merge": "opr-13855.a4"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-13892.a10",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "fdfbe6ad",
+          "sha1": "9ebb94889c0e96e6af9cdced084804ca98612d61",
+          "merge": "epr-13892.a10"
+        },
+        {
+          "file": "opr-13893.a11",
+          "size": 131072,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "384233df",
+          "sha1": "dfdf94697587a5ee45e97700f3741be54b90742b",
+          "merge": "opr-13893.a11"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328",
+          "merge": "315-5298.b9"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

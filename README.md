@@ -11,6 +11,10 @@ O protótipo inicial é KOF98: validação de ROMs, BIOS MVS, transformação do
 programa, recompilação AOT do 68000, blocos nativos Z80 e framebuffer headless
 já estão integrados. O boot MVS alcança gameplay com fallback híbrido nos dois
 CPUs. Veja [NEOGEO_PROGRESS.md](NEOGEO_PROGRESS.md).
+O executável `kof98recomp` ainda é um runner separado nesta fase de protótipo;
+a organização planejada é carregá-lo pelo host comum como módulo de placa
+`mamerecomp_neogeo.so`, com o código AOT de cada jogo em módulo próprio, seguindo
+o modelo System 16/18 sem compartilhar implementação de placa.
 
 O ponto de entrada comum para builds por placa é `tools/recompile.py`, que
 recebe `--system` e `--game` e encaminha as opções ao backend correspondente.
@@ -18,20 +22,41 @@ Neo Geo/KOF98 usa o protótipo local; CPS2 já encaminha para o pipeline local d
 `cps2recomp`, mantendo artefatos sob `build/cps2/`. Os demais sistemas entram
 na mesma interface conforme seus adaptadores de jogo forem ligados. Exemplo:
 
+KI1/KI2 também têm um fluxo experimental nesse dispatcher. KI1 decodifica as
+imagens de programa comprimidas na U98 e gera C AOT MIPS III; o CHD é dado de
+runtime, não origem de instruções. KI2 ainda usa captura de RAM pós-boot pelo
+MAME até confirmarmos o formato da BIOS. Ainda não é possível executar esses
+jogos pelo host, pois o runtime R4600 compartilhado não existe. Detalhes em
+[Killer Instinct pipeline](docs/KILLER_INSTINCT_PIPELINE.md).
+
 O trabalho CPS está documentado em [CPS_PROGRESS.md](CPS_PROGRESS.md). O alvo
-CPS1 `sf2ce` valida as ROMs, gera Z80 e 68000 nativos e compila ambas as saídas
-em bibliotecas estáticas isoladas; elas ainda não estão ligadas a um runtime
-CPS1, então o jogo não é executável. `dino` tem um caminho local de geração Z80,
-com Kabuki e QSound específicos, mas também ainda não é um jogo executável.
+CPS1 `sf2ce` valida as ROMs e gera um módulo AOT por jogo,
+`libmamerecomp_game_sf2ce.so`, que depende do runtime da placa
+`libmamerecomp_cps1.so` e dos runtimes compartilhados 68000/Z80. O executável
+`mamerecomp_sf2ce` é um dispatcher/runner pequeno que carrega esses módulos.
+As ROMs continuam externas. Musashi e o interpretador Z80 seguem como
+fallbacks. `dino` tem geração Z80 local com Kabuki e runtime QSound; o runner
+já mostra o logo da Capcom, mas attract e gameplay ainda não foram validados.
+O 68000 compartilhado e o fallback Musashi continuam ligados.
 
 ```sh
 python3 tools/recompile.py --system neogeo --game kof98 \
   --rom-zip /path/to/kof98.zip --bios-zip /path/to/neogeo.zip \
   --bios sp-s2.sp1 --build-dir build/neogeo-kof98 --jobs 2
 
-python3 tools/recompile.py --system cps1 --game sf2ce \
-  --rom-dir /home/luiz/git/mame/roms/sf2ce.zip
+build/mamerecomp build --machine=cps --board=cps1 --game=sf2ce
+build/mamerecomp run --machine=cps --board=cps1 --game=sf2ce
+python3 tools/recompile.py --system ki --game ki1
+python3 tools/recompile.py --system ki --game ki2
 ```
+
+`build` validates and exports the game's ROM regions from the MAME ZIP through
+its C++ ROM driver, then creates the static translation. It reuses a current
+build; `--rebuild` forces a fresh one. `run` only launches an existing current
+build and reports when `build` is needed. Both commands accept
+`--rom-dir /path/to/sf2ce.zip` to override the default ROM location. Audio
+samples stay inside the exported ROM region; no separate OKI file is needed.
+When using a custom ZIP, pass the same `--rom-dir` to both commands.
 
 ## Repository layout
 
@@ -39,15 +64,19 @@ python3 tools/recompile.py --system cps1 --game sf2ce \
 - `core/chips/`: shared chip models, grouped by chip number/family.
 - `core/third_party/`: upstream dependency snapshots used by the core. Keep each upstream isolated; do not mix Neo Geo board code into CPS1 or Sega modules.
 - `src/`: board implementations grouped under `cps1/`, `naomi/`, `neogeo/`, `system16/`, and `system18/`, plus game ROM profiles and the host entry point.
-- `tools/`: per-system build entry points, generators, and analyzers.
+- `src/romsets/`: JSON game manifests organized by publisher/module/board/set; see [ROMSETS.md](ROMSETS.md).
+- `tools/generators/`: source-side build pipelines and manifest/code generators, organized by board or data type. Their generated code and binaries belong under `build/`, not beside the generator sources.
+- `tools/`: per-system command-line entry points, generators, and analyzers.
 - `artifacts/`: captures and diagnostic logs that are not source code.
 - `build/`: regenerable build outputs, translated code, and working ROM files; ignored by Git.
 
-Existing `UPSTREAM.md`, license, and notice files remain with their respective
-copies. Consolidate future attribution/license records by module and link each
-dependency to its original repository. The single shared 68000 frontend is the
-target architecture; the System 16 prototype still uses an older local decoder
-path that must be migrated to the common frontend.
+Os arquivos `UPSTREAM.md`, licenças e notices existentes permanecem junto das
+cópias correspondentes. As atribuições futuras serão organizadas por módulo e
+vão apontar para os repositórios originais. O frontend 68000 compartilhado já é
+o único caminho de recompilação ativo. Musashi continua obrigatório como
+fallback interpretado para instruções ainda não cobertas e código executado em
+RAM; a interpretação Z80 também permanece como fallback compartilhado, e a
+migração dos módulos System 16/18 deve preservar essa cobertura.
 
 ## Estado atual
 
@@ -158,11 +187,13 @@ primeiro conjunto AOT SH-4 do `mvsc2u` usando o ZIP local:
 python tools/naomi/build_mvsc2u_aot.py /home/luiz/git/mame/roms/mvsc2u.zip
 ```
 
-O pipeline atual percorre o entry REIOS e compila as funções estáticas do jogo
-e o pequeno trecho da BIOS USA que o jogo copia para RAM. O comando do probe
-carrega `naomi.zip` automaticamente ao lado do ROM set (ou aceita `--bios`),
-valida a BIOS por CRC e mapeia seus 2 MiB como ROM. Ainda faltam outros alvos
-indiretos, integração Holly/Maple, store queues/PVR2 e apresentação.
+O gerador AOT extrai e compila funções SH-4 estáticas do jogo e da BIOS USA que
+é copiada para RAM. Essa etapa de geração não define o caminho de boot: o
+runtime Naomi inicia pelo vetor de reset da BIOS oficial, mantém o despacho
+híbrido AOT + interpretador e não usa REIOS. O comando do probe carrega
+`naomi.zip` automaticamente ao lado do ROM set (ou aceita `--bios`), valida a
+BIOS por CRC e mapeia seus 2 MiB como ROM. Ainda faltam partes do runtime Holly,
+ARM7/AICA e PVR2; o TA ainda não rasteriza no framebuffer guest.
 Os arquivos derivados da ROM ficam dentro de `build/` e não fazem parte do
 repositório. Veja [NAOMI_ARCHITECTURE.md](NAOMI_ARCHITECTURE.md) para a medição
 atual e os limites conhecidos. Para um avanço controlado da CPU recompilada
@@ -172,10 +203,11 @@ sem vídeo, use o probe:
 ./build/release/mamerecomp run-naomi-sh4 mvsc2u /home/luiz/git/mame/roms/mvsc2u.zip --instructions 1000000
 ```
 
-O probe prepara o estado de boot REIOS com a BIOS Naomi real mapeada e executa
-o dispatcher SH-4 até o orçamento ou até encontrar um serviço/dispositivo
-ainda desconectado. O startup chega ao loop pós-inicialização; o probe ainda
-não abre janela nem produz imagem.
+O probe executa a BIOS Naomi oficial pelo dispatcher SH-4 híbrido até o
+orçamento ou até uma condição de parada. Use `--interpreter-only` para
+desabilitar a busca AOT em uma execução controlada. Os checkpoints atuais
+confirmam instruções da BIOS, mas ainda não comprovam o boot do jogo nem uma
+imagem renderizada.
 
 Inspecionar ROMs/vetores:
 
@@ -221,7 +253,7 @@ cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release \
 cmake --build build/release -j2
 ```
 
-Isso gera `mamerecomp`, `libmamerecomp_core.so`, `mamerecomp_system16a.so` e `mamerecomp_system16b.so` no diretório de build. Ao iniciar Shinobi, só o módulo 16A é aberto; Golden Axe abre o módulo 16B. O menu, a janela, a entrada e a leitura dos ZIPs permanecem no host. Nesta primeira etapa, o runtime de vídeo/áudio/barramento ainda não foi movido para os módulos.
+Isso gera `mamerecomp`, `libmamerecomp_cpu_m68000.so`, `mamerecomp_system16a.so` e `mamerecomp_system16b.so` no diretório de build. Ao iniciar Shinobi, só o módulo 16A é aberto; Golden Axe abre o módulo 16B. O menu, a janela, a entrada e a leitura dos ZIPs permanecem no host. Nesta primeira etapa, o runtime de vídeo/áudio/barramento ainda não foi movido para os módulos.
 
 Selecionar o backend OpenGL para tilemap/texto e conferir os índices/prioridades contra o compositor CPU:
 

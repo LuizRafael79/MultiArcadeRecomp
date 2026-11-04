@@ -27,6 +27,13 @@ def number(value: object, label: str) -> int:
     raise ValueError(f"{label} must be an integer or 0x-prefixed string")
 
 
+def fnv1a64(data: bytes) -> int:
+    value = 0xCBF29CE484222325
+    for byte in data:
+        value = ((value ^ byte) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return value
+
+
 def emit(image: bytes, manifest: dict, symbol_prefix: str = "") -> str:
     set_id = str(manifest.get("set_id", "naomi")).lower()
     if not re.fullmatch(r"[a-z0-9_]+", set_id):
@@ -55,6 +62,7 @@ def emit(image: bytes, manifest: dict, symbol_prefix: str = "") -> str:
             resolved_calls[str(site).lower().removeprefix("0x")] = f"{target_address:08x}"
 
     functions: dict[int, str] = {}
+    code_guards: dict[int, tuple[int, int, int]] = {}
     aliases: dict[int, int] = {}
     entry_candidates: dict[int, list[int]] = {}
     entry_candidate_scores: dict[int, int] = {}
@@ -130,6 +138,7 @@ def emit(image: bytes, manifest: dict, symbol_prefix: str = "") -> str:
         if "UNHANDLED:" in text:
             raise ValueError(f"function 0x{address:08x} has an opcode without codegen")
         functions[address] = text
+        code_guards[address] = (code_base, len(raw) // 2, fnv1a64(raw))
         entry_candidate_scores[address] = len(reachable_addrs or {address})
         for reachable_address in (entry_addrs or {address}):
             entry_candidates.setdefault(reachable_address, []).append(address)
@@ -182,7 +191,10 @@ def emit(image: bytes, manifest: dict, symbol_prefix: str = "") -> str:
         lines.append(f"void {function_name}(Sh4Context& ctx);")
     lines += ["", body, "", f"void mamerecomp_register_sh4_{set_id}(Sh4Dispatcher& d) {{"]
     for address in sorted(functions):
-        lines.append(f"    d.add(0x{address:08X}u, &{symbol(address)});")
+        base, word_count, code_hash = code_guards[address]
+        lines.append(
+            f"    d.add(0x{address:08X}u, &{symbol(address)}, "
+            f"0x{base:08X}u, {word_count}u, 0x{code_hash:016X}ull);")
     # Interrupt/RTE can resume at any translated instruction boundary, not
     # only at function roots. Map every statically reachable instruction to a
     # single generated function that can enter at that PC. Prefer the function
@@ -193,9 +205,15 @@ def emit(image: bytes, manifest: dict, symbol_prefix: str = "") -> str:
             candidates,
             key=entry_candidate_scores.__getitem__,
         )
-        lines.append(f"    d.add(0x{guest_pc:08X}u, &{symbol(owner)});")
+        base, word_count, code_hash = code_guards[owner]
+        lines.append(
+            f"    d.add(0x{guest_pc:08X}u, &{symbol(owner)}, "
+            f"0x{base:08X}u, {word_count}u, 0x{code_hash:016X}ull);")
     for alias, address in sorted(aliases.items()):
-        lines.append(f"    d.add(0x{alias:08X}u, &{symbol(address)});")
+        base, word_count, code_hash = code_guards[address]
+        lines.append(
+            f"    d.add(0x{alias:08X}u, &{symbol(address)}, "
+            f"0x{base:08X}u, {word_count}u, 0x{code_hash:016X}ull);")
     lines += ["}", f"std::uint32_t mamerecomp_sh4_entry_{set_id}() {{ return 0x{entry:08X}u; }}",
               "} // namespace mamerecomp::naomi", ""]
     return "\n".join(lines)

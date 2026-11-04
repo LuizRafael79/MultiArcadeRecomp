@@ -1,0 +1,32 @@
+# TMS34010 bit-address entries observed at runtime in the MK rev. 5 T-Unit ROM.
+# Keep each computed control-flow target here so the bounded AOT trace can
+# continue past indirect branches without inserting guessed entry points.
+0xffe23570
+0xffe224a0
+0xffe224b0
+0xffe235b0
+0xffe23690
+0xffe23760
+0xffe23810
+0xffe23850
+0xffe251c0
+0xffe257f0
+0xffe258a0
+0xffe25920
+0xffe259a0
+# MK gameplay roots observed repeatedly in the character-select/attract run.
+# These decode to native forms (MOVE and JRS) but were absent from the bounded
+# static trace because control reaches them through computed branches.
+0xffc78700
+0xffc79400
+0xffc79b00
+0xffc79b30
+# Additional hot code roots from the next gameplay fallback report.
+0xffc7a200
+0xffc7ba80
+0xffc7bc00
+0xffc7cb50
+0xffc7ccd0
+0xffc7cd10
+0xffc9c7d0
+0xffcb4b90

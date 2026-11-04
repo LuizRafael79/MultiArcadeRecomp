@@ -72,6 +72,7 @@ public:
     void RaiseNmi() {
         m_nmi = true;
     }
+    bool NmiPending() const { return m_nmi; }
     // One instruction or interrupt; the clock cycles it took (not added to `cycles`)
     unsigned Step();
     // Runs until `cycles` reaches `until` (a little past it: to the end of the instruction or block)

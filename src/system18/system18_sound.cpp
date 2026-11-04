@@ -25,16 +25,16 @@ constexpr int kRf5c68RouteGainPercent = 50;
 System18Sound::System18Sound(std::span<const std::uint8_t> sound_region, bool audio_output,
     std::uint8_t master_volume, bool stereo_spread)
     : m_rom(sound_region.begin(), sound_region.end()),
+      m_z80_bus([this](std::uint16_t address) { return memory_read(address); },
+          [this](std::uint16_t address, std::uint8_t value) { memory_write(address, value); },
+          [this](std::uint16_t port) { return port_read(static_cast<std::uint8_t>(port)); },
+          [this](std::uint16_t port, std::uint8_t value) { port_write(static_cast<std::uint8_t>(port), value); }),
+      m_cpu(m_z80_bus),
       m_ym_interface0(*this, 0), m_ym_interface1(*this, 1),
       m_ym0(m_ym_interface0), m_ym1(m_ym_interface1),
       m_master_volume(std::min<std::uint8_t>(master_volume, 100)), m_stereo_spread(stereo_spread) {
     if (m_rom.size() < 0x20000) throw std::invalid_argument("System 18 sound ROM region is too small");
-    z80_init(&m_cpu);
-    m_cpu.userdata = this;
-    m_cpu.read_byte = &read_memory;
-    m_cpu.write_byte = &write_memory;
-    m_cpu.port_in = &read_port;
-    m_cpu.port_out = &write_port;
+    m_cpu.Reset();
     m_ym0.reset();
     m_ym1.reset();
     if (!audio_output) return;
@@ -73,19 +73,6 @@ System18Sound::~System18Sound() {
 #endif
 }
 
-std::uint8_t System18Sound::read_memory(void* user, std::uint16_t address) {
-    return static_cast<System18Sound*>(user)->memory_read(address);
-}
-void System18Sound::write_memory(void* user, std::uint16_t address, std::uint8_t value) {
-    static_cast<System18Sound*>(user)->memory_write(address, value);
-}
-std::uint8_t System18Sound::read_port(z80* cpu, std::uint8_t port) {
-    return static_cast<System18Sound*>(cpu->userdata)->port_read(port);
-}
-void System18Sound::write_port(z80* cpu, std::uint8_t port, std::uint8_t value) {
-    static_cast<System18Sound*>(cpu->userdata)->port_write(port, value);
-}
-
 std::uint8_t System18Sound::memory_read(std::uint16_t address) {
     if (address < 0xa000) return m_rom[address];
     if (address < 0xc000) {
@@ -111,11 +98,11 @@ void System18Sound::memory_write(std::uint16_t address, std::uint8_t value) {
 std::uint8_t System18Sound::port_read(std::uint8_t port) {
     const auto decoded = static_cast<std::uint8_t>(port & 0xf3U);
     if ((decoded & 0xfcU) == 0x80U) {
-        synchronize_audio(m_cpu.cyc);
+        synchronize_audio(m_cpu.BusCallbackCycles());
         return m_ym0.read(decoded & 3U);
     }
     if ((decoded & 0xfcU) == 0x90U) {
-        synchronize_audio(m_cpu.cyc);
+        synchronize_audio(m_cpu.BusCallbackCycles());
         return m_ym1.read(decoded & 3U);
     }
     if ((port & 0xe0U) == 0xc0U) return m_sound_latch;
@@ -125,7 +112,7 @@ std::uint8_t System18Sound::port_read(std::uint8_t port) {
 void System18Sound::port_write(std::uint8_t port, std::uint8_t value) {
     const auto decoded = static_cast<std::uint8_t>(port & 0xf3U);
     if ((decoded & 0xfcU) == 0x80U || (decoded & 0xfcU) == 0x90U) {
-        synchronize_audio(m_cpu.cyc);
+        synchronize_audio(m_cpu.BusCallbackCycles());
         const unsigned chip = (decoded & 0xfcU) == 0x90U ? 1U : 0U;
         const unsigned reg_port = decoded & 3U;
         std::uint8_t chip_value = value;
@@ -151,16 +138,16 @@ void System18Sound::port_write(std::uint8_t port, std::uint8_t value) {
 
 void System18Sound::advance_to_main_cycles(std::uint64_t main_cycles) {
     const std::uint64_t target = main_cycles * kZ80Clock / kMainClock;
-    while (m_cpu.cyc < target) {
-        z80_step(&m_cpu);
-        synchronize_audio(m_cpu.cyc);
+    while (m_cpu.cycles < target) {
+        m_cpu.cycles += m_cpu.Step();
+        synchronize_audio(m_cpu.cycles);
     }
     synchronize_audio(target);
 }
 
 void System18Sound::write_sound_latch(std::uint8_t value) {
     m_sound_latch = value;
-    z80_gen_nmi(&m_cpu);
+    m_cpu.RaiseNmi();
 }
 
 void System18Sound::write_pcm_register(std::uint8_t offset, std::uint8_t value) {
@@ -307,8 +294,7 @@ bool System18Sound::YmInterface::ymfm_is_busy() {
 void System18Sound::YmInterface::ymfm_update_irq(bool asserted) {
     if (m_chip != 0 || m_owner.m_irq[0] == asserted) return;
     m_owner.m_irq[0] = asserted;
-    if (asserted) z80_gen_int(&m_owner.m_cpu, 0xff);
-    else m_owner.m_cpu.int_pending = false;
+    m_owner.m_cpu.SetInterruptLine(asserted);
 }
 
 } // namespace mamerecomp

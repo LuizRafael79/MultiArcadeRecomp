@@ -59,6 +59,7 @@ constexpr unsigned kRegHcount = 28;
 constexpr unsigned kRegVcount = 29;
 constexpr unsigned kRegDpyadr = 30;
 constexpr unsigned kRegRefcnt = 31;
+constexpr unsigned kRegHstctlh = 16;
 
 constexpr std::array<std::uint8_t, 57> kMkProtectionValues{
     0x13, 0x27, 0x0f, 0x1f, 0x3e, 0x3d, 0x3b, 0x37,
@@ -104,9 +105,11 @@ std::uint32_t palette_entry_to_argb(std::uint16_t color) noexcept {
 } // namespace
 
 TUnit::TUnit(std::span<const std::uint8_t> main_rom,
-             std::span<const std::uint8_t> graphics_rom)
+             std::span<const std::uint8_t> graphics_rom,
+             bool large_graphics_rom)
     : m_main_rom(main_rom.begin(), main_rom.end()),
       m_graphics_rom(graphics_rom.begin(), graphics_rom.end()),
+      m_large_graphics_rom(large_graphics_rom),
       m_work_ram(0x80000),
       m_cmos(0x4000),
       m_video_ram(0x80000),
@@ -124,7 +127,7 @@ mamerecomp::tms34010::Bus TUnit::cpu_bus() noexcept {
     return {this, &bus_read16, &bus_write16, &bus_read_pixel,
             &bus_write_pixel, &bus_convert_src_xy, &bus_convert_dst_xy,
             &bus_window_checking,
-            &bus_is_mutable_code};
+            &bus_is_mutable_code, &bus_read_interrupt_state};
 }
 
 std::uint16_t TUnit::read_ram_word(std::span<const std::uint8_t> memory,
@@ -177,19 +180,16 @@ std::uint16_t TUnit::read_graphics_word(std::uint32_t byte_offset) const noexcep
     if (m_graphics_rom.empty()) return 0xffff;
     const std::uint32_t word_offset = byte_offset >> 4;
     const std::uint32_t bank = (word_offset >> 21) & 1;
-    // MAME's T-Unit has two 2 MiB windows: bank 0 is selected by control bit
-    // 7 (base 0 or 8 MiB), while bank 1 is fixed at 4 MiB. This is deliberately
-    // separate from DMA, whose source pointer addresses the raw graphics ROM.
-    // MK's MIDTUNIT_VIDEO profile leaves m_gfx_rom_large=false in MAME.
-    // Control bit 7 only selects the 8 MiB bank on W-Unit hardware; it must
-    // not be inferred from the ROM region's allocated size (the last half of
-    // MK's 12 MiB region is unpopulated). Bank 1 remains fixed at +4 MiB.
-    const std::uint32_t bank_base = bank ? 0x400000u : 0u;
+    // MAME's MK1 profile leaves gfx_rom_large=false, so bank 0 stays at
+    // offset 0. MK2 sets it true: control bit 7 moves bank 0 to +8 MiB.
+    // Bank 1 remains fixed at +4 MiB for both T-Unit profiles.
+    const std::uint32_t bank_base = bank ? 0x400000u
+        : ((m_large_graphics_rom && (m_control & 0x0080)) ? 0x800000u : 0u);
     const std::uint32_t offset = bank_base + ((word_offset & 0x001fffffu) * 2);
     return read_ram_word(m_graphics_rom, offset);
 }
 
-std::uint16_t TUnit::read16(std::uint32_t bit_address) const noexcept {
+std::uint16_t TUnit::read16(std::uint32_t bit_address) noexcept {
     const std::uint32_t address = bit_address & 0xfffffff0u;
     if (m_protection) {
         std::uint16_t value{};
@@ -197,8 +197,33 @@ std::uint16_t TUnit::read16(std::uint32_t bit_address) const noexcept {
     }
     if (address >= internal_io_base && address < internal_io_base + 0x200) {
         const unsigned reg = (address - internal_io_base) >> 4;
-        if (reg == kRegIntpend) return m_io[reg];
-        if (reg == kRegRefcnt) return static_cast<std::uint16_t>(m_io[reg] & 0xfffc);
+        if (reg == kRegIntpend) {
+            std::uint16_t pending = m_io[reg];
+            // MAME exposes DI a few execution cycles before the scanline
+            // timer fires so software polling the display interrupt can
+            // leave its wait loop in time for the interrupt boundary.
+            if (static_cast<std::uint16_t>(m_io[kRegVcount] + 1) ==
+                    m_io[kRegDpyint]) {
+                const std::uint64_t line_period =
+                    (static_cast<std::uint64_t>(m_active_htotal) + 1) * 25;
+                const std::uint64_t phase =
+                    m_video_cycle_remainder_sixteenths % line_period;
+                if (line_period - phase < 60) pending |= 0x0400;
+            }
+            return pending;
+        }
+        if (reg == kRegRefcnt)
+            return static_cast<std::uint16_t>((m_debug_cpu_cycles / 16) & 0xfffc);
+        if (reg == kRegHcount) {
+            const unsigned total = static_cast<unsigned>(m_io[kRegHtotal]) + 1;
+            const unsigned active_total = static_cast<unsigned>(m_active_htotal) + 1;
+            const unsigned pixel_clocks = static_cast<unsigned>(
+                m_video_cycle_remainder_sixteenths / 25);
+            unsigned hcount = m_io[kRegHeblnk] +
+                pixel_clocks * total / active_total;
+            if (hcount > total) hcount -= total;
+            return static_cast<std::uint16_t>(hcount);
+        }
         return m_io[reg];
     }
     if (address >= kVideoBase && address < kVideoEnd)
@@ -240,7 +265,19 @@ std::uint16_t TUnit::read16(std::uint32_t bit_address) const noexcept {
         return 0xffff;
     }
     if (address >= kSoundCommandBase && address < kSoundCommandEnd)
-        if (m_dcs_board) return m_dcs_board->host_data_read();
+        if (m_dcs_board) {
+            const auto result = m_dcs_board->host_data_read();
+            const auto stall = m_dcs_board->consume_host_stall_cycles();
+            if (stall && m_active_cpu_state) {
+                // MAME calls eat_cycles() from inside the DCS data read.
+                // Advance the board while the TMS is stalled, then let the
+                // dispatcher account these already-consumed CPU cycles.
+                m_active_cpu_state->cycles += stall;
+                m_pre_advanced_cycles += stall;
+                advance_cycles(stall);
+            }
+            return result;
+        }
     if (address >= kSoundCommandBase && address < kSoundCommandEnd)
         return 0xffff;
     if ((address >= kVideoControlBase && address < kVideoControlEnd) ||
@@ -286,10 +323,9 @@ void TUnit::write_dma_register(std::uint32_t word_offset,
 }
 
 void TUnit::schedule_dma_completion(std::uint64_t pixels) noexcept {
-    // MAME's DMA timer is 41 ns per output pixel. The T-Unit CPU runs at
-    // 50 MHz input clock, while the TMS34010 execution cycle spans eight
-    // input clocks (160 ns). Convert the timer duration into TMS execution
-    // cycles and round up to the next CPU dispatch boundary.
+    // MAME's DMA timer is 41 ns per output pixel. The TMS execution cycle
+    // spans eight 50 MHz input clocks (160 ns); round the event up to a CPU
+    // dispatch boundary.
     m_dma_cycles_remaining = (pixels * 41u + 159u) / 160u;
     m_dma_diagnostics.output_pixels += pixels;
     m_dma_diagnostics.cycles_remaining = m_dma_cycles_remaining;
@@ -343,7 +379,11 @@ void TUnit::execute_dma() noexcept {
 
     std::uint32_t source = m_dma[2] | (static_cast<std::uint32_t>(m_dma[3]) << 16);
     if ((command & 15) == 0x0c) source = 0;
-    if (source >= 0x02000000u) source -= 0x02000000u;
+    // MAME strips the graphics-window base only for the normal-size T-Unit
+    // profile. MK2 enables gfx_rom_large and feeds the DMA source as a direct
+    // offset into its 12 MiB graphics region.
+    if (!m_large_graphics_rom && source >= 0x02000000u)
+        source -= 0x02000000u;
     if (source >= 0xf8000000u) source -= 0xf8000000u;
     if (source >= 0x10000000u) {
         schedule_dma_completion(0);
@@ -498,6 +538,9 @@ void TUnit::execute_dma() noexcept {
     if (capture_command) {
         DmaCommandRecord record{};
         record.sequence = m_dma_diagnostics.commands;
+        record.cpu_pc = m_debug_cpu_pc;
+        record.cpu_cycles = m_debug_cpu_cycles;
+        record.cpu_registers = m_debug_cpu_registers;
         record.command = command;
         record.left_right_skip = m_dma[0];
         record.x_start = m_dma[4];
@@ -513,6 +556,7 @@ void TUnit::execute_dma() noexcept {
         record.source = m_dma[2] | (static_cast<std::uint32_t>(m_dma[3]) << 16);
         record.left_clip = m_dma[16];
         record.right_clip = m_dma[17];
+        record.config = m_dma[15];
         record.pixels_written = record_pixels_written;
         m_dma_command_history.push_back(record);
     }
@@ -567,10 +611,11 @@ void TUnit::write16(std::uint32_t bit_address, std::uint16_t value) noexcept {
         return;
     }
     if (address >= kCmosBase && address < kCmosEnd) {
-        if (m_cmos_write_enable) {
-            write_ram_word(m_cmos, (address - kCmosBase) >> 3, value);
-            m_cmos_write_enable = false;
-        }
+        // MAME currently accepts every CMOS write (its handler has the
+        // write-enable condition deliberately disabled), while retaining
+        // the separate enable address for board compatibility.
+        write_ram_word(m_cmos, (address - kCmosBase) >> 3, value);
+        m_cmos_write_enable = false;
         return;
     }
     if (address >= kCmosEnableBase && address < kCmosEnableEnd) {
@@ -619,7 +664,7 @@ void TUnit::write16(std::uint32_t bit_address, std::uint16_t value) noexcept {
     if (address >= kWatchdogBase && address < kWatchdogEnd) return;
 }
 
-std::uint32_t TUnit::read_pixel(std::uint32_t bit_address) const noexcept {
+std::uint32_t TUnit::read_pixel(std::uint32_t bit_address) noexcept {
     // MAME's set_pixel_function switches PIXBLT pixel reads/writes to the
     // T-Unit shift register whenever DPYCTL.SR is set. The callbacks copy
     // 2*512 local-video words starting at address >> 3; the pixel read itself
@@ -712,8 +757,24 @@ std::array<std::uint32_t, 4> TUnit::input_last_read_pc() const noexcept {
     return m_input_last_read_pc;
 }
 
-void TUnit::note_cpu_pc(std::uint32_t pc) noexcept {
+void TUnit::note_cpu_pc(std::uint32_t pc, std::uint64_t cycles) noexcept {
     m_debug_cpu_pc = pc;
+    m_debug_cpu_cycles = cycles;
+}
+
+void TUnit::note_cpu_state(mamerecomp::tms34010::State& state) noexcept {
+    m_active_cpu_state = &state;
+    note_cpu_pc(state.pc, state.cycles);
+    std::copy(std::begin(state.a), std::end(state.a),
+              m_debug_cpu_registers.begin());
+    std::copy(std::begin(state.b), std::end(state.b),
+              m_debug_cpu_registers.begin() + 15);
+}
+
+std::uint64_t TUnit::take_pre_advanced_cycles() noexcept {
+    const auto cycles = m_pre_advanced_cycles;
+    m_pre_advanced_cycles = 0;
+    return cycles;
 }
 
 bool TUnit::load_cmos(std::span<const std::uint8_t> data) noexcept {
@@ -857,15 +918,14 @@ void TUnit::advance_cycles(std::uint64_t cycles) noexcept {
         }
     }
 
-    // TMS34010's execute cycle is eight input clocks (MAME's
-    // execute_cycles_to_clocks). The 4 MHz pixel clock with two pixels per
-    // clock gives 253 pixel clocks per 506-pixel line, or 3162.5 TMS input
-    // clocks. Express the beam in sixteenths of a TMS execute cycle so the
-    // half-cycle line duration remains exact: 3162.5 / 8 * 16 = 6325.
-    constexpr std::uint64_t sixteenths_per_scanline = 6325;
-    m_video_cycle_remainder_twice += cycles * 16;
-    while (m_video_cycle_remainder_twice >= sixteenths_per_scanline) {
-        m_video_cycle_remainder_twice -= sixteenths_per_scanline;
+    // MAME's TMS34010 execution cycle spans eight 50 MHz input clocks. The
+    // T-Unit pixel clock is 4 MHz, so one HTOTAL unit is 25/16 execution
+    // cycles. Keep sixteenths to preserve the fractional line duration.
+    const std::uint64_t sixteenths_per_scanline =
+        (static_cast<std::uint64_t>(m_active_htotal) + 1) * 25;
+    m_video_cycle_remainder_sixteenths += cycles * 16;
+    while (m_video_cycle_remainder_sixteenths >= sixteenths_per_scanline) {
+        m_video_cycle_remainder_sixteenths -= sixteenths_per_scanline;
         ++m_video_diagnostics.scanlines;
         begin_scanline();
         const DisplayParams params = current_display_params();
@@ -888,6 +948,12 @@ void TUnit::advance_cycles(std::uint64_t cycles) noexcept {
                     m_video_ram[(source_base + (column++ & 0x1ff)) %
                                 m_video_ram.size()] & 0x7fff);
                 nonzero_words += word != 0;
+                if (word != 0 && m_palette[word] == 0)
+                    ++m_video_diagnostics.scanout_unmapped_indices;
+                if ((m_palette_rgb[word] & 0x00ffffffu) != 0) {
+                    ++m_video_diagnostics.scanout_colored_pixels;
+                    ++m_current_frame_colored_pixels;
+                }
                 m_framebuffer[frame_offset + x] = m_palette_rgb[word];
             }
             m_video_diagnostics.nonzero_source_words += nonzero_words;
@@ -895,8 +961,13 @@ void TUnit::advance_cycles(std::uint64_t cycles) noexcept {
         end_scanline();
         if (m_io[kRegVcount] == 0) {
             ++m_video_diagnostics.completed_frames;
+            m_video_diagnostics.last_frame_colored_pixels =
+                m_current_frame_colored_pixels;
+            m_current_frame_colored_pixels = 0;
             m_framebuffer.swap(m_presented_framebuffer);
             std::fill(m_framebuffer.begin(), m_framebuffer.end(), 0xff000000u);
+            if (m_io[kRegHtotal] != 0)
+                m_active_htotal = m_io[kRegHtotal];
         }
     }
 }
@@ -966,6 +1037,16 @@ bool TUnit::bus_convert_dst_xy(void* opaque, std::uint32_t xy,
 std::uint8_t TUnit::bus_window_checking(void* opaque) noexcept {
     return static_cast<std::uint8_t>(
         (static_cast<TUnit*>(opaque)->m_io[kRegControl] >> 6) & 3);
+}
+
+void TUnit::bus_read_interrupt_state(void* opaque,
+                                     std::uint16_t* host_control,
+                                     std::uint16_t* pending,
+                                     std::uint16_t* enabled) noexcept {
+    const auto& board = *static_cast<TUnit*>(opaque);
+    if (host_control) *host_control = board.m_io[kRegHstctlh];
+    if (pending) *pending = board.m_io[kRegIntpend];
+    if (enabled) *enabled = board.m_io[17];
 }
 
 bool TUnit::bus_is_mutable_code(void*, std::uint32_t bit_address) noexcept {

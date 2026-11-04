@@ -1,4 +1,3 @@
-#include "m68k.hpp"
 #include "neogeo/neogeo_romset.hpp"
 #include "system16/system16.hpp"
 #include "system16/system16_bus.hpp"
@@ -21,6 +20,13 @@
 #ifdef MAMERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #include <dlfcn.h>
+
+#ifndef MAMERECOMP_SOURCE_DIR
+#define MAMERECOMP_SOURCE_DIR "."
+#endif
+#ifndef MAMERECOMP_PYTHON_EXECUTABLE
+#define MAMERECOMP_PYTHON_EXECUTABLE "python3"
+#endif
 #endif
 
 extern "C" int rc_raw_main(int argc, char** argv);
@@ -34,6 +40,7 @@ extern "C" void mamerecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::
 #include <charconv>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -47,6 +54,9 @@ extern "C" void mamerecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cerrno>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <dlfcn.h>
 
 namespace {
@@ -70,7 +80,7 @@ public:
         m_probe_run = reinterpret_cast<ProbeRunFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_run"));
         m_probe_frame = reinterpret_cast<ProbeFrameFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_frame"));
         if (!abi || !m_profiles || !m_probe_create || !m_probe_destroy ||
-            !m_probe_start || !m_probe_run || !m_probe_frame || abi() != 4) {
+            !m_probe_start || !m_probe_run || !m_probe_frame || abi() != 6) {
             const auto error = dlerror();
             dlclose(m_handle);
             m_handle = nullptr;
@@ -82,8 +92,8 @@ public:
     NaomiMetadataModule(const NaomiMetadataModule&) = delete;
     NaomiMetadataModule& operator=(const NaomiMetadataModule&) = delete;
     const NaomiProfileRecord* profiles(std::size_t* count) const { return m_profiles(count); }
-    void* create_probe(const char* set_id, bool use_reios_boot) const {
-        return m_probe_create(set_id, use_reios_boot ? 1 : 0);
+    void* create_probe(const char* set_id, bool interpreter_only) const {
+        return m_probe_create(set_id, interpreter_only ? 1 : 0);
     }
     void destroy_probe(void* probe) const { m_probe_destroy(probe); }
     int start_probe(void* probe, const std::vector<std::uint8_t>& rom,
@@ -381,45 +391,6 @@ void inspect_game(const mamerecomp::GameProfile& profile, const std::filesystem:
         }
         std::cout << "Wrote main CPU image to " << output_path->string() << '\n';
     }
-}
-
-void translate_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
-    const std::filesystem::path& output_path) {
-    const auto maincpu = load_profile_cpu(profile, zip_path);
-    const std::uint32_t initial_pc = read_be32(maincpu, 4);
-    if ((initial_pc & 1U) != 0 || initial_pc + 2 > maincpu.size()) {
-        throw std::runtime_error("reset PC is not a valid address in the main CPU ROM region");
-    }
-
-    const auto translation = mamerecomp::translate_68000_blocks(maincpu, initial_pc);
-    std::cout << "Reset PC: 0x" << std::hex << initial_pc << "\n\n";
-    for (const auto& block : translation.blocks) {
-        std::cout << "Block 0x" << std::hex << block.start << ":\n";
-        for (const auto& instruction : block.instructions) {
-            std::cout << "  " << mamerecomp::format_68000_instruction(instruction) << '\n';
-        }
-        if (!block.stop_reason.empty()) {
-            std::cout << "  stopped at 0x" << std::hex << block.stop_pc << ": " << block.stop_reason << '\n';
-        }
-        std::cout << '\n';
-    }
-
-    const std::string generated_c = mamerecomp::emit_c_translation(translation, initial_pc);
-    if (output_path.has_parent_path()) {
-        std::filesystem::create_directories(output_path.parent_path());
-    }
-    std::ofstream output(output_path);
-    if (!output) {
-        throw std::runtime_error("could not create C output: " + output_path.string());
-    }
-    output << generated_c;
-    if (!output) {
-        throw std::runtime_error("failed while writing C output: " + output_path.string());
-    }
-
-    std::cout << std::dec << "Translated " << translation.translated_instructions << " instructions in "
-              << translation.blocks.size() << " blocks; " << translation.unsupported_blocks
-              << " block(s) stop at unsupported code.\nGenerated C: " << output_path << '\n';
 }
 
 void translate_full_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
@@ -1250,20 +1221,331 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
 
 void print_usage(const char* program) {
     std::cerr << "Usage:\n"
+              << "  " << program << " build --machine=cps --board=cps1 --game=<sf2ce|dino> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
+              << "  " << program << " run --machine=cps --board=cps1 --game=<sf2ce|dino> [--rom-dir <game.zip>]\n"
               << "  " << program << " list-games\n"
               << "  " << program << " list-naomi-games\n"
               << "  " << program << " inspect-naomi-roms <mvsc2u|mvsc2> <romset.zip>\n"
               << "  " << program << " inspect-neogeo-roms <kof98> <romset.zip>\n"
-              << "  " << program << " run-naomi-sh4 <mvsc2u> <romset.zip> [--bios <naomi.zip>] [--instructions <count>] [--boot-mode bios|reios] [--window]\n"
+              << "  " << program << " run-naomi-sh4 <mvsc2u> <romset.zip> [--bios <naomi.zip>] [--instructions <count>] [--interpreter-only] [--window]\n"
               << "  " << program << " map <profile> <romset.zip>\n"
               << "  " << program << " extract-graphics <profile> <romset.zip> [--out <directory>]\n"
               << "  " << program << " inspect <profile> <romset.zip> [--write <maincpu.bin>]\n"
-              << "  " << program << " translate <profile> <romset.zip> [--c-out <translation.c>]\n"
               << "  " << program << " translate-full <profile> <romset.zip> [--out <directory>] [--files <count>] [--entry <address>]...\n"
 #ifdef MAMERECOMP_HAS_GENERATED_RECOMP
               << "  " << program << " run-full <profile> <romset.zip> [--cycles <count>] [--lives 2|3|5|infinite] [--coin-mode freeplay|coin] [--dsw1 <byte>] [--dsw2 <byte>] [--button-event <frame>:<button-name>:<duration-frames>] [--input-event <frame>:<service|p1|p2>:<active-low-mask>:<duration-frames>] [--nvram-in <16-KiB-big-endian-file>|--mame-nvram-in <MAME-file>] [--window] [--audio] [--audio-pan game|spread] [--frame-out <image.ppm>] [--frame-out-at-vblank <frame>] [--video-state-out <directory>] [--video-profile] [--video-backend cpu|opengl] [--video-compare-cpu] [--debugger] [--cpu-trace <file> --cpu-trace-cycles <start>:<end>]\n"
 #endif
               ;
+}
+
+int run_child_process(const std::vector<std::string>& arguments) {
+    if (arguments.empty()) throw std::invalid_argument("cannot launch an empty command");
+    const pid_t child = fork();
+    if (child < 0) throw std::runtime_error("could not start child process: " + std::string(std::strerror(errno)));
+    if (child == 0) {
+        std::vector<char*> argv;
+        argv.reserve(arguments.size() + 1);
+        for (const auto& argument : arguments) argv.push_back(const_cast<char*>(argument.c_str()));
+        argv.push_back(nullptr);
+        execvp(argv[0], argv.data());
+        std::cerr << "could not execute " << arguments.front() << ": " << std::strerror(errno) << '\n';
+        _exit(127);
+    }
+    int status = 0;
+    while (waitpid(child, &status, 0) < 0) {
+        if (errno == EINTR) continue;
+        throw std::runtime_error("could not wait for child process: " + std::string(std::strerror(errno)));
+    }
+    if (WIFEXITED(status)) return WEXITSTATUS(status);
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
+    return 1;
+}
+
+bool has_cps1_build_input_newer_than(const std::filesystem::path& root,
+    const std::filesystem::file_time_type& stamp_time,
+    const std::optional<std::filesystem::path>& rom_zip) {
+    const auto newer = [&](const std::filesystem::path& path) {
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(path, error) || error) return false;
+        const auto modified = std::filesystem::last_write_time(path, error);
+        return !error && modified > stamp_time;
+    };
+    if (rom_zip && newer(*rom_zip)) return true;
+
+    const std::array<std::filesystem::path, 9> source_roots{
+        root / "src/cps1", root / "core/cpus/m68000", root / "core/cpus/z80",
+        root / "core/third_party/neogeorecomp-m68krecomp", root / "core/third_party/musashi",
+        root / "core/third_party/z80-aot", root / "core/third_party/ymfm",
+        root / "tools/generators/cps1", root / "tools/z80"
+    };
+    const auto is_source = [](const std::filesystem::path& path) {
+        const auto extension = path.extension();
+        return extension == ".c" || extension == ".cc" || extension == ".cpp"
+            || extension == ".h" || extension == ".hpp" || extension == ".py";
+    };
+    for (const auto& source_root : source_roots) {
+        std::error_code error;
+        if (!std::filesystem::exists(source_root, error) || error) continue;
+        std::filesystem::recursive_directory_iterator it(source_root,
+            std::filesystem::directory_options::skip_permission_denied, error), end;
+        for (; it != end; it.increment(error)) {
+            if (error) { error.clear(); continue; }
+            if (it->is_regular_file(error) && !error && is_source(it->path()) && newer(it->path()))
+                return true;
+            error.clear();
+        }
+    }
+    return newer(root / "CMakeLists.txt") || newer(root / "tools/recompile.py");
+}
+
+int ki_machine_command(const std::filesystem::path& root,
+                        const std::string& game,
+                        const std::optional<std::filesystem::path>& rom_arg,
+                        bool build_mode, const std::string& jobs,
+                        bool force_rebuild, bool window, std::uint64_t frames,
+                        const std::optional<std::filesystem::path>& frame_out) {
+    const auto rom_path = rom_arg ? std::filesystem::absolute(*rom_arg)
+                                  : root.parent_path() / "mame/roms";
+    const auto work = root / "build/ki/work" / game;
+    const auto aot = work / "mips_aot";
+    const auto adsp_aot = work / "adsp_aot";
+    const auto host_build = game == "ki1" ? root / "build/ki/mamerecomp-host"
+                                           : root / "build/ki" / ("mamerecomp-host-" + game);
+    const auto runner = host_build / ("mamerecomp_" + game);
+    const auto stamp = work / ".mamerecomp-build-stamp";
+
+    bool stale = force_rebuild || !std::filesystem::is_regular_file(runner) ||
+                 !std::filesystem::is_regular_file(aot / "rec_tab.c") ||
+                 !std::filesystem::is_regular_file(adsp_aot / "rec_dsp.c");
+    if (!stale && std::filesystem::is_regular_file(stamp)) {
+        std::ifstream input(stamp);
+        std::string line;
+        bool same_rom = false;
+        while (std::getline(input, line))
+            if (line == "rom=" + rom_path.string()) same_rom = true;
+        stale = !input.eof() || !same_rom;
+        std::error_code error;
+        const auto stamp_time = std::filesystem::last_write_time(stamp, error);
+        if (error) stale = true;
+        const std::array inputs{
+            root / "CMakeLists.txt", root / "src/ki", root / "core/cpus/mips3",
+            root / "core/cpus/adsp2105", root / "core/third_party/libchdr",
+            root / "tools/ki", root / "tools/mips3", root / "tools/adsp2105",
+            root / "core/third_party/ultracombo-adsp", root / "tools/recompile.py"
+        };
+        for (const auto& path : inputs) {
+            if (error || !std::filesystem::exists(path)) continue;
+            if (std::filesystem::is_regular_file(path)) {
+                if (std::filesystem::last_write_time(path, error) > stamp_time) stale = true;
+            } else {
+                for (std::filesystem::recursive_directory_iterator it(path, error), end;
+                     !error && it != end; it.increment(error)) {
+                    if (it->is_regular_file(error) &&
+                        std::filesystem::last_write_time(it->path(), error) > stamp_time) stale = true;
+                }
+            }
+        }
+    } else if (!std::filesystem::is_regular_file(stamp)) {
+        stale = true;
+    }
+
+    if (build_mode) {
+        if (!stale) {
+            std::cout << game << " build is current; nothing to compile.\n" << std::flush;
+            return 0;
+        }
+        std::cout << (force_rebuild ? "Forcing " + game + " rebuild.\n"
+                                   : game + " runtime/AOT is missing or stale; building it.\n") << std::flush;
+        std::vector<std::string> translate{
+            MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+            "--system", "ki", "--game", game, "--rom-dir", rom_path.string(),
+            "--jobs", jobs
+        };
+        int status = run_child_process(translate);
+        if (status != 0) return status;
+        std::vector<std::string> configure{
+            "cmake", "-S", root.string(), "-B", host_build.string(),
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_C_FLAGS_RELEASE=-O3",
+            "-DCMAKE_CXX_FLAGS_RELEASE=-O3",
+            "-DMAMERECOMP_KI_MIPS_AOT_DIR=" + aot.string(),
+            "-DMAMERECOMP_KI_MIPS_GAME_ID=" + game,
+            "-DMAMERECOMP_KI_ADSP_AOT_DIR=" + adsp_aot.string()
+        };
+        status = run_child_process(configure);
+        if (status != 0) return status;
+        status = run_child_process({"cmake", "--build", host_build.string(),
+                                    "--target", "mamerecomp_ki1", "--parallel", jobs});
+        if (status != 0) return status;
+        std::filesystem::create_directories(work);
+        std::ofstream output(stamp, std::ios::binary | std::ios::trunc);
+        if (!output) throw std::runtime_error("could not write KI build stamp: " + stamp.string());
+        output << "game=" << game << "\nrom=" << rom_path.string() << '\n';
+        if (!output) throw std::runtime_error("failed writing KI build stamp: " + stamp.string());
+        return 0;
+    }
+
+    if (stale)
+        throw std::runtime_error(game + " build is missing or stale; run `mamerecomp build --machine=ki --board=seattle --game=" + game + "` first");
+    std::vector<std::string> command{runner.string(), "--rom-dir", rom_path.string(),
+                                    "--work-dir", work.string(), "--game", game};
+    if (window) command.emplace_back("--window");
+    else command.insert(command.end(), {"--frames", std::to_string(frames ? frames : 1)});
+    if (frame_out) command.insert(command.end(), {"--frame-out", frame_out->string()});
+    std::cout << "Launching " << game << " on Seattle (MIPS III/R4600).\n" << std::flush;
+    return run_child_process(command);
+}
+
+int machine_game_command(int argc, char** argv, bool build_mode) {
+    std::string machine;
+    std::string board;
+    std::string game;
+    std::optional<std::filesystem::path> rom_zip;
+    std::string jobs = "2";
+    bool force_rebuild = false;
+    bool window = false;
+    bool headless = false;
+    std::uint64_t frames = 0;
+    std::optional<std::filesystem::path> frame_out;
+    for (int i = 2; i < argc; ++i) {
+        const std::string_view option(argv[i]);
+        auto value_after = [&](std::string_view name) -> std::optional<std::string> {
+            const std::string prefix = std::string(name) + "=";
+            if (option.starts_with(prefix)) return std::string(option.substr(prefix.size()));
+            if (option == name && i + 1 < argc) return std::string(argv[++i]);
+            return std::nullopt;
+        };
+        if (const auto value = value_after("--machine")) machine = *value;
+        else if (const auto value = value_after("--board")) board = *value;
+        else if (const auto value = value_after("--game")) game = *value;
+        else if (const auto value = value_after("--rom-dir")) rom_zip = *value;
+        else if (const auto value = value_after("--frames")) frames = parse_u64(*value, "frame count");
+        else if (const auto value = value_after("--frame-out")) frame_out = *value;
+        else if (option == "--window") { window = true; headless = false; }
+        else if (option == "--headless") { window = false; headless = true; }
+        else if (option == "--jobs" && i + 1 < argc) {
+            if (!build_mode) throw std::runtime_error("--jobs is only valid for the build command");
+            jobs = argv[++i];
+        } else if (option.starts_with("--jobs=")) {
+            if (!build_mode) throw std::runtime_error("--jobs is only valid for the build command");
+            jobs = std::string(option.substr(7));
+        } else if (build_mode && option == "--rebuild") {
+            force_rebuild = true;
+        } else {
+            throw std::runtime_error("unknown " + std::string(build_mode ? "build" : "run")
+            + " option: " + std::string(option));
+        }
+    }
+    if (machine == "ki" && board == "seattle") {
+        if (game != "ki1" && game != "ki2")
+            throw std::runtime_error("Seattle currently supports --game=ki1 or --game=ki2");
+        if (build_mode && (window || frames || frame_out))
+            throw std::runtime_error("--window, --frames, and --frame-out are run-only options");
+        return ki_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+                                   rom_zip, build_mode, jobs, force_rebuild,
+                                   build_mode ? false : (window || (!headless && frames == 0)),
+                                   frames, frame_out);
+    }
+    if (machine != "cps" || board != "cps1")
+        throw std::runtime_error("CPS1 adapter requires --machine=cps --board=cps1");
+    if (game != "sf2ce" && game != "dino")
+        throw std::runtime_error("CPS1 adapter currently supports only --game=sf2ce or --game=dino");
+
+#ifndef MAMERECOMP_SOURCE_DIR
+#define MAMERECOMP_SOURCE_DIR "."
+#endif
+#ifndef MAMERECOMP_PYTHON_EXECUTABLE
+#define MAMERECOMP_PYTHON_EXECUTABLE "python3"
+#endif
+    const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
+    const auto work_dir = root / "build/cps1/work" / game;
+    const auto build_dir = root / "build/cps1/mamerecomp-host";
+    const auto generated_roms = work_dir / "roms";
+    const auto runner = build_dir / ("mamerecomp_" + game);
+    const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
+        : root.parent_path() / "mame/roms" / (game + ".zip");
+    if (rom_zip && !std::filesystem::is_regular_file(rom_path))
+        throw std::runtime_error("ROM ZIP not found: " + rom_path.string());
+
+    const auto stamp = work_dir / ".mamerecomp-build-stamp";
+    bool needs_build = force_rebuild;
+    const std::array<std::filesystem::path, 11> required_artifacts{
+        runner, build_dir / "libmamerecomp_cps1.so", build_dir / ("libmamerecomp_game_" + game + ".so"),
+        work_dir / "program.bin", work_dir / "m68k_dynamic_entries.txt",
+        work_dir / "z80_program.bin", work_dir / "z80_banked.bin",
+        generated_roms / "maincpu.bin", generated_roms / "gfx.bin",
+        generated_roms / "audiocpu.bin", generated_roms / (game == "dino" ? "qsound.bin" : "oki.bin")
+    };
+    for (const auto& artifact : required_artifacts) {
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(artifact, error) || error) needs_build = true;
+    }
+    std::error_code stamp_error;
+    if (!std::filesystem::is_regular_file(stamp, stamp_error) || stamp_error) {
+        needs_build = true;
+    } else if (!needs_build) {
+        std::ifstream stamp_input(stamp);
+        std::string line;
+        bool matching_rom_path = false;
+        while (std::getline(stamp_input, line)) {
+            if (line == "rom=" + rom_path.string()) matching_rom_path = true;
+        }
+        if (!stamp_input.eof() || !matching_rom_path) needs_build = true;
+        const auto stamp_time = std::filesystem::last_write_time(stamp, stamp_error);
+        if (stamp_error || has_cps1_build_input_newer_than(root, stamp_time, rom_path))
+            needs_build = true;
+    }
+
+    if (build_mode) {
+        if (!needs_build) {
+            std::cout << "CPS-1 build is current; nothing to compile.\n" << std::flush;
+            return 0;
+        }
+        std::vector<std::string> build_command{
+            MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+            "--system", "cps1", "--game", game, "--jobs", jobs
+        };
+        if (rom_zip) {
+            build_command.emplace_back("--rom-dir");
+            build_command.push_back(rom_path.string());
+        }
+        std::cout << (force_rebuild ? "Forcing CPS-1 rebuild.\n"
+                                    : "CPS-1 build missing or stale; recompiling from the ROM driver.\n") << std::flush;
+        const int build_status = run_child_process(build_command);
+        if (build_status != 0) return build_status;
+        std::filesystem::create_directories(work_dir);
+        std::ofstream stamp_file(stamp, std::ios::binary | std::ios::trunc);
+        if (!stamp_file) throw std::runtime_error("could not write CPS-1 build stamp: " + stamp.string());
+        stamp_file << "game=" << game << '\n' << "rom=" << rom_path.string() << '\n';
+        if (!stamp_file) throw std::runtime_error("failed writing CPS-1 build stamp: " + stamp.string());
+        return 0;
+    }
+
+    if (needs_build) {
+        std::string message = "CPS-1 build is missing or stale; run `mamerecomp build --machine=cps --board=cps1 --game="
+            + game + "` first";
+        if (rom_zip) message += " with the same `--rom-dir " + rom_path.string() + "`";
+        throw std::runtime_error(message);
+    }
+
+    std::vector<std::string> run_command{
+        runner.string(), (work_dir / "program.bin").string(), "9223372036854775807",
+        (work_dir / "m68k_dynamic_entries.txt").string(),
+        (work_dir / "z80_program.bin").string(), (work_dir / "z80_banked.bin").string(),
+        (work_dir / "z80_misses.txt").string(), (work_dir / "z80_fallbacks.log").string(),
+        (generated_roms / "gfx.bin").string(), (work_dir / "live-frame.ppm").string(),
+        "--window", "--oki", (generated_roms / "oki.bin").string(),
+        "--m68k-ram-entries", (work_dir / "m68k_ram_entries.txt").string(),
+        "--gfxram-snapshot", (work_dir / "m68k_gfxram_snapshot.bin").string()
+    };
+    if (game == "dino") {
+        run_command.emplace_back("--qsound-program");
+        run_command.push_back((generated_roms / "audiocpu.bin").string());
+        run_command.emplace_back("--qsound-samples");
+        run_command.push_back((generated_roms / "qsound.bin").string());
+    }
+    std::cout << "Launching " << game << " on " << machine << '/' << board << ".\n" << std::flush;
+    return run_child_process(run_command);
 }
 
 } // namespace
@@ -1289,6 +1571,10 @@ int main(int argc, char** argv) {
             print_naomi_profiles();
             return 0;
         }
+        if (argc >= 2 && std::string_view(argv[1]) == "build")
+            return machine_game_command(argc, argv, true);
+        if (argc >= 2 && std::string_view(argv[1]) == "run")
+            return machine_game_command(argc, argv, false);
         if (argc >= 2 && std::string_view(argv[1]) == "inspect-naomi-roms") {
             if (argc != 4) {
                 print_usage(argv[0]);
@@ -1325,8 +1611,8 @@ int main(int argc, char** argv) {
                 return 2;
             }
             std::uint64_t budget = 1000000;
-            bool use_reios_boot = false;
             bool show_window = false;
+            bool interpreter_only = false;
             std::filesystem::path bios_path =
                 std::filesystem::path(argv[3]).parent_path() / "naomi.zip";
             for (int i = 4; i < argc; ++i) {
@@ -1334,13 +1620,10 @@ int main(int argc, char** argv) {
                     budget = parse_u64(argv[++i], "SH-4 instruction budget");
                 else if (std::string_view(argv[i]) == "--bios" && i + 1 < argc)
                     bios_path = argv[++i];
-                else if (std::string_view(argv[i]) == "--boot-mode" && i + 1 < argc) {
-                    const std::string_view mode(argv[++i]);
-                    if (mode == "bios") use_reios_boot = false;
-                    else if (mode == "reios") use_reios_boot = true;
-                    else throw std::runtime_error("boot mode must be bios or reios");
-                } else if (std::string_view(argv[i]) == "--window")
+                else if (std::string_view(argv[i]) == "--window")
                     show_window = true;
+                else if (std::string_view(argv[i]) == "--interpreter-only")
+                    interpreter_only = true;
                 else
                     throw std::runtime_error("unknown run-naomi-sh4 option: " + std::string(argv[i]));
             }
@@ -1353,9 +1636,9 @@ int main(int argc, char** argv) {
             const auto image = mamerecomp::naomi::load_mvc2_rom_board(argv[2], argv[3]);
             const auto bios = mamerecomp::naomi::load_naomi_bios(argv[2], bios_path);
             NaomiMetadataModule module;
-            void* raw_probe = module.create_probe(argv[2], use_reios_boot);
+            void* raw_probe = module.create_probe(argv[2], interpreter_only);
             if (!raw_probe)
-                throw std::runtime_error("Naomi module has no translated SH-4 for set " + std::string(argv[2]));
+                throw std::runtime_error("Naomi module has no SH-4 probe for set " + std::string(argv[2]));
             const auto destroy = [&module](void* probe) { module.destroy_probe(probe); };
             std::unique_ptr<void, decltype(destroy)> probe(raw_probe, destroy);
 
@@ -1363,22 +1646,55 @@ int main(int argc, char** argv) {
             if (!module.start_probe(probe.get(), image.bytes, image.board_id_eeprom,
                                     bios.bytes, &result))
                 throw std::runtime_error(result.error[0] ? result.error : "Naomi SH-4 boot setup failed");
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+            std::unique_ptr<mamerecomp::naomi::NaomiPvrPresenter> presenter;
+            if (show_window) {
+                presenter = std::make_unique<mamerecomp::naomi::NaomiPvrPresenter>(
+                    "MameRecomp - Naomi BIOS executing (PVR scanout pending)");
+                NaomiPvrFrameInfo boot_surface{};
+                boot_surface.width = 640;
+                boot_surface.height = 480;
+                boot_surface.rgb_bytes = std::size_t(boot_surface.width) *
+                                         boot_surface.height * 3u;
+                std::vector<std::uint8_t> black(boot_surface.rgb_bytes, 0);
+                presenter->show(boot_surface, black, false);
+                std::cout << "Naomi window opened before SH-4 execution; waiting for PVR scanout\n"
+                          << std::flush;
+            }
+#endif
             if (!module.run_probe(probe.get(), budget, &result))
                 throw std::runtime_error(result.error[0] ? result.error : "Naomi SH-4 execution failed");
 
             std::cout << "SH-4 "
-                      << (use_reios_boot ? "REIOS diagnostic AOT probe " : "BIOS-reset AOT probe ")
+                      << (interpreter_only ? "interpreter-only " : "AOT+interpreter ")
+                      << "Naomi-BIOS boot "
                       << image.set_id << " BIOS="
                       << bios.filename << " CRC=" << std::hex << bios.crc
                       << ": entry=0x"
                       << std::hex << result.entry << " instructions=" << std::dec
-                      << result.instructions_executed << " budget=" << budget
+                      << result.instructions_executed << " native/recompiled="
+                      << result.native_instructions << " interpreted="
+                      << result.interpreted_instructions << " budget=" << budget
                       << " pc=0x" << std::hex << result.pc;
             std::cout << " PVR2={TA:" << std::dec << result.pvr_ta_bytes
                       << "B,YUV:" << result.pvr_yuv_bytes
                       << "B,VRAM:" << result.pvr_vram_bytes
                       << "B,regs:" << result.pvr_register_writes
+                      << ",render-starts:" << result.pvr_render_start_requests
+                      << ",fb-enabled:" << (result.pvr_framebuffer_enabled ? "yes" : "no")
+                      << ",lists:" << std::dec << result.pvr_ta_completed_lists
                       << ",line:" << result.pvr_scanline << '}';
+            std::cout << " TA-PCW={";
+            for (std::size_t i = 0; i < 8; ++i) {
+                if (i) std::cout << ',';
+                std::cout << i << ':' << std::dec << result.pvr_ta_parameter_counts[i];
+            }
+            std::cout << "} TA-lists={";
+            for (std::size_t i = 0; i < 5; ++i) {
+                if (i) std::cout << ',';
+                std::cout << i << ':' << std::dec << result.pvr_ta_list_packet_counts[i];
+            }
+            std::cout << '}';
             std::cout << " Holly={ISTNRM:0x" << std::hex << result.holly_normal_status
                       << ",IML2:0x" << result.holly_level2_mask
                       << ",IML4:0x" << result.holly_level4_mask
@@ -1415,17 +1731,43 @@ int main(int argc, char** argv) {
                 std::vector<std::uint8_t> rgb;
                 if (!module.capture_frame(probe.get(), &frame_info, &rgb))
                     throw std::runtime_error("could not capture the PVR direct framebuffer");
-                if (frame_info.width == 0 || frame_info.height == 0 || rgb.empty())
-                    throw std::runtime_error("PVR direct framebuffer registers describe an invalid image");
-                std::cout << "PVR framebuffer readback: " << frame_info.width << 'x'
-                          << frame_info.height << " RGB bytes=" << frame_info.rgb_bytes
-                          << " FB_R_CTRL=0x" << std::hex << frame_info.control
-                          << " FB_R_SIZE=0x" << frame_info.size
-                          << " FB_R_SOF1=0x" << frame_info.start << std::dec
-                          << " enabled=" << ((frame_info.control & 1u) ? "yes" : "no")
-                          << " (raw VRAM view; TA polygon rasterization is not implemented)\n";
-                mamerecomp::naomi::NaomiPvrPresenter presenter("MameRecomp - Naomi PVR2 diagnostic");
-                presenter.show(frame_info, rgb);
+                const bool has_scanout = frame_info.width != 0 && frame_info.height != 0 &&
+                    rgb.size() == static_cast<std::size_t>(frame_info.width) *
+                                  frame_info.height * 3u;
+                if (!has_scanout) {
+                    // A cold Naomi BIOS may not have enabled FB_R yet. Keep
+                    // --window useful in that state: open a clearly identified
+                    // clearly identified window instead of exiting before SDL
+                    // creates a window. This surface is not a PVR readback.
+                    frame_info.width = 640;
+                    frame_info.height = 480;
+                    frame_info.rgb_bytes = static_cast<std::size_t>(frame_info.width) *
+                                           frame_info.height * 3u;
+                    rgb.assign(frame_info.rgb_bytes, 0);
+                    std::cout << "No active PVR scanout; showing diagnostic black only "
+                                 "(no framebuffer readback or guest pixels)\n";
+                }
+                if (has_scanout) {
+                    std::cout << "PVR framebuffer readback: " << frame_info.width << 'x'
+                              << frame_info.height << " RGB bytes=" << frame_info.rgb_bytes
+                              << " FB_R_CTRL=0x" << std::hex << frame_info.control
+                              << " FB_R_SIZE=0x" << frame_info.size
+                              << " FB_R_SOF1=0x" << frame_info.start << std::dec
+                              << " enabled=" << ((frame_info.control & 1u) ? "yes" : "no")
+                              << "\n";
+                } else {
+                    std::cout << "PVR scanout state: FB_R_CTRL=0x" << std::hex << frame_info.control
+                              << " FB_R_SIZE=0x" << frame_info.size
+                              << " FB_R_SOF1=0x" << frame_info.start << std::dec
+                              << " enabled=" << ((frame_info.control & 1u) ? "yes" : "no")
+                              << "\n";
+                }
+                if (!presenter)
+                    presenter = std::make_unique<mamerecomp::naomi::NaomiPvrPresenter>(
+                        has_scanout ? "MameRecomp - Naomi PVR2 framebuffer"
+                                    : "MameRecomp - Naomi PVR2 (no active scanout)");
+                presenter->show(frame_info, rgb, has_scanout);
+                presenter->waitUntilClosed();
             }
 #endif
             return 0;
@@ -1663,18 +2005,6 @@ int main(int argc, char** argv) {
                 }
             }
             translate_full_game(profile, zip_path, output_dir, additional_entries, output_files);
-            return 0;
-        }
-
-        if (command == "translate") {
-            std::filesystem::path output_path = std::filesystem::path("build") / (std::string(profile.id) + "_translated.c");
-            if (argc == 6 && std::string_view(argv[4]) == "--c-out") {
-                output_path = argv[5];
-            } else if (argc != 4) {
-                print_usage(argv[0]);
-                return 2;
-            }
-            translate_game(profile, zip_path, output_path);
             return 0;
         }
 

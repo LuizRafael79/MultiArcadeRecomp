@@ -19,7 +19,13 @@ This file is the durable checkpoint for the CPU work. Update it whenever a meani
 - Shinobi System 16A graphics ROMs load with CRC validation, reconstruct tile/sprite regions, and decode 8,192 tiles. The software System 16A compositor draws page layers, text, sprite descriptors, and priority/shadow effects into PPM captures, with exact RGB parity at multiple title, attract, and gameplay states. Shadow, flip, row/column scroll, raster timing, and other priority combinations remain unverified; see `VIDEO_PROGRESS.md` for exact captures and current diagnostics.
 - Next CPU integration work is to validate register/interrupt behavior against MAME while the video model is refined. Keep CPU correctness, board-device accuracy, and visible game behavior as separate claims.
 
-### Historical validation snapshot: original partial translator
+### Retired prototype: original partial translator
+
+The local decoder/emitter under `core/cpus/m68000/m68k.cpp` and its `translate`
+CLI route were removed when the project standardized on the shared
+`m68krecomp_frontend`. The following numbers and commands are historical only;
+they cannot be reproduced from the current tree and do not describe the active
+68000 backend.
 
 With the local `shinobi.zip` and assembled main CPU ROM at `build/shinobi_maincpu.bin`, the static translator reported:
 
@@ -64,7 +70,7 @@ effects as native code. This is a shared 68000 backend concern; boards provide
 their executable-memory map and invalidation notifications rather than growing
 board-specific recompilers.
 
-The static walk now reaches NVRAM checksum comparison and copy/clear loops, then continues into board initialization. Recent decoded ranges include `0x15ddc` (checksum compare/return), `0x15da4` (32-longword copy loop), `0x3168`/`0x317c` (longword fill loops), and `0x3190` (paired System 16A memory initialization). The first unsupported block in the latest snapshot is `0x1451c`; other early stops include `0x369a` and `0x15dc6`. Re-run translation before using these addresses: graph discovery changes as support is added.
+The retired local static walk reached NVRAM checksum comparison and copy/clear loops, then continued into board initialization. These addresses and coverage notes refer only to that prototype and should not be used to assess the active frontend.
 
 ### Correctness work still required
 
@@ -90,7 +96,7 @@ A snapshot of the NeoGeoRecomp `tools/m68krecomp` sources is staged under `core/
 
 ### NeoGeoRecomp frontend staged in the build
 
-The MIT-licensed upstream `decode.c` and `emit.c` are now compiled as the separate `m68krecomp_frontend` static library via CMake. The library builds successfully, and the existing `mamerecomp` executable still builds. This is an integration checkpoint only: `translate_68000_blocks()` still uses our original partial decoder/emitter, and no generated NeoGeo-style C is linked to a System 16 runtime yet. The next code step is to route image decoding/discovery through the generic `insn_t` model, then bind emitted memory/CPU helpers to System 16 without importing Neo Geo board behavior.
+The MIT-licensed upstream `decode.c` and `emit.c` are compiled as the shared `m68krecomp_frontend` library. All active 68000 translation entry points should use this frontend; generated Neo Geo-style C is adapted to each board's bus/runtime without importing Neo Geo board behavior. Musashi remains the interpreter fallback for instructions not yet implemented by the recompiler, especially dynamically reached or RAM-resident code, and must remain until that gap is closed.
 
 ### Board-independent CPU runtime staged
 

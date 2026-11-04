@@ -20,6 +20,8 @@ bool service_interrupt(State& state) noexcept;
 // the interpreter while recording exact fallback reasons in the common trace.
 BlockExit run_until(State& state, Bus& bus, std::uint64_t stop_cycle,
                     MamerecompFallbackReason missing_entry_reason =
-                        MAMERECOMP_UNCOVERED_ENTRY) noexcept;
+                        MAMERECOMP_UNCOVERED_ENTRY,
+                    bool interpreter_fallback = true,
+                    bool native_enabled = true) noexcept;
 
 } // namespace mamerecomp::adsp2105

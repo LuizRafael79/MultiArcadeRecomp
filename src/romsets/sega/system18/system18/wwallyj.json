@@ -1,0 +1,189 @@
+{
+  "module": "system18",
+  "board": "system18",
+  "game": "wwallyj",
+  "gamename": "Wally wo Sagase! (rev B, Japan, 2 players) (FD1094 317-0197B)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "wwallyj",
+    "description": "Wally wo Sagase! (rev B, Japan, 2 players) (FD1094 317-0197B)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1992",
+    "manufacturer": "Sega",
+    "sourcefile": "sega/segas18.cpp",
+    "machine_config": "wwally_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-14730b.a4",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "e72bc17a",
+          "sha1": "ac3b7d86571a6f510c202735134c1bc4809aa26e"
+        },
+        {
+          "file": "epr-14731b.a6",
+          "size": 262144,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "6e3235b9",
+          "sha1": "11d5628644e8301550c36c93e5f137c67c11e735"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0197b.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f5b7c5b4",
+          "sha1": "be971a2349e7c3adc995581355fea48f5123421c"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "mpr-14719.c1",
+          "size": 262144,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "8b58c743",
+          "sha1": "ee50baa184d68558d62d1817b2b9c138226ed25a"
+        },
+        {
+          "file": "mpr-14720.c2",
+          "size": 262144,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "f96d19f4",
+          "sha1": "e350b551db8d01062397cd9a0c952a7b5dbf3fe6"
+        },
+        {
+          "file": "mpr-14721.c3",
+          "size": 262144,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "c4ced91d",
+          "sha1": "4c8a070959ca10e2dddf407ddbba212415d78727"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "mpr-14726.c10",
+          "size": 1048576,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "7213d1d3",
+          "sha1": "b70346a1dd3aa112bc696a7f4dd9ca908c3e5afa"
+        },
+        {
+          "file": "mpr-14732.a10",
+          "size": 1048576,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "04ced549",
+          "sha1": "59fd6510f0e14613d830ac6527f12ccc0b9351a5"
+        },
+        {
+          "file": "mpr-14727.c11",
+          "size": 1048576,
+          "offset": 2097153,
+          "status": "good",
+          "optional": false,
+          "crc32": "3b74e0f0",
+          "sha1": "40432dbbbf75dae1e5e32b7cc2c4884f5e9e3bf5"
+        },
+        {
+          "file": "mpr-14733.a11",
+          "size": 1048576,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "6da0444f",
+          "sha1": "80c32895af19bda3277376fdbd1c163f0ed25665"
+        },
+        {
+          "file": "mpr-14728.c12",
+          "size": 524288,
+          "offset": 4194305,
+          "status": "good",
+          "optional": false,
+          "crc32": "5b921587",
+          "sha1": "2779dc658bb7a51f2399af5a6463ccb2dd388e88"
+        },
+        {
+          "file": "mpr-14734.a12",
+          "size": 524288,
+          "offset": 4194304,
+          "status": "good",
+          "optional": false,
+          "crc32": "6f3f5ed9",
+          "sha1": "01972c8bd5bfde58715bc0adc7dea73bf6350a26"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-14725.c7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2b29684f",
+          "sha1": "b83962a4f475f9b3e79d4f7ff577b170c4043156"
+        },
+        {
+          "file": "mpr-14724.c6",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "47cbea86",
+          "sha1": "c70d1fed2912c7c05223ce0bb0941706f957295f"
+        },
+        {
+          "file": "mpr-14723.c5",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "bc5adc27",
+          "sha1": "09405002b940a3d3eb0f1258f37af51e0b7581b9"
+        },
+        {
+          "file": "mpr-14722.c4",
+          "size": 524288,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "1bd081f8",
+          "sha1": "e5b0b5d8334486f813d7c430bb7fce3f69605a21"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

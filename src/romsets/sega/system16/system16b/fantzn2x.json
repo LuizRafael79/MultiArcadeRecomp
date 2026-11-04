@@ -1,0 +1,242 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "fantzn2x",
+  "gamename": "Fantasy Zone II - The Tears of Opa-Opa (System 16C version)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "fantzn2x",
+    "description": "Fantasy Zone II - The Tears of Opa-Opa (System 16C version)",
+    "cloneof": null,
+    "romof": null,
+    "year": "2008",
+    "manufacturer": "Sega / M2",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16c"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "fz2.a7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "94c05f0b",
+          "sha1": "53da68a919776a46ae96dbc094ff941308d13613"
+        },
+        {
+          "file": "fz2.a5",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "f3526895",
+          "sha1": "3197956608138601192f111d3bcc26662a7d6ec1"
+        },
+        {
+          "file": "fz2.a8",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "b2ebb209",
+          "sha1": "bd40c90a372ab92a869bdd28d12cf52b45ecc80e"
+        },
+        {
+          "file": "fz2.a6",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "6833f546",
+          "sha1": "b4503cdb5bdb1322c34b9da3ff4227c740dad707"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "fz2.a14",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "1c0a4537",
+          "sha1": "3abdf51ea81780309bcfaf12c04efdf7cb15a649"
+        },
+        {
+          "file": "fz2.a15",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "2b933344",
+          "sha1": "5b53ea8d58cc3d157aec6926db048359984e4276"
+        },
+        {
+          "file": "fz2.a16",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "e63281a1",
+          "sha1": "72379c579484c1ef7784a9598d373446ef0a472b"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "fz2.b1",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "46bba615",
+          "sha1": "b291df4a83d7155eb7606f86ed733c24362a4db3"
+        },
+        {
+          "file": "fz2.b5",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "bebeee5d",
+          "sha1": "9e57e62c6b9136667aa90d7d423fc33ac6df4352"
+        },
+        {
+          "file": "fz2.b2",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "6681a7b6",
+          "sha1": "228df38601ba3895e9449921a64850941715b421"
+        },
+        {
+          "file": "fz2.b6",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "42d3241f",
+          "sha1": "c3240e3e1d7d398e74e76ba65adca6b06f0f67a9"
+        },
+        {
+          "file": "fz2.b3",
+          "size": 131072,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "5863926f",
+          "sha1": "0e591c4b85e5d572b3311bec2c1f6d2484204db6"
+        },
+        {
+          "file": "fz2.b7",
+          "size": 131072,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "cd830510",
+          "sha1": "8a32a1aa43f8af5e86f552f05da40b6e4ba12495"
+        },
+        {
+          "file": "fz2.b4",
+          "size": 131072,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "b98fa5b6",
+          "sha1": "c3f8891f81e80321e2ee5cc1f4d93b1867ed1868"
+        },
+        {
+          "file": "fz2.b8",
+          "size": 131072,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "e8248f68",
+          "sha1": "7876945d2baf1d7bdb9cc3a23be9f1a1681cede9"
+        },
+        {
+          "file": "fz2.a1",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "9d2f41f3",
+          "sha1": "54f5dc47d854cd26b108695f55263d8b8c29ce0e"
+        },
+        {
+          "file": "fz2.b10",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "7686ea33",
+          "sha1": "812a638f42500b30f80f9a3956c5eb4553cc35d0"
+        },
+        {
+          "file": "fz2.a2",
+          "size": 131072,
+          "offset": 1310721,
+          "status": "good",
+          "optional": false,
+          "crc32": "3b4050b7",
+          "sha1": "8c7c8051c577a4b2ca54d7e60c100fbd5391551f"
+        },
+        {
+          "file": "fz2.b11",
+          "size": 131072,
+          "offset": 1310720,
+          "status": "good",
+          "optional": false,
+          "crc32": "da8a95dc",
+          "sha1": "d44e1515008d4ee302f940ce7799fa9a790799e9"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "fz2.a10",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "92c92924",
+          "sha1": "3c98cea8f42c316405b28ae03469c6876de5e806"
+        },
+        {
+          "file": "fz2.a11",
+          "size": 131072,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "8c641bb9",
+          "sha1": "920da63961d2f3457c80d4c5f6d4f405374bb23a"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

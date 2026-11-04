@@ -1,0 +1,626 @@
+{
+  "module": "cps2",
+  "board": "cps2",
+  "game": "csclubj",
+  "gamename": "Capcom Sports Club (Japan 970722)",
+  "parent": "csclub",
+  "romof": "csclub",
+  "mame": {
+    "name": "csclubj",
+    "description": "Capcom Sports Club (Japan 970722)",
+    "cloneof": "csclub",
+    "romof": "csclub",
+    "year": "1997",
+    "manufacturer": "Capcom",
+    "sourcefile": "capcom/cps2.cpp",
+    "isbios": false
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "cscj.03",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ec4ddaa2",
+          "sha1": "f84af8bd01cc994ecd6ac24e829e2bd33817d862"
+        },
+        {
+          "file": "cscj.04",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "60c632bb",
+          "sha1": "0d42c33aa476d2cc4efcdad78667353b88225966"
+        },
+        {
+          "file": "cscj.05",
+          "size": 524288,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "ad042003",
+          "sha1": "1e167c88f3b0617c38c9f43bdc816045ac0296e0"
+        },
+        {
+          "file": "cscj.06",
+          "size": 524288,
+          "offset": 1572864,
+          "status": "good",
+          "optional": false,
+          "crc32": "169e4d40",
+          "sha1": "6540d89df5e76189d32b696be7626087fe26e33b"
+        },
+        {
+          "file": "csc.07",
+          "size": 524288,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "01b05caa",
+          "sha1": "5b84487da68e6b6f2889c76bf9e070e25941988c"
+        }
+      ]
+    },
+    "gfx": {
+      "roms": [
+        {
+          "file": "csc.14m",
+          "size": 2097152,
+          "offset": 8388608,
+          "status": "good",
+          "optional": false,
+          "crc32": "e8904afa",
+          "sha1": "39713ffca4e3a754c7c44c0ef4d99fb5a77d8da7"
+        },
+        {
+          "file": "csc.16m",
+          "size": 2097152,
+          "offset": 8388610,
+          "status": "good",
+          "optional": false,
+          "crc32": "c98c8079",
+          "sha1": "22d68ba2ef62b51981bb3e99ec2cde8d1b36514b"
+        },
+        {
+          "file": "csc.18m",
+          "size": 2097152,
+          "offset": 8388612,
+          "status": "good",
+          "optional": false,
+          "crc32": "c030df5a",
+          "sha1": "6d5e5a05531e168d0d44c591f9185ae300908fc2"
+        },
+        {
+          "file": "csc.20m",
+          "size": 2097152,
+          "offset": 8388614,
+          "status": "good",
+          "optional": false,
+          "crc32": "b4e55863",
+          "sha1": "da66f0a36266b906e4c149aec152c323bb184c57"
+        }
+      ]
+    },
+    "audiocpu": {
+      "roms": [
+        {
+          "file": "csc.01",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "ee162111",
+          "sha1": "ce8d4bd32bb10ee8b0274ba6fcef05a583b39d48",
+          "merge": "csc.01"
+        }
+      ]
+    },
+    "qsound": {
+      "roms": [
+        {
+          "file": "csc.11m",
+          "size": 2097152,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "a027b827",
+          "sha1": "6d58a63efc7bd5d07353d9b55826c01a3c416c33"
+        },
+        {
+          "file": "csc.12m",
+          "size": 2097152,
+          "offset": 2097152,
+          "status": "good",
+          "optional": false,
+          "crc32": "cb7f6e55",
+          "sha1": "b64e6b663fd09e887d2dc0f4b545e88688c0af55"
+        }
+      ]
+    },
+    "key": {
+      "roms": [
+        {
+          "file": "csclubj.key",
+          "size": 20,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "519a04db",
+          "sha1": "8f792831dc7e07fb621806c4e320a047f801e9b8"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "cps2-cipher"
+  },
+  "runtime": {
+    "properties": {}
+  },
+  "driver_layout": {
+    "source": "cps2.cpp",
+    "regions": [
+      {
+        "name": "maincpu",
+        "size_expression": "0x0400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 2853
+      },
+      {
+        "name": "gfx",
+        "size_expression": "0x1000000",
+        "size": 16777216,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 2860
+      },
+      {
+        "name": "audiocpu",
+        "size_expression": "0x50000",
+        "size": 327680,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 2867
+      },
+      {
+        "name": "qsound",
+        "size_expression": "0x400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 2871
+      },
+      {
+        "name": "key",
+        "size_expression": "0x20",
+        "size": 32,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 2875
+      }
+    ],
+    "operations": [
+      {
+        "macro": "ROM_REGION",
+        "region": "maincpu",
+        "size_expression": "0x0400000",
+        "flags_expression": "0",
+        "source_line": 2853
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "cscj.03",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 2854,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "ec4ddaa2",
+        "sha1": "f84af8bd01cc994ecd6ac24e829e2bd33817d862"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "cscj.04",
+        "offset_expression": "0x080000",
+        "offset": 524288,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 2855,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 524288,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "60c632bb",
+        "sha1": "0d42c33aa476d2cc4efcdad78667353b88225966"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "cscj.05",
+        "offset_expression": "0x100000",
+        "offset": 1048576,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 2856,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048576,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "ad042003",
+        "sha1": "1e167c88f3b0617c38c9f43bdc816045ac0296e0"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "cscj.06",
+        "offset_expression": "0x180000",
+        "offset": 1572864,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 2857,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1572864,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "169e4d40",
+        "sha1": "6540d89df5e76189d32b696be7626087fe26e33b"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "csc.07",
+        "offset_expression": "0x200000",
+        "offset": 2097152,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 2858,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2097152,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "01b05caa",
+        "sha1": "5b84487da68e6b6f2889c76bf9e070e25941988c"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "gfx",
+        "size_expression": "0x1000000",
+        "flags_expression": "0",
+        "source_line": 2860
+      },
+      {
+        "macro": "ROM_FILL",
+        "region": "gfx",
+        "arguments": [
+          "0x000000",
+          "0x800000",
+          "0x00"
+        ],
+        "source_line": 2861
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "csc.14m",
+        "offset_expression": "0x800000",
+        "offset": 8388608,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2862,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 8388608,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "crc32": "e8904afa",
+        "sha1": "39713ffca4e3a754c7c44c0ef4d99fb5a77d8da7"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "csc.16m",
+        "offset_expression": "0x800002",
+        "offset": 8388610,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2863,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 8388610,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "crc32": "c98c8079",
+        "sha1": "22d68ba2ef62b51981bb3e99ec2cde8d1b36514b"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "csc.18m",
+        "offset_expression": "0x800004",
+        "offset": 8388612,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2864,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 8388612,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "crc32": "c030df5a",
+        "sha1": "6d5e5a05531e168d0d44c591f9185ae300908fc2"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "csc.20m",
+        "offset_expression": "0x800006",
+        "offset": 8388614,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2865,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 8388614,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "crc32": "b4e55863",
+        "sha1": "da66f0a36266b906e4c149aec152c323bb184c57"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "audiocpu",
+        "size_expression": "0x50000",
+        "flags_expression": "0",
+        "source_line": 2867
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "csc.01",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_line": 2868,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          },
+          {
+            "source_offset": 32768,
+            "destination": 65536,
+            "length": 98304,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "ee162111",
+        "sha1": "ce8d4bd32bb10ee8b0274ba6fcef05a583b39d48",
+        "continuations": [
+          {
+            "macro": "ROM_CONTINUE",
+            "region": "audiocpu",
+            "arguments": [
+              "0x10000",
+              "0x18000"
+            ],
+            "source_line": 2869,
+            "offset_expression": "0x10000",
+            "offset": 65536,
+            "length_expression": "0x18000",
+            "length": 98304,
+            "source_offset": 32768
+          }
+        ]
+      },
+      {
+        "macro": "ROM_CONTINUE",
+        "region": "audiocpu",
+        "arguments": [
+          "0x10000",
+          "0x18000"
+        ],
+        "source_line": 2869,
+        "offset_expression": "0x10000",
+        "offset": 65536,
+        "length_expression": "0x18000",
+        "length": 98304,
+        "source_offset": 32768
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "qsound",
+        "size_expression": "0x400000",
+        "flags_expression": "0",
+        "source_line": 2871
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "csc.11m",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2872,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "transform": "word_swap",
+        "crc32": "a027b827",
+        "sha1": "6d58a63efc7bd5d07353d9b55826c01a3c416c33"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "csc.12m",
+        "offset_expression": "0x200000",
+        "offset": 2097152,
+        "length_expression": "0x200000",
+        "length": 2097152,
+        "source_line": 2873,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2097152,
+            "length": 2097152,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 2097152,
+        "transform": "word_swap",
+        "crc32": "cb7f6e55",
+        "sha1": "b64e6b663fd09e887d2dc0f4b545e88688c0af55"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "key",
+        "size_expression": "0x20",
+        "flags_expression": "0",
+        "source_line": 2875
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "key",
+        "file": "csclubj.key",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x000014",
+        "length": 20,
+        "source_line": 2876,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 20,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 20,
+        "crc32": "519a04db",
+        "sha1": "8f792831dc7e07fb621806c4e320a047f801e9b8"
+      }
+    ]
+  }
+}

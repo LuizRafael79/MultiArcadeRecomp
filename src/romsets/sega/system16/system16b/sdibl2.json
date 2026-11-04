@@ -1,0 +1,244 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "sdibl2",
+  "gamename": "SDI - Strategic Defense Initiative (bootleg, set 1)",
+  "parent": "sdi",
+  "romof": "sdi",
+  "mame": {
+    "name": "sdibl2",
+    "description": "SDI - Strategic Defense Initiative (bootleg, set 1)",
+    "cloneof": "sdi",
+    "romof": "sdi",
+    "year": "1987",
+    "manufacturer": "bootleg",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_split"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "de1",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "56f6fd26",
+          "sha1": "15ca2567102f931329163b76a2be4cf8fb634cc4"
+        },
+        {
+          "file": "do1",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "549c759f",
+          "sha1": "253b544fd4353d4ca81ccd60488f6eb810ed84b1"
+        },
+        {
+          "file": "de2",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "b0a9ad05",
+          "sha1": "f413b306c8bc51718fbb459efff8357dde5b5a85"
+        },
+        {
+          "file": "do2",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "54b7ec04",
+          "sha1": "5c94566dca6ca53949702569bccd8a73d9becb60"
+        },
+        {
+          "file": "de3",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "8ee2c287",
+          "sha1": "8ed98334dab51c2eab8e1ff0724abc1f819dc8c2"
+        },
+        {
+          "file": "do3",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "193e4231",
+          "sha1": "14fecfab010641b83e5b24d0e8003bc0de35e1c8"
+        }
+      ]
+    },
+    "maincpux": {
+      "roms": [
+        {
+          "file": "pe1",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "f0a190c0",
+          "sha1": "f8438017cb3e3a59042283bdb63bb53514ab6cf5"
+        },
+        {
+          "file": "po1",
+          "size": 32768,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "f68c4d0e",
+          "sha1": "123f0422b7f764d05d34e98aa16c8c99fed21f80"
+        },
+        {
+          "file": "pe2",
+          "size": 32768,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "109c9afd",
+          "sha1": "8bba819fc46d4927dfffc7a6a69292623299a987"
+        },
+        {
+          "file": "po2",
+          "size": 32768,
+          "offset": 65537,
+          "status": "good",
+          "optional": false,
+          "crc32": "6d614e76",
+          "sha1": "82b7730a640ddde6529a7449d3c43fa1592abac1"
+        },
+        {
+          "file": "pe3",
+          "size": 32768,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "589e2cfe",
+          "sha1": "b5052bab9e890d923ec99205393d3301ac80f1cd"
+        },
+        {
+          "file": "po3",
+          "size": 32768,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "57ba57b2",
+          "sha1": "32a1f37844425f42155573a617ce26f8c1954440"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "epr-10772.b9",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "182b6301",
+          "sha1": "bb6f1174f82611c801d2b4b7d3596bf71619e8a1"
+        },
+        {
+          "file": "epr-10773.b10",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "8f7129a2",
+          "sha1": "094a4065597d8d51fb2232546df1de9043fea731"
+        },
+        {
+          "file": "epr-10774.b11",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "4409411f",
+          "sha1": "84fd7128e8440d96b0384ae3c391a59bd37ecf9d"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "10760.b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "70de327b",
+          "sha1": "11dde9cefd993f5fb02baf5809fae6c1176a58a1"
+        },
+        {
+          "file": "10763.b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "99ec5cb5",
+          "sha1": "933a2216a2c772fc82499c739457865b1c75cdb8"
+        },
+        {
+          "file": "10761.b2",
+          "size": 65536,
+          "offset": 131073,
+          "status": "good",
+          "optional": false,
+          "crc32": "4e80f80d",
+          "sha1": "d168235bdf09317545c999676a4adf015df32366"
+        },
+        {
+          "file": "10764.b6",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "602da5d5",
+          "sha1": "d32cdde7d86c4561e7bfa547d7d7995ce9a43c24",
+          "merge": "epr-10764.18"
+        },
+        {
+          "file": "10762.b3",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "464b5f78",
+          "sha1": "b730964a54e6a63fa5b7cc2cbf9ec0ab650626d5"
+        },
+        {
+          "file": "10765.b7",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "0a73a057",
+          "sha1": "7f31124c67541a245e069e5b6aac59935d99a9a9",
+          "merge": "epr-10765.24"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "a7.rom",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "793f9f7f",
+          "sha1": "9e4fde376db9e99a83eb2fc734c6721c122ba9af"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  }
+}

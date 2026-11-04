@@ -30,15 +30,15 @@ std::uint64_t z80_to_ym(std::uint64_t c) { return (c / 5) * 4 + (c % 5) * 4 / 5;
 
 System16BSound::System16BSound(std::span<const std::uint8_t> region, bool output, std::uint8_t volume,
     System16BBoard board, bool stereo_spread)
-    : m_rom(region.begin(), region.end()), m_ym2151(*this), m_master_volume(std::min<std::uint8_t>(volume, 100)),
+    : m_rom(region.begin(), region.end()),
+      m_z80_bus([this](std::uint16_t address) { return memory_read(address); },
+          [this](std::uint16_t address, std::uint8_t value) { memory_write(address, value); },
+          [this](std::uint16_t port) { return port_read(static_cast<std::uint8_t>(port)); },
+          [this](std::uint16_t port, std::uint8_t value) { port_write(static_cast<std::uint8_t>(port), value); }),
+      m_cpu(m_z80_bus), m_ym2151(*this), m_master_volume(std::min<std::uint8_t>(volume, 100)),
       m_stereo_spread(stereo_spread), m_rom_board(board) {
     if (m_rom.size() < 0x18000) throw std::invalid_argument("System 16B sound ROM region is too small for fixed and banked ROM");
-    z80_init(&m_cpu);
-    m_cpu.userdata = this;
-    m_cpu.read_byte = &read_memory;
-    m_cpu.write_byte = &write_memory;
-    m_cpu.port_in = &read_port;
-    m_cpu.port_out = &write_port;
+    m_cpu.Reset();
     m_ym2151.reset();
     if (!output) return;
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER
@@ -62,10 +62,6 @@ System16BSound::~System16BSound() {
     if (m_audio_stream) { SDL_DestroyAudioStream(m_audio_stream); SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 #endif
 }
-std::uint8_t System16BSound::read_memory(void* u, std::uint16_t a) { return static_cast<System16BSound*>(u)->memory_read(a); }
-void System16BSound::write_memory(void* u, std::uint16_t a, std::uint8_t v) { static_cast<System16BSound*>(u)->memory_write(a,v); }
-std::uint8_t System16BSound::read_port(z80* c, std::uint8_t p) { return static_cast<System16BSound*>(c->userdata)->port_read(p); }
-void System16BSound::write_port(z80* c, std::uint8_t p, std::uint8_t v) { static_cast<System16BSound*>(c->userdata)->port_write(p,v); }
 std::uint8_t System16BSound::memory_read(std::uint16_t a) {
     if (a < 0x8000) return m_rom[a];
     if (a < 0xe000) {
@@ -78,7 +74,7 @@ std::uint8_t System16BSound::memory_read(std::uint16_t a) {
 }
 void System16BSound::memory_write(std::uint16_t a, std::uint8_t v) { if (a >= 0xf800) m_ram[a - 0xf800] = v; }
 std::uint8_t System16BSound::port_read(std::uint8_t p) {
-    if ((p & 0xc0) == 0) { synchronize_ym2151(z80_to_ym(m_cpu.cyc)); return (p & 1) ? m_ym2151.read(1) : 0xff; }
+    if ((p & 0xc0) == 0) { synchronize_ym2151(z80_to_ym(m_cpu.BusCallbackCycles())); return (p & 1) ? m_ym2151.read(1) : 0xff; }
     if ((p & 0xc0) == 0x80) return m_upd_state == UpdState::Idle ? 0x80 : 0;
     if ((p & 0xc0) == 0xc0) return m_sound_latch;
     return 0xff;
@@ -86,7 +82,7 @@ std::uint8_t System16BSound::port_read(std::uint8_t p) {
 void System16BSound::port_write(std::uint8_t p, std::uint8_t v) {
     const auto page = p & 0xc0;
     if (page == 0) {
-        synchronize_ym2151(z80_to_ym(m_cpu.cyc));
+        synchronize_ym2151(z80_to_ym(m_cpu.BusCallbackCycles()));
         if ((p & 1) == 0) { m_ym_address = v; m_ym2151.write(0, v); }
         else {
             auto chip_value = v;
@@ -134,15 +130,15 @@ void System16BSound::port_write(std::uint8_t p, std::uint8_t v) {
 }
 void System16BSound::advance_to_main_cycles(std::uint64_t c) {
     const auto target = main_to_z80(c);
-    while (m_cpu.cyc < target) {
-        if (m_cpu.nmi_pending) ++m_z80_nmi_serviced;
-        z80_step(&m_cpu);
+    while (m_cpu.cycles < target) {
+        if (m_cpu.NmiPending()) ++m_z80_nmi_serviced;
+        m_cpu.cycles += m_cpu.Step();
         ++m_z80_instructions;
-        synchronize_ym2151(z80_to_ym(m_cpu.cyc));
+        synchronize_ym2151(z80_to_ym(m_cpu.cycles));
     }
     synchronize_ym2151(z80_to_ym(target));
 }
-void System16BSound::write_sound_latch(std::uint8_t v) { m_sound_latch = v; z80_gen_int(&m_cpu, 0xff); }
+void System16BSound::write_sound_latch(std::uint8_t v) { m_sound_latch = v; m_cpu.RaiseInterrupt(); }
 void System16BSound::synchronize_ym2151(std::uint64_t target) {
     while ((m_generated_ym_samples + 1) * kYmClocksPerSample <= target) {
         const auto clock = (++m_generated_ym_samples) * kYmClocksPerSample;
@@ -166,7 +162,7 @@ void System16BSound::synchronize_ym2151(std::uint64_t target) {
 }
 void System16BSound::request_upd7759_byte() {
     m_upd_drq = true;
-    z80_gen_nmi(&m_cpu);
+    m_cpu.RaiseNmi();
     ++m_upd_nmi_edges;
 }
 void System16BSound::update_upd7759_adpcm(std::uint8_t nibble) {

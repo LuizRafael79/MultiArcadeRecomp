@@ -1,0 +1,206 @@
+{
+  "module": "system16",
+  "board": "system16b",
+  "game": "wb34",
+  "gamename": "Wonder Boy III - Monster Lair (set 4, Japan, System 16B) (FD1094 317-0087)",
+  "parent": "wb3",
+  "romof": "wb3",
+  "mame": {
+    "name": "wb34",
+    "description": "Wonder Boy III - Monster Lair (set 4, Japan, System 16B) (FD1094 317-0087)",
+    "cloneof": "wb3",
+    "romof": "wb3",
+    "year": "1988",
+    "manufacturer": "Sega / Westone",
+    "sourcefile": "sega/segas16b.cpp",
+    "machine_config": "system16b_fd1094"
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "epr-12131.a7",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "b95ecf88",
+          "sha1": "a431f8ecfffc0090047a6dda23e1f3bf9a46124e"
+        },
+        {
+          "file": "epr-12128.a5",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "b711372b",
+          "sha1": "f7367ab0ec4e6066148a7821aea6122bc840fd8b"
+        }
+      ]
+    },
+    "maincpu:key": {
+      "roms": [
+        {
+          "file": "317-0087.key",
+          "size": 8192,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "162cb531",
+          "sha1": "b94ae9df54edd228a462af35465d918b17da6d88"
+        }
+      ]
+    },
+    "tiles": {
+      "roms": [
+        {
+          "file": "epr-12124.a14",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "dacefb6f",
+          "sha1": "789a5a99ad9419aee9da5397bcea34452ea8b4b3",
+          "merge": "epr-12124.a14"
+        },
+        {
+          "file": "epr-12125.a15",
+          "size": 65536,
+          "offset": 65536,
+          "status": "good",
+          "optional": false,
+          "crc32": "9fc36df7",
+          "sha1": "b39ccc687489e9781181197505fc78aa5cf7ea55",
+          "merge": "epr-12125.a15"
+        },
+        {
+          "file": "epr-12126.a16",
+          "size": 65536,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "a693fd94",
+          "sha1": "38e5446f41b6793a8e4134fdd92b02b86e3589f7",
+          "merge": "epr-12126.a16"
+        }
+      ]
+    },
+    "sprites": {
+      "roms": [
+        {
+          "file": "epr-12090.b1",
+          "size": 65536,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "aeeecfca",
+          "sha1": "496124b170a725ad863c741d4e021ab947511e4c",
+          "merge": "epr-12090.b1"
+        },
+        {
+          "file": "epr-12094.b5",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "615e4927",
+          "sha1": "d23f164973afa770714e284a77ddf10f18cc596b",
+          "merge": "epr-12094.b5"
+        },
+        {
+          "file": "epr-12091.b2",
+          "size": 65536,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "8409a243",
+          "sha1": "bcbb9510a6499d8147543d6befa5a49f4ac055d9",
+          "merge": "epr-12091.b2"
+        },
+        {
+          "file": "epr-12095.b6",
+          "size": 65536,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "e774ec2c",
+          "sha1": "a4aa15ec7be5539a740ad02ff720458018dbc536",
+          "merge": "epr-12095.b6"
+        },
+        {
+          "file": "epr-12092.b3",
+          "size": 65536,
+          "offset": 524289,
+          "status": "good",
+          "optional": false,
+          "crc32": "5c2f0d90",
+          "sha1": "e0fbc0f841e4607ad232931368b16e81440a75c4",
+          "merge": "epr-12092.b3"
+        },
+        {
+          "file": "epr-12096.b7",
+          "size": 65536,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "0cd59d6e",
+          "sha1": "caf754a461feffafcfe7bfc6e89da76c4db257c5",
+          "merge": "epr-12096.b7"
+        },
+        {
+          "file": "epr-12093.b4",
+          "size": 65536,
+          "offset": 786433,
+          "status": "good",
+          "optional": false,
+          "crc32": "4891e7bb",
+          "sha1": "1be04fcabe9bfa8cf746263a5bcca67902a021a0",
+          "merge": "epr-12093.b4"
+        },
+        {
+          "file": "epr-12097.b8",
+          "size": 65536,
+          "offset": 786432,
+          "status": "good",
+          "optional": false,
+          "crc32": "e645902c",
+          "sha1": "497cfcf6c25cc2e042e16dbcb1963d2223def15a",
+          "merge": "epr-12097.b8"
+        }
+      ]
+    },
+    "soundcpu": {
+      "roms": [
+        {
+          "file": "epr-12127.a10",
+          "size": 32768,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "0bb901bb",
+          "sha1": "c81b198df8e3b0ec568032c76addf0d1a1711194",
+          "merge": "epr-12127.a10"
+        }
+      ]
+    },
+    "plds": {
+      "roms": [
+        {
+          "file": "315-5298.b9",
+          "size": 235,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "39b47212",
+          "sha1": "432b47aee5ecbf08a8a6dc2f8379c816feb86328",
+          "merge": "315-5298.b9"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "fd1094"
+  },
+  "runnable": false
+}

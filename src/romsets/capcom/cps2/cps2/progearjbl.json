@@ -1,0 +1,511 @@
+{
+  "module": "cps2",
+  "board": "cps2",
+  "game": "progearjbl",
+  "gamename": "Progear no Arashi (Japan 010117) (decrypted bootleg)",
+  "parent": "progear",
+  "romof": "progear",
+  "mame": {
+    "name": "progearjbl",
+    "description": "Progear no Arashi (Japan 010117) (decrypted bootleg)",
+    "cloneof": "progear",
+    "romof": "progear",
+    "year": "2001",
+    "manufacturer": "bootleg",
+    "sourcefile": "capcom/cps2.cpp",
+    "isbios": false
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "pgaj_bl.03",
+          "size": 524288,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "4fef676c",
+          "sha1": "f50f32403315f77e115141bbee6a1b9a800821eb"
+        },
+        {
+          "file": "pgaj_bl.04",
+          "size": 524288,
+          "offset": 524288,
+          "status": "good",
+          "optional": false,
+          "crc32": "a069bd3b",
+          "sha1": "6b7e20c883221da9b8eccb4f86017bb93e1fc11f"
+        }
+      ]
+    },
+    "gfx": {
+      "roms": [
+        {
+          "file": "pga.13m",
+          "size": 4194304,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "5194c198",
+          "sha1": "f9ae16cad8b30547b8dd3a1ea1d6e845d76ccefe"
+        },
+        {
+          "file": "pga.15m",
+          "size": 4194304,
+          "offset": 2,
+          "status": "good",
+          "optional": false,
+          "crc32": "b794e83f",
+          "sha1": "0332fa798b2955464ab336929866c9185bd4b520"
+        },
+        {
+          "file": "pga.17m",
+          "size": 4194304,
+          "offset": 4,
+          "status": "good",
+          "optional": false,
+          "crc32": "87f22918",
+          "sha1": "7f048d66593f385526bd2c669cf6b8ad58d12bbf"
+        },
+        {
+          "file": "pga.19m",
+          "size": 4194304,
+          "offset": 6,
+          "status": "good",
+          "optional": false,
+          "crc32": "65ffb45b",
+          "sha1": "9c21187519c1ec95c5a960b2c815ee41ace4fa7e"
+        }
+      ]
+    },
+    "audiocpu": {
+      "roms": [
+        {
+          "file": "pga.01",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "bdbfa992",
+          "sha1": "7c5496c1daaea6a7ab95c0b25625d325ec3427cc",
+          "merge": "pga.01"
+        }
+      ]
+    },
+    "qsound": {
+      "roms": [
+        {
+          "file": "pga.11m",
+          "size": 4194304,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "abdd224e",
+          "sha1": "3316708e050204eeee91c642a2546fab80984c60"
+        },
+        {
+          "file": "pga.12m",
+          "size": 4194304,
+          "offset": 4194304,
+          "status": "good",
+          "optional": false,
+          "crc32": "dac53406",
+          "sha1": "53fd271495429a7cbdeecbbc62b322f019f854a5"
+        }
+      ]
+    },
+    "key": {
+      "roms": [
+        {
+          "file": "phoenix.key",
+          "size": 20,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "2cf772b0",
+          "sha1": "eff33c65a4f3862c231f9e4d6fefa7b34398dbf2"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "cps2-cipher"
+  },
+  "runtime": {
+    "properties": {}
+  },
+  "driver_layout": {
+    "source": "cps2.cpp",
+    "regions": [
+      {
+        "name": "maincpu",
+        "size_expression": "0x0400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 11921
+      },
+      {
+        "name": "gfx",
+        "size_expression": "0x1000000",
+        "size": 16777216,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 11925
+      },
+      {
+        "name": "audiocpu",
+        "size_expression": "0x50000",
+        "size": 327680,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 11931
+      },
+      {
+        "name": "qsound",
+        "size_expression": "0x800000",
+        "size": 8388608,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 11935
+      },
+      {
+        "name": "key",
+        "size_expression": "0x20",
+        "size": 32,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 11939
+      }
+    ],
+    "operations": [
+      {
+        "macro": "ROM_REGION",
+        "region": "maincpu",
+        "size_expression": "0x0400000",
+        "flags_expression": "0",
+        "source_line": 11921
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "pgaj_bl.03",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 11922,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "4fef676c",
+        "sha1": "f50f32403315f77e115141bbee6a1b9a800821eb"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "maincpu",
+        "file": "pgaj_bl.04",
+        "offset_expression": "0x080000",
+        "offset": 524288,
+        "length_expression": "0x80000",
+        "length": 524288,
+        "source_line": 11923,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 524288,
+            "length": 524288,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 524288,
+        "transform": "word_swap",
+        "crc32": "a069bd3b",
+        "sha1": "6b7e20c883221da9b8eccb4f86017bb93e1fc11f"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "gfx",
+        "size_expression": "0x1000000",
+        "flags_expression": "0",
+        "source_line": 11925
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "pga.13m",
+        "offset_expression": "0x0000000",
+        "offset": 0,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11926,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "5194c198",
+        "sha1": "f9ae16cad8b30547b8dd3a1ea1d6e845d76ccefe"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "pga.15m",
+        "offset_expression": "0x0000002",
+        "offset": 2,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11927,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "b794e83f",
+        "sha1": "0332fa798b2955464ab336929866c9185bd4b520"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "pga.17m",
+        "offset_expression": "0x0000004",
+        "offset": 4,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11928,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 4,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "87f22918",
+        "sha1": "7f048d66593f385526bd2c669cf6b8ad58d12bbf"
+      },
+      {
+        "macro": "ROM_LOAD64_WORD",
+        "region": "gfx",
+        "file": "pga.19m",
+        "offset_expression": "0x0000006",
+        "offset": 6,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11929,
+        "group_bytes": 2,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 6,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "crc32": "65ffb45b",
+        "sha1": "9c21187519c1ec95c5a960b2c815ee41ace4fa7e"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "audiocpu",
+        "size_expression": "0x50000",
+        "flags_expression": "0",
+        "source_line": 11931
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "pga.01",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_line": 11932,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          },
+          {
+            "source_offset": 32768,
+            "destination": 65536,
+            "length": 98304,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "bdbfa992",
+        "sha1": "7c5496c1daaea6a7ab95c0b25625d325ec3427cc",
+        "continuations": [
+          {
+            "macro": "ROM_CONTINUE",
+            "region": "audiocpu",
+            "arguments": [
+              "0x10000",
+              "0x18000"
+            ],
+            "source_line": 11933,
+            "offset_expression": "0x10000",
+            "offset": 65536,
+            "length_expression": "0x18000",
+            "length": 98304,
+            "source_offset": 32768
+          }
+        ]
+      },
+      {
+        "macro": "ROM_CONTINUE",
+        "region": "audiocpu",
+        "arguments": [
+          "0x10000",
+          "0x18000"
+        ],
+        "source_line": 11933,
+        "offset_expression": "0x10000",
+        "offset": 65536,
+        "length_expression": "0x18000",
+        "length": 98304,
+        "source_offset": 32768
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "qsound",
+        "size_expression": "0x800000",
+        "flags_expression": "0",
+        "source_line": 11935
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "pga.11m",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11936,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "transform": "word_swap",
+        "crc32": "abdd224e",
+        "sha1": "3316708e050204eeee91c642a2546fab80984c60"
+      },
+      {
+        "macro": "ROM_LOAD16_WORD_SWAP",
+        "region": "qsound",
+        "file": "pga.12m",
+        "offset_expression": "0x400000",
+        "offset": 4194304,
+        "length_expression": "0x400000",
+        "length": 4194304,
+        "source_line": 11937,
+        "group_bytes": 2,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 4194304,
+            "length": 4194304,
+            "group_bytes": 2,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 4194304,
+        "transform": "word_swap",
+        "crc32": "dac53406",
+        "sha1": "53fd271495429a7cbdeecbbc62b322f019f854a5"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "key",
+        "size_expression": "0x20",
+        "flags_expression": "0",
+        "source_line": 11939
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "key",
+        "file": "phoenix.key",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x000014",
+        "length": 20,
+        "source_line": 11940,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 20,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 20,
+        "crc32": "2cf772b0",
+        "sha1": "eff33c65a4f3862c231f9e4d6fefa7b34398dbf2"
+      }
+    ]
+  }
+}

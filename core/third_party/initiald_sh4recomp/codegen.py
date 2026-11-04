@@ -273,11 +273,13 @@ def _gen_delay_slot_impl(d_addr, d_mnem, d_args, func_start, func_end, reachable
     return gen_simple(d_mnem, d_args, d_addr)
 
 
-def gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs=None):
+def gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs=None,
+                   raw_bytes=None, base_addr=0):
     # Count the architectural delay-slot instruction as its own guest op.
+    word = raw_bytes[d_addr - base_addr] | (raw_bytes[d_addr - base_addr + 1] << 8)
     return ["if (ctx.interrupt_taken || ctx.execution_stopped) return;", "ctx.delay_slot = true;",
             f"ctx.pc = 0x{d_addr:08X}u;",
-            "if (!ctx.consume_instruction()) { ctx.delay_slot = false; return; }",
+            f"if (!ctx.retire_opcode(0x{word:04X}u)) {{ ctx.delay_slot = false; return; }}",
             "ctx.delay_slot = false;"] + _gen_delay_slot_impl(
         d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs)
 
@@ -347,7 +349,8 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
         # can execute another guest instruction or overwrite the stopped PC.
         out.append("if (ctx.interrupt_taken || ctx.execution_stopped) return;")
         out.append(f"ctx.pc = 0x{addr:08X}u;")
-        out.append("if (!ctx.consume_instruction()) return;")
+        word = raw_bytes[addr - base_addr] | (raw_bytes[addr - base_addr + 1] << 8)
+        out.append(f"if (!ctx.retire_opcode(0x{word:04X}u)) return;")
 
         # SH-4 RTS has a mandatory delay slot: the instruction at PC+2
         # executes BEFORE control returns to PR.  Older generated snapshots
@@ -358,7 +361,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             out.append("ctx.pc = ctx.control_target;  // RTS returns to the sampled guest link register")
             out.append("return;  // rts (after delay slot)")
             i += 2
@@ -372,7 +375,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             out.append("host_rte(ctx);")
             out.append("return;  // rte (after delay slot)")
             i += 2
@@ -405,7 +408,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 # entry) instead of a captured local, which also sidesteps
                 # the goto/scoping restriction on local variable declarations.
                 out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
                 check = "ctx.t" if takes_if_true else "!ctx.t"
                 if is_internal_target(target, func_start, func_end, reachable_addrs):
                     out.append(f"if ({check}) goto L_{target:08X};")
@@ -432,14 +435,14 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 else:
                     out.append(f"if ({check}) {{ host_indirect_call(ctx, 0x{target:08X}u); return; }}  /* tail-branch outside function */")
                 out.append("}")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
                 i += 2
                 continue
 
             out.append("{")  # scope the condition var so it can't cross a later label
             out.append(f"bool {cond_var} = ctx.t;")
             if d_addr is not None:
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             check = cond_var if takes_if_true else f"!{cond_var}"
             if is_internal_target(target, func_start, func_end, reachable_addrs):
                 out.append(f"if ({check}) goto L_{target:08X};")
@@ -457,7 +460,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             if mnem == "bra":
                 if is_internal_target(target, func_start, func_end, reachable_addrs):
                     out.append(f"goto L_{target:08X};")
@@ -475,7 +478,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             out.append(f"host_indirect_call(ctx, ctx.control_target); return;  /* indirect jump */")
             i += 2
             continue
@@ -488,7 +491,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             addr_key = f"{addr:08x}"
             target_hex = resolved_calls.get(addr_key)
             # This call site joins two guest branches that install different
@@ -543,7 +546,7 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
                 d_addr, d_mnem, d_args = ops[i+1]
                 if d_addr in labels:
                     out.append(f"L_{d_addr:08X}:")
-                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs))
+                out.extend(gen_delay_slot(d_addr, d_mnem, d_args, func_start, func_end, reachable_addrs, raw_bytes, base_addr))
             target = target_var
             if mnem == "bsrf":
                 out.append(f"ctx.pr = 0x{addr+4:08X}u;")

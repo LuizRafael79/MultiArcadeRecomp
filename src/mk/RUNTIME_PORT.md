@@ -11,11 +11,11 @@ The diagnostic runner in `tools/mk/trace.cpp` is not the machine runtime.
 | MAME source | MameRecomp location | Ported behavior / current status |
 | --- | --- | --- |
 | `midtunit_base_state` / `midtunit_adpcm_state` machine composition | `src/mk/mk_machine.*` | Owns the T-Unit and Williams ADPCM devices and wires T-Unit sound-command/reset writes to the sound board. It does not instantiate or implement either CPU. |
-| `src/mame/midway/midtunit.cpp` | `src/mk/tunit.cpp` | T-Unit address map, RAM regions, ROM mirrors, input reads, palette, graphics ROM window, DMA/control windows and watchdog write. Base clocks and initial display geometry are represented; dynamic screen reconfiguration is outstanding. |
-| `src/mame/midway/midtunit_m.cpp` | `src/mk/tunit.cpp` | CMOS, MK protection sequence, sound command/status latch and reset line. The MK protection table and write-to-select behavior are ported. |
-| `src/mame/midway/midtunit_v.cpp` | `src/mk/tunit.cpp` | Video RAM banking, T-Unit graphics ROM banking, DMA register banks, pixel operations, clipping, flips, skip headers, scaling, DMA busy time, scanout, palette conversion and shift-register callbacks. DMA output still needs comparison against real MK traffic. |
-| `src/mame/midway/midtunit_v.ipp` | `src/mk/tunit.cpp` | Command-to-pixel-operation selection and 1–8 bpp variants are implemented in the runtime blitter. |
-| TMS34010 scanline/I/O behavior in `src/devices/cpu/tms34010/tms34010.cpp` | shared `core/cpus/tms34010` plus machine cycle API in `src/mk/tunit.cpp` | The TMS core owns CPU registers/instructions/interrupt entry. The board owns beam progression, display interrupt latching, DPYADR progression, scanout and framebuffer. The current scheduler is approximate and lacks MAME's dynamic screen timing/event scheduler. |
+| `src/mame/williams/midtunit.cpp` | `src/mk/tunit.cpp` | T-Unit address map, RAM regions, ROM mirrors, input reads, palette, graphics ROM window, DMA/control windows and watchdog write. Base clocks and dynamic HTOTAL-at-frame-boundary timing are represented; full scanline event ordering still needs comparison. |
+| `src/mame/williams/midtunit_m.cpp` | `src/mk/tunit.cpp` | CMOS, MK protection sequence, sound command/status latch and reset line. CMOS persistence and the MK protection table/write-to-select behavior are ported. |
+| `src/mame/williams/midtunit_v.cpp` | `src/mk/tunit.cpp` | Video RAM banking, T-Unit graphics ROM banking, DMA register banks, pixel operations, clipping, flips, skip headers, scaling, DMA busy time, scanout, palette conversion and shift-register callbacks. The shared runtime has a profile flag for MK2's `gfx_rom_large` setting; DMA output still needs broader comparison against real traffic. |
+| `src/mame/williams/midtunit_v.ipp` | `src/mk/tunit.cpp` | Command-to-pixel-operation selection and 1–8 bpp variants are implemented in the runtime blitter. |
+| TMS34010 scanline/I/O behavior in `src/devices/cpu/tms34010/tms34010.cpp` | shared `core/cpus/tms34010` plus machine cycle API in `src/mk/tunit.cpp` | The TMS core owns CPU registers/instructions/interrupt entry. The board owns beam progression, display interrupt latching, DPYADR progression, scanout and framebuffer. The board advances in MAME's 6.25 MHz execution-cycle domain (50 MHz input clock divided by eight), updates HTOTAL at frame boundaries, exposes HCOUNT/REFCNT from the live beam/cycle state, and reproduces the guest-visible early-DI polling bit without making the CPU accept that interrupt early. |
 | `src/mame/shared/williamssound.cpp` | `src/mk/williams_adpcm.cpp` | Williams ADPCM sound-board map, bank selection, YM2151/OKIM6295/DAC behavior and stereo sample generation are represented. The shared MC6809E backend is scheduled by the diagnostic runner, which feeds the generated samples to SDL playback in window mode. |
 | ROM declarations in `src/mame/midway/midtunit.cpp` | `tools/mk/build.py` | MK rev. 5 ROM verification, lane interleave and region assembly. This is build input preparation, not runtime hardware emulation. |
 
@@ -42,25 +42,35 @@ an interpreter.
 
 ## Remaining machine-port work
 
-1. Replace the approximate fixed beam clock with MAME-compatible dynamic
-   horizontal/vertical timing updates and event ordering.
-2. Verify the 2x512-word shift-register transfer path against the shared TMS
+1. Verify the 2x512-word shift-register transfer path against the shared TMS
    pixel access semantics and MK instruction trace.
-3. Compare DMA register reads/writes, command timing, source addressing,
+2. Compare DMA register reads/writes, command timing, source addressing,
    blitter output and interrupt assertion against MAME for captured MK
-   commands. Current traces have not yet issued a command with bit 15 set.
-4. Finish machine-side interrupt-line scheduling so DMA/display events are
+   commands. Current traces include triggered commands; compare them with
+   matching CMOS/input timing after the HCOUNT correction.
+3. Finish machine-side interrupt-line scheduling so DMA/display events are
    delivered at the correct CPU boundary without implementing CPU behavior in
    the machine module.
-5. Replace the approximate runner scheduling of the MC6809E with machine event
+4. Replace the approximate runner scheduling of the MC6809E with machine event
    scheduling and verify YM2151, OKI and DAC output against MAME.
-6. Compare inputs, CMOS persistence, palette/scanout and sound behavior with
+5. Compare inputs, CMOS persistence, palette/scanout and sound behavior with
    MAME after the machine loop advances beyond the current idle loop.
 
 ## Current diagnostic state
 
-The bounded MK runner reaches PC `0xffdd19c0` and spends the remaining budget
-in a self-loop. In an 8,000,000-cycle run it reported zero DMA commands and a
-black framebuffer. This confirms the runner reaches the video reporting path;
-it does not establish that the board runtime is complete or that DMA is the
-root cause. Interpreter reason logging remains enabled for prototype runs.
+The MK1 `MKMachine` uses the normal-size graphics-ROM profile. `MK2Machine`
+passes the large-ROM profile specified in MAME's `mk2()` configuration. That
+profile changes graphics bank 0 when T-Unit control bit 7 is set and preserves
+MK2 DMA source offsets instead of stripping the normal graphics-window base.
+
+The T-Unit trace runner reads and writes the 16 KiB CMOS image at
+`build/mk2/work/mk2.nvram` (override with `--nvram=PATH`). A byte-for-byte
+comparison against MAME's saved CMOS passed. The first 323 DMA command
+snapshots also matched in an earlier comparison; a fresh comparison is
+followed by a command-order divergence near 7.19 s. MAME's TMS core uses a
+50 MHz input clock but divides by eight for execution-cycle timing; preserve
+this distinction when translating timer, beam, audio and scripted-input
+intervals. HCOUNT now uses HEBLNK, REFCNT uses total TMS execution cycles, and
+guest-visible early DI polling is kept separate from the CPU's interrupt
+acceptance check. Interpreter reason logging remains enabled for prototype
+runs.

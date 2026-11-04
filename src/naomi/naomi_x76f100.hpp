@@ -32,7 +32,6 @@ private:
         ack_password = 0x55
     };
 
-    [[nodiscard]] std::array<std::uint8_t, 8>& password();
     void acceptPassword();
     [[nodiscard]] int dataOffset() const;
 
@@ -44,15 +43,14 @@ private:
     bool m_cs = false;
     bool m_rst = false;
     bool m_scl = false;
+    bool m_scl_changed = false;
     bool m_sdaw = false;
     bool m_sdar = false;
-    bool m_password_accepted = false;
     State m_state = State::stop;
     std::uint8_t m_shift = 0;
     std::uint8_t m_bit = 0;
     std::uint8_t m_byte = 0;
     std::uint8_t m_command = 0;
-    std::uint8_t m_password_retries = 0;
 };
 
 } // namespace mamerecomp::naomi

@@ -33,6 +33,190 @@ std::array<unsigned, 8> g_naomi_watched_pc_events{};
 std::size_t g_naomi_watched_pc_count = 0;
 bool g_naomi_reset_idle_trace_emitted = false;
 
+constexpr std::uint32_t kSh4Mmucr = 0xff000010u;
+constexpr std::uint32_t kSh4Pteh = 0xff000000u;
+constexpr std::uint32_t kSh4Tea = 0xff00000cu;
+constexpr std::uint32_t kSh4TlbMissRead = 0x040u;
+constexpr std::uint32_t kSh4TlbMissWrite = 0x060u;
+constexpr std::uint32_t kSh4TlbFirstWrite = 0x080u;
+constexpr std::uint32_t kSh4TlbProtectionRead = 0x0a0u;
+constexpr std::uint32_t kSh4TlbProtectionWrite = 0x0c0u;
+constexpr std::uint32_t kSh4AddressErrorRead = 0x0e0u;
+constexpr std::uint32_t kSh4AddressErrorWrite = 0x100u;
+constexpr std::uint32_t kSh4TlbMultiHit = 0x140u;
+constexpr std::uint32_t kItlbLruOr[4] = {0x00u, 0x20u, 0x14u, 0x0bu};
+constexpr std::uint32_t kItlbLruAnd[4] = {0x07u, 0x39u, 0x3eu, 0x3fu};
+
+std::uint32_t sh4_itlb_replacement_slot(std::uint32_t lrui) {
+    for (std::uint32_t slot = 0; slot < 4; ++slot) {
+        const auto key = (~kItlbLruAnd[slot]) & 0x3fu;
+        const auto mask = key | kItlbLruOr[slot];
+        if ((lrui & mask) == key) return slot;
+    }
+    return 0;
+}
+
+void sh4_itlb_touch(const Sh4Context& context, std::uint32_t mmucr,
+                    std::uint32_t slot) {
+    auto updated = mmucr;
+    auto lrui = (mmucr >> 26) & 0x3fu;
+    lrui = (lrui & kItlbLruAnd[slot]) | kItlbLruOr[slot];
+    updated = (updated & ~(0x3fu << 26)) | (lrui << 26);
+    if (context.bus && context.bus->write32)
+        context.bus->write32(kSh4Mmucr, updated, context.pc);
+}
+
+enum class Sh4Access { Read, Write, Instruction };
+
+std::uint32_t sh4_mmr_read(const Sh4Context& context, std::uint32_t address) {
+    return context.bus && context.bus->read32 ? context.bus->read32(address) : 0;
+}
+
+[[noreturn]] void sh4_memory_exception(const Sh4Context& source,
+                                       std::uint32_t address,
+                                       Sh4Access access,
+                                       std::uint32_t event) {
+    auto& context = const_cast<Sh4Context&>(source);
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS")) {
+        static unsigned memory_fault_trace_events = 0;
+        if (memory_fault_trace_events < 128) {
+            ++memory_fault_trace_events;
+            std::fprintf(stderr,
+                         "SH-4 memory fault access=%s address=%08x event=%03x pc=%08x delay=%u r0=%08x r1=%08x r2=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x r14=%08x sp=%08x\n",
+                         access == Sh4Access::Write ? "write" :
+                             access == Sh4Access::Read ? "read" : "fetch",
+                         address, event, context.pc, context.delay_slot ? 1u : 0u,
+                         context.r[0], context.r[1], context.r[2], context.r[3],
+                         context.r[4], context.r[5], context.r[6], context.r[7],
+                         context.r[14], context.r[15]);
+        }
+    }
+    const auto old_pteh = sh4_mmr_read(context, kSh4Pteh);
+    if (context.bus && context.bus->write32) {
+        context.bus->write32(kSh4Tea, address, context.pc);
+        context.bus->write32(kSh4Pteh,
+            (address & 0xfffffc00u) | (old_pteh & 0xffu), context.pc);
+    }
+    const auto fault_pc = access == Sh4Access::Instruction
+        ? (context.delay_slot ? address - 2u : address)
+        : context.delay_slot ? context.pc - 4u : context.pc - 2u;
+    host_raise_exception(context, event, fault_pc,
+                         event == kSh4TlbMissRead || event == kSh4TlbMissWrite
+                             ? 0x400u : 0x100u);
+    throw Sh4MemoryFault{};
+}
+
+bool sh4_segment_bypasses_tlb(std::uint32_t address) {
+    const auto segment = address >> 29;
+    return segment == 4u || segment == 5u || segment == 7u ||
+           (address & 0xfc000000u) == 0x7c000000u;
+}
+
+std::uint32_t sh4_translate(const Sh4Context& context, std::uint32_t address,
+                            Sh4Access access) {
+    auto mmucr = sh4_mmr_read(context, kSh4Mmucr);
+    const bool user_mode = (context.sr & (1u << 30)) == 0;
+    const bool write = access == Sh4Access::Write;
+    const bool instruction = access == Sh4Access::Instruction;
+    const bool store_queue_write = write &&
+        (address & 0xfc000000u) == 0xe0000000u;
+    // Access-width alignment is checked by read16/read32/write16/write32.
+    // Do not impose a longword check here: write16/write32 may decompose a
+    // legal store-queue access into byte writes, and Flycast's mmu_WriteMem
+    // likewise validates alignment using the original access width.
+    if (store_queue_write && (((mmucr >> 9) & 1u) && user_mode))
+        sh4_memory_exception(context, address, access, kSh4AddressErrorWrite);
+    if (!(mmucr & 1u)) return address;
+    if (!store_queue_write && user_mode && (address & 0x80000000u))
+        sh4_memory_exception(context, address, access,
+                             write ? kSh4AddressErrorWrite : kSh4AddressErrorRead);
+    if (instruction && (address >> 29) == 7u)
+        sh4_memory_exception(context, address, access, kSh4AddressErrorRead);
+    if (sh4_segment_bypasses_tlb(address)) return address;
+
+    const auto pteh = sh4_mmr_read(context, kSh4Pteh);
+    static constexpr std::uint32_t masks[4] = {
+        0xfffffc00u, 0xfffff000u, 0xffff0000u, 0xfff00000u
+    };
+    const Sh4TlbEntry* found = nullptr;
+    auto matches = [&](const Sh4TlbEntry& entry) {
+        if (!(entry.ptel & (1u << 8))) return false;
+        const auto size = ((entry.ptel >> 4) & 1u) |
+                          ((entry.ptel >> 6) & 2u);
+        if (((entry.pteh & 0xfffffc00u) & masks[size]) !=
+            (address & masks[size])) return false;
+        const bool asid_match_required = !(entry.ptel & (1u << 1)) &&
+            (user_mode || !(mmucr & (1u << 8)));
+        return !asid_match_required || (entry.pteh & 0xffu) == (pteh & 0xffu);
+    };
+    auto scan = [&](const auto& entries) {
+        for (const auto& entry : entries) {
+            if (!matches(entry)) continue;
+            if (found)
+                sh4_memory_exception(context, address, access, kSh4TlbMultiHit);
+            found = &entry;
+        }
+    };
+    std::uint32_t itlb_slot = 4;
+    if (instruction) {
+        for (std::uint32_t slot = 0; slot < context.itlb.size(); ++slot) {
+            if (!matches(context.itlb[slot])) continue;
+            if (found)
+                sh4_memory_exception(context, address, access, kSh4TlbMultiHit);
+            found = &context.itlb[slot];
+            itlb_slot = slot;
+        }
+    }
+    else scan(context.utlb);
+    if (!found && instruction) {
+        // Flycast fills the four-entry ITLB from the UTLB on an instruction
+        // miss and selects the victim from CCN.MMUCR.LRUI.
+        auto& mutable_context = const_cast<Sh4Context&>(context);
+        auto replacement_mmucr = mmucr;
+        auto urc = ((mmucr >> 10) + 1u) & 0x3fu;
+        if (urc == ((mmucr >> 18) & 0x3fu)) urc = 0;
+        replacement_mmucr = (replacement_mmucr & ~(0x3fu << 10)) | (urc << 10);
+        mmucr = replacement_mmucr;
+        if (context.bus && context.bus->write32)
+            context.bus->write32(kSh4Mmucr, replacement_mmucr, context.pc);
+        scan(context.utlb);
+        if (found) {
+            const auto slot = sh4_itlb_replacement_slot((mmucr >> 26) & 0x3fu);
+            mutable_context.itlb[slot] = *found;
+            found = &mutable_context.itlb[slot];
+            itlb_slot = slot;
+        }
+    }
+    if (instruction && found) sh4_itlb_touch(context, mmucr, itlb_slot);
+    if (!instruction) {
+        auto replacement_mmucr = mmucr;
+        auto urc = ((mmucr >> 10) + 1u) & 0x3fu;
+        if (urc == ((mmucr >> 18) & 0x3fu)) urc = 0;
+        replacement_mmucr = (replacement_mmucr & ~(0x3fu << 10)) | (urc << 10);
+        mmucr = replacement_mmucr;
+        if (context.bus && context.bus->write32)
+            context.bus->write32(kSh4Mmucr, replacement_mmucr, context.pc);
+    }
+    if (!found)
+        sh4_memory_exception(context, address, access,
+            write ? kSh4TlbMissWrite : kSh4TlbMissRead);
+
+    const auto size = ((found->ptel >> 4) & 1u) |
+                      ((found->ptel >> 6) & 2u);
+    const auto mask = masks[size];
+    const auto privilege = (found->ptel >> 5) & 3u;
+    if (user_mode && privilege == 0)
+        sh4_memory_exception(context, address, access,
+            write ? kSh4TlbProtectionWrite : kSh4TlbProtectionRead);
+    if (write && !(found->ptel & 1u))
+        sh4_memory_exception(context, address, access, kSh4TlbProtectionWrite);
+    if (write && !(found->ptel & (1u << 2)))
+        sh4_memory_exception(context, address, access, kSh4TlbFirstWrite);
+    auto physical = ((found->ptel & 0x1ffffc00u) & mask) | (address & ~mask);
+    if ((physical & 0x1c000000u) == 0x1c000000u) physical |= 0xf0000000u;
+    return store_queue_write ? address : physical;
+}
+
 struct AicaTraceStats {
     std::uint64_t sequence = 0;
     std::uint64_t register_reads = 0;
@@ -446,8 +630,8 @@ void trace_watched_pc(const Sh4Context& context) {
         g_naomi_watched_pc_events[watched_index] >= 64) return;
     ++g_naomi_watched_pc_events[watched_index];
     std::fprintf(stderr,
-                 "SH-4 watched PC=%08x r0=%08x r1=%08x r2=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x pr=%08x sr=%08x T=%u sp=%08x\n",
-                 context.pc, context.r[0], context.r[1], context.r[2], context.r[3],
+                 "SH-4 watched PC=%08x op=%04x r0=%08x r1=%08x r2=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x pr=%08x sr=%08x T=%u sp=%08x\n",
+                 context.pc, context.read16(context.pc), context.r[0], context.r[1], context.r[2], context.r[3],
                  context.r[4], context.r[5], context.r[6], context.r[7], context.pr,
                  context.sr, context.t ? 1u : 0u, context.r[15]);
     std::fprintf(stderr,
@@ -460,7 +644,8 @@ void trace_watched_pc(const Sh4Context& context) {
 std::uint8_t Sh4Context::read8(std::uint32_t address) const {
     std::uint32_t value = 0;
     if (read_intevt(*this, address, 1, value)) return static_cast<std::uint8_t>(value);
-    value = bus && bus->read8 ? bus->read8(address) : 0xff;
+    const auto physical = sh4_translate(*this, address, Sh4Access::Read);
+    value = bus && bus->read8 ? bus->read8(physical) : 0xff;
     trace_task_range_read(*this, address, 1, value);
     trace_bios_pointer_table_read(*this, address, 1, value);
     trace_m2_pio_access(*this, 'R', address, 1, value);
@@ -471,10 +656,16 @@ std::uint8_t Sh4Context::read8(std::uint32_t address) const {
 std::uint16_t Sh4Context::read16(std::uint32_t address) const {
     std::uint32_t value = 0;
     if (read_intevt(*this, address, 2, value)) return static_cast<std::uint16_t>(value);
-    value = bus && bus->read16
-        ? bus->read16(address)
-        : static_cast<std::uint16_t>(read8(address)) |
-              (static_cast<std::uint16_t>(read8(address + 1)) << 8);
+    if (address & 1u)
+        sh4_memory_exception(*this, address, Sh4Access::Read, kSh4AddressErrorRead);
+    const auto physical = sh4_translate(*this, address, Sh4Access::Read);
+    if (bus && bus->read16) value = bus->read16(physical);
+    else {
+        const auto low = bus && bus->read8 ? bus->read8(physical) : 0xffu;
+        const auto high = bus && bus->read8 ? bus->read8(physical + 1u) : 0xffu;
+        value = static_cast<std::uint16_t>(low) |
+                (static_cast<std::uint16_t>(high) << 8);
+    }
     trace_task_range_read(*this, address, 2, value);
     trace_bios_pointer_table_read(*this, address, 2, value);
     trace_m2_pio_access(*this, 'R', address, 2, value);
@@ -485,10 +676,16 @@ std::uint16_t Sh4Context::read16(std::uint32_t address) const {
 std::uint32_t Sh4Context::read32(std::uint32_t address) const {
     std::uint32_t value = 0;
     if (!read_intevt(*this, address, 4, value)) {
-        value = bus && bus->read32
-            ? bus->read32(address)
-            : static_cast<std::uint32_t>(read16(address)) |
-                  (static_cast<std::uint32_t>(read16(address + 2)) << 16);
+        if (address & 3u)
+            sh4_memory_exception(*this, address, Sh4Access::Read, kSh4AddressErrorRead);
+        const auto physical = sh4_translate(*this, address, Sh4Access::Read);
+        if (bus && bus->read32) value = bus->read32(physical);
+        else {
+            const auto low = bus && bus->read16 ? bus->read16(physical) : 0xffffu;
+            const auto high = bus && bus->read16 ? bus->read16(physical + 2u) : 0xffffu;
+            value = static_cast<std::uint32_t>(low) |
+                    (static_cast<std::uint32_t>(high) << 16);
+        }
     }
     trace_task_range_read(*this, address, 4, value);
     trace_bios_pointer_table_read(*this, address, 4, value);
@@ -503,48 +700,76 @@ std::uint32_t Sh4Context::read32(std::uint32_t address) const {
     return value;
 }
 
+bool Sh4Context::fetchInstruction16(std::uint32_t address,
+                                    std::uint16_t& instruction) const {
+    if (address & 1u)
+        sh4_memory_exception(*this, address, Sh4Access::Instruction,
+                             kSh4AddressErrorRead);
+    const auto physical = sh4_translate(*this, address, Sh4Access::Instruction);
+    if (bus && bus->read16) instruction = bus->read16(physical);
+    else {
+        const auto low = bus && bus->read8 ? bus->read8(physical) : 0xffu;
+        const auto high = bus && bus->read8 ? bus->read8(physical + 1u) : 0xffu;
+        instruction = static_cast<std::uint16_t>(low) |
+                      (static_cast<std::uint16_t>(high) << 8);
+    }
+    return true;
+}
+
 void Sh4Context::write8(std::uint32_t address, std::uint8_t value) const {
+    noteAotCodeWrite(address, 1);
     trace_pvr_framebuffer_write(*this, address, 1, value);
     trace_aot_table_guest_write(*this, address, 1, value);
     trace_watched_write(*this, address, 1, value);
     trace_m2_pio_access(*this, 'W', address, 1, value);
     trace_aica_access(*this, 'W', address, 1, value);
     if (write_intevt(*this, address, 1, value)) return;
+    const auto physical = sh4_translate(*this, address, Sh4Access::Write);
     if ((address & 0xfc000000u) == 0xe0000000u) {
         const auto offset = static_cast<std::size_t>(address & 0x3fu);
         const_cast<Sh4Context*>(this)->store_queue[offset] = value;
         return;
     }
-    if (bus && bus->write8) bus->write8(address, value, pc);
+    if (bus && bus->write8) bus->write8(physical, value, pc);
 }
 
 void Sh4Context::write16(std::uint32_t address, std::uint16_t value) const {
+    noteAotCodeWrite(address, 2);
     trace_pvr_framebuffer_write(*this, address, 2, value);
     trace_aot_table_guest_write(*this, address, 2, value);
     trace_watched_write(*this, address, 2, value);
     trace_m2_pio_access(*this, 'W', address, 2, value);
     trace_aica_access(*this, 'W', address, 2, value);
     if (write_intevt(*this, address, 2, value)) return;
+    if (address & 1u)
+        sh4_memory_exception(*this, address, Sh4Access::Write, kSh4AddressErrorWrite);
+    const auto physical = sh4_translate(*this, address, Sh4Access::Write);
     if ((address & 0xfc000000u) == 0xe0000000u) {
         write8(address, static_cast<std::uint8_t>(value));
         write8(address + 1, static_cast<std::uint8_t>(value >> 8));
         return;
     }
     if (bus && bus->write16) {
-        bus->write16(address, value, pc);
+        bus->write16(physical, value, pc);
         return;
     }
-    write8(address, static_cast<std::uint8_t>(value));
-    write8(address + 1, static_cast<std::uint8_t>(value >> 8));
+    if (bus && bus->write8) {
+        bus->write8(physical, static_cast<std::uint8_t>(value), pc);
+        bus->write8(physical + 1u, static_cast<std::uint8_t>(value >> 8), pc);
+    }
 }
 
 void Sh4Context::write32(std::uint32_t address, std::uint32_t value) const {
+    noteAotCodeWrite(address, 4);
     trace_pvr_framebuffer_write(*this, address, 4, value);
     trace_aot_table_guest_write(*this, address, 4, value);
     trace_watched_write(*this, address, 4, value);
     trace_m2_pio_access(*this, 'W', address, 4, value);
     trace_aica_access(*this, 'W', address, 4, value);
     if (write_intevt(*this, address, 4, value)) return;
+    if (address & 3u)
+        sh4_memory_exception(*this, address, Sh4Access::Write, kSh4AddressErrorWrite);
+    const auto physical = sh4_translate(*this, address, Sh4Access::Write);
     if (event_memory_trace_enabled() &&
         is_bios_event_memory(address) && g_naomi_event_memory_trace_events < 128) {
         ++g_naomi_event_memory_trace_events;
@@ -559,11 +784,35 @@ void Sh4Context::write32(std::uint32_t address, std::uint32_t value) const {
         return;
     }
     if (bus && bus->write32) {
-        bus->write32(address, value, pc);
+        const auto bus_address = physical & 0x1fffffffu;
+        if (bus_address == 0x1f000010u && (value & (1u << 2))) {
+            auto& mutable_context = *const_cast<Sh4Context*>(this);
+            mutable_context.utlb.fill({});
+            mutable_context.itlb.fill({});
+            value &= ~(1u << 2); // MMUCR.TI is a write-one command bit.
+        }
+        bus->write32(physical, value, pc);
         return;
     }
-    write16(address, static_cast<std::uint16_t>(value));
-    write16(address + 2, static_cast<std::uint16_t>(value >> 16));
+    if (bus && bus->write16) {
+        bus->write16(physical, static_cast<std::uint16_t>(value), pc);
+        bus->write16(physical + 2u, static_cast<std::uint16_t>(value >> 16), pc);
+    } else if (bus && bus->write8) {
+        for (unsigned byte = 0; byte < 4; ++byte)
+            bus->write8(physical + byte,
+                        static_cast<std::uint8_t>(value >> (byte * 8u)), pc);
+    }
+}
+
+void Sh4Context::noteAotCodeWrite(std::uint32_t address, unsigned width) const {
+    if (width == 0) return;
+    auto& epochs = const_cast<Sh4Context*>(this)->aot_code_write_epochs;
+    std::uint32_t last_line = 0xffffffffu;
+    for (unsigned byte = 0; byte < width; ++byte) {
+        const auto line = ((address + byte) & 0x1fffffffu) & ~0x1fu;
+        if (line != last_line) ++epochs[line];
+        last_line = line;
+    }
 }
 
 void Sh4Context::dispatch_indirect(std::uint32_t target) {
@@ -580,7 +829,11 @@ void Sh4Context::dispatch_indirect(std::uint32_t target) {
     }
     static const bool trace_task_callbacks =
         std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
-    if (trace_task_callbacks && source_pc == 0x0c045fdeu) {
+    // The BIOS is commonly reached through P1/P2 aliases. Compare the
+    // physical SH-4 address so diagnostics follow the same code regardless
+    // of the alias used by the current AOT block.
+    if (trace_task_callbacks &&
+        ((source_pc & 0x1fffffffu) == 0x0c045fdeu)) {
         const auto dispatch = ++g_naomi_task_callback_dispatches;
         if (dispatch <= 16 || (dispatch % 1000000u) == 0) {
             const bool record_in_ram = r[3] >= 0x0c000000u && r[3] < 0x0d000000u;
@@ -658,8 +911,22 @@ void Sh4Context::setIrlnInput(unsigned encoded_level) {
 }
 
 bool Sh4Context::acceptInterrupt() {
-    if (irln != 9 && irln != 11 && irln != 13) return false;
-    const unsigned level = 15u - irln;
+    std::optional<Sh4PendingInterrupt> pending;
+    if (bus && bus->pending_internal_interrupt)
+        pending = bus->pending_internal_interrupt();
+    unsigned level = 0;
+    std::uint32_t event = 0;
+    if (irln == 9 || irln == 11 || irln == 13) {
+        level = 15u - irln;
+        event = level == 6 ? 0x320u : level == 4 ? 0x360u : 0x3a0u;
+    }
+    // On equal priority, preserve Flycast's source ordering: external IRL
+    // entries precede the internal TMU sources in InterruptSourceList.
+    if (pending && pending->priority > level) {
+        level = pending->priority;
+        event = pending->event;
+    }
+    if (level == 0) return false;
     const unsigned mask = (sr >> 4) & 0x0fu;
     constexpr std::uint32_t kSrBl = 1u << 28;
     if ((sr & kSrBl) != 0 || level <= mask) return false;
@@ -675,15 +942,16 @@ bool Sh4Context::acceptInterrupt() {
     spc = pc;
     ssr = sr;
     sgr = r[15];
-    intevt = level == 6 ? 0x320u : level == 4 ? 0x360u : 0x3a0u;
+    intevt = event;
     load_sr(*this, sr | (1u << 30) | (1u << 29) | kSrBl);
     pc = vbr + 0x600u;
     ++interrupts_accepted;
+    sleeping = false;
     interrupt_taken = true;
     return true;
 }
 
-bool Sh4Context::consume_instruction(unsigned cycles) {
+bool Sh4Context::consume_instruction(unsigned cycles, bool interpreted) {
     // These switches sit on the per-instruction hot path. Cache them once so
     // disabled debug traces do not call getenv() for every SH-4 instruction.
     static const bool trace_reset_idle =
@@ -696,6 +964,19 @@ bool Sh4Context::consume_instruction(unsigned cycles) {
         std::getenv("MAMERECOMP_NAOMI_TRACE_PROGRESS") != nullptr;
     static const char* trace_manifest_sha256 =
         std::getenv("MAMERECOMP_NAOMI_MANIFEST_SHA256");
+    static const bool trace_bios_task_pc =
+        std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
+    static std::uint32_t bios_task_pc_events = 0;
+    const auto physical_pc = pc & 0x1fffffffu;
+    if (trace_bios_task_pc && bios_task_pc_events < 256u &&
+        ((physical_pc >= 0x0c045fd0u && physical_pc <= 0x0c045ff0u) ||
+         physical_pc == 0x0c04b88cu)) {
+        ++bios_task_pc_events;
+        std::fprintf(stderr,
+                     "SH-4 BIOS task retired #%u pc=%08x op=%04x r2=%08x r3=%08x r4=%08x pr=%08x mode=%s\n",
+                     bios_task_pc_events, pc, read16(pc), r[2], r[3], r[4], pr,
+                     interpreted ? "interpreter" : "AOT");
+    }
 
     if (trace_progress && instructions_executed != 0 &&
         instructions_executed % 10000000u == 0) {
@@ -745,15 +1026,52 @@ bool Sh4Context::consume_instruction(unsigned cycles) {
                      pc, r[0], r[2], r[3], r[4], r[8], r[9], r[10], r[11],
                      r[12], r[13], r[15], t ? 1u : 0u);
     }
-    if (!delay_slot && acceptInterrupt()) return false;
+    if (!delay_slot && cycles_until_irq_poll == 0) {
+        cycles_until_irq_poll = 448; // Flycast SH4_TIMESLICE
+        if (acceptInterrupt()) return false;
+    }
     if (instruction_budget == 0) {
         execution_stopped = true;
         return false;
     }
     --instruction_budget;
     ++instructions_executed;
-    if (cycle_sink) cycle_sink(cycles);
+    if (interpreted)
+        ++interpreted_instructions;
+    else
+        ++native_instructions;
+    if (cycle_sink && cycles != 0) cycle_sink(cycles);
+    cycles_until_irq_poll = cycles >= cycles_until_irq_poll
+        ? 0u : cycles_until_irq_poll - cycles;
     return true;
+}
+
+bool Sh4Context::retire_opcode(std::uint16_t opcode, bool interpreted) {
+    // Log GBR loads at the next instruction boundary so the same hook observes
+    // both interpreted instructions and generated AOT instructions without
+    // changing either execution path.
+    static const bool trace_gbr =
+        std::getenv("MAMERECOMP_NAOMI_TRACE_GBR") != nullptr;
+    static std::uint32_t previous_pc = 0;
+    static std::uint16_t previous_opcode = 0;
+    static bool previous_wrote_gbr = false;
+    static std::uint32_t trace_count = 0;
+    if (trace_gbr && previous_wrote_gbr && trace_count < 4096) {
+        std::fprintf(stderr,
+                     "SH-4 GBR load pc=%08x op=%04x value=%08x next_pc=%08x next_op=%04x mode=%s\n",
+                     previous_pc, previous_opcode, gbr, pc, opcode,
+                     interpreted ? "interpreter" : "AOT");
+        ++trace_count;
+    }
+    if (trace_gbr) {
+        previous_pc = pc;
+        previous_opcode = opcode;
+        previous_wrote_gbr = (opcode & 0xf0ffu) == 0x401eu ||
+                             (opcode & 0xf0ffu) == 0x4017u;
+    }
+    return consume_instruction(
+        mamerecomp::cpus::sh4::flycast::instruction_cycles(opcode, cycle_state),
+        interpreted);
 }
 
 void Sh4Dispatcher::add(std::uint32_t guest_address, Sh4TranslatedFunction function) {
@@ -772,23 +1090,214 @@ void Sh4Dispatcher::add(std::uint32_t guest_address, Sh4TranslatedFunction funct
     m_functions[guest_address] = function;
 }
 
+void Sh4Dispatcher::add(std::uint32_t guest_address,
+                        Sh4TranslatedFunction function,
+                        std::uint32_t code_base,
+                        std::size_t expected_word_count,
+                        std::uint64_t expected_hash) {
+    add(guest_address, function);
+    if (!function || expected_word_count == 0 || expected_hash == 0) return;
+    auto [it, inserted] = m_code_guards.try_emplace(function);
+    if (inserted) {
+        it->second.base = code_base;
+        it->second.word_count = expected_word_count;
+        it->second.hash = expected_hash;
+        return;
+    }
+    // A generated function must have one stable source range regardless of
+    // how many PC entries/aliases point at it. A mismatch means the generator
+    // accidentally merged incompatible translations; keep the first guard,
+    // which makes the later code fail closed to the interpreter.
+    if (it->second.base != code_base || it->second.word_count != expected_word_count ||
+        it->second.hash != expected_hash) {
+        it->second.word_count = 0;
+    }
+}
+
 bool Sh4Dispatcher::contains(std::uint32_t guest_address) const {
     return m_functions.contains(guest_address);
 }
 
 void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
-    auto found = m_functions.find(target);
-    if (found == m_functions.end()) {
-        // P0, P1, and P2 may name the same physical instruction bytes. Probe
-        // the canonical physical and cache-alias entries after the exact PC.
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BIOS_M2_FLOW")) {
+        static constexpr std::array<std::uint32_t, 7> watched{
+            0x0c0193d8u, 0x0c01943cu, 0x0c019550u, 0x0c0195e8u,
+            0x0c019602u, 0x0c019626u, 0x0c019640u};
+        static std::array<unsigned, watched.size()> counts{};
         const auto physical = target & 0x1fffffffu;
-        found = m_functions.find(physical);
-        if (found == m_functions.end())
-            found = m_functions.find(0x80000000u | physical);
-        if (found == m_functions.end())
-            found = m_functions.find(0xa0000000u | physical);
+        for (std::size_t i = 0; i < watched.size(); ++i) {
+            if (physical != watched[i] || counts[i] >= 16) continue;
+            ++counts[i];
+            std::fprintf(stderr,
+                         "SH-4 BIOS M2 flow #%u target=%08x pc=%08x r0=%08x r1=%08x r2=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x r8=%08x r9=%08x r10=%08x r11=%08x r12=%08x r13=%08x r14=%08x pr=%08x sr=%08x T=%u sp=%08x\n",
+                         counts[i], target, context.pc, context.r[0], context.r[1],
+                         context.r[2], context.r[3], context.r[4], context.r[5],
+                         context.r[6], context.r[7], context.r[8], context.r[9],
+                         context.r[10], context.r[11], context.r[12], context.r[13],
+                         context.r[14], context.pr, context.sr,
+                         context.t ? 1u : 0u, context.r[15]);
+            break;
+        }
+    }
+    // Keep translated blocks out of the AOT path when their source contains
+    // an opcode whose current AOT decoder assigns the wrong SH-4 register.
+    // This is a dispatcher compatibility check: it does not alter generated
+    // code or the AOT translator, and the Flycast interpreter retires the
+    // block instruction by instruction until it reaches another AOT entry.
+    // LDC Rn,SSR (0x4n3e) is the concrete case: Flycast's SH-4 opcode table
+    // names SSR, while the existing AOT decoder aliases it to LDC GBR.
+    const auto requires_interpreter = [](std::uint16_t opcode) {
+        return (opcode & 0xf0ffu) == 0x403eu;
+    };
+    std::unordered_set<Sh4TranslatedFunction> interpreter_only_functions;
+    const bool trace_aot_fallback =
+        std::getenv("MAMERECOMP_NAOMI_TRACE_AOT_FALLBACK") != nullptr;
+    const auto lookup = [this, &context, &requires_interpreter,
+                         &interpreter_only_functions, trace_aot_fallback](std::uint32_t address) {
+        if (context.interpreter_only) return m_functions.end();
+        const auto physical = address & 0x1fffffffu;
+        if (context.invalidated_aot_lines.contains(physical & ~0x1fu))
+            return m_functions.end();
+        auto found = m_functions.find(address);
+        if (found == m_functions.end()) {
+            // P0, P1, and P2 may name the same physical instruction bytes.
+            found = m_functions.find(physical);
+            if (found == m_functions.end())
+                found = m_functions.find(0x80000000u | physical);
+            if (found == m_functions.end())
+                found = m_functions.find(0xa0000000u | physical);
+        }
+        if (found == m_functions.end()) return found;
+        if (interpreter_only_functions.contains(found->second))
+            return m_functions.end();
+        const auto guard = m_code_guards.find(found->second);
+        if (guard == m_code_guards.end()) return found; // hand-written AOT entry
+
+        const auto& code = guard->second;
+        if (code.word_count == 0) return m_functions.end();
+        const auto first_line = (code.base & 0x1fffffffu) & ~0x1fu;
+        const auto last_address = code.base +
+            static_cast<std::uint32_t>(code.word_count * 2u - 1u);
+        const auto last_line = (last_address & 0x1fffffffu) & ~0x1fu;
+        std::vector<std::pair<std::uint32_t, std::uint64_t>> epochs;
+        for (auto line = first_line;; line += 32u) {
+            if (context.invalidated_aot_lines.contains(line)) return m_functions.end();
+            const auto epoch_it = context.aot_code_write_epochs.find(line);
+            epochs.emplace_back(line, epoch_it == context.aot_code_write_epochs.end()
+                                           ? 0u : epoch_it->second);
+            if (line == last_line) break;
+            // A generated code span cannot cross the 512 MiB physical alias
+            // boundary in practice; fail closed if a malformed range does.
+            if (line > last_line || line > 0x1fffffe0u) return m_functions.end();
+        }
+
+        auto& cached = m_guard_cache[found->second];
+        const bool epochs_match = cached.initialized && cached.line_epochs == epochs;
+        if (!epochs_match) {
+            constexpr std::uint64_t fnv_offset = 14695981039346656037ull;
+            constexpr std::uint64_t fnv_prime = 1099511628211ull;
+            auto hash = fnv_offset;
+            for (std::size_t i = 0; i < code.word_count; ++i) {
+                const auto word = context.read16(
+                    code.base + static_cast<std::uint32_t>(i * 2u));
+                hash ^= static_cast<std::uint8_t>(word);
+                hash *= fnv_prime;
+                hash ^= static_cast<std::uint8_t>(word >> 8u);
+                hash *= fnv_prime;
+            }
+            cached.initialized = true;
+            cached.matches = hash == code.hash;
+            cached.line_epochs = std::move(epochs);
+        }
+        if (!cached.matches) return m_functions.end();
+        for (std::size_t i = 0; i < code.word_count; ++i) {
+            const auto opcode = context.read16(
+                code.base + static_cast<std::uint32_t>(i * 2u));
+            if (requires_interpreter(opcode)) {
+                interpreter_only_functions.insert(found->second);
+                if (trace_aot_fallback) {
+                    std::fprintf(stderr,
+                                 "SH-4 AOT block routed to Flycast interpreter: entry=%08x code=%08x opcode=%04x offset=%zu\n",
+                                 found->first, code.base + static_cast<std::uint32_t>(i * 2u),
+                                 opcode, i);
+                }
+                return m_functions.end();
+            }
+        }
+        return found;
+    };
+
+    auto found = lookup(target);
+    while (found == m_functions.end() && context.interpreter_step &&
+           !context.execution_stopped && context.instruction_budget != 0) {
+        if (context.sleeping) {
+            if (context.cycles_until_irq_poll == 0) {
+                context.cycles_until_irq_poll = 448; // Flycast SH4_TIMESLICE
+                if (context.acceptInterrupt()) return;
+            }
+            --context.instruction_budget; // budget also bounds time spent in SLEEP
+            if (context.cycle_sink) context.cycle_sink(1);
+            if (context.cycles_until_irq_poll != 0)
+                --context.cycles_until_irq_poll;
+            continue;
+        }
+        context.pc = target;
+        const auto instructions_before_step = context.instructions_executed;
+        const auto step_pc = context.pc;
+        const auto physical_step_pc = step_pc & 0x1fffffffu;
+        const bool trace_bios_task_step =
+            std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") &&
+            (physical_step_pc == 0x0c045fdcu ||
+             physical_step_pc == 0x0c04b88cu);
+        static std::uint32_t bios_task_step_events = 0;
+        const auto task_step_event = trace_bios_task_step
+            ? ++bios_task_step_events : 0u;
+        if (trace_bios_task_step && task_step_event <= 64u) {
+            std::fprintf(stderr,
+                         "SH-4 BIOS task interpreter before #%u pc=%08x op=%04x r2=%08x r3=%08x r4=%08x pr=%08x sp=%08x\n",
+                         task_step_event, step_pc, context.read16(step_pc),
+                         context.r[2], context.r[3], context.r[4], context.pr,
+                         context.r[15]);
+        }
+        const bool stepped = context.interpreter_step(context);
+        if (trace_bios_task_step && task_step_event <= 64u) {
+            std::fprintf(stderr,
+                         "SH-4 BIOS task interpreter after  #%u pc=%08x r2=%08x r3=%08x r4=%08x pr=%08x sp=%08x retired=%llu\n",
+                         task_step_event, context.pc, context.r[2], context.r[3],
+                         context.r[4], context.pr, context.r[15],
+                         static_cast<unsigned long long>(context.instructions_executed - instructions_before_step));
+        }
+
+        // An interrupt can redirect execution without retiring an instruction;
+        // let the outer dispatcher select its vector entry.
+        if (context.interrupt_taken) return;
+        if (!stepped) {
+            if (context.instruction_budget == 0 || context.execution_stopped)
+                return;
+            const auto failed_pc = context.pc;
+            std::fprintf(stderr,
+                         "SH-4 interpreter declined execution pc=%08x opcode=%04x delay_slot=%u sr=%08x fpscr=%08x pr=%u\n",
+                         failed_pc, context.read16(failed_pc),
+                         context.delay_slot ? 1u : 0u, context.sr, context.fpscr,
+                         context.fpscr_pr ? 1u : 0u);
+            context.unresolved_target = context.pc;
+            context.execution_stopped = true;
+            throw UnresolvedSh4Target{};
+        }
+        if (context.instructions_executed == instructions_before_step && !context.sleeping) {
+            context.unresolved_target = context.pc;
+            context.execution_stopped = true;
+            std::fprintf(stderr,
+                         "SH-4 interpreter step made no guest progress: pc=%08x\n",
+                         context.pc);
+            throw UnresolvedSh4Target{};
+        }
+
+        target = context.pc;
+        found = lookup(target);
     }
     if (found == m_functions.end()) {
+        if (context.execution_stopped || context.instruction_budget == 0) return;
         context.pc = target;
         context.unresolved_target = target;
         context.execution_stopped = true;
@@ -798,7 +1307,12 @@ void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
         // JSR/JMP and could make a broken boot look like an idle loop.
         throw UnresolvedSh4Target{};
     }
-    context.pc = target;
+    // An entry may have been found through a P0/P1/P2 physical alias. The
+    // generated function's internal PC switch uses the exact virtual alias
+    // under which it was translated (for example ACxxxxxx), so enter with
+    // that registered key. Leaving the caller's alias here makes the function
+    // hit its default switch arm and return without retiring an instruction.
+    context.pc = found->first;
     const auto task_callback_instruction_start = context.instructions_executed;
     const auto task_callback_function = found->second;
     found->second(context);
@@ -823,6 +1337,10 @@ Sh4RunResult Sh4Dispatcher::run(Sh4Context& context, std::uint32_t entry,
                                 std::uint64_t instruction_budget) const {
     context.instruction_budget = instruction_budget;
     context.instructions_executed = 0;
+    context.cycles_until_irq_poll = 448;
+    context.cycle_state = {};
+    context.native_instructions = 0;
+    context.interpreted_instructions = 0;
     context.unresolved_target = 0;
     context.last_indirect_target = 0;
     context.indirect_calls = 0;
@@ -833,17 +1351,13 @@ Sh4RunResult Sh4Dispatcher::run(Sh4Context& context, std::uint32_t entry,
         call(ctx, target);
     };
 
-    auto has_entry = [this](std::uint32_t target) {
-        if (m_functions.contains(target)) return true;
-        const auto physical = target & 0x1fffffffu;
-        return m_functions.contains(physical) ||
-               m_functions.contains(0x80000000u | physical) ||
-               m_functions.contains(0xa0000000u | physical);
-    };
-
     // Most guest calls return through the active translated C++ call chain.
     // A top-level tail jump/RTS has no translated caller, however, so resume
     // from the guest PC after that chain unwinds (notably BIOS P2 -> P0 paths).
+    // Pass even an unregistered PC back to call(): its AOT lookup will miss
+    // and the Flycast interpreter will run until a valid translated entry is
+    // reached. Stopping here would silently disable the hybrid fallback at
+    // precisely the AOT-to-interpreter boundary.
     auto next_entry = entry;
     while (!context.execution_stopped && context.instruction_budget != 0) {
         const auto dispatched_entry = next_entry;
@@ -851,6 +1365,10 @@ Sh4RunResult Sh4Dispatcher::run(Sh4Context& context, std::uint32_t entry,
         const auto instructions_before_dispatch = context.instructions_executed;
         try {
             call(context, dispatched_entry);
+        } catch (const Sh4MemoryFault&) {
+            // The access path has already entered the guest exception vector.
+            // Continue at that PC after unwinding the current translated or
+            // interpreted instruction, as Flycast does for MMU exceptions.
         } catch (const UnresolvedSh4Target&) {
             break;
         }
@@ -874,22 +1392,14 @@ Sh4RunResult Sh4Dispatcher::run(Sh4Context& context, std::uint32_t entry,
             next_entry = context.pc;
             continue;
         }
-        if (!has_entry(context.pc)) {
-            // RTE resumes at the exact interrupted guest PC, which may be an
-            // interior address of a statically translated function. Surface
-            // this as an untranslated target instead of silently ending the
-            // probe with an apparently normal dispatcher return.
-            context.unresolved_target = context.pc;
-            context.execution_stopped = true;
-            break;
-        }
         next_entry = context.pc;
     }
 
     trace_task_range_read_summary();
     trace_bios_pointer_table_read_summary();
     trace_aica_summary();
-    return {context.instructions_executed, context.unresolved_target,
+    return {context.instructions_executed, context.native_instructions,
+            context.interpreted_instructions, context.unresolved_target,
             context.execution_stopped && context.instruction_budget == 0 &&
                 context.unresolved_target == 0};
 }

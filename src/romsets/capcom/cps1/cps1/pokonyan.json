@@ -1,0 +1,929 @@
+{
+  "module": "cps1",
+  "board": "cps1",
+  "game": "pokonyan",
+  "gamename": "Pokonyan! Balloon (Japan 940322)",
+  "parent": null,
+  "romof": null,
+  "mame": {
+    "name": "pokonyan",
+    "description": "Pokonyan! Balloon (Japan 940322)",
+    "cloneof": null,
+    "romof": null,
+    "year": "1994",
+    "manufacturer": "Capcom",
+    "sourcefile": "capcom/cps1.cpp",
+    "isbios": false
+  },
+  "romset_source": "MAME -listxml",
+  "regions": {
+    "maincpu": {
+      "roms": [
+        {
+          "file": "xmqq-12f.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "196297bf",
+          "sha1": "4724c4ccb755d3d457f5224d4c4ea860664d3b10"
+        },
+        {
+          "file": "xmqq-12h.bin",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "2d7ee2e9",
+          "sha1": "af9f8c346e36b4bd6284913129782187e242aa3f"
+        },
+        {
+          "file": "xmqq-13f.bin",
+          "size": 131072,
+          "offset": 262144,
+          "status": "good",
+          "optional": false,
+          "crc32": "8f6abf26",
+          "sha1": "e9918abc5ca02c8b3f3b5b2410aedc350dc12ec2"
+        },
+        {
+          "file": "xmqq-13h.bin",
+          "size": 131072,
+          "offset": 262145,
+          "status": "good",
+          "optional": false,
+          "crc32": "3fefe432",
+          "sha1": "42763c047fd976c9a8fec3a38f2b132b6e2e15a9"
+        }
+      ]
+    },
+    "gfx": {
+      "roms": [
+        {
+          "file": "xmqq-4b.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "933ab76d",
+          "sha1": "a51536b0ad89e08356cbb500c60099bd2a192a76"
+        },
+        {
+          "file": "xmqq-4a.bin",
+          "size": 131072,
+          "offset": 1,
+          "status": "good",
+          "optional": false,
+          "crc32": "b098e7a9",
+          "sha1": "c848ddc0e6559dac6ca23d29c12bc65ea19b7dc4"
+        },
+        {
+          "file": "xmqq-9b.bin",
+          "size": 131072,
+          "offset": 2,
+          "status": "good",
+          "optional": false,
+          "crc32": "b66d62d4",
+          "sha1": "1be1b89aa24382b4a3d4585b22b83f35b2a27333"
+        },
+        {
+          "file": "xmqq-9a.bin",
+          "size": 131072,
+          "offset": 3,
+          "status": "good",
+          "optional": false,
+          "crc32": "9c23e40b",
+          "sha1": "9b5de73c4c6679a53871a45743a60c7cdefc8aaa"
+        },
+        {
+          "file": "xmqq-5e.bin",
+          "size": 131072,
+          "offset": 4,
+          "status": "good",
+          "optional": false,
+          "crc32": "63d06d6f",
+          "sha1": "364d81aafa4d97e8d709e13b481585f655924254"
+        },
+        {
+          "file": "xmqq-5c.bin",
+          "size": 131072,
+          "offset": 5,
+          "status": "good",
+          "optional": false,
+          "crc32": "e2169bb5",
+          "sha1": "2ca3d6eeee27606af0b21c69491c3bfbe1f82ed6"
+        },
+        {
+          "file": "xmqq-8h.bin",
+          "size": 131072,
+          "offset": 6,
+          "status": "good",
+          "optional": false,
+          "crc32": "113121f5",
+          "sha1": "d5b3c97e70c3f53d4d68ed56d98e84df59f42073"
+        },
+        {
+          "file": "xmqq-8f.bin",
+          "size": 131072,
+          "offset": 7,
+          "status": "good",
+          "optional": false,
+          "crc32": "beb00e07",
+          "sha1": "ab0264cb98fe9d77c5acff86800273ed4bdf2e1f"
+        },
+        {
+          "file": "xmqq-5b.bin",
+          "size": 131072,
+          "offset": 1048576,
+          "status": "good",
+          "optional": false,
+          "crc32": "05354905",
+          "sha1": "6a53c47c9d87f76bf73b8cab540910cdcfcb9133"
+        },
+        {
+          "file": "xmqq-5a.bin",
+          "size": 131072,
+          "offset": 1048577,
+          "status": "good",
+          "optional": false,
+          "crc32": "bd40215e",
+          "sha1": "7350e56ecef8e87cf5a4d4f50231fada6fc5356b"
+        },
+        {
+          "file": "xmqq-10b.bin",
+          "size": 131072,
+          "offset": 1048578,
+          "status": "good",
+          "optional": false,
+          "crc32": "9fa773ef",
+          "sha1": "4f0cf813cfe7fbdf20403cfab81b1c01907eb62f"
+        },
+        {
+          "file": "xmqq-10a.bin",
+          "size": 131072,
+          "offset": 1048579,
+          "status": "good",
+          "optional": false,
+          "crc32": "638d4bc7",
+          "sha1": "fca924ad53ad1d00dc2e70436fd22de81c08115f"
+        },
+        {
+          "file": "xmqq-7e.bin",
+          "size": 131072,
+          "offset": 1048580,
+          "status": "good",
+          "optional": false,
+          "crc32": "72c45858",
+          "sha1": "e1ea89568077739b891c95f57c867c02f6c109ff"
+        },
+        {
+          "file": "xmqq-7c.bin",
+          "size": 131072,
+          "offset": 1048581,
+          "status": "good",
+          "optional": false,
+          "crc32": "d91cda18",
+          "sha1": "ef40cb78484355be74d2a08fdd870b49263ab57d"
+        },
+        {
+          "file": "xmqq-9h.bin",
+          "size": 131072,
+          "offset": 1048582,
+          "status": "good",
+          "optional": false,
+          "crc32": "3cd8594b",
+          "sha1": "a099428d0f0231f91881beee0bd6a80ba2c3d693"
+        },
+        {
+          "file": "xmqq-9f.bin",
+          "size": 131072,
+          "offset": 1048583,
+          "status": "good",
+          "optional": false,
+          "crc32": "1ec10bed",
+          "sha1": "139563c41450591b5674d885e3260cb99b206e25"
+        }
+      ]
+    },
+    "audiocpu": {
+      "roms": [
+        {
+          "file": "xmqq-13b.bin",
+          "size": 65536,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "4e8b81a8",
+          "sha1": "4a837345223c51d668ec7f4d7460871c00f71482"
+        }
+      ]
+    },
+    "oki": {
+      "roms": [
+        {
+          "file": "xmqq-12c.bin",
+          "size": 131072,
+          "offset": 0,
+          "status": "good",
+          "optional": false,
+          "crc32": "71ac69ad",
+          "sha1": "401fe0294c6b7bc79426ab1922e02a97415cd2ef"
+        },
+        {
+          "file": "xmqq-13c.bin",
+          "size": 131072,
+          "offset": 131072,
+          "status": "good",
+          "optional": false,
+          "crc32": "71e29699",
+          "sha1": "8f19a925bbd47ef965c41af233359a1552c7f8b0"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "protection": "none"
+  },
+  "runtime": {
+    "properties": {}
+  },
+  "driver_layout": {
+    "source": "cps1.cpp",
+    "regions": [
+      {
+        "name": "maincpu",
+        "size_expression": "0x400000",
+        "size": 4194304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 14225
+      },
+      {
+        "name": "gfx",
+        "size_expression": "0x200000",
+        "size": 2097152,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 14231
+      },
+      {
+        "name": "audiocpu",
+        "size_expression": "0x18000",
+        "size": 98304,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 14249
+      },
+      {
+        "name": "oki",
+        "size_expression": "0x40000",
+        "size": 262144,
+        "region_macro": "ROM_REGION",
+        "flags_expression": "0",
+        "source_line": 14253
+      }
+    ],
+    "operations": [
+      {
+        "macro": "ROM_REGION",
+        "region": "maincpu",
+        "size_expression": "0x400000",
+        "flags_expression": "0",
+        "source_line": 14225
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "xmqq-12f.bin",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14226,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "196297bf",
+        "sha1": "4724c4ccb755d3d457f5224d4c4ea860664d3b10"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "xmqq-12h.bin",
+        "offset_expression": "0x00001",
+        "offset": 1,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14227,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "2d7ee2e9",
+        "sha1": "af9f8c346e36b4bd6284913129782187e242aa3f"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "xmqq-13f.bin",
+        "offset_expression": "0x40000",
+        "offset": 262144,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14228,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 262144,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "8f6abf26",
+        "sha1": "e9918abc5ca02c8b3f3b5b2410aedc350dc12ec2"
+      },
+      {
+        "macro": "ROM_LOAD16_BYTE",
+        "region": "maincpu",
+        "file": "xmqq-13h.bin",
+        "offset_expression": "0x40001",
+        "offset": 262145,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14229,
+        "group_bytes": 1,
+        "stride": 2,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 262145,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 2
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "3fefe432",
+        "sha1": "42763c047fd976c9a8fec3a38f2b132b6e2e15a9"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "gfx",
+        "size_expression": "0x200000",
+        "flags_expression": "0",
+        "source_line": 14231
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-4b.bin",
+        "offset_expression": "0x000000",
+        "offset": 0,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14232,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "933ab76d",
+        "sha1": "a51536b0ad89e08356cbb500c60099bd2a192a76"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-4a.bin",
+        "offset_expression": "0x000001",
+        "offset": 1,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14233,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "b098e7a9",
+        "sha1": "c848ddc0e6559dac6ca23d29c12bc65ea19b7dc4"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-9b.bin",
+        "offset_expression": "0x000002",
+        "offset": 2,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14234,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 2,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "b66d62d4",
+        "sha1": "1be1b89aa24382b4a3d4585b22b83f35b2a27333"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-9a.bin",
+        "offset_expression": "0x000003",
+        "offset": 3,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14235,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 3,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "9c23e40b",
+        "sha1": "9b5de73c4c6679a53871a45743a60c7cdefc8aaa"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-5e.bin",
+        "offset_expression": "0x000004",
+        "offset": 4,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14236,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 4,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "63d06d6f",
+        "sha1": "364d81aafa4d97e8d709e13b481585f655924254"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-5c.bin",
+        "offset_expression": "0x000005",
+        "offset": 5,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14237,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 5,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "e2169bb5",
+        "sha1": "2ca3d6eeee27606af0b21c69491c3bfbe1f82ed6"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-8h.bin",
+        "offset_expression": "0x000006",
+        "offset": 6,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14238,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 6,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "113121f5",
+        "sha1": "d5b3c97e70c3f53d4d68ed56d98e84df59f42073"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-8f.bin",
+        "offset_expression": "0x000007",
+        "offset": 7,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14239,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 7,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "beb00e07",
+        "sha1": "ab0264cb98fe9d77c5acff86800273ed4bdf2e1f"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-5b.bin",
+        "offset_expression": "0x100000",
+        "offset": 1048576,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14240,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048576,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "05354905",
+        "sha1": "6a53c47c9d87f76bf73b8cab540910cdcfcb9133"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-5a.bin",
+        "offset_expression": "0x100001",
+        "offset": 1048577,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14241,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048577,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "bd40215e",
+        "sha1": "7350e56ecef8e87cf5a4d4f50231fada6fc5356b"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-10b.bin",
+        "offset_expression": "0x100002",
+        "offset": 1048578,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14242,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048578,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "9fa773ef",
+        "sha1": "4f0cf813cfe7fbdf20403cfab81b1c01907eb62f"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-10a.bin",
+        "offset_expression": "0x100003",
+        "offset": 1048579,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14243,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048579,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "638d4bc7",
+        "sha1": "fca924ad53ad1d00dc2e70436fd22de81c08115f"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-7e.bin",
+        "offset_expression": "0x100004",
+        "offset": 1048580,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14244,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048580,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "72c45858",
+        "sha1": "e1ea89568077739b891c95f57c867c02f6c109ff"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-7c.bin",
+        "offset_expression": "0x100005",
+        "offset": 1048581,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14245,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048581,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "d91cda18",
+        "sha1": "ef40cb78484355be74d2a08fdd870b49263ab57d"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-9h.bin",
+        "offset_expression": "0x100006",
+        "offset": 1048582,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14246,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048582,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "3cd8594b",
+        "sha1": "a099428d0f0231f91881beee0bd6a80ba2c3d693"
+      },
+      {
+        "macro": "ROM_LOAD64_BYTE",
+        "region": "gfx",
+        "file": "xmqq-9f.bin",
+        "offset_expression": "0x100007",
+        "offset": 1048583,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14247,
+        "group_bytes": 1,
+        "stride": 8,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 1048583,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 8
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "1ec10bed",
+        "sha1": "139563c41450591b5674d885e3260cb99b206e25"
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "audiocpu",
+        "size_expression": "0x18000",
+        "flags_expression": "0",
+        "source_line": 14249
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "audiocpu",
+        "file": "xmqq-13b.bin",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_line": 14250,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          },
+          {
+            "source_offset": 32768,
+            "destination": 65536,
+            "length": 32768,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 65536,
+        "crc32": "4e8b81a8",
+        "sha1": "4a837345223c51d668ec7f4d7460871c00f71482",
+        "continuations": [
+          {
+            "macro": "ROM_CONTINUE",
+            "region": "audiocpu",
+            "arguments": [
+              "0x10000",
+              "0x08000"
+            ],
+            "source_line": 14251,
+            "offset_expression": "0x10000",
+            "offset": 65536,
+            "length_expression": "0x08000",
+            "length": 32768,
+            "source_offset": 32768
+          }
+        ]
+      },
+      {
+        "macro": "ROM_CONTINUE",
+        "region": "audiocpu",
+        "arguments": [
+          "0x10000",
+          "0x08000"
+        ],
+        "source_line": 14251,
+        "offset_expression": "0x10000",
+        "offset": 65536,
+        "length_expression": "0x08000",
+        "length": 32768,
+        "source_offset": 32768
+      },
+      {
+        "macro": "ROM_REGION",
+        "region": "oki",
+        "size_expression": "0x40000",
+        "flags_expression": "0",
+        "source_line": 14253
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "oki",
+        "file": "xmqq-12c.bin",
+        "offset_expression": "0x00000",
+        "offset": 0,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14254,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 0,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "71ac69ad",
+        "sha1": "401fe0294c6b7bc79426ab1922e02a97415cd2ef"
+      },
+      {
+        "macro": "ROM_LOAD",
+        "region": "oki",
+        "file": "xmqq-13c.bin",
+        "offset_expression": "0x20000",
+        "offset": 131072,
+        "length_expression": "0x20000",
+        "length": 131072,
+        "source_line": 14255,
+        "group_bytes": 1,
+        "stride": 1,
+        "source_offset": 0,
+        "segments": [
+          {
+            "source_offset": 0,
+            "destination": 131072,
+            "length": 131072,
+            "group_bytes": 1,
+            "stride": 1
+          }
+        ],
+        "source_bytes_consumed": 131072,
+        "crc32": "71e29699",
+        "sha1": "8f19a925bbd47ef965c41af233359a1552c7f8b0"
+      }
+    ]
+  }
+}

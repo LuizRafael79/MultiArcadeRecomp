@@ -40,12 +40,21 @@ struct Bus {
     std::uint8_t (*window_checking)(void*){};
     // True when instructions may be fetched from this writable address.
     bool (*is_mutable_code)(void*, std::uint32_t bit_address){};
+    // Raw internal interrupt latches for the CPU's boundary check. This
+    // bypasses guest-visible read quirks such as MAME's early-DI polling bit.
+    void (*read_interrupt_state)(void*, std::uint16_t* host_control,
+                                 std::uint16_t* pending,
+                                 std::uint16_t* enabled){};
 };
 
 // Execute a TMS34010 WPIXEL operation using the board's CONTROL/PSIZE state,
 // including the selected raster operation and zero-result transparency.
 bool write_pixel_operation(Bus& bus, std::uint32_t bit_address,
                            std::uint32_t source) noexcept;
+
+// Execute the TMS34010 PIXBLT B,XY operation through the same board callbacks
+// as generated code. The helper advances PC/cycles on success.
+bool execute_pixblt_b_xy_native(State& state, Bus& bus) noexcept;
 
 using Block = BlockExit (*)(State&, Bus&, std::uint64_t stop_cycle);
 

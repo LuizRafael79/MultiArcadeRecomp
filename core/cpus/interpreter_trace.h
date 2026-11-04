@@ -38,8 +38,11 @@ void mamerecomp_interpreter_trace_event(const char *cpu, const char *backend,
 /* Optional detailed per-instruction trace path; set to NULL to disable. */
 void mamerecomp_interpreter_trace_set_step_log(const char *path);
 
-/* Optional text summary path; by default the categorized profile goes to stderr. */
+/* Optional summary path; profiling is required for any summary to be produced. */
 void mamerecomp_interpreter_trace_set_summary_log(const char *path);
+
+/* Enable/disable per-instruction categorized profiling. Disabled by default. */
+void mamerecomp_interpreter_trace_set_profile_enabled(int enabled);
 
 /* True when a detailed trace file is active. Backends can avoid formatting a
  * disassembly string on the normal fast path. */

@@ -1,4 +1,5 @@
 #include "naomi_sh4_helpers.hpp"
+#include "../../core/third_party/mame-sh4-fpu/sh4fpu.h"
 
 #include <algorithm>
 #include <bit>
@@ -159,6 +160,45 @@ void host_rte(Sh4Context& ctx) {
     ctx.interrupt_taken = true;
 }
 
+void host_raise_exception(Sh4Context& ctx, std::uint32_t event,
+                          std::uint32_t exception_pc, std::uint32_t vector_offset,
+                          std::uint32_t tra) {
+    static unsigned trace_events = 0;
+    constexpr std::uint32_t kSrBl = 1u << 28;
+    constexpr std::uint32_t kSrRb = 1u << 29;
+    constexpr std::uint32_t kSrMd = 1u << 30;
+    if (ctx.sr & kSrBl) {
+        if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
+            ++trace_events;
+            std::fprintf(stderr,
+                         "SH-4 nested/fatal exception event=%03x fault-pc=%08x vector=%08x tra=%08x sr=%08x first-spc=%08x vbr=%08x current-pc=%08x\n",
+                         event, exception_pc, vector_offset, tra, ctx.sr,
+                         ctx.spc, ctx.vbr, ctx.pc);
+        }
+        // SH-4 treats a synchronous exception while BL is set as fatal.
+        ctx.exception_code = 0x80000000u | event;
+        ctx.execution_stopped = true;
+        return;
+    }
+    ctx.expevt = event;
+    ctx.tra = tra;
+    ctx.spc = exception_pc;
+    ctx.ssr = host_store_sr(ctx);
+    ctx.sgr = ctx.r[15];
+    load_sr(ctx, host_store_sr(ctx) | kSrMd | kSrRb | kSrBl);
+    ctx.pc = ctx.vbr + vector_offset;
+    ctx.delay_slot = false;
+    ctx.exception_code = event;
+    ctx.interrupt_taken = true;
+    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
+        ++trace_events;
+        std::fprintf(stderr,
+                     "SH-4 exception event=%03x fault-pc=%08x vector=%08x tra=%08x sr=%08x ssr=%08x spc=%08x vbr=%08x -> pc=%08x\n",
+                     event, exception_pc, vector_offset, tra, ctx.sr, ctx.ssr,
+                     ctx.spc, ctx.vbr, ctx.pc);
+    }
+}
+
 void host_div1(Sh4Context& ctx, unsigned n, unsigned m) {
     const bool old_q = ctx.q;
     ctx.q = (ctx.r[n] & 0x80000000u) != 0;
@@ -195,20 +235,16 @@ void host_fschg(Sh4Context& ctx) {
 }
 
 void host_fldi(Sh4Context& ctx, unsigned n, float value) {
-    if (ctx.fpscr_pr) {
-        fpu_fault(ctx, 1);
-        return;
-    }
+    // Flycast's Interpreter treats FLDI0/FLDI1 in PR=1 mode as no-ops.
+    if (ctx.fpscr_pr) return;
     single_register(ctx, n) = value;
 }
 
 void host_fsts_fpul(Sh4Context& ctx, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
     set_register_word(ctx, n, ctx.fpul);
 }
 
 void host_flds_fpul(Sh4Context& ctx, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
     ctx.fpul = register_word(ctx, n);
 }
 
@@ -274,9 +310,7 @@ void host_ftrc_fpul(Sh4Context& ctx, unsigned n) { ftrc_value(ctx, operand(ctx, 
 void host_fcnvsd(Sh4Context& ctx, unsigned n) {
     if (ctx.fpscr_pr) {
         const float value = std::bit_cast<float>(ctx.fpul);
-        set_double_register(ctx, n, static_cast<double>(value));
-    } else {
-        fpu_fault(ctx, 1);
+        set_double_register(ctx, n & 14u, static_cast<double>(value));
     }
 }
 
@@ -284,49 +318,72 @@ void host_fcnvds(Sh4Context& ctx, unsigned n) {
     if (ctx.fpscr_pr) {
         const auto value = static_cast<float>(double_register(ctx, n));
         ctx.fpul = std::bit_cast<std::uint32_t>(value);
-    } else {
-        fpu_fault(ctx, 1);
     }
 }
 
 void host_fmac(Sh4Context& ctx, unsigned n, unsigned m) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
+    if (ctx.fpscr_pr) return;
     single_register(ctx, n) += single_register(ctx, 0) * single_register(ctx, m);
 }
 
 void host_fipr(Sh4Context& ctx, unsigned m, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
+    if (ctx.fpscr_pr) return;
     const unsigned mb = m & 12u;
     const unsigned nb = n & 12u;
-    float result = 0.0f;
-    for (unsigned i = 0; i < 4; ++i)
-        result += single_register(ctx, mb + i) * single_register(ctx, nb + i);
-    single_register(ctx, nb + 3) = result;
+    std::uint32_t lhs[4]{};
+    std::uint32_t rhs[4]{};
+    for (unsigned i = 0; i < 4; ++i) {
+        lhs[i] = std::bit_cast<std::uint32_t>(single_register(ctx, mb + i));
+        rhs[i] = std::bit_cast<std::uint32_t>(single_register(ctx, nb + i));
+    }
+    std::uint32_t cause = 0;
+    const auto result = sh4fpu::fipr(lhs, rhs, (ctx.fpscr & 3u) == 1u,
+                                     (ctx.fpscr & (1u << 18)) != 0, cause);
+    single_register(ctx, nb + 3) = std::bit_cast<float>(result);
+    constexpr std::uint32_t cause_mask = 0x0003f000u;
+    ctx.fpscr = (ctx.fpscr & ~cause_mask) | (cause << 12) | ((cause & 0x1fu) << 2);
 }
 
 void host_ftrv(Sh4Context& ctx, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
+    if (ctx.fpscr_pr) return;
     const unsigned base = n & 12u;
-    float result[4]{};
-    for (unsigned row = 0; row < 4; ++row) {
-        for (unsigned col = 0; col < 4; ++col)
-            result[row] += ctx.xf[row + col * 4] * single_register(ctx, base + col);
-    }
+    std::uint32_t matrix[16]{};
+    std::uint32_t vector[4]{};
+    for (unsigned i = 0; i < 16; ++i)
+        matrix[i] = std::bit_cast<std::uint32_t>(ctx.xf[i]);
     for (unsigned i = 0; i < 4; ++i)
-        single_register(ctx, base + i) = result[i];
+        vector[i] = std::bit_cast<std::uint32_t>(single_register(ctx, base + i));
+    const auto cause = sh4fpu::ftrv(matrix, vector, (ctx.fpscr & 3u) == 1u,
+                                    (ctx.fpscr & (1u << 18)) != 0);
+    for (unsigned i = 0; i < 4; ++i)
+        single_register(ctx, base + i) = std::bit_cast<float>(vector[i]);
+    constexpr std::uint32_t cause_mask = 0x0003f000u;
+    ctx.fpscr = (ctx.fpscr & ~cause_mask) | (cause << 12) | ((cause & 0x1fu) << 2);
 }
 
 void host_fsrra(Sh4Context& ctx, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
-    single_register(ctx, n) = 1.0f / std::sqrt(single_register(ctx, n));
+    if (ctx.fpscr_pr) return;
+    auto value = std::bit_cast<std::uint32_t>(single_register(ctx, n));
+    std::uint32_t cause = 0;
+    const auto result = sh4fpu::fsrra(value, (ctx.fpscr & 3u) == 1u,
+                                      (ctx.fpscr & (1u << 18)) != 0, cause);
+    if ((cause & sh4fpu::CAUSE_E) == 0)
+        single_register(ctx, n) = std::bit_cast<float>(result);
+    constexpr std::uint32_t cause_mask = 0x0003f000u;
+    ctx.fpscr = (ctx.fpscr & ~cause_mask) | (cause << 12) | ((cause & 0x1fu) << 2);
 }
 
 void host_fsca(Sh4Context& ctx, unsigned n) {
-    if (ctx.fpscr_pr) { fpu_fault(ctx, 1); return; }
-    const auto angle = static_cast<float>(ctx.fpul & 0xffffu) *
-                       (6.2831853071795864769f / 65536.0f);
-    single_register(ctx, n & 14u) = std::sin(angle);
-    single_register(ctx, (n & 14u) + 1) = std::cos(angle);
+    if (ctx.fpscr_pr) return;
+    const bool round_to_zero = (ctx.fpscr & 3u) == 1u;
+    const auto sine = sh4fpu::fsca_round(sh4fpu::fsca(ctx.fpul), round_to_zero);
+    const auto cosine = sh4fpu::fsca_round(sh4fpu::fsca(ctx.fpul + 0x4000u), round_to_zero);
+    single_register(ctx, n & 14u) = std::bit_cast<float>(sine);
+    single_register(ctx, (n & 14u) + 1) = std::bit_cast<float>(cosine);
+    constexpr std::uint32_t cause_mask = 0x0003f000u;
+    constexpr std::uint32_t inexact_cause = sh4fpu::CAUSE_I;
+    ctx.fpscr = (ctx.fpscr & ~cause_mask) | (inexact_cause << 12) |
+                ((inexact_cause & 0x1fu) << 2);
 }
 
 void host_pref(Sh4Context& ctx, std::uint32_t address) {
@@ -350,8 +407,17 @@ void host_trapa(Sh4Context& ctx, std::uint32_t immediate) {
                      ctx.r[14], ctx.r[15], ctx.pr, ctx.sr, ctx.vbr, ctx.ssr,
                      ctx.spc);
     }
-    if (ctx.trap_handler) ctx.trap_handler(ctx, immediate);
-    else fpu_fault(ctx, 3); // exception vector/service has not been connected
+    if (ctx.trap_handler) {
+        ctx.trap_handler(ctx, immediate);
+        return;
+    }
+
+    // The generated AOT block leaves ctx.pc at the TRAPA instruction before
+    // calling this helper. Flycast's interpreter advances the fetch PC first,
+    // then Do_Exception saves that advanced PC to SPC. Use the same return PC
+    // here; treating TRAPA as an unhandled FPU fault halted the Naomi boot.
+    host_raise_exception(ctx, 0x160u, ctx.pc + 2u, 0x100u,
+                         (immediate & 0xffu) << 2u);
 }
 
 } // namespace mamerecomp::naomi
