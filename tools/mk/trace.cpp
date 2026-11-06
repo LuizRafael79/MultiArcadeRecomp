@@ -459,7 +459,7 @@ struct LiveWindow {
         window = SDL_CreateWindow("Mortal Kombat - T-Unit (prototype)", 1012, 578,
                                   SDL_WINDOW_RESIZABLE);
         if (!window) throw std::runtime_error(std::string("SDL window failed: ") + SDL_GetError());
-        renderer = SDL_CreateRenderer(window, nullptr);
+        renderer = SDL_CreateRenderer(window, "software");
         if (!renderer) throw std::runtime_error(std::string("SDL renderer failed: ") + SDL_GetError());
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
                                     SDL_TEXTUREACCESS_STREAMING,

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <sstream>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -27,6 +28,39 @@
 #endif
 
 namespace {
+struct InputReplayEvent {
+    std::uint64_t cycle{};
+    std::uint16_t in0{0xffff};
+    std::uint16_t in1{0xffff};
+};
+
+std::vector<InputReplayEvent> read_input_replay(const std::filesystem::path& path) {
+    std::ifstream input(path);
+    if (!input) throw std::runtime_error("cannot open input replay " + path.string());
+    std::vector<InputReplayEvent> events;
+    std::string line;
+    std::uint64_t previous_cycle = 0;
+    while (std::getline(input, line)) {
+        const auto first = line.find_first_not_of(" \t\r");
+        if (first == std::string::npos || line[first] == '#') continue;
+        std::istringstream row(line);
+        std::uint64_t cycle{};
+        std::string in0_text, in1_text;
+        if (!(row >> cycle >> in0_text >> in1_text))
+            throw std::runtime_error("invalid input replay row in " + path.string());
+        std::size_t consumed0 = 0, consumed1 = 0;
+        const auto in0 = std::stoul(in0_text, &consumed0, 0);
+        const auto in1 = std::stoul(in1_text, &consumed1, 0);
+        if (consumed0 != in0_text.size() || consumed1 != in1_text.size() ||
+            in0 > 0xffff || in1 > 0xffff || (!events.empty() && cycle < previous_cycle))
+            throw std::runtime_error("invalid or out-of-order input replay row in " + path.string());
+        events.push_back({cycle, static_cast<std::uint16_t>(in0),
+                          static_cast<std::uint16_t>(in1)});
+        previous_cycle = cycle;
+    }
+    return events;
+}
+
 std::vector<std::uint8_t> read_file(const std::filesystem::path& path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) throw std::runtime_error("cannot open " + path.string());
@@ -202,7 +236,7 @@ struct LiveWindow {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--press-continue-at=CYCLES] [--press-coin-at=CYCLES ...] [--press-start-at=CYCLES] [--nvram=PATH] [--summary-log=PATH] [--adsp-overlay-snapshot=PATH] [--dma-boundary-log=PATH] [--dma-command-log=PATH] [--tms-interpreter-only|--interpreter-only|--recompiler-only]\n";
+        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--input-replay=PATH] [--press-continue-at=CYCLES] [--press-coin-at=CYCLES ...] [--press-start-at=CYCLES] [--nvram=PATH] [--summary-log=PATH] [--adsp-overlay-snapshot=PATH] [--dma-boundary-log=PATH] [--dma-command-log=PATH] [--tms-interpreter-only|--interpreter-only|--recompiler-only]\n";
         return 2;
     }
     try {
@@ -222,6 +256,7 @@ int main(int argc, char** argv) {
         std::filesystem::path dma_command_log;
         std::filesystem::path adsp_overlay_snapshot;
         std::filesystem::path nvram_path;
+        std::filesystem::path input_replay_path;
         std::filesystem::path frame_path = work / "mk2-frame.ppm";
         std::filesystem::path summary_path = work / "mk2-runtime-summary.log";
         int next_arg = 2;
@@ -252,6 +287,8 @@ int main(int argc, char** argv) {
                 adsp_overlay_snapshot = arg.substr(24);
             } else if (arg.rfind("--nvram=", 0) == 0) {
                 nvram_path = arg.substr(8);
+            } else if (arg.rfind("--input-replay=", 0) == 0) {
+                input_replay_path = arg.substr(15);
             } else if (arg.rfind("--press-start-at=", 0) == 0) {
                 start_cycle = std::stoull(arg.substr(17), nullptr, 0);
                 start_scheduled = true;
@@ -272,6 +309,11 @@ int main(int argc, char** argv) {
 #endif
         if (window_requested && !explicit_limit)
             limit = ~std::uint64_t{0};
+        if (!input_replay_path.empty() && window_requested)
+            throw std::runtime_error("--input-replay cannot be combined with --window");
+        const auto input_replay = input_replay_path.empty()
+            ? std::vector<InputReplayEvent>{} : read_input_replay(input_replay_path);
+        std::size_t input_replay_index = 0;
         const auto main = read_file(work / "maincpu.bin");
         const auto graphics = read_file(work / "video.bin");
         const auto sound = read_file(work / "dcs_sound.bin");
@@ -306,36 +348,42 @@ int main(int argc, char** argv) {
 #ifdef MAMERECOMP_MK2_SDL
             if (live && !live->running) break;
 #endif
-            auto system = board.input(1);
-            constexpr std::uint64_t scripted_input_pulse_cycles = 2'500'000;
-            const auto scripted_pulse = [&](bool scheduled, std::uint64_t at) {
-                return scheduled && cpu.cycles >= at &&
-                    cpu.cycles - at < scripted_input_pulse_cycles;
-            };
-            auto controls = board.input(0);
-            if (scripted_pulse(continue_scheduled, continue_cycle))
-                controls &= static_cast<std::uint16_t>(~0x0040u);
-            else
-                controls |= 0x0040u;
-            board.set_input(0, controls);
-            const bool coin_pressed = std::any_of(coin_cycles.begin(), coin_cycles.end(),
-                [&](std::uint64_t at) { return scripted_pulse(true, at); });
-            // Keep live-window coin input when no scripted coin schedule was
-            // requested. Previously the runner forced the coin line high on
-            // every CPU dispatch and erased the one-frame SDL pulse.
-            if (!coin_cycles.empty()) {
-                if (coin_pressed)
-                    system &= static_cast<std::uint16_t>(~0x0001u);
+            if (!input_replay.empty()) {
+                while (input_replay_index < input_replay.size() &&
+                       input_replay[input_replay_index].cycle <= cpu.cycles) {
+                    const auto& event = input_replay[input_replay_index++];
+                    board.set_input(0, event.in0);
+                    board.set_input(1, event.in1);
+                }
+            } else {
+                auto system = board.input(1);
+                constexpr std::uint64_t scripted_input_pulse_cycles = 2'500'000;
+                const auto scripted_pulse = [&](bool scheduled, std::uint64_t at) {
+                    return scheduled && cpu.cycles >= at &&
+                        cpu.cycles - at < scripted_input_pulse_cycles;
+                };
+                auto controls = board.input(0);
+                if (scripted_pulse(continue_scheduled, continue_cycle))
+                    controls &= static_cast<std::uint16_t>(~0x0040u);
                 else
-                    system |= 0x0001u;
+                    controls |= 0x0040u;
+                board.set_input(0, controls);
+                const bool coin_pressed = std::any_of(coin_cycles.begin(), coin_cycles.end(),
+                    [&](std::uint64_t at) { return scripted_pulse(true, at); });
+                if (!coin_cycles.empty()) {
+                    if (coin_pressed)
+                        system &= static_cast<std::uint16_t>(~0x0001u);
+                    else
+                        system |= 0x0001u;
+                }
+                if (start_scheduled) {
+                    if (scripted_pulse(true, start_cycle))
+                        system &= static_cast<std::uint16_t>(~0x0004u);
+                    else
+                        system |= 0x0004u;
+                }
+                board.set_input(1, system);
             }
-            if (start_scheduled) {
-                if (scripted_pulse(true, start_cycle))
-                    system &= static_cast<std::uint16_t>(~0x0004u);
-                else
-                    system |= 0x0004u;
-            }
-            board.set_input(1, system);
             const auto before = cpu.cycles;
             const auto instruction_pc = cpu.pc;
             board.note_cpu_state(cpu);
@@ -411,7 +459,8 @@ int main(int argc, char** argv) {
             }
 #ifdef MAMERECOMP_MK2_SDL
             if (live && board.take_completed_frames()) {
-                live->poll_inputs(board, start_scheduled, start_cycle, cpu.cycles);
+                if (input_replay.empty())
+                    live->poll_inputs(board, start_scheduled, start_cycle, cpu.cycles);
                 const auto samples = adsp.take_samples();
                 live->present(board.framebuffer(), board.current_display_params(), samples);
             }

@@ -76,22 +76,63 @@ static const insn_t *decode_at(uint32_t a) {
 
 /* ---- Musashi, used here only for disassembly text and cycle counts ---- */
 
-unsigned int m68k_read_disassembler_16(unsigned int a) { int ok = 1; return img_read16(a, &ok); }
+static ng_musashi_bus_t s_musashi_bus;
+static int s_musashi_bus_active;
+
+void ng_musashi_set_bus(const ng_musashi_bus_t *bus) {
+    if (bus) {
+        s_musashi_bus = *bus;
+        s_musashi_bus_active = 1;
+    } else {
+        memset(&s_musashi_bus, 0, sizeof(s_musashi_bus));
+        s_musashi_bus_active = 0;
+    }
+}
+
+unsigned int m68k_read_disassembler_16(unsigned int a) {
+    if (s_musashi_bus_active && s_musashi_bus.read16)
+        return s_musashi_bus.read16(s_musashi_bus.context, a);
+    int ok = 1; return img_read16(a, &ok);
+}
 unsigned int m68k_read_disassembler_32(unsigned int a) {
+    if (s_musashi_bus_active && s_musashi_bus.read16)
+        return ((unsigned)s_musashi_bus.read16(s_musashi_bus.context, a) << 16) |
+                s_musashi_bus.read16(s_musashi_bus.context, a + 2);
     int ok = 1;
     return ((unsigned)img_read16(a, &ok) << 16) | img_read16(a + 2, &ok);
 }
-unsigned int m68k_read_memory_8(unsigned int a) { int ok = 1; return img_read16(a & ~1u, &ok) >> ((a & 1) ? 0 : 8) & 0xFF; }
-unsigned int m68k_read_memory_16(unsigned int a) { int ok = 1; return img_read16(a, &ok); }
-unsigned int m68k_read_memory_32(unsigned int a) { return m68k_read_disassembler_32(a); }
+unsigned int m68k_read_memory_8(unsigned int a) {
+    if (s_musashi_bus_active && s_musashi_bus.read8)
+        return s_musashi_bus.read8(s_musashi_bus.context, a);
+    int ok = 1; return img_read16(a & ~1u, &ok) >> ((a & 1) ? 0 : 8) & 0xFF;
+}
+unsigned int m68k_read_memory_16(unsigned int a) {
+    if (s_musashi_bus_active && s_musashi_bus.read16)
+        return s_musashi_bus.read16(s_musashi_bus.context, a);
+    int ok = 1; return img_read16(a, &ok);
+}
+unsigned int m68k_read_memory_32(unsigned int a) {
+    if (s_musashi_bus_active && s_musashi_bus.read16)
+        return ((unsigned)s_musashi_bus.read16(s_musashi_bus.context, a) << 16) |
+                s_musashi_bus.read16(s_musashi_bus.context, a + 2);
+    return m68k_read_disassembler_32(a);
+}
 unsigned int m68k_read_immediate_16(unsigned int a) { return m68k_read_memory_16(a); }
 unsigned int m68k_read_immediate_32(unsigned int a) { return m68k_read_memory_32(a); }
 unsigned int m68k_read_pcrelative_8(unsigned int a) { return m68k_read_memory_8(a); }
 unsigned int m68k_read_pcrelative_16(unsigned int a) { return m68k_read_memory_16(a); }
 unsigned int m68k_read_pcrelative_32(unsigned int a) { return m68k_read_memory_32(a); }
-void m68k_write_memory_8(unsigned int a, unsigned int v) { (void)a; (void)v; }
-void m68k_write_memory_16(unsigned int a, unsigned int v) { (void)a; (void)v; }
-void m68k_write_memory_32(unsigned int a, unsigned int v) { (void)a; (void)v; }
+void m68k_write_memory_8(unsigned int a, unsigned int v) {
+    if (s_musashi_bus_active && s_musashi_bus.write8)
+        s_musashi_bus.write8(s_musashi_bus.context, a, (uint8_t)v);
+}
+void m68k_write_memory_16(unsigned int a, unsigned int v) {
+    if (s_musashi_bus_active && s_musashi_bus.write16)
+        s_musashi_bus.write16(s_musashi_bus.context, a, (uint16_t)v);
+}
+void m68k_write_memory_32(unsigned int a, unsigned int v) {
+    m68k_write_memory_16(a, v >> 16); m68k_write_memory_16(a + 2, v);
+}
 
 int rc_base_cycles(uint16_t opcode) { return mus_base_cycles(opcode); }
 
@@ -586,7 +627,7 @@ int rc_raw_main(int argc, char **argv) {
         else if (!strcmp(a, "--no-pointer-scan")) scan_pointers = 0;
         else if (!strcmp(a, "--no-indirect-scan")) scan_indirect = 0;
         else {
-            fprintf(stderr, "usage: m68krecomp --raw FILE --base ADDR [--region BASE FILE]... [--entry ADDR]... [--entries FILE]... [--prefix P] [--out DIR] [--files N] [--board generic|cps1|neogeo] [--no-pointer-scan] [--no-indirect-scan]\n");
+            fprintf(stderr, "usage: m68krecomp --raw FILE --base ADDR [--region BASE FILE]... [--entry ADDR]... [--entries FILE]... [--prefix P] [--out DIR] [--files N] [--board generic|cps1|cps2|neogeo] [--no-pointer-scan] [--no-indirect-scan]\n");
             return 2;
         }
     }

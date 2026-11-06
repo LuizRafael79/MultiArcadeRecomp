@@ -27,6 +27,8 @@ public:
         m_sound_reply_callback = std::move(callback);
     }
     std::uint64_t z80_cycles() const { return m_cpu.cycles; }
+    std::uint64_t z80_aot_instructions() const { return m_cpu.nativeInstructions; }
+    std::uint64_t z80_fallback_instructions() const { return m_cpu.interpreted; }
     std::uint64_t ym_writes(unsigned chip) const { return m_ym_writes[chip & 1U]; }
     std::uint64_t pcm_memory_writes() const { return m_pcm_memory_writes; }
     std::uint8_t pcm_enabled_channels() const { return m_pcm_enabled_channels; }

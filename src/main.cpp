@@ -1,13 +1,21 @@
 #include "neogeo/neogeo_romset.hpp"
+#include "konami/tmnt_machine.hpp"
+#include "konami/tmnt_presenter.hpp"
+#include "video/sdl_video_presenter.hpp"
+#include "konami/tmnt2_machine.hpp"
+#include "seibu/toki_machine.hpp"
 #include "system16/system16.hpp"
+#include "system16/fd1094.hpp"
 #include "system16/system16_bus.hpp"
 #include "system16/system16b_mapper.hpp"
 #include "system18/system18_bus.hpp"
 #include "system18/system18_sound.hpp"
 #include "naomi/naomi_module.hpp"
 #include "naomi/naomi_romset.hpp"
+#include "zn_runtime.hpp"
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
+#include "seibu/toki_presenter.hpp"
 #endif
 #include "system16/system16_video.hpp"
 #include "system16/system16_config.hpp"
@@ -15,11 +23,9 @@
 #include "system16/system16b_sound.hpp"
 #include "system16/m68k_debugger.hpp"
 #include "system16/m68k_recomp_dispatch.h"
+#include "system16/system16_musashi_fallback.h"
 #include "system16/system16_m68k_bus.h"
-
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
-#include <neogeorecomp/cpu.h>
-#include <dlfcn.h>
+#include "native_z80.h"
 
 #ifndef MAMERECOMP_SOURCE_DIR
 #define MAMERECOMP_SOURCE_DIR "."
@@ -27,6 +33,16 @@
 #ifndef MAMERECOMP_PYTHON_EXECUTABLE
 #define MAMERECOMP_PYTHON_EXECUTABLE "python3"
 #endif
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <dlfcn.h>
+#endif
+
+#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#include <neogeorecomp/cpu.h>
+#endif
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#include <SDL3/SDL.h>
 #endif
 
 extern "C" int rc_raw_main(int argc, char** argv);
@@ -39,6 +55,7 @@ extern "C" void mamerecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::
 #include <array>
 #include <charconv>
 #include <chrono>
+#include <thread>
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -134,16 +151,57 @@ private:
 };
 
 #ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+namespace {
+struct Fd1094FallbackContext {
+    mamerecomp::Fd1094* cipher = nullptr;
+    mamerecomp::System16AddressSpace* bus = nullptr;
+    std::span<const std::uint8_t> encrypted_program;
+};
+
+std::uint16_t fd1094_fallback_opcode_read(void* opaque, std::uint32_t address) {
+    auto& context = *static_cast<Fd1094FallbackContext*>(opaque);
+    const auto raw = context.bus->read16(address);
+    if (!raw) return 0xffff;
+    if (address < context.encrypted_program.size() && address + 1 < context.encrypted_program.size())
+        return context.cipher->decrypt_opcode(address, raw.value, address < 8);
+    return raw.value;
+}
+
+void fd1094_fallback_cmpild(void* opaque, std::uint32_t value, unsigned reg) {
+    if (reg == 0 && (value & 0xffffu) == 0xffffu)
+        static_cast<Fd1094FallbackContext*>(opaque)->cipher->change_state(static_cast<std::uint16_t>(value >> 16));
+}
+void fd1094_fallback_rte(void* opaque) {
+    static_cast<Fd1094FallbackContext*>(opaque)->cipher->leave_irq();
+}
+int fd1094_fallback_irq_ack(void* opaque, int) {
+    static_cast<Fd1094FallbackContext*>(opaque)->cipher->enter_irq();
+    return -1; // Musashi's M68K_INT_ACK_AUTOVECTOR.
+}
+
+struct Fd1094FallbackBinding {
+    explicit Fd1094FallbackBinding(Fd1094FallbackContext& context) {
+        mamerecomp_system16_musashi_set_opcode_reader(fd1094_fallback_opcode_read, &context);
+        mamerecomp_system16_musashi_set_fd1094_callbacks(
+            fd1094_fallback_cmpild, fd1094_fallback_rte, fd1094_fallback_irq_ack, &context);
+    }
+    ~Fd1094FallbackBinding() {
+        mamerecomp_system16_musashi_set_opcode_reader(nullptr, nullptr);
+        mamerecomp_system16_musashi_set_fd1094_callbacks(nullptr, nullptr, nullptr, nullptr);
+    }
+};
+}
+
 class BoardRecompModule {
 public:
-    explicit BoardRecompModule(mamerecomp::BoardFamily family) {
+    BoardRecompModule(mamerecomp::BoardFamily family, const char* game_id) {
         const char* configured_directory = std::getenv("MAMERECOMP_MODULE_DIR");
         const auto module_directory = configured_directory && *configured_directory
             ? std::filesystem::path(configured_directory) : g_executable_directory;
         const bool is_system16b = family == mamerecomp::BoardFamily::System16B;
         const bool is_system18 = family == mamerecomp::BoardFamily::System18;
-        const auto module_name = is_system18 ? "mamerecomp_system18.so"
-            : is_system16b ? "mamerecomp_system16b.so" : "mamerecomp_system16a.so";
+        const auto board_id = is_system18 ? "system18" : is_system16b ? "system16b" : "system16a";
+        const auto module_name = std::string("mamerecomp_") + board_id + "_" + game_id + ".so";
         const auto path = module_directory / module_name;
         m_handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!m_handle) throw std::runtime_error("could not load board module " + path.string() + ": " + dlerror());
@@ -151,6 +209,8 @@ public:
         const auto abi = reinterpret_cast<unsigned (*)()>(dlsym(m_handle, "mamerecomp_board_abi"));
         const auto module_revision = reinterpret_cast<int (*)()>(dlsym(m_handle, "mamerecomp_board_revision"));
         m_generated_table = reinterpret_cast<GeneratedTableFn>(dlsym(m_handle, "mamerecomp_generated_table"));
+        m_z80_code = reinterpret_cast<const mamerecomp::z80::Z80Code* (*)()>(
+            dlsym(m_handle, "mamerecomp_sega_z80_code"));
         if (!abi || !module_revision || !m_generated_table) {
             const auto error = dlerror();
             dlclose(m_handle);
@@ -173,11 +233,13 @@ public:
     const ng_func_entry_t* generated_table(const char* profile_id, std::size_t* count) const {
         return m_generated_table(profile_id, count);
     }
+    const mamerecomp::z80::Z80Code* z80_code() const { return m_z80_code ? m_z80_code() : nullptr; }
 
 private:
     using GeneratedTableFn = const ng_func_entry_t* (*)(const char*, std::size_t*);
     void* m_handle = nullptr;
     GeneratedTableFn m_generated_table = nullptr;
+    const mamerecomp::z80::Z80Code* (*m_z80_code)() = nullptr;
 };
 #endif
 
@@ -235,7 +297,7 @@ struct InputEvent {
     std::uint64_t first_frame;
     std::uint64_t duration_frames;
     std::uint8_t active_low_mask;
-    enum class Port { Service, P1, P2 } port;
+    enum class Port { Service, P1, P2, Coin, System, P1Kick, P2Kick } port;
 };
 
 InputEvent parse_input_event(std::string_view value) {
@@ -298,6 +360,114 @@ InputEvent parse_button_event(std::string_view value) {
     else {
         throw std::runtime_error("unknown button name; run-full supports coin1/2, service_mode, service1, start1/2, and p1/p2 button1/2/3 plus up/down/left/right");
     }
+    return {frame, duration, static_cast<std::uint8_t>(0xffU ^ (1U << bit)), port};
+}
+
+InputEvent parse_konami_button_event(std::string_view value) {
+    const auto first = value.find(':');
+    const auto second = first == value.npos ? value.npos : value.find(':', first + 1);
+    if (first == value.npos || second == value.npos)
+        throw std::runtime_error("--button-event format is <frame>:<button-name>:<duration-frames>");
+    const auto frame = parse_u64(value.substr(0, first), "button event frame");
+    const auto name = value.substr(first + 1, second - first - 1);
+    const auto duration = parse_u64(value.substr(second + 1), "button event duration");
+    if (duration == 0 || frame > std::numeric_limits<std::uint64_t>::max() - duration)
+        throw std::runtime_error("button event duration must be positive and not overflow");
+
+    InputEvent::Port port;
+    unsigned bit = 0;
+    if (name == "coin1") { port = InputEvent::Port::Service; bit = 0; }
+    else if (name == "coin2") { port = InputEvent::Port::Service; bit = 1; }
+    else if (name == "p1_left") { port = InputEvent::Port::P1; bit = 0; }
+    else if (name == "p1_right") { port = InputEvent::Port::P1; bit = 1; }
+    else if (name == "p1_up") { port = InputEvent::Port::P1; bit = 2; }
+    else if (name == "p1_down") { port = InputEvent::Port::P1; bit = 3; }
+    else if (name == "p1_button1") { port = InputEvent::Port::P1; bit = 4; }
+    else if (name == "p1_button2") { port = InputEvent::Port::P1; bit = 5; }
+    else if (name == "p1_button3") { port = InputEvent::Port::P1; bit = 6; }
+    else if (name == "start1") { port = InputEvent::Port::P1; bit = 7; }
+    else if (name == "p2_left") { port = InputEvent::Port::P2; bit = 0; }
+    else if (name == "p2_right") { port = InputEvent::Port::P2; bit = 1; }
+    else if (name == "p2_up") { port = InputEvent::Port::P2; bit = 2; }
+    else if (name == "p2_down") { port = InputEvent::Port::P2; bit = 3; }
+    else if (name == "p2_button1") { port = InputEvent::Port::P2; bit = 4; }
+    else if (name == "p2_button2") { port = InputEvent::Port::P2; bit = 5; }
+    else if (name == "p2_button3") { port = InputEvent::Port::P2; bit = 6; }
+    else if (name == "start2") { port = InputEvent::Port::P2; bit = 7; }
+    else throw std::runtime_error("unknown Konami button; use coin1/2, start1/2, and p1/p2 direction or button1/2/3");
+    return {frame, duration, static_cast<std::uint8_t>(0xffU ^ (1U << bit)), port};
+}
+
+InputEvent parse_toki_button_event(std::string_view value) {
+    const auto first = value.find(':');
+    const auto second = first == value.npos ? value.npos : value.find(':', first + 1);
+    if (first == value.npos || second == value.npos)
+        throw std::runtime_error("--button-event format is <frame>:<button-name>:<duration-frames>");
+    const auto frame = parse_u64(value.substr(0, first), "button event frame");
+    const auto name = value.substr(first + 1, second - first - 1);
+    const auto duration = parse_u64(value.substr(second + 1), "button event duration");
+    if (duration == 0 || frame > std::numeric_limits<std::uint64_t>::max() - duration)
+        throw std::runtime_error("button event duration must be positive and not overflow");
+    InputEvent::Port port;
+    unsigned bit = 0;
+    if (name == "coin1") { port = InputEvent::Port::Coin; bit = 0; }
+    else if (name == "coin2") { port = InputEvent::Port::Coin; bit = 1; }
+    else if (name == "service1") { port = InputEvent::Port::Service; bit = 2; }
+    else if (name == "start1") { port = InputEvent::Port::Service; bit = 3; }
+    else if (name == "start2") { port = InputEvent::Port::Service; bit = 4; }
+    else if (name == "p1_up") { port = InputEvent::Port::P1; bit = 0; }
+    else if (name == "p1_down") { port = InputEvent::Port::P1; bit = 1; }
+    else if (name == "p1_left") { port = InputEvent::Port::P1; bit = 2; }
+    else if (name == "p1_right") { port = InputEvent::Port::P1; bit = 3; }
+    else if (name == "p1_button1") { port = InputEvent::Port::P1; bit = 4; }
+    else if (name == "p1_button2") { port = InputEvent::Port::P1; bit = 5; }
+    else if (name == "p2_up") { port = InputEvent::Port::P2; bit = 0; }
+    else if (name == "p2_down") { port = InputEvent::Port::P2; bit = 1; }
+    else if (name == "p2_left") { port = InputEvent::Port::P2; bit = 2; }
+    else if (name == "p2_right") { port = InputEvent::Port::P2; bit = 3; }
+    else if (name == "p2_button1") { port = InputEvent::Port::P2; bit = 4; }
+    else if (name == "p2_button2") { port = InputEvent::Port::P2; bit = 5; }
+    else throw std::runtime_error("unknown Toki button; use coin1/2, start1/2, service1, or p1/p2 directions/buttons");
+    const uint8_t mask = port == InputEvent::Port::Coin
+        ? static_cast<uint8_t>(1U << bit)
+        : static_cast<uint8_t>(0xffU ^ (1U << bit));
+    return {frame, duration, mask, port};
+}
+
+InputEvent parse_zn_button_event(std::string_view value) {
+    const auto first = value.find(':');
+    const auto second = first == value.npos ? value.npos : value.find(':', first + 1);
+    if (first == value.npos || second == value.npos)
+        throw std::runtime_error("--button-event format is <frame>:<button-name>:<duration-frames>");
+    const auto frame = parse_u64(value.substr(0, first), "button event frame");
+    const auto name = value.substr(first + 1, second - first - 1);
+    const auto duration = parse_u64(value.substr(second + 1), "button event duration");
+    if (duration == 0 || frame > std::numeric_limits<std::uint64_t>::max() - duration)
+        throw std::runtime_error("button event duration must be positive and not overflow");
+    InputEvent::Port port;
+    unsigned bit = 0;
+    if (name == "coin1") { port = InputEvent::Port::System; bit = 4; }
+    else if (name == "coin2") { port = InputEvent::Port::System; bit = 5; }
+    else if (name == "start1") { port = InputEvent::Port::System; bit = 0; }
+    else if (name == "start2") { port = InputEvent::Port::System; bit = 1; }
+    else if (name == "service") { port = InputEvent::Port::Service; bit = 0; }
+    else if (name == "service1") { port = InputEvent::Port::Service; bit = 1; }
+    else if (name.starts_with("p1_") || name.starts_with("p2_")) {
+        const bool p1 = name.starts_with("p1_");
+        port = p1 ? InputEvent::Port::P1 : InputEvent::Port::P2;
+        const auto control = name.substr(3);
+        if (control == "up") bit = 0;
+        else if (control == "down") bit = 1;
+        else if (control == "left") bit = 2;
+        else if (control == "right") bit = 3;
+        else if (control == "button1") bit = 4;
+        else if (control == "button2") bit = 5;
+        else if (control == "button3") bit = 6;
+        else if (control == "button4" || control == "button5" || control == "button6") {
+            port = p1 ? InputEvent::Port::P1Kick : InputEvent::Port::P2Kick;
+            bit = unsigned(control.back() - '4');
+        } else throw std::runtime_error("unknown ZN player button or direction");
+    } else throw std::runtime_error("unknown ZN button");
     return {frame, duration, static_cast<std::uint8_t>(0xffU ^ (1U << bit)), port};
 }
 
@@ -401,6 +571,17 @@ void translate_full_game(const mamerecomp::GameProfile& profile, const std::file
         throw std::runtime_error("reset PC is not a valid address in the main CPU ROM region");
     }
     std::vector<std::uint32_t> entry_points{initial_pc};
+    // Exception and interrupt handlers are independent control-flow roots:
+    // the ROM scanner cannot discover them by following the reset path.
+    // Seed the standard 68000 vectors so IRQs and generated exceptions resume
+    // in translated code instead of stopping at an unregistered handler PC.
+    for (std::uint32_t vector = 1; vector < 64; ++vector) {
+        const std::uint32_t address = read_be32(maincpu, vector * 4);
+        if (address == 0 || (address & 1U) != 0 || address + 2 > maincpu.size()) continue;
+        if (std::find(entry_points.begin(), entry_points.end(), address) == entry_points.end()) {
+            entry_points.push_back(address);
+        }
+    }
     for (const auto address : additional_entries) {
         if ((address & 1U) != 0 || address + 2 > maincpu.size()) {
             throw std::runtime_error("additional 68000 entry must be aligned and inside the main CPU ROM region: 0x"
@@ -412,6 +593,19 @@ void translate_full_game(const mamerecomp::GameProfile& profile, const std::file
     }
 
     std::filesystem::create_directories(output_dir);
+    const auto sound_rom = profile.board_family == mamerecomp::BoardFamily::System16A
+        ? mamerecomp::load_system16a_sound_roms(profile, zip_path).soundcpu
+        : mamerecomp::load_soundcpu_roms(profile, zip_path);
+    const auto z80_dir = output_dir / "z80_input";
+    std::filesystem::create_directories(z80_dir);
+    {
+        std::ofstream sound_image(z80_dir / "sound.bin", std::ios::binary);
+        if (!sound_image) throw std::runtime_error("could not create Z80 sound image");
+        sound_image.write(reinterpret_cast<const char*>(sound_rom.data()),
+            static_cast<std::streamsize>(std::min<std::size_t>(sound_rom.size(), 0x8000)));
+        std::ofstream extra_entries(z80_dir / "entries.txt");
+        extra_entries << "0066\n"; // Z80 NMI vector, in addition to reset and IM 1 roots.
+    }
     const auto raw_path = output_dir / (std::string(profile.id) + "_maincpu.bin");
     {
         std::ofstream raw(raw_path, std::ios::binary);
@@ -423,7 +617,7 @@ void translate_full_game(const mamerecomp::GameProfile& profile, const std::file
     const std::string prefix = std::string(profile.id) + "_";
     std::vector<std::string> arguments{
         "m68krecomp", "--raw", std::filesystem::absolute(raw_path).string(),
-        "--base", "0"
+        "--base", "0", "--board", "generic"
     };
     for (const auto entry : entry_points) {
         arguments.emplace_back("--entry");
@@ -516,7 +710,10 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
     std::uint64_t cpu_trace_start, std::uint64_t cpu_trace_end, bool window_enabled, bool audio_enabled,
     bool audio_stereo_spread, std::uint8_t audio_volume, bool show_configuration_menu, const std::filesystem::path& settings_path,
     mamerecomp::System16GameSettings menu_settings) {
-    BoardRecompModule board_module(profile.board_family);
+    const bool fd1094_active = profile.fd1094_key_region_size != 0;
+    std::unique_ptr<BoardRecompModule> board_module;
+    if (!fd1094_active) board_module = std::make_unique<BoardRecompModule>(profile.board_family, profile.id.data());
+    mamerecomp::z80::SetZ80Code(board_module ? board_module->z80_code() : nullptr);
     const bool system16b = profile.board_family == mamerecomp::BoardFamily::System16B;
     const bool system18 = profile.board_family == mamerecomp::BoardFamily::System18;
     std::unique_ptr<mamerecomp::System16APresenter> presenter;
@@ -539,6 +736,11 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
 #endif
     }
     const auto maincpu = load_profile_cpu(profile, zip_path);
+    std::unique_ptr<mamerecomp::Fd1094> fd1094;
+    if (fd1094_active) {
+        const auto key = mamerecomp::load_fd1094_key_roms(profile, zip_path);
+        fd1094 = std::make_unique<mamerecomp::Fd1094>(key);
+    }
     if (profile.mcu_region_size != 0) {
         const auto firmware = mamerecomp::load_mcu_roms(profile, zip_path);
         std::cout << "MCU stub: validated " << firmware.size() << " bytes of I8751 firmware; "
@@ -553,14 +755,14 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
             std::cout << "Validated System 18 sound ROM region: 0x" << std::hex << roms.size() << std::dec << " bytes\n";
             sound_18 = std::make_unique<mamerecomp::System18Sound>(roms, window_enabled, audio_volume,
                 audio_stereo_spread);
-            std::cout << "Audio path: System 18 Z80 + dual YM3438/YMFM + RF5C68 PCM path enabled (first pass)"
+            std::cout << "Audio path: System 18 Z80 AOT + interpreter fallback + dual YM3438/YMFM + RF5C68 PCM path enabled (first pass)"
                       << (audio_stereo_spread ? " (alternating-channel stereo spread)\n" : " (game-programmed pan)\n");
         } else if (system16b) {
             const auto roms = mamerecomp::load_soundcpu_roms(profile, zip_path);
             std::cout << "Validated System 16B sound ROM region: 0x" << std::hex << roms.size() << std::dec << " bytes\n";
             sound_b = std::make_unique<mamerecomp::System16BSound>(roms, window_enabled, audio_volume,
                 profile.board, audio_stereo_spread);
-            std::cout << "Audio path: System 16B Z80 + YM2151/YMFM + uPD7759 slave ADPCM/NMI path enabled"
+            std::cout << "Audio path: System 16B Z80 AOT + interpreter fallback + YM2151/YMFM + uPD7759 slave ADPCM/NMI path enabled"
                       << (audio_stereo_spread ? " (alternating-channel stereo spread)\n" : " (game-programmed pan)\n");
         } else {
             const auto sound_roms = mamerecomp::load_system16a_sound_roms(profile, zip_path);
@@ -569,7 +771,7 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
                       << " sample-data=0x" << sound_roms.upd7751_data.size() << std::dec << '\n';
             sound_a = std::make_unique<mamerecomp::System16ASound>(sound_roms.soundcpu, sound_roms.upd7751,
                 sound_roms.upd7751_data, window_enabled, audio_stereo_spread, audio_volume);
-            std::cout << "Audio emulation: Z80 interpreter + YM2151/YMFM + uPD7751/MCS-48/DAC enabled"
+            std::cout << "Audio emulation: Z80 AOT + interpreter fallback + YM2151/YMFM + uPD7751/MCS-48/DAC enabled"
                       << (window_enabled ? " with stereo playback" : " without host playback")
                       << (audio_stereo_spread ? " (alternating-channel stereo spread)" : " (game-programmed pan)")
                       << "; sample output is driven by the interpreted MCU firmware\n";
@@ -590,8 +792,16 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
                                                        : mamerecomp::decode_system16a_tiles(graphics.tiles);
     const auto tile_decode_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - tile_decode_start).count();
-    const std::uint32_t initial_sp = read_be32(maincpu, 0);
-    const std::uint32_t initial_pc = read_be32(maincpu, 4);
+    const auto reset_vector_word = [&](std::uint32_t address) {
+        const auto encrypted = static_cast<std::uint16_t>((maincpu[address] << 8) | maincpu[address + 1]);
+        return fd1094 ? fd1094->decrypt_opcode(address, encrypted, true) : encrypted;
+    };
+    const std::uint32_t initial_sp = fd1094
+        ? (std::uint32_t(reset_vector_word(0)) << 16) | reset_vector_word(2)
+        : read_be32(maincpu, 0);
+    const std::uint32_t initial_pc = fd1094
+        ? (std::uint32_t(reset_vector_word(4)) << 16) | reset_vector_word(6)
+        : read_be32(maincpu, 4);
     if ((initial_pc & 1U) != 0 || initial_pc + 2 > maincpu.size() || (initial_sp & 1U) != 0) {
         throw std::runtime_error("invalid 68000 reset vectors");
     }
@@ -613,6 +823,9 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
         bus_owner = std::make_unique<mamerecomp::System16AddressSpace>(
             mamerecomp::make_system16a_address_space(maincpu, &video_signals, &input_state, sound_a.get()));
     auto& bus = *bus_owner;
+    Fd1094FallbackContext fd1094_context{fd1094.get(), &bus, maincpu};
+    std::unique_ptr<Fd1094FallbackBinding> fd1094_binding;
+    if (fd1094) fd1094_binding = std::make_unique<Fd1094FallbackBinding>(fd1094_context);
     auto* system16b_bus = system16b ? dynamic_cast<mamerecomp::System16BAddressSpace*>(&bus) : nullptr;
     auto* system18_bus = system18 ? dynamic_cast<mamerecomp::System18AddressSpace*>(&bus) : nullptr;
     if (system18_bus) {
@@ -842,12 +1055,15 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
 
     std::size_t entry_count = 0;
     const std::string generated_profile_id(profile.id);
-    const ng_func_entry_t* entries = board_module.generated_table(generated_profile_id.c_str(), &entry_count);
-    if (!entries || entry_count == 0) {
+    const ng_func_entry_t* entries = board_module
+        ? board_module->generated_table(generated_profile_id.c_str(), &entry_count) : nullptr;
+    if ((!entries || entry_count == 0) && !fd1094_active) {
         throw std::runtime_error("the loaded board module has no generated 68000 table for profile '"
             + generated_profile_id + "'; include its translation output in that board's module and rebuild");
     }
     std::uint64_t dispatches = 0;
+    std::uint64_t musashi_fallback_instructions = 0;
+    bool musashi_fallback_announced = false;
     const std::uint64_t scaled_limit = cycle_budget > std::numeric_limits<std::uint64_t>::max() / 4
         ? std::numeric_limits<std::uint64_t>::max() : cycle_budget * 4;
     const std::uint64_t dispatch_limit = std::max<std::uint64_t>(scaled_limit, 1024);
@@ -886,6 +1102,7 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
                 return 1;
             }
             if (irq.status == M68K_RECOMP_DISPATCH_OK) {
+                if (fd1094) fd1094->enter_irq();
                 vblank_pending = false;
                 ++accepted_vblanks;
                 continue;
@@ -901,6 +1118,30 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
         }
         const auto result = m68k_recomp_dispatch_once(entries, entry_count);
         if (mamerecomp::m68k_debugger_quit_requested()) break;
+        if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
+            if (!musashi_fallback_announced) {
+                std::uint16_t opcode = 0;
+                char disassembly[128]{};
+                mamerecomp_system16_musashi_describe(result.pc, &opcode, disassembly, sizeof(disassembly));
+                std::cerr << "68000 Musashi fallback engaged at pc=0x" << std::hex << result.pc
+                          << " opcode=0x" << std::setw(4) << std::setfill('0') << opcode
+                          << std::dec << " instruction=\"" << disassembly << "\"\n";
+                musashi_fallback_announced = true;
+            }
+            m68k_system16_bus_clear_fault();
+            const int consumed_cycles = mamerecomp_system16_musashi_step();
+            ng_cycles += std::max(consumed_cycles, 1);
+            ++ng_icount;
+            ++musashi_fallback_instructions;
+            const M68kBusFault fallback_fault = m68k_system16_bus_fault();
+            if (fallback_fault.access != M68K_BUS_ACCESS_NONE) {
+                std::cerr << "68000 Musashi fallback bus fault access="
+                          << static_cast<unsigned>(fallback_fault.access)
+                          << " address=0x" << std::hex << fallback_fault.address << '\n';
+                return 1;
+            }
+            continue;
+        }
         if (result.status != M68K_RECOMP_DISPATCH_OK) {
             std::cerr << "68000 execution stopped: ";
             if (result.status == M68K_RECOMP_DISPATCH_BUS_FAULT) {
@@ -934,6 +1175,9 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
               << " dispatches=" << dispatches << " vblanks=" << elapsed_vblanks
               << " irq4=" << accepted_vblanks << "\npc=0x" << std::hex << std::setw(8)
               << std::setfill('0') << ng_cpu.pc << " sp=0x" << std::setw(8) << ng_cpu.a[7] << '\n';
+    std::cout << "68000 execution coverage: AOT instructions=" << std::dec
+              << (ng_icount >= musashi_fallback_instructions ? ng_icount - musashi_fallback_instructions : 0)
+              << " Musashi fallback instructions=" << musashi_fallback_instructions << '\n';
     const auto actual_lives_dip = input_state.dsw2 & 0x0cU;
     const char* lives_mode_name = infinite_lives_mode && actual_lives_dip == 0x04U ? "infinite lives (5-lives DIP)"
         : actual_lives_dip == 0x08U ? "2 lives"
@@ -947,6 +1191,8 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
     if (sound_a) {
         std::cout << "Sound CPU: Z80 cycles=" << std::dec << sound_a->z80_cycles()
                   << " instructions=" << sound_a->z80_instructions() << " pc=0x" << std::hex << sound_a->z80_pc()
+                  << std::dec << "\nZ80 execution coverage: AOT instructions=" << sound_a->z80_aot_instructions()
+                  << " fallback instructions=" << sound_a->z80_fallback_instructions()
                   << "; YM2151 writes=" << std::dec << sound_a->ym2151_writes()
                   << " key-ons=" << sound_a->ym2151_key_ons()
                   << " key-ons/ch=";
@@ -977,6 +1223,8 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
     } else if (sound_b) {
         std::cout << "System 16B sound: Z80 cycles=" << sound_b->z80_cycles()
                   << " instructions=" << sound_b->z80_instructions() << " pc=0x" << std::hex << sound_b->z80_pc()
+                  << std::dec << "\nZ80 execution coverage: AOT instructions=" << sound_b->z80_aot_instructions()
+                  << " fallback instructions=" << sound_b->z80_fallback_instructions()
                   << "; YM2151 writes=" << std::dec << sound_b->ym2151_writes()
                   << " key-ons=" << sound_b->ym2151_key_ons()
                   << "; uPD7759 FIFO writes=" << sound_b->upd7759_writes()
@@ -986,12 +1234,17 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
                   << "; samples=" << std::dec << sound_b->audio_samples() << " peak=" << sound_b->audio_peak() << '\n';
     } else if (sound_18) {
         std::cout << "System 18 sound: Z80 cycles=" << sound_18->z80_cycles()
+                  << "\nZ80 execution coverage: AOT instructions=" << sound_18->z80_aot_instructions()
+                  << " fallback instructions=" << sound_18->z80_fallback_instructions()
                   << "; YM3438 writes=" << sound_18->ym_writes(0) << '/' << sound_18->ym_writes(1)
                   << "; RF5C68 RAM writes=" << sound_18->pcm_memory_writes()
                   << " enabled channels=0x" << std::hex << static_cast<unsigned>(sound_18->pcm_enabled_channels())
                   << std::dec << " PCM peak=" << sound_18->pcm_peak()
                   << "; generated samples=" << sound_18->audio_samples()
                   << " peak=" << sound_18->audio_peak() << '\n';
+    } else {
+        std::cout << "Z80 execution coverage: AOT instructions=0 fallback instructions=0"
+                  << " (sound CPU was not instantiated; audio is disabled)\n";
     }
     if (!input_events.empty()) {
         std::cout << std::dec << "Input port reads: SERVICE=" << input_state.service_reads
@@ -1221,8 +1474,20 @@ int run_full_game(const mamerecomp::GameProfile& profile, const std::filesystem:
 
 void print_usage(const char* program) {
     std::cerr << "Usage:\n"
+              << "  " << program << " build --machine=sega --board=<system16a|system16b|system18> --game=<profile> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
+              << "  " << program << " run --machine=sega --board=<system16a|system16b|system18> --game=<profile> [--rom-dir <game.zip>] [--window|--headless] [--frames <count>|--cycles <count>] [--audio] [--audio-pan game|spread] [--frame-out <image.ppm>]\n"
               << "  " << program << " build --machine=cps --board=cps1 --game=<sf2ce|dino> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
               << "  " << program << " run --machine=cps --board=cps1 --game=<sf2ce|dino> [--rom-dir <game.zip>]\n"
+              << "  " << program << " build|run --machine=konami --board=tmnt2 --game=<tmnt2|ssriders> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--frame-sequence-dir <directory>] [--frame-sequence-step <frames>]\n"
+              << "  " << program << " run --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
+              << "  " << program << " build|run --machine=seibu --board=toki --game=toki [--rom-dir <toki.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
+              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--psx-interpreter-only]\n"
+              << "  " << program << " run --machine=namco --board=system12 --game=tekken3 [--rom-dir <tekken3.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
+              << "  " << program << " build --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>]\n"
+              << "  " << program << " build --machine=cps --board=cps2 --game=<sfa3|sfz2a|sfz2al|hsf2> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
+              << "  " << program << " run --machine=cps --board=cps2 --game=<sfa3|sfz2a|sfz2al|hsf2> [--rom-dir <game.zip>] [--window|--headless --frames <count>]\n"
+              << "  " << program << " build --machine=midway --board=tunit --game=<mk|mk2> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
+              << "  " << program << " run --machine=midway --board=tunit --game=<mk|mk2> [--rom-dir <game.zip>] [--window|--headless] [--frames <count>|--cycles <count>] [--frame-out <image.ppm>] [--input-replay <events.txt>] [--nvram <path>] [--dma-command-log <path>]\n"
               << "  " << program << " list-games\n"
               << "  " << program << " list-naomi-games\n"
               << "  " << program << " inspect-naomi-roms <mvsc2u|mvsc2> <romset.zip>\n"
@@ -1232,9 +1497,6 @@ void print_usage(const char* program) {
               << "  " << program << " extract-graphics <profile> <romset.zip> [--out <directory>]\n"
               << "  " << program << " inspect <profile> <romset.zip> [--write <maincpu.bin>]\n"
               << "  " << program << " translate-full <profile> <romset.zip> [--out <directory>] [--files <count>] [--entry <address>]...\n"
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
-              << "  " << program << " run-full <profile> <romset.zip> [--cycles <count>] [--lives 2|3|5|infinite] [--coin-mode freeplay|coin] [--dsw1 <byte>] [--dsw2 <byte>] [--button-event <frame>:<button-name>:<duration-frames>] [--input-event <frame>:<service|p1|p2>:<active-low-mask>:<duration-frames>] [--nvram-in <16-KiB-big-endian-file>|--mame-nvram-in <MAME-file>] [--window] [--audio] [--audio-pan game|spread] [--frame-out <image.ppm>] [--frame-out-at-vblank <frame>] [--video-state-out <directory>] [--video-profile] [--video-backend cpu|opengl] [--video-compare-cpu] [--debugger] [--cpu-trace <file> --cpu-trace-cycles <start>:<end>]\n"
-#endif
               ;
 }
 
@@ -1396,6 +1658,1420 @@ int ki_machine_command(const std::filesystem::path& root,
     return run_child_process(command);
 }
 
+int midway_machine_command(const std::filesystem::path& root,
+                           const std::string& game,
+                           const std::optional<std::filesystem::path>& rom_arg,
+                           bool build_mode, const std::string& jobs,
+                           bool force_rebuild, bool window, bool headless,
+                           std::uint64_t frames,
+                           const std::optional<std::uint64_t>& cycles,
+                           const std::optional<std::filesystem::path>& frame_out,
+                           const std::optional<std::filesystem::path>& input_replay,
+                           const std::optional<std::filesystem::path>& nvram,
+                           const std::optional<std::filesystem::path>& dma_command_log) {
+    if (game != "mk" && game != "mk2")
+        throw std::runtime_error("T-Unit currently supports MAME sets --game=mk or --game=mk2");
+    const auto rom_path = rom_arg ? std::filesystem::absolute(*rom_arg)
+                                  : root.parent_path() / "mame/roms" / (game + ".zip");
+    if (!std::filesystem::is_regular_file(rom_path))
+        throw std::runtime_error("MAME ROM ZIP not found: " + rom_path.string());
+
+    const auto work = root / "build" / game / "work";
+    const auto game_build_root = root / "build" / game / "cmake";
+    const bool mk2 = game == "mk2";
+    const auto runner = game_build_root / (mk2 ? "mamerecomp_mk2_trace" : "mamerecomp_mk_trace");
+    const auto tms_aot = work / "tms34010_aot.cpp";
+    const auto sound_aot = work / (mk2 ? "adsp2105_aot.cpp" : "mc6809e_aot.cpp");
+    if (build_mode) {
+        if (window || headless || frames || cycles || frame_out || input_replay || nvram || dma_command_log)
+            throw std::runtime_error("run-only options cannot be used with the Midway build command");
+        const auto generator = root / "tools" / game / "build.py";
+        std::vector<std::string> generate{
+            MAMERECOMP_PYTHON_EXECUTABLE, generator.string(), "--romset",
+            rom_path.string(), "--out", work.string()
+        };
+        if (force_rebuild)
+            std::cout << "Forcing " << game << " T-Unit ROM/AOT rebuild.\n" << std::flush;
+        else
+            std::cout << "Generating " << game << " T-Unit ROM/AOT.\n" << std::flush;
+        int status = run_child_process(generate);
+        if (status != 0) return status;
+
+        std::vector<std::string> configure{
+            "cmake", "-S", root.string(), "-B", game_build_root.string(),
+            "-DMAMERECOMP_TMS34010_AOT_SOURCE=" + (mk2 ? std::string{} : tms_aot.string()),
+            "-DMAMERECOMP_M6809_AOT_SOURCE=" + (mk2 ? std::string{} : sound_aot.string()),
+            "-DMAMERECOMP_MK2_TMS34010_AOT_SOURCE=" + (mk2 ? tms_aot.string() : std::string{}),
+            "-DMAMERECOMP_ADSP2105_AOT_SOURCE=" + (mk2 ? sound_aot.string() : std::string{})
+        };
+        status = run_child_process(configure);
+        if (status != 0) return status;
+        status = run_child_process({"cmake", "--build", game_build_root.string(), "--target",
+                                    runner.filename().string(),
+                                    "--parallel", jobs});
+        if (status != 0) return status;
+        std::filesystem::create_directories(work);
+        std::ofstream stamp(work / ".mamerecomp-launcher-build", std::ios::trunc);
+        if (!stamp) throw std::runtime_error("could not write T-Unit build stamp");
+        stamp << "game=" << game << "\nrom=" << rom_path.string() << '\n';
+        if (!stamp) throw std::runtime_error("failed writing T-Unit build stamp");
+        return 0;
+    }
+
+    if (!std::filesystem::is_regular_file(runner) || !std::filesystem::is_regular_file(tms_aot) ||
+        !std::filesystem::is_regular_file(sound_aot)) {
+        throw std::runtime_error(game + " build is missing; run `mamerecomp build --machine=midway --board=tunit --game="
+            + game + "` first");
+    }
+    const auto stamp_path = work / ".mamerecomp-launcher-build";
+    std::ifstream stamp(stamp_path);
+    std::string stamp_text((std::istreambuf_iterator<char>(stamp)), std::istreambuf_iterator<char>());
+    if (!stamp || stamp_text.find("game=" + game + "\n") == std::string::npos ||
+        stamp_text.find("rom=" + rom_path.string() + "\n") == std::string::npos) {
+        throw std::runtime_error(game + " build does not match the requested ROM ZIP; rebuild it with `mamerecomp build --machine=midway --board=tunit --game="
+            + game + " --rom-dir " + rom_path.string() + "`");
+    }
+    if (headless && !frames && !cycles)
+        throw std::runtime_error("headless T-Unit runs require --frames or --cycles");
+    if (window && input_replay)
+        throw std::runtime_error("--input-replay is only available for headless T-Unit runs");
+
+    constexpr std::uint64_t tunit_cycles_per_second = 6'250'000;
+    const auto budget = cycles.value_or(frames
+        ? (frames * tunit_cycles_per_second) / 60u
+        : std::uint64_t{0});
+    const bool show_window = window || (!headless && !frames && !cycles);
+    std::vector<std::string> command{runner.string(), work.string()};
+    if (budget) command.push_back(std::to_string(budget));
+    if (frame_out) command.push_back(std::filesystem::absolute(*frame_out).string());
+    else if (budget) command.push_back((work / (game + "-frame.ppm")).string());
+    if (show_window) command.emplace_back("--window");
+    if (input_replay) command.push_back("--input-replay=" + std::filesystem::absolute(*input_replay).string());
+    if (nvram) command.push_back("--nvram=" + std::filesystem::absolute(*nvram).string());
+    if (dma_command_log) {
+        const auto option = mk2 ? "--dma-command-log=" : "--dma-trace=";
+        command.push_back(option + std::filesystem::absolute(*dma_command_log).string());
+    }
+    std::cout << "Launching MAME set " << game << " on Midway T-Unit.\n" << std::flush;
+    return run_child_process(command);
+}
+
+int sega_machine_command(const std::filesystem::path& root, const std::string& board,
+                         const std::string& game,
+                         const std::optional<std::filesystem::path>& rom_arg,
+                         bool build_mode, const std::string& jobs, bool force_rebuild,
+                         bool window, bool headless, std::optional<std::uint64_t> frames,
+                         std::optional<std::uint64_t> cycles,
+                         const std::optional<std::filesystem::path>& frame_out,
+                         bool audio_enabled, bool audio_stereo_spread,
+                         bool audio_pan_option_set) {
+    const auto* profile = mamerecomp::find_game_profile(game);
+    if (!profile) throw std::runtime_error("unknown Sega game profile: " + game);
+    const std::string expected_board = profile->board_family == mamerecomp::BoardFamily::System16A
+        ? "system16a" : profile->board_family == mamerecomp::BoardFamily::System16B
+            ? "system16b" : "system18";
+    if (board != expected_board) {
+        throw std::runtime_error(game + " belongs to --board=" + expected_board +
+                                 ", not --board=" + board);
+    }
+
+    const auto rom_path = rom_arg ? std::filesystem::absolute(*rom_arg)
+                                  : root.parent_path() / "mame/roms" / (game + ".zip");
+    const auto module_root = root / "build";
+    const auto generated_root = module_root / "generated/sega";
+    const auto game_output = generated_root / board / game;
+    const std::string target = "mamerecomp_" + board + "_" + game;
+    const std::string cache_var = board == "system16a" ? "MAMERECOMP_SYSTEM16A_GENERATED_DIRS"
+        : board == "system16b" ? "MAMERECOMP_SYSTEM16B_GENERATED_DIRS"
+                                : "MAMERECOMP_SYSTEM18_GENERATED_DIRS";
+
+    if (build_mode) {
+        if (window || headless || frames || cycles || frame_out || audio_enabled || audio_pan_option_set)
+            throw std::runtime_error("run-only options cannot be used with the Sega build command");
+        if (!std::filesystem::is_regular_file(rom_path))
+            throw std::runtime_error("ROM ZIP not found: " + rom_path.string());
+
+        if (profile->fd1094_key_region_size != 0) {
+            (void)mamerecomp::load_maincpu_roms(*profile, rom_path);
+            (void)mamerecomp::load_fd1094_key_roms(*profile, rom_path);
+            (void)mamerecomp::load_graphics_roms(*profile, rom_path);
+            (void)mamerecomp::load_soundcpu_roms(*profile, rom_path);
+            std::cout << "Validated ESWAT program/key/graphics/sound ROMs. FD1094 runtime is enabled; "
+                         "state-specific AOT generation is not available yet.\n"
+                      << "Building the System 16B host with the Musashi opcode-space fallback.\n";
+            return run_child_process({"cmake", "--build", module_root.string(), "--target", "mamerecomp",
+                                      "-j", jobs});
+        }
+
+        std::filesystem::create_directories(game_output);
+        std::cout << (force_rebuild ? "Forcing Sega translation rebuild.\n"
+                                    : "Generating Sega translation.\n") << std::flush;
+        std::error_code ec;
+        const auto executable = std::filesystem::canonical("/proc/self/exe", ec);
+        if (ec) throw std::runtime_error("could not resolve the running mamerecomp executable: " + ec.message());
+        const int translate_status = run_child_process({executable.string(), "translate-full", game,
+            rom_path.string(), "--out", game_output.string(), "--files", "16"});
+        if (translate_status != 0) return translate_status;
+
+        const auto z80_generated = game_output / "z80";
+        const auto z80_args = std::vector<std::string>{MAMERECOMP_PYTHON_EXECUTABLE,
+            (root / "tools/z80/recomp.py").string(), "--program",
+            (game_output / "z80_input/sound.bin").string(), "--entries",
+            (game_output / "z80_input/entries.txt").string(), "--out", z80_generated.string(),
+            "--precise-cycle-yield"};
+        const int z80_status = run_child_process(z80_args);
+        if (z80_status != 0) return z80_status;
+
+        const int configure_status = run_child_process({"cmake", "-S", root.string(), "-B", module_root.string(),
+            "-DMAMERECOMP_GENERATED_DIR=", "-D" + cache_var + "=" + game_output.string()});
+        if (configure_status != 0) return configure_status;
+        std::cout << "Building the " << game << " AOT module for Sega " << board << ".\n" << std::flush;
+        return run_child_process({"cmake", "--build", module_root.string(), "--target", target,
+                                  "-j", jobs});
+    }
+
+    const auto runner = module_root / "mamerecomp";
+    const auto module = module_root / ("mamerecomp_" + board + "_" + game + ".so");
+    if (!std::filesystem::is_regular_file(runner) ||
+        (profile->fd1094_key_region_size == 0 &&
+         (!std::filesystem::is_regular_file(module) ||
+          !std::filesystem::is_regular_file(game_output / (game + "_recomp_table.c"))))) {
+        throw std::runtime_error("Sega game build is missing; run `mamerecomp build --machine=sega --board=" +
+            board + " --game=" + game + "` first");
+    }
+    std::cout << "Launching " << game << " on Sega " << board << ".\n" << std::flush;
+#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+    std::uint64_t cycle_budget = cycles.value_or(1000000);
+    const bool show_window = !headless && (window || (!frames && !cycles));
+    if (!cycles && frames) {
+        const double fps = profile->board_family == mamerecomp::BoardFamily::System18 ? 57.23 : 60.0;
+        cycle_budget = static_cast<std::uint64_t>(static_cast<double>(*frames) * 10000000.0 / fps);
+    } else if (!cycles && show_window) {
+        cycle_budget = static_cast<std::uint64_t>(INT64_MAX);
+    }
+    const bool show_menu = show_window && profile->board_family == mamerecomp::BoardFamily::System16A
+        && !audio_pan_option_set;
+    mamerecomp::System16GameSettings settings;
+    settings.audio_enabled = profile->board_family == mamerecomp::BoardFamily::System16A;
+    settings.audio_stereo_spread = audio_stereo_spread;
+    const auto settings_path = mamerecomp::system16_settings_path(profile->id.data());
+    return run_full_game(*profile, rom_path, cycle_budget, frame_out, std::nullopt, std::nullopt,
+        std::nullopt, false, false, mamerecomp::System16AVideoBackend::Software, false,
+        {}, 0x0c, false, std::nullopt, std::nullopt, false, std::nullopt, 0, 0,
+        show_window, audio_enabled || settings.audio_enabled, audio_stereo_spread, 100, show_menu,
+        settings_path, settings);
+#else
+    throw std::runtime_error("this mamerecomp executable was built without a System 16/18 AOT module; run the build command first");
+#endif
+}
+
+int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
+                             const std::string& game,
+                             const std::optional<std::filesystem::path>& explicit_zip,
+                             bool build_mode, bool window,
+                             std::uint64_t frames,
+                             const std::optional<std::uint64_t>& cycles,
+                             const std::optional<std::filesystem::path>& frame_out,
+                             const std::optional<std::filesystem::path>& frame_sequence_dir,
+                             std::uint64_t frame_sequence_step,
+                             bool audio_enabled, const std::vector<InputEvent>& input_events,
+                             const std::string& jobs, bool force_rebuild) {
+    if (game != "tmnt2" && game != "ssriders")
+        throw std::runtime_error("Konami TMNT2 board supports --game=tmnt2 or --game=ssriders");
+    if (build_mode && (frames || cycles || frame_out || frame_sequence_dir))
+        throw std::runtime_error("frame and cycle capture options are run-only options");
+    if (frame_sequence_step == 0) throw std::runtime_error("--frame-sequence-step must be positive");
+    if (!build_mode && !window && !frames && !cycles)
+        throw std::runtime_error("Konami headless run requires --frames or --cycles");
+
+    const auto zip = explicit_zip ? std::filesystem::absolute(*explicit_zip)
+        : source_root.parent_path() / "mame/roms" / (game + ".zip");
+    auto roms = mamerecomp::konami::load_tmnt2_romset(game, zip);
+    std::cout << "Konami " << game << ": validated MAME ROMs from " << zip << '\n';
+    const auto build_root = source_root / "build";
+    const auto generated_root = build_root / "generated/konami/tmnt2" / game;
+    const auto m68k_output = generated_root / "m68k";
+    const auto z80_output = generated_root / "z80";
+    const auto module_path = build_root / ("mamerecomp_konami_" + game + ".so");
+    if (build_mode) {
+        if (audio_enabled || window) throw std::runtime_error("TMNT2-family build does not accept run-only audio/video options");
+        const auto m68k_image = generated_root / "program.bin";
+        const auto z80_image = generated_root / "audio.bin";
+        const auto m68k_entries = generated_root / "m68k_entries.txt";
+        const auto z80_entries = generated_root / "z80_entries.txt";
+        std::filesystem::create_directories(generated_root);
+        const auto write_image = [](const std::filesystem::path& path,
+                                    const std::vector<uint8_t>& bytes, size_t length) {
+            std::ofstream output(path, std::ios::binary);
+            if (!output) throw std::runtime_error("could not create AOT input " + path.string());
+            output.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(length));
+            if (!output) throw std::runtime_error("failed writing AOT input " + path.string());
+        };
+        const auto& program = roms.at("maincpu");
+        const auto& audio = roms.at("audiocpu");
+        write_image(m68k_image, program, program.size());
+        write_image(z80_image, audio, 0xf000);
+        {
+            std::ofstream entries(m68k_entries);
+            if (!entries) throw std::runtime_error("could not create TMNT2-family 68000 entry list");
+            for (uint32_t vector = 0; vector < 64; ++vector) {
+                const uint32_t offset = vector * 4;
+                const uint32_t address = (uint32_t(program[offset]) << 24)
+                    | (uint32_t(program[offset + 1]) << 16)
+                    | (uint32_t(program[offset + 2]) << 8) | program[offset + 3];
+                if (address < program.size() && !(address & 1))
+                    entries << std::hex << address << '\n';
+            }
+        }
+        { std::ofstream entries(z80_entries); entries << "0066\n"; }
+        if (force_rebuild) {
+            std::filesystem::remove_all(m68k_output);
+            std::filesystem::remove_all(z80_output);
+        }
+        std::filesystem::create_directories(m68k_output);
+        std::filesystem::create_directories(z80_output);
+        const auto m68krecomp = build_root / "m68krecomp";
+        if (!std::filesystem::is_regular_file(m68krecomp))
+            throw std::runtime_error("m68krecomp tool not found; build the mamerecomp and m68krecomp targets first");
+        const uint32_t reset_pc = (uint32_t(program[4]) << 24) | (uint32_t(program[5]) << 16)
+            | (uint32_t(program[6]) << 8) | program[7];
+        std::cout << "Generating " << game << " 68000 AOT from its program ROMs.\n" << std::flush;
+        int status = run_child_process({m68krecomp.string(), "--raw", m68k_image.string(), "--base", "0",
+            "--entry", std::to_string(reset_pc), "--entries", m68k_entries.string(), "--board", "generic",
+            "--prefix", game + "_", "--out", m68k_output.string(), "--files", "16"});
+        if (status != 0) return status;
+        std::cout << "Generating " << game << " Z80 AOT from its audio program ROM.\n" << std::flush;
+        status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE, (source_root / "tools/z80/recomp.py").string(),
+            "--program", z80_image.string(), "--entries", z80_entries.string(), "--out", z80_output.string(),
+            "--symbol-prefix", game + "_", "--precise-cycle-yield"});
+        if (status != 0) return status;
+        status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
+            "-DMAMERECOMP_KONAMI_TMNT2_AOT_DIR=" + generated_root.string(),
+            "-DMAMERECOMP_KONAMI_TMNT2_GAME_ID=" + game});
+        if (status != 0) return status;
+        std::cout << "Building the " << game << " 68000/Z80 AOT module.\n" << std::flush;
+        return run_child_process({"cmake", "--build", build_root.string(), "--target",
+            "mamerecomp_konami_tmnt2_aot", "-j", jobs});
+    }
+
+    if (!std::filesystem::is_regular_file(module_path))
+        throw std::runtime_error(game + " AOT module is missing; run `mamerecomp build --machine=konami --board=tmnt2 --game=" + game + "` first");
+    void* module = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (!module) throw std::runtime_error("could not load " + game + " AOT module: " + std::string(dlerror()));
+    struct ModuleGuard { void* handle; ~ModuleGuard() { if (handle) dlclose(handle); } } module_guard{module};
+    using M68kTableFn = const ng_func_entry_t* (*)(size_t*);
+    using Z80CodeFn = const mamerecomp::z80::Z80Code* (*)();
+    auto get_m68k_table = reinterpret_cast<M68kTableFn>(dlsym(module, "mamerecomp_konami_tmnt2_m68k_table"));
+    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "mamerecomp_konami_tmnt2_z80_code"));
+    if (!get_m68k_table || !get_z80_code) throw std::runtime_error(game + " AOT module is missing CPU tables");
+    size_t m68k_entry_count = 0;
+    const auto* m68k_entries = get_m68k_table(&m68k_entry_count);
+    if (!m68k_entries || !m68k_entry_count) throw std::runtime_error(game + " 68000 AOT table is empty");
+    mamerecomp::z80::SetZ80Code(get_z80_code());
+
+    mamerecomp::konami::Tmnt2Board board(game, std::move(roms));
+    mamerecomp::konami::Tmnt2MainCpu main_cpu(board, m68k_entries, m68k_entry_count);
+    mamerecomp::konami::Tmnt2SoundCpu sound_cpu(board);
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> video_presenter;
+    if (window) video_presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
+        "Konami " + game + " - MameRecomp", game == "tmnt2" ? 304u : 288u, 224u);
+    if (video_presenter)
+        std::cout << "Controls: P1 arrows + keypad 1/2/3, start 1; P2 WASD + J/K/L, start 2; coins 5-8; F2 service.\n";
+    std::unique_ptr<mamerecomp::konami::TmntPresenter> audio_output;
+    if (audio_enabled)
+        audio_output = std::make_unique<mamerecomp::konami::TmntPresenter>(
+            "Konami TMNT2 audio", false, true, board.audio_sample_rate());
+#else
+    if (window) throw std::runtime_error("Konami live video requires an SDL3-enabled build");
+    if (audio_enabled)
+        throw std::runtime_error("Konami audio output requires an SDL3-enabled build");
+#endif
+    constexpr std::uint64_t main_cycles_per_frame = 270'336;
+    constexpr auto frame_period = std::chrono::duration<double>(
+        static_cast<double>(main_cycles_per_frame) / 16'000'000.0);
+    std::uint64_t scheduled_main_cycles = 0;
+    std::uint64_t frame_index = 0;
+    bool window_open = true;
+    if (frame_sequence_dir) std::filesystem::create_directories(*frame_sequence_dir);
+    auto next_audio_deadline = std::chrono::steady_clock::now();
+    auto run_frame = [&] {
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (video_presenter && !video_presenter->pump_events()) {
+            window_open = false;
+            return;
+        }
+#endif
+        std::array<std::uint8_t, 5> input_masks{0xff, 0xff, 0xff, 0xff, 0xff};
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (video_presenter) {
+            const auto keys = video_presenter->input_state();
+            input_masks[0] &= static_cast<std::uint8_t>(~keys.coins_pressed);
+            for (size_t player = 0; player < keys.players_pressed.size(); ++player)
+                input_masks[player + 1] &= static_cast<std::uint8_t>(~keys.players_pressed[player]);
+        }
+#endif
+        for (const auto& event : input_events) {
+            if (frame_index >= event.first_frame &&
+                frame_index - event.first_frame < event.duration_frames) {
+                const auto port = static_cast<size_t>(event.port);
+                input_masks[port] &= event.active_low_mask;
+            }
+        }
+        board.set_input(0, static_cast<std::uint16_t>(0xff00 | input_masks[0]));
+        for (unsigned player = 0; player < 4; ++player)
+            board.set_input(player + 1, static_cast<std::uint16_t>(0xff00 | input_masks[player + 1]));
+        std::vector<std::int16_t> frame_audio;
+        // The 16 MHz 68000 and 8 MHz Z80 share absolute time deadlines; the
+        // latter is scheduled to half the main CPU clock as in MAME's config.
+        constexpr std::uint64_t main_quantum = 8'192;
+        for (unsigned i = 0; i < 30; ++i) {
+            scheduled_main_cycles += main_quantum;
+            main_cpu.execute_until(scheduled_main_cycles);
+            sound_cpu.run_until(scheduled_main_cycles / 2);
+            auto samples = board.take_audio_samples();
+            frame_audio.insert(frame_audio.end(), samples.begin(), samples.end());
+        }
+        board.video_vblank();
+        for (unsigned i = 0; i < 3; ++i) {
+            scheduled_main_cycles += main_quantum;
+            main_cpu.execute_until(scheduled_main_cycles);
+            sound_cpu.run_until(scheduled_main_cycles / 2);
+            auto samples = board.take_audio_samples();
+            frame_audio.insert(frame_audio.end(), samples.begin(), samples.end());
+        }
+        ++frame_index;
+        if (frame_sequence_dir
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+            || video_presenter
+#endif
+        ) {
+            const auto live_frame = board.render_frame();
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+            if (video_presenter) {
+                video_presenter->present(board.frame_rgb(live_frame));
+                window_open = video_presenter->pump_events();
+            }
+#endif
+            if (frame_sequence_dir && ((frame_index - 1) % frame_sequence_step) == 0) {
+                auto path = *frame_sequence_dir / ("frame_" + std::to_string(frame_index - 1) + ".ppm");
+                std::ofstream output(path, std::ios::binary);
+                if (!output) throw std::runtime_error("could not create frame sequence image " + path.string());
+                output << "P6\n" << live_frame.width << ' ' << live_frame.height << "\n255\n";
+                const auto rgb = board.frame_rgb(live_frame);
+                output.write(reinterpret_cast<const char*>(rgb.data()), static_cast<std::streamsize>(rgb.size()));
+                if (!output) throw std::runtime_error("failed writing frame sequence image " + path.string());
+            }
+        }
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (audio_output) {
+            audio_output->queue_audio(frame_audio);
+            next_audio_deadline += std::chrono::duration_cast<std::chrono::steady_clock::duration>(frame_period);
+            std::this_thread::sleep_until(next_audio_deadline);
+            const auto now = std::chrono::steady_clock::now();
+            if (now - next_audio_deadline > std::chrono::duration_cast<std::chrono::steady_clock::duration>(frame_period))
+                next_audio_deadline = now;
+        }
+#endif
+    };
+    if (window && !frames && !cycles) {
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        while (window_open) run_frame();
+#endif
+    } else if (frames) {
+        for (std::uint64_t frame = 0; frame < frames && window_open; ++frame) run_frame();
+    } else {
+        const std::uint64_t count = *cycles / main_cycles_per_frame;
+        for (std::uint64_t frame = 0; frame < count && window_open; ++frame) run_frame();
+        const std::uint64_t remainder = *cycles % main_cycles_per_frame;
+        if (remainder) {
+            std::uint64_t left = remainder;
+            while (left) {
+                const auto quantum = std::min<std::uint64_t>(left, 8'192);
+                scheduled_main_cycles += quantum;
+                main_cpu.execute_until(scheduled_main_cycles);
+                sound_cpu.run_until(scheduled_main_cycles / 2);
+                (void)board.take_audio_samples();
+                left -= quantum;
+            }
+        }
+    }
+
+    const auto frame = board.render_frame();
+    const auto min_index = *std::min_element(frame.palette_indices.begin(), frame.palette_indices.end());
+    const auto max_index = *std::max_element(frame.palette_indices.begin(), frame.palette_indices.end());
+    if (frame_out) {
+        if (!frame_out->parent_path().empty())
+            std::filesystem::create_directories(frame_out->parent_path());
+        const auto rgb = board.frame_rgb(frame);
+        std::ofstream output(*frame_out, std::ios::binary);
+        if (!output) throw std::runtime_error("could not create frame output " + frame_out->string());
+        output << "P6\n" << frame.width << ' ' << frame.height << "\n255\n";
+        output.write(reinterpret_cast<const char*>(rgb.data()), static_cast<std::streamsize>(rgb.size()));
+        if (!output) throw std::runtime_error("failed writing frame output " + frame_out->string());
+        std::cout << "Wrote " << frame.width << 'x' << frame.height << " framebuffer to " << *frame_out << '\n';
+    }
+    std::cout << "Executed " << main_cpu.cycles() << " 68000 cycles (raster budget="
+              << (frames ? frames * main_cycles_per_frame : *cycles) << "); 68000 PC=0x" << std::hex << main_cpu.pc()
+              << " D1=0x" << main_cpu.data_register(1)
+              << " D3=0x" << main_cpu.data_register(3)
+              << " D4=0x" << main_cpu.data_register(4)
+              << " D6=0x" << main_cpu.data_register(6)
+              << " D7=0x" << main_cpu.data_register(7)
+              << " A4=0x" << main_cpu.address_register(4)
+              << " A5=0x" << main_cpu.address_register(5)
+              << " instruction=\"" << main_cpu.current_instruction() << "\", Z80 PC=0x"
+              << sound_cpu.pc() << std::dec
+              << ", SP=0x" << std::hex << sound_cpu.sp() << std::dec
+              << ", Z80 cycles=" << sound_cpu.cycles() << ", NMI accepts=" << sound_cpu.nmi_count()
+              << ", K053260 reply=0x" << std::hex << (board.main_read(0x5c0600, 0x00ff) & 0xff)
+              << std::dec << "; indexed frame range=" << min_index << ".." << max_index << ".\n";
+    std::cout << "68000 execution coverage: AOT instructions=" << main_cpu.aot_instructions()
+              << " Musashi fallback instructions=" << main_cpu.fallback_instructions() << '\n'
+              << "Z80 execution coverage: AOT instructions=" << sound_cpu.aot_instructions()
+              << " fallback instructions=" << sound_cpu.fallback_instructions() << '\n';
+    if (frames >= 60) std::cout << "Recent 68000 path:\n" << main_cpu.disassembly_before_pc();
+    return 0;
+}
+
+int run_seibu_toki_machine(const std::filesystem::path& source_root,
+                           const std::string& game,
+                           const std::optional<std::filesystem::path>& explicit_zip,
+                           bool build_mode, bool window, std::uint64_t frames,
+                           const std::optional<std::uint64_t>& cycles,
+                           const std::optional<std::filesystem::path>& frame_out,
+                           bool audio_enabled, const std::vector<InputEvent>& input_events,
+                           const std::string& jobs, bool force_rebuild) {
+    if (game != "toki") throw std::runtime_error("Seibu Toki adapter supports --game=toki");
+    if (build_mode && (frames || cycles || frame_out))
+        throw std::runtime_error("--frames, --cycles, and --frame-out are run-only options");
+    if (!build_mode && !window && !frames && !cycles)
+        throw std::runtime_error("Toki headless run requires --frames or --cycles");
+
+    const auto zip = explicit_zip ? std::filesystem::absolute(*explicit_zip)
+        : source_root.parent_path() / "mame/roms/toki.zip";
+    auto roms = mamerecomp::seibu::load_toki_romset(zip);
+    std::cout << "Toki: validated MAME ROMs from " << zip << '\n';
+    const auto build_root = source_root / "build";
+    const auto generated_root = build_root / "generated/seibu/toki/toki/m68k";
+    const auto z80_generated_root = build_root / "generated/seibu/toki/toki/z80";
+    const auto module_path = build_root / "mamerecomp_seibu_toki.so";
+    if (build_mode) {
+        std::filesystem::create_directories(generated_root);
+        std::filesystem::create_directories(z80_generated_root);
+        const auto image = generated_root / "program.bin";
+        const auto entry_file = generated_root / "entries.txt";
+        const auto& program = roms.at("maincpu");
+        {
+            std::ofstream output(image, std::ios::binary);
+            if (!output) throw std::runtime_error("could not create Toki 68000 AOT image");
+            output.write(reinterpret_cast<const char*>(program.data()), static_cast<std::streamsize>(program.size()));
+            if (!output) throw std::runtime_error("failed writing Toki 68000 AOT image");
+        }
+        {
+            std::ofstream entries(entry_file);
+            if (!entries) throw std::runtime_error("could not create Toki 68000 entry list");
+            for (uint32_t vector = 0; vector < 64; ++vector) {
+                const auto offset = size_t(vector) * 4;
+                const uint32_t address = (uint32_t(program[offset]) << 24)
+                    | (uint32_t(program[offset + 1]) << 16)
+                    | (uint32_t(program[offset + 2]) << 8) | program[offset + 3];
+                if (address < program.size() && !(address & 1)) entries << std::hex << address << '\n';
+            }
+        }
+        const auto m68krecomp = build_root / "m68krecomp";
+        if (!std::filesystem::is_regular_file(m68krecomp))
+            throw std::runtime_error("m68krecomp not found; build the mamerecomp and m68krecomp targets first");
+        const uint32_t reset_pc = (uint32_t(program[4]) << 24) | (uint32_t(program[5]) << 16)
+            | (uint32_t(program[6]) << 8) | program[7];
+        if (force_rebuild) std::filesystem::remove_all(generated_root);
+        std::filesystem::create_directories(generated_root);
+        std::cout << "Generating Toki 68000 AOT from its program ROMs.\n" << std::flush;
+        int status = run_child_process({m68krecomp.string(), "--raw", image.string(), "--base", "0",
+            "--entry", std::to_string(reset_pc), "--entries", entry_file.string(), "--board", "generic",
+            "--prefix", "toki_", "--out", generated_root.string(), "--files", "8"});
+        if (status != 0) return status;
+        const auto& audio = roms.at("audiocpu");
+        std::vector<uint8_t> z80_program(0x8000, 0xff);
+        std::vector<uint8_t> z80_opcodes(0x8000, 0xff);
+        std::vector<uint8_t> z80_data(0x8000, 0xff);
+        for (uint16_t address = 0; address < 0x2000; ++address) {
+            z80_program[address] = audio[address];
+            z80_opcodes[address] = mamerecomp::seibu::toki_sei80bu_opcode(address, audio[address]);
+            z80_data[address] = mamerecomp::seibu::toki_sei80bu_data(address, audio[address]);
+        }
+        const auto write_image = [](const std::filesystem::path& path, const std::vector<uint8_t>& bytes) {
+            std::ofstream output(path, std::ios::binary);
+            if (!output) throw std::runtime_error("could not create Toki Z80 AOT image " + path.string());
+            output.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+            if (!output) throw std::runtime_error("failed writing Toki Z80 AOT image " + path.string());
+        };
+        const auto z80_program_path = z80_generated_root / "program.bin";
+        const auto z80_opcode_path = z80_generated_root / "opcodes.bin";
+        const auto z80_data_path = z80_generated_root / "data.bin";
+        const auto z80_entries_path = z80_generated_root / "entries.txt";
+        write_image(z80_program_path, z80_program);
+        write_image(z80_opcode_path, z80_opcodes);
+        write_image(z80_data_path, z80_data);
+        {
+            std::ofstream entries(z80_entries_path);
+            if (!entries) throw std::runtime_error("could not create Toki Z80 entry list");
+            entries << "0010\n0018\n0038\n";
+        }
+        const auto z80_recomp = source_root / "tools/z80/recomp.py";
+        std::cout << "Generating Toki encrypted Z80 AOT from SEI80BU opcode/data views.\n" << std::flush;
+        status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE, z80_recomp.string(),
+            "--program", z80_program_path.string(), "--opcodes", z80_opcode_path.string(),
+            "--data", z80_data_path.string(), "--entries", z80_entries_path.string(),
+            "--out", z80_generated_root.string(), "--symbol-prefix", "toki_",
+            "--precise-cycle-yield", "--list", (z80_generated_root / "instructions.txt").string()});
+        if (status != 0) return status;
+        status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
+            "-DMAMERECOMP_SEIBU_TOKI_AOT_DIR=" + generated_root.string(),
+            "-DMAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR=" + z80_generated_root.string()});
+        if (status != 0) return status;
+        std::cout << "Building Toki 68000 AOT module.\n" << std::flush;
+        return run_child_process({"cmake", "--build", build_root.string(), "--target",
+            "mamerecomp_seibu_toki_aot", "-j", jobs});
+    }
+
+    if (!std::filesystem::is_regular_file(module_path))
+        throw std::runtime_error("Toki AOT module is missing; run `mamerecomp build --machine=seibu --board=toki --game=toki` first");
+    void* module = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (!module) throw std::runtime_error("could not load Toki AOT module: " + std::string(dlerror()));
+    struct ModuleGuard { void* handle; ~ModuleGuard() { if (handle) dlclose(handle); } } guard{module};
+    using TableFn = const ng_func_entry_t* (*)(size_t*);
+    using Z80CodeFn = const mamerecomp::z80::Z80Code* (*)();
+    auto get_table = reinterpret_cast<TableFn>(dlsym(module, "mamerecomp_seibu_toki_m68k_table"));
+    if (!get_table) throw std::runtime_error("Toki AOT module is missing its 68000 table");
+    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "mamerecomp_seibu_toki_z80_code"));
+    if (!get_z80_code) throw std::runtime_error("Toki AOT module is missing its Z80 table");
+    mamerecomp::z80::SetZ80Code(get_z80_code());
+    size_t count = 0;
+    const auto* entries = get_table(&count);
+    mamerecomp::seibu::TokiBoard board(std::move(roms));
+    mamerecomp::seibu::TokiMainCpu cpu(board, entries, count);
+    mamerecomp::seibu::TokiSoundCpu sound_cpu(board);
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> video_presenter;
+    if (window) video_presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
+        "Toki - MameRecomp", 256, 224);
+    if (video_presenter)
+        std::cout << "Controls: coin 5, start 1, P1 arrows + keypad 1/2, P2 WASD + J/K, F2 service.\n";
+    std::unique_ptr<mamerecomp::seibu::TokiAudioPresenter> audio_presenter;
+    if (audio_enabled) audio_presenter = std::make_unique<mamerecomp::seibu::TokiAudioPresenter>(board.audio_sample_rate());
+#else
+    if (window) throw std::runtime_error("Toki live video requires an SDL3-enabled build");
+    if (audio_enabled) throw std::runtime_error("Toki --audio requires an SDL3-enabled build");
+#endif
+    constexpr uint64_t frame_cycles = 167'700;
+    constexpr uint64_t vblank_cycles = 156'000;
+    const uint64_t budget = frames ? frames * frame_cycles
+        : cycles ? *cycles : std::numeric_limits<uint64_t>::max();
+    uint64_t next_vblank = vblank_cycles;
+    uint64_t scheduled_cycles = 0;
+    bool window_open = true;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    mamerecomp::video::SdlArcadeInput live_keys{};
+    uint64_t live_keys_frame = std::numeric_limits<uint64_t>::max();
+#endif
+    while (scheduled_cycles < budget && window_open) {
+        const uint64_t target = std::min({next_vblank, scheduled_cycles + 650, budget});
+        const uint64_t frame_index = scheduled_cycles / frame_cycles;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (video_presenter && live_keys_frame != frame_index) {
+            if (!video_presenter->pump_events()) {
+                window_open = false;
+                break;
+            }
+            live_keys = video_presenter->input_state();
+            live_keys_frame = frame_index;
+        }
+#endif
+        uint8_t system = 0x1f;
+        uint8_t coins = 0;
+        uint8_t p1 = 0xff;
+        uint8_t p2 = 0xff;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (video_presenter) {
+            if (live_keys.service_pressed) system &= static_cast<uint8_t>(~(1U << 2));
+            if (live_keys.players_pressed[0] & mamerecomp::video::SdlArcadeInput::start)
+                system &= static_cast<uint8_t>(~(1U << 3));
+            if (live_keys.players_pressed[1] & mamerecomp::video::SdlArcadeInput::start)
+                system &= static_cast<uint8_t>(~(1U << 4));
+            coins |= live_keys.coins_pressed & 0x03;
+            const auto to_toki_controls = [](uint8_t pressed) {
+                uint8_t active_low = 0xff;
+                if (pressed & mamerecomp::video::SdlArcadeInput::up) active_low &= ~(1U << 0);
+                if (pressed & mamerecomp::video::SdlArcadeInput::down) active_low &= ~(1U << 1);
+                if (pressed & mamerecomp::video::SdlArcadeInput::left) active_low &= ~(1U << 2);
+                if (pressed & mamerecomp::video::SdlArcadeInput::right) active_low &= ~(1U << 3);
+                if (pressed & mamerecomp::video::SdlArcadeInput::button1) active_low &= ~(1U << 4);
+                if (pressed & mamerecomp::video::SdlArcadeInput::button2) active_low &= ~(1U << 5);
+                return active_low;
+            };
+            p1 = to_toki_controls(live_keys.players_pressed[0]);
+            p2 = to_toki_controls(live_keys.players_pressed[1]);
+        }
+#endif
+        for (const auto& event : input_events) {
+            if (frame_index < event.first_frame || frame_index - event.first_frame >= event.duration_frames) continue;
+            switch (event.port) {
+            case InputEvent::Port::Service: system &= event.active_low_mask; break;
+            case InputEvent::Port::P1: p1 &= event.active_low_mask; break;
+            case InputEvent::Port::P2: p2 &= event.active_low_mask; break;
+            case InputEvent::Port::Coin:
+                coins |= event.active_low_mask;
+                system &= static_cast<uint8_t>(~event.active_low_mask);
+                break;
+            case InputEvent::Port::System:
+            case InputEvent::Port::P1Kick:
+            case InputEvent::Port::P2Kick:
+                break;
+            }
+        }
+        board.set_inputs(static_cast<uint16_t>(p1 | (uint16_t(p2) << 8)), system, coins);
+        cpu.execute_until(target);
+        sound_cpu.run_until(target * 3'579'545ull / 10'000'000ull);
+        scheduled_cycles = target;
+        if (target == next_vblank) {
+            board.video_vblank();
+            next_vblank += frame_cycles;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+            if (video_presenter) {
+                const auto live_frame = board.render_frame();
+                video_presenter->present(live_frame.rgb);
+                const auto live_audio = board.take_audio_samples();
+                if (audio_presenter) audio_presenter->queue(live_audio);
+                window_open = video_presenter->pump_events();
+            }
+#endif
+        }
+    }
+    const auto frame = board.render_frame();
+    const auto audio_samples = board.take_audio_samples();
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    if (audio_presenter) audio_presenter->queue(audio_samples);
+#endif
+    if (frame_out) {
+        if (!frame_out->parent_path().empty()) std::filesystem::create_directories(frame_out->parent_path());
+        std::ofstream output(*frame_out, std::ios::binary);
+        if (!output) throw std::runtime_error("could not create Toki frame output " + frame_out->string());
+        output << "P6\n256 224\n255\n";
+        output.write(reinterpret_cast<const char*>(frame.rgb.data()), static_cast<std::streamsize>(frame.rgb.size()));
+        if (!output) throw std::runtime_error("failed writing Toki frame output");
+        std::cout << "Wrote 256x224 Toki framebuffer to " << *frame_out << '\n';
+    }
+    std::cout << "Toki 68000 cycles=" << cpu.cycles() << " PC=0x" << std::hex << cpu.pc()
+              << "; Z80 PC=0x" << sound_cpu.pc() << std::dec << " Z80 cycles=" << sound_cpu.cycles()
+              << "; vblank IRQs=" << board.main_irq_count()
+              << "\n68000 execution coverage: AOT instructions=" << cpu.aot_instructions()
+              << " Musashi fallback instructions=" << cpu.fallback_instructions()
+              << "\nZ80 execution coverage: AOT instructions=" << sound_cpu.aot_instructions()
+              << " fallback instructions=" << sound_cpu.fallback_instructions()
+              << "\nToki YM3812: samples=" << board.ym3812_samples()
+              << " rate=" << board.audio_sample_rate() << "Hz peak=" << board.ym3812_peak()
+              << " register writes=" << board.ym3812_writes()
+              << " sound command writes=" << board.sound_command_writes()
+              << " RST18 assertions/acks=" << board.sound_irq_assertions() << '/' << board.sound_irq18_acks()
+              << " RST10 acks=" << board.sound_irq10_acks()
+              << " sound-latch reads=" << board.sound_latch_reads()
+              << " last-latch=0x" << std::hex << static_cast<unsigned>(board.last_sound_latch_value())
+              << " last-bus-word=0x" << board.last_sound_bus_word()
+              << " low/high-nonzero=" << std::dec << board.sound_low_lane_nonzero()
+              << '/' << board.sound_high_lane_nonzero()
+              << " pending-acks=" << std::dec << board.sound_pending_acks()
+              << " key-ons=" << board.ym3812_key_ons() << " last-reg=0x"
+              << std::hex << static_cast<unsigned>(board.ym3812_last_register())
+              << " last-value=0x" << static_cast<unsigned>(board.ym3812_last_value()) << std::dec
+              << " OKIM6295 writes=" << board.oki_writes()
+              << " active-voices=" << board.oki_active_voices()
+              << (audio_enabled ? " queued to SDL playback" : " generated without host playback") << '\n';
+    const auto video_bytes = board.nonzero_video_bytes();
+    const auto tile_coverage = board.visible_tile_pixels();
+    std::cout << "Toki nonzero video RAM bytes: palette=" << video_bytes[0]
+              << " buffered-sprites=" << video_bytes[1] << " background=" << video_bytes[2]
+              << " foreground=" << video_bytes[3] << " text=" << video_bytes[4]
+              << " scroll-priority=0x" << std::hex << board.scroll_control() << std::dec
+              << "\nToki nontransparent tile pixels: bg=" << tile_coverage[0]
+              << " fg=" << tile_coverage[1] << "\nToki video sample: bg[0..3]=0x"
+              << std::hex << board.tile_word(0, 0) << ",0x" << board.tile_word(0, 1)
+              << ",0x" << board.tile_word(0, 2) << ",0x" << board.tile_word(0, 3)
+              << " palette[544..559]=";
+    for (unsigned i = 544; i < 560; ++i) std::cout << (i == 544 ? "0x" : ",0x") << board.palette_word(i);
+    std::cout << std::dec << '\n';
+    const auto text_rows = board.text_tiles_per_row();
+    std::cout << "Toki text tiles/row:";
+    for (unsigned row = 0; row < text_rows.size(); ++row)
+        if (text_rows[row]) std::cout << ' ' << row << ':' << text_rows[row];
+    std::cout << "; active sprite entries=" << board.active_sprite_entries() << '\n';
+    return 0;
+}
+
+int run_konami_tmnt_machine(const std::filesystem::path& source_root,
+                            const std::optional<std::filesystem::path>& explicit_zip,
+                            bool build_mode, bool window,
+                            std::uint64_t frames,
+                            const std::optional<std::uint64_t>& cycles,
+                            const std::optional<std::filesystem::path>& frame_out,
+                            bool audio_enabled, const std::string& jobs, bool force_rebuild) {
+    if (build_mode && (frames || cycles || frame_out))
+        throw std::runtime_error("--frames, --cycles, and --frame-out are run-only options");
+    if (!build_mode && !window && !frames && !cycles)
+        throw std::runtime_error("TMNT headless run requires --frames or --cycles");
+
+    const auto zip = explicit_zip ? std::filesystem::absolute(*explicit_zip)
+        : source_root.parent_path() / "mame/roms/tmnt.zip";
+    auto roms = mamerecomp::konami::load_tmnt_romset(zip);
+    std::cout << "Konami TMNT: validated MAME ROMs from " << zip << '\n';
+    const auto build_root = source_root / "build";
+    const auto generated_root = build_root / "generated/konami/tmnt";
+    const auto m68k_output = generated_root / "m68k";
+    const auto z80_output = generated_root / "z80";
+    const auto module_path = build_root / "mamerecomp_konami_tmnt.so";
+    if (build_mode) {
+        const auto m68k_image = generated_root / "program.bin";
+        const auto z80_image = generated_root / "audio.bin";
+        const auto entry_file = generated_root / "m68k_entries.txt";
+        std::filesystem::create_directories(generated_root);
+        const auto write_image = [](const std::filesystem::path& path,
+                                    const std::vector<uint8_t>& bytes, size_t length) {
+            std::ofstream output(path, std::ios::binary);
+            if (!output) throw std::runtime_error("could not create AOT input " + path.string());
+            output.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(length));
+            if (!output) throw std::runtime_error("failed writing AOT input " + path.string());
+        };
+        const auto& program = roms.at("maincpu");
+        const auto& audio = roms.at("audiocpu");
+        write_image(m68k_image, program, program.size());
+        write_image(z80_image, audio, 0x8000);
+        {
+            std::ofstream entries(entry_file);
+            if (!entries) throw std::runtime_error("could not create 68000 AOT entry list");
+            for (uint32_t vector = 0; vector < 64; ++vector) {
+                const uint32_t offset = vector * 4;
+                const uint32_t address = (uint32_t(program[offset]) << 24)
+                    | (uint32_t(program[offset + 1]) << 16)
+                    | (uint32_t(program[offset + 2]) << 8) | program[offset + 3];
+                if (address < program.size() && !(address & 1))
+                    entries << std::hex << address << '\n';
+            }
+        }
+        std::filesystem::create_directories(m68k_output);
+        std::filesystem::create_directories(z80_output);
+        if (force_rebuild) {
+            std::filesystem::remove_all(m68k_output);
+            std::filesystem::remove_all(z80_output);
+            std::filesystem::create_directories(m68k_output);
+            std::filesystem::create_directories(z80_output);
+        }
+        const auto m68krecomp = build_root / "m68krecomp";
+        if (!std::filesystem::is_regular_file(m68krecomp))
+            throw std::runtime_error("m68krecomp tool not found; build the mamerecomp and m68krecomp targets first");
+        const uint32_t reset_pc = (uint32_t(program[4]) << 24) | (uint32_t(program[5]) << 16)
+            | (uint32_t(program[6]) << 8) | program[7];
+        std::cout << "Generating TMNT 68000 AOT from the main program ROMs.\n" << std::flush;
+        int status = run_child_process({m68krecomp.string(), "--raw", m68k_image.string(), "--base", "0",
+            "--entry", std::to_string(reset_pc), "--entries", entry_file.string(),
+            "--board", "generic", "--prefix", "tmnt_",
+            "--out", m68k_output.string(), "--files", "16"});
+        if (status != 0) return status;
+        std::cout << "Generating TMNT Z80 AOT from the audio program ROM.\n" << std::flush;
+        status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE, (source_root / "tools/z80/recomp.py").string(),
+            "--program", z80_image.string(), "--out", z80_output.string(), "--precise-cycle-yield"});
+        if (status != 0) return status;
+        status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
+            "-DMAMERECOMP_KONAMI_TMNT_AOT_DIR=" + generated_root.string()});
+        if (status != 0) return status;
+        std::cout << "Building the TMNT 68000/Z80 AOT module.\n" << std::flush;
+        return run_child_process({"cmake", "--build", build_root.string(), "--target",
+            "mamerecomp_konami_tmnt_aot", "-j", jobs});
+    }
+
+    if (!std::filesystem::is_regular_file(module_path))
+        throw std::runtime_error("TMNT AOT module is missing; run `mamerecomp build --machine=konami --board=tmnt --game=tmnt` first");
+    void* module = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (!module) throw std::runtime_error("could not load TMNT AOT module: " + std::string(dlerror()));
+    struct ModuleGuard { void* handle; ~ModuleGuard() { if (handle) dlclose(handle); } } module_guard{module};
+    using M68kTableFn = const ng_func_entry_t* (*)(size_t*);
+    using Z80CodeFn = const mamerecomp::z80::Z80Code* (*)();
+    auto get_m68k_table = reinterpret_cast<M68kTableFn>(dlsym(module, "mamerecomp_konami_tmnt_m68k_table"));
+    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "mamerecomp_konami_tmnt_z80_code"));
+    if (!get_m68k_table || !get_z80_code) throw std::runtime_error("TMNT AOT module is missing CPU tables");
+    size_t m68k_entry_count = 0;
+    const auto* m68k_entries = get_m68k_table(&m68k_entry_count);
+    if (!m68k_entries || !m68k_entry_count) throw std::runtime_error("TMNT 68000 AOT table is empty");
+    mamerecomp::z80::SetZ80Code(get_z80_code());
+
+    mamerecomp::konami::TmntBoard board(std::move(roms));
+    mamerecomp::konami::TmntMainCpu main_cpu(board, m68k_entries, m68k_entry_count);
+    mamerecomp::konami::TmntSoundCpu sound_cpu(board);
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<mamerecomp::konami::TmntPresenter> presenter;
+    if (window || audio_enabled)
+        presenter = std::make_unique<mamerecomp::konami::TmntPresenter>(
+            "Teenage Mutant Ninja Turtles - MameRecomp", window, audio_enabled,
+            board.audio_sample_rate());
+    if (window)
+        std::cout << "Controls: P1 arrows + keypad 1/2/3, start 1; P2 WASD + J/K/L, start 2; coins 5-8.\n";
+#else
+    if (window || audio_enabled)
+        throw std::runtime_error("TMNT live video/audio requires an SDL3-enabled build");
+#endif
+    // Use the clocks and raster in MAME's tmnt machine configuration.
+    constexpr std::uint64_t pixel_clock_hz = 24'000'000 / 4;
+    constexpr std::uint64_t main_clock_hz = 24'000'000 / 3;
+    constexpr std::uint64_t pixels_per_line = 384;
+    constexpr std::uint64_t lines_per_frame = 264;
+    constexpr std::uint64_t cycles_per_line = main_clock_hz * pixels_per_line / pixel_clock_hz;
+    constexpr std::uint64_t cycles_per_frame = cycles_per_line * lines_per_frame;
+    constexpr auto frame_period = std::chrono::duration<double>(
+        static_cast<double>(cycles_per_frame) / static_cast<double>(main_clock_hz));
+    const std::uint64_t frame_count = frames ? frames : (cycles ? (*cycles + cycles_per_frame - 1) / cycles_per_frame : 0);
+    const bool run_until_window_close = window && !frames && !cycles;
+    std::uint64_t executed_frames = 0;
+    std::uint64_t scheduled_main_cycles = 0;
+    std::optional<mamerecomp::konami::TmntFrame> final_frame;
+    auto next_frame_deadline = std::chrono::steady_clock::now();
+    bool window_open = true;
+    while (window_open && (run_until_window_close || executed_frames < frame_count)) {
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (presenter && window && !presenter->pump_events(board)) break;
+#endif
+        std::vector<std::int16_t> frame_audio;
+        for (unsigned line = 0; line < lines_per_frame; ++line) {
+            if (line == 240) board.video_vblank();
+            scheduled_main_cycles += cycles_per_line;
+            main_cpu.execute_until(scheduled_main_cycles);
+            const uint64_t sound_timestamp = scheduled_main_cycles * 3'579'545ull / main_clock_hz;
+            sound_cpu.run_until(sound_timestamp);
+            auto samples = board.take_audio_samples();
+            frame_audio.insert(frame_audio.end(), samples.begin(), samples.end());
+        }
+        ++executed_frames;
+        final_frame = board.render_frame();
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (presenter) {
+            if (audio_enabled) presenter->queue_audio(frame_audio);
+            if (window) presenter->present(board.frame_rgb(*final_frame));
+            next_frame_deadline += std::chrono::duration_cast<std::chrono::steady_clock::duration>(frame_period);
+            std::this_thread::sleep_until(next_frame_deadline);
+            const auto now = std::chrono::steady_clock::now();
+            if (now - next_frame_deadline > std::chrono::duration_cast<std::chrono::steady_clock::duration>(frame_period))
+                next_frame_deadline = now;
+        }
+#endif
+    }
+
+    const auto frame = final_frame.value_or(board.render_frame());
+    if (frame_out) {
+        if (!frame_out->parent_path().empty()) std::filesystem::create_directories(frame_out->parent_path());
+        const auto rgb = board.frame_rgb(frame);
+        std::ofstream output(*frame_out, std::ios::binary);
+        if (!output) throw std::runtime_error("could not create frame output " + frame_out->string());
+        output << "P6\n" << frame.width << ' ' << frame.height << "\n255\n";
+        output.write(reinterpret_cast<const char*>(rgb.data()), static_cast<std::streamsize>(rgb.size()));
+        if (!output) throw std::runtime_error("failed writing frame output " + frame_out->string());
+        std::cout << "Wrote " << frame.width << 'x' << frame.height << " framebuffer to " << *frame_out << '\n';
+    }
+    std::cout << "Executed " << main_cpu.cycles() << " 68000 cycles (raster budget="
+              << executed_frames * cycles_per_frame << "); PC=0x"
+              << std::hex << main_cpu.pc() << ", Z80 PC=0x" << sound_cpu.pc()
+              << std::dec << ", Z80 cycles=" << sound_cpu.cycles() << ".\n";
+    std::cout << "68000 execution coverage: AOT instructions=" << main_cpu.aot_instructions()
+              << " Musashi fallback instructions=" << main_cpu.fallback_instructions() << '\n'
+              << "Z80 execution coverage: AOT instructions=" << sound_cpu.aot_instructions()
+              << " fallback instructions=" << sound_cpu.fallback_instructions() << '\n';
+    return 0;
+}
+
+int run_zn_machine(const std::filesystem::path& source_root,
+                   const std::string& game,
+                   const std::optional<std::filesystem::path>& rom_zip,
+                   bool show_window, bool audio_enabled,
+                   const std::vector<InputEvent>& button_events,
+                   std::uint64_t frames,
+                   const std::optional<std::uint64_t>& cycles,
+                   const std::optional<std::filesystem::path>& frame_out,
+                   const std::optional<std::filesystem::path>& frame_sequence_dir,
+                   std::uint64_t frame_sequence_step,
+                   const char *platform_name, const char *board_name,
+                   const std::optional<std::filesystem::path>& nvram_option,
+                   bool psx_interpreter_only) {
+    const bool zn1 = game == "bldyror2";
+    const bool system12 = game == "tekken3";
+    // Match the clocks passed to CXD8530CQ/CXD8661R in MAME's zn.cpp.
+    // Both MAME's execute loop and this interpreter advance one scheduler
+    // tick per instruction, so frame/vblank timing uses the configured clock.
+    const std::uint64_t cpu_clock_hz = (zn1 || system12) ? 67'737'600ull : 100'000'000ull;
+    // MAME's PSX GPU uses 59.8260978565 Hz for the default NTSC 240-line
+    // mode (psxgpu_device::updatevisiblearea). Keep the CPU frame scheduler
+    // on that same cadence so --frames, input events, and GPU vblank don't
+    // drift apart by one frame every few seconds.
+    constexpr std::uint64_t refresh_scaled = 59'826'097'857ull;
+    constexpr std::uint64_t refresh_scale = 1'000'000'000ull;
+    auto cycle_at_frame = [cpu_clock_hz](std::uint64_t frame_number) {
+        const __uint128_t numerator = __uint128_t(frame_number) * cpu_clock_hz * refresh_scale;
+        return static_cast<std::uint64_t>((numerator + refresh_scaled - 1) / refresh_scaled);
+    };
+    const bool unlimited = show_window && frames == 0 && !cycles;
+    if (frames && cycles)
+        throw std::runtime_error("choose either --frames or --cycles for a ZN run");
+    if (frame_sequence_step == 0)
+        throw std::runtime_error("--frame-sequence-step must be positive");
+    if (frame_sequence_dir) std::filesystem::create_directories(*frame_sequence_dir);
+
+    const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
+                                  : source_root.parent_path() / "mame/roms" / (game + ".zip");
+    if (!std::filesystem::is_regular_file(rom_path))
+        throw std::runtime_error("ZN ROM ZIP not found: " + rom_path.string());
+
+#ifndef MAMERECOMP_HAS_SDL3_PRESENTER
+    if (show_window || audio_enabled)
+        throw std::runtime_error("ZN live video/audio requires an SDL3-enabled build");
+#endif
+
+    const std::filesystem::path zn_aot_module = source_root / "build/mamerecomp_zn2_sfex2pa.so";
+    const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr;
+    const PsxAotEntry *zn2_psx_entries = nullptr;
+    size_t zn2_psx_entry_count = 0;
+#if defined(__unix__) || defined(__APPLE__)
+    if (game == "sfex2pa" && std::filesystem::is_regular_file(zn_aot_module)) {
+        void *handle = dlopen(zn_aot_module.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (!handle)
+            throw std::runtime_error("could not load ZN-2 AOT module " + zn_aot_module.string() + ": " + dlerror());
+        using Z80CodeFn = const mamerecomp::z80::Z80Code *(*)();
+        auto get_code = reinterpret_cast<Z80CodeFn>(dlsym(handle, "mamerecomp_zn2_sfex2pa_z80_code"));
+        const char *symbol_error = dlerror();
+        if (symbol_error || !get_code)
+            throw std::runtime_error("ZN-2 AOT module has no Z80 table: " + std::string(symbol_error ? symbol_error : "unknown loader error"));
+        zn2_z80_code = get_code();
+        using PsxEntriesFn = void (*)(const PsxAotEntry **, size_t *);
+        auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(handle, "mamerecomp_zn2_sfex2pa_psx_entries"));
+        if (get_psx_entries && !psx_interpreter_only)
+            get_psx_entries(&zn2_psx_entries, &zn2_psx_entry_count);
+    }
+#endif
+    mamerecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
+                                             zn2_psx_entry_count, zn2_z80_code);
+    const auto nvram_path = (game == "sfex2pa" || game == "bldyror2")
+        ? std::optional<std::filesystem::path>(nvram_option.value_or(
+            source_root / "build/nvram" / (game + ".at28c16")))
+        : std::nullopt;
+    if (nvram_path && std::filesystem::is_regular_file(*nvram_path)) {
+        const auto image = read_binary_file(*nvram_path);
+        if (!machine.load_nvram(image))
+            throw std::runtime_error("AT28C16 NVRAM image must contain 0x800 or 0x820 bytes: " + nvram_path->string());
+    }
+    const bool capture_vblank_frames = show_window || frame_out.has_value() ||
+                                       frame_sequence_dir.has_value();
+    machine.memory().gpu().set_frame_capture_enabled(capture_vblank_frames);
+    std::uint64_t instruction_budget = cycles ? *cycles
+        : frames ? cycle_at_frame(frames)
+        : cycle_at_frame(1);
+    std::uint64_t next_frame_number = 1;
+    std::uint64_t next_frame_cycle = cycle_at_frame(next_frame_number);
+    std::uint64_t frame_updates = 0;
+    const bool zn_diagnostics = std::getenv("MAMERECOMP_ZN_DIAGNOSTICS") != nullptr;
+    uint64_t diagnostics_window_cycles = machine.cpu().cycles;
+    double diagnostics_window_host_ms = 0.0;
+    unsigned diagnostics_window_frames = 0;
+    bool window_open = true;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> presenter;
+    SDL_AudioStream* zn_audio_stream = nullptr;
+    SDL_AudioStream* zn_spu_stream = nullptr;
+    const bool zn_audio_active = show_window || audio_enabled;
+    if (zn_audio_active && (game == "bldyror2" || game == "sfex2pa" || system12)) {
+        if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
+            throw std::runtime_error(std::string("SDL audio init failed: ") + SDL_GetError());
+        SDL_AudioSpec spec{};
+        spec.format = SDL_AUDIO_S16;
+        spec.channels = 2;
+        spec.freq = static_cast<int>(zn1 ? machine.zn1_audio_sample_rate()
+            : system12 ? machine.system12_audio_sample_rate()
+                       : machine.zn2_qsound_sample_rate());
+        zn_audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                                                    &spec, nullptr, nullptr);
+        if (!zn_audio_stream || !SDL_ResumeAudioStreamDevice(zn_audio_stream)) {
+            const std::string error = SDL_GetError();
+            if (zn_audio_stream) SDL_DestroyAudioStream(zn_audio_stream);
+            SDL_QuitSubSystem(SDL_INIT_AUDIO);
+            throw std::runtime_error("SDL audio stream failed: " + error);
+        }
+        SDL_AudioSpec spu_spec{};
+        spu_spec.format = SDL_AUDIO_S16;
+        spu_spec.channels = 2;
+        spu_spec.freq = 44100;
+        zn_spu_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                                                   &spu_spec, nullptr, nullptr);
+        if (!zn_spu_stream || !SDL_ResumeAudioStreamDevice(zn_spu_stream)) {
+            const std::string error = SDL_GetError();
+            if (zn_spu_stream) SDL_DestroyAudioStream(zn_spu_stream);
+            SDL_DestroyAudioStream(zn_audio_stream);
+            SDL_QuitSubSystem(SDL_INIT_AUDIO);
+            throw std::runtime_error("PSX SPU SDL stream failed: " + error);
+        }
+    }
+    uint64_t system12_audio_main_cycles = 0;
+    uint64_t system12_audio_cycle_remainder = 0;
+    uint64_t system12_audio_frames = 0;
+    uint32_t system12_audio_peak = 0;
+    size_t diagnostics_qsound_frames = 0;
+    size_t diagnostics_spu_frames = 0;
+    int diagnostics_qsound_queued_bytes = -1;
+    int diagnostics_spu_queued_bytes = -1;
+    auto flush_zn_audio = [&] {
+        std::vector<int16_t> samples;
+        if (system12) {
+            const uint64_t elapsed = machine.cpu().cycles - system12_audio_main_cycles;
+            const uint64_t numerator = elapsed * machine.system12_audio_sample_rate() +
+                                       system12_audio_cycle_remainder;
+            const size_t audio_frames = static_cast<size_t>(numerator / cpu_clock_hz);
+            system12_audio_cycle_remainder = numerator % cpu_clock_hz;
+            system12_audio_main_cycles = machine.cpu().cycles;
+            samples = machine.render_system12_audio(audio_frames);
+            system12_audio_frames += audio_frames;
+            for (int16_t sample : samples)
+                system12_audio_peak = std::max(system12_audio_peak,
+                    static_cast<uint32_t>(std::abs(static_cast<int>(sample))));
+        } else {
+            samples = zn1 ? machine.take_zn1_audio() : machine.take_zn2_audio();
+        }
+        diagnostics_qsound_frames = samples.size() / 2;
+        if (zn_audio_stream && !samples.empty() &&
+            !SDL_PutAudioStreamData(zn_audio_stream, samples.data(),
+                                   static_cast<int>(samples.size() * sizeof(int16_t))))
+            throw std::runtime_error(std::string("SDL audio queue failed: ") + SDL_GetError());
+        auto spu_samples = machine.take_spu_audio();
+        diagnostics_spu_frames = spu_samples.size() / 2;
+        if (zn_spu_stream && !spu_samples.empty() &&
+            !SDL_PutAudioStreamData(zn_spu_stream, spu_samples.data(),
+                                   static_cast<int>(spu_samples.size() * sizeof(int16_t))))
+            throw std::runtime_error(std::string("PSX SPU audio queue failed: ") + SDL_GetError());
+        if (zn_diagnostics) {
+            diagnostics_qsound_queued_bytes = zn_audio_stream
+                ? SDL_GetAudioStreamAvailable(zn_audio_stream) : 0;
+            diagnostics_spu_queued_bytes = zn_spu_stream
+                ? SDL_GetAudioStreamAvailable(zn_spu_stream) : 0;
+        }
+    };
+#endif
+    mamerecomp::runtime::ArcadeInput live_inputs{};
+    auto apply_zn_inputs = [&](std::uint64_t frame) {
+        auto input = live_inputs;
+        const auto add_directions_and_buttons = [&](unsigned player, uint8_t active) {
+            auto &pressed = input.players_pressed[player];
+            if (active & 0x01u) pressed |= mamerecomp::runtime::ArcadeInput::up;
+            if (active & 0x02u) pressed |= mamerecomp::runtime::ArcadeInput::down;
+            if (active & 0x04u) pressed |= mamerecomp::runtime::ArcadeInput::left;
+            if (active & 0x08u) pressed |= mamerecomp::runtime::ArcadeInput::right;
+            if (active & 0x10u) pressed |= mamerecomp::runtime::ArcadeInput::button1;
+            if (active & 0x20u) pressed |= mamerecomp::runtime::ArcadeInput::button2;
+            if (active & 0x40u) pressed |= mamerecomp::runtime::ArcadeInput::button3;
+        };
+        for (const auto &event : button_events) {
+            if (frame < event.first_frame || frame - event.first_frame >= event.duration_frames)
+                continue;
+            const uint8_t active = static_cast<uint8_t>(~event.active_low_mask);
+            switch (event.port) {
+            case InputEvent::Port::Service:
+                input.service_switches |= active;
+                input.service_pressed = active != 0;
+                break;
+            case InputEvent::Port::P1:
+                add_directions_and_buttons(0, active);
+                break;
+            case InputEvent::Port::P2:
+                add_directions_and_buttons(1, active);
+                break;
+            case InputEvent::Port::System:
+                if (active & 0x01u) input.players_pressed[0] |= mamerecomp::runtime::ArcadeInput::start;
+                if (active & 0x02u) input.players_pressed[1] |= mamerecomp::runtime::ArcadeInput::start;
+                if (active & 0x10u) input.coins_pressed |= 1u;
+                if (active & 0x20u) input.coins_pressed |= 2u;
+                break;
+            case InputEvent::Port::P1Kick:
+            case InputEvent::Port::P2Kick: {
+                auto &pressed = input.players_pressed[event.port == InputEvent::Port::P1Kick ? 0 : 1];
+                if (active & 0x01u) pressed |= mamerecomp::runtime::ArcadeInput::button4;
+                if (active & 0x02u) pressed |= mamerecomp::runtime::ArcadeInput::button5;
+                if (active & 0x04u) pressed |= mamerecomp::runtime::ArcadeInput::button6;
+                break;
+            }
+            case InputEvent::Port::Coin:
+                input.coins_pressed |= event.active_low_mask;
+                break;
+            }
+        }
+        machine.set_input_state(input);
+    };
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    auto sample_live_zn_inputs = [&] {
+        if (!presenter || (game != "sfex2pa" && game != "bldyror2")) return;
+        live_inputs = presenter->input_state();
+    };
+    auto show_frame = [&](const mamerecomp::psx::GpuFrame &frame) {
+        if (!show_window) return;
+        if (!presenter) {
+            presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
+                "Sony ZN - " + game + " - MameRecomp", frame.width, frame.height,
+                4, 3, 960, 720);
+        }
+        presenter->present({frame.width, frame.height,
+                            static_cast<std::size_t>(frame.width) * 3, frame.rgb});
+    };
+#endif
+
+    std::cout << "Running " << game << " on " << platform_name << ' ' << board_name
+              << " interpreter runtime; windowed frames use the shared SDL presenter.\n"
+              << std::flush;
+    apply_zn_inputs(0);
+    while (window_open && (unlimited || machine.cpu().cycles < instruction_budget)) {
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+        if (presenter) {
+            if (!presenter->pump_events()) {
+                window_open = false;
+                break;
+            }
+            sample_live_zn_inputs();
+            apply_zn_inputs(frame_updates);
+        }
+#endif
+        const uint64_t execution_target = unlimited
+            ? next_frame_cycle : std::min(instruction_budget, next_frame_cycle);
+        const auto diagnostics_run_start = zn_diagnostics
+            ? std::chrono::steady_clock::now()
+            : std::chrono::steady_clock::time_point{};
+        machine.run_until(execution_target);
+        if (machine.cpu().cycles >= next_frame_cycle) {
+            const bool capture_sequence_frame = frame_sequence_dir &&
+                (frame_updates + 1) % frame_sequence_step == 0;
+            std::optional<mamerecomp::psx::GpuFrame> fallback_frame;
+            const mamerecomp::psx::GpuFrame *frame = nullptr;
+            if (show_window || capture_sequence_frame) {
+                const auto& vblank_frame = machine.last_vblank_frame();
+                if (vblank_frame) frame = &*vblank_frame;
+                else {
+                    fallback_frame = machine.framebuffer_rgb();
+                    frame = &*fallback_frame;
+                }
+            }
+            if (std::getenv("MAMERECOMP_ZN_TRACE_FRAME_STATE") &&
+                (((frame_updates + 1) % 60 == 0) ||
+                 ((frame_updates + 1) >= 178 && (frame_updates + 1) <= 185) ||
+                 ((frame_updates + 1) >= 1205 && (frame_updates + 1) <= 1225))) {
+                const auto &cpu = machine.cpu();
+                uint32_t irq_status = 0;
+                uint32_t epc_opcode = 0;
+                uint32_t vector_word = 0, vector_word1 = 0, vector_word2 = 0, vector_word3 = 0;
+                (void)machine.memory().read(0x1f801070, 4, &irq_status);
+                (void)machine.memory().read(cpu.cp0[14], 4, &epc_opcode);
+                (void)machine.memory().read(0x80000080, 4, &vector_word);
+                (void)machine.memory().read(0x80000084, 4, &vector_word1);
+                (void)machine.memory().read(0x80000088, 4, &vector_word2);
+                (void)machine.memory().read(0x8000008c, 4, &vector_word3);
+                std::cerr << "ZN frame-state frame=" << (frame_updates + 1)
+                          << " cycles=" << cpu.cycles << " pc=0x" << std::hex << cpu.pc
+                          << " gpu=0x" << machine.memory().gpu().read_status()
+                          << " irq-status=0x" << irq_status
+                          << " sr=0x" << cpu.cp0[12] << " cause=0x" << cpu.cp0[13]
+                          << " epc=0x" << cpu.cp0[14] << " badvaddr=0x" << cpu.cp0[8]
+                          << " op=0x" << epc_opcode
+                          << " vector=" << std::hex << vector_word << ',' << vector_word1
+                          << ',' << vector_word2 << ',' << vector_word3
+                          << std::dec << '\n';
+                for (unsigned reg = 0; reg < 32; ++reg)
+                    std::cerr << " r" << reg << "=0x" << std::hex << cpu.r[reg];
+                std::cerr << std::dec << '\n';
+                if ((cpu.cp0[13] & 0x7cu) == 0x10u) {
+                    std::cerr << "ZN EPC code";
+                    for (int offset = -16; offset <= 4; offset += 4) {
+                        uint32_t word = 0;
+                        (void)machine.memory().read(cpu.cp0[14] + uint32_t(offset), 4, &word);
+                        std::cerr << " [" << std::hex << offset << "]=0x" << word;
+                    }
+                    std::cerr << std::dec << '\n';
+                }
+            }
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+            if (show_window) {
+                if (presenter && !presenter->pump_events()) {
+                    window_open = false;
+                    break;
+                }
+                sample_live_zn_inputs();
+                show_frame(*frame);
+            }
+            flush_zn_audio();
+#endif
+            if (zn_diagnostics) {
+                diagnostics_window_host_ms += std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - diagnostics_run_start).count();
+                ++diagnostics_window_frames;
+                const uint64_t frame_number = frame_updates + 1;
+                if (frame_number % 60 == 0) {
+                    uint32_t irq_status = 0, irq_mask = 0;
+                    (void)machine.memory().read(0x1f801070, 2, &irq_status);
+                    (void)machine.memory().read(0x1f801074, 2, &irq_mask);
+                    const uint64_t elapsed_cycles = machine.cpu().cycles - diagnostics_window_cycles;
+                    const double emulated_ms = cpu_clock_hz
+                        ? 1000.0 * static_cast<double>(elapsed_cycles) / cpu_clock_hz
+                        : 0.0;
+                    const double frames = diagnostics_window_frames
+                        ? diagnostics_window_frames : 1;
+                    std::cerr << "ZN diagnostic frame=" << frame_number
+                              << " pc=0x" << std::hex << machine.cpu().pc
+                              << " sr=0x" << machine.cpu().cp0[12]
+                              << " cause=0x" << machine.cpu().cp0[13]
+                              << " irq-status=0x" << irq_status
+                              << " irq-mask=0x" << irq_mask
+                              << " gpustat=0x" << machine.memory().gpu().read_status()
+                              << std::dec << " cycles/frame="
+                              << static_cast<double>(elapsed_cycles) / frames
+                              << " host-ms/frame=" << diagnostics_window_host_ms / frames
+                              << " emu-ms/frame=" << emulated_ms / frames;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+                    std::cerr << " audio-frames(board/spu)="
+                              << diagnostics_qsound_frames << '/' << diagnostics_spu_frames
+                              << " stream-available-bytes(board/spu)="
+                              << diagnostics_qsound_queued_bytes << '/'
+                              << diagnostics_spu_queued_bytes;
+#endif
+                    if (game == "sfex2pa")
+                        std::cerr << " qsound-total-samples=" << machine.zn2_qsound_samples()
+                                  << " qsound-peak=" << machine.zn2_qsound_peak();
+                    std::cerr << '\n';
+                    diagnostics_window_cycles = machine.cpu().cycles;
+                    diagnostics_window_host_ms = 0.0;
+                    diagnostics_window_frames = 0;
+                }
+            }
+            if (capture_sequence_frame) {
+                const auto path = *frame_sequence_dir /
+                    ("frame_" + std::to_string(frame_updates + 1) + ".ppm");
+                std::ofstream output(path, std::ios::binary);
+                if (!output) throw std::runtime_error("could not create ZN frame " + path.string());
+                output << "P6\n" << frame->width << ' ' << frame->height << "\n255\n";
+                output.write(reinterpret_cast<const char*>(frame->rgb.data()),
+                             static_cast<std::streamsize>(frame->rgb.size()));
+                if (!output) throw std::runtime_error("failed writing ZN frame " + path.string());
+                std::cout << "Captured ZN frame " << frame_updates + 1 << " to " << path << '\n';
+            }
+            ++frame_updates;
+            apply_zn_inputs(frame_updates);
+            next_frame_cycle = cycle_at_frame(++next_frame_number);
+        }
+    }
+
+    const auto& last_vblank_frame = machine.last_vblank_frame();
+    const auto frame = last_vblank_frame ? *last_vblank_frame
+                                         : machine.framebuffer_rgb();
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    flush_zn_audio();
+    if (zn_audio_stream) {
+        SDL_DestroyAudioStream(zn_audio_stream);
+        if (zn_spu_stream) SDL_DestroyAudioStream(zn_spu_stream);
+        SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    }
+#endif
+    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_VRAM")) {
+        std::ofstream dump(dump_path, std::ios::binary);
+        const auto& vram = machine.memory().vram();
+        if (!dump) throw std::runtime_error("could not create ZN VRAM dump " + std::string(dump_path));
+        dump.write(reinterpret_cast<const char*>(vram.data()),
+                   static_cast<std::streamsize>(vram.size()));
+        if (!dump) throw std::runtime_error("failed writing ZN VRAM dump " + std::string(dump_path));
+        std::cout << "Wrote " << vram.size() << " bytes of ZN VRAM to " << dump_path << '\n';
+    }
+    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_RAM")) {
+        std::ofstream dump(dump_path, std::ios::binary);
+        const auto& ram = machine.memory().ram();
+        if (!dump) throw std::runtime_error("could not create ZN RAM dump " + std::string(dump_path));
+        dump.write(reinterpret_cast<const char*>(ram.data()),
+                   static_cast<std::streamsize>(ram.size()));
+        if (!dump) throw std::runtime_error("failed writing ZN RAM dump " + std::string(dump_path));
+        std::cout << "Wrote " << ram.size() << " bytes of ZN RAM to " << dump_path << '\n';
+    }
+    if (frame_out) {
+        if (!frame_out->parent_path().empty())
+            std::filesystem::create_directories(frame_out->parent_path());
+        std::ofstream output(*frame_out, std::ios::binary);
+        if (!output) throw std::runtime_error("could not create ZN frame output " + frame_out->string());
+        output << "P6\n" << frame.width << ' ' << frame.height << "\n255\n";
+        output.write(reinterpret_cast<const char*>(frame.rgb.data()),
+                     static_cast<std::streamsize>(frame.rgb.size()));
+        if (!output) throw std::runtime_error("failed writing ZN framebuffer " + frame_out->string());
+        std::cout << "Wrote " << frame.width << 'x' << frame.height
+                  << " ZN framebuffer to " << *frame_out << '\n';
+    }
+    if (nvram_path) {
+        std::filesystem::create_directories(nvram_path->parent_path());
+        std::ofstream nvram_file(*nvram_path, std::ios::binary | std::ios::trunc);
+        const auto image = machine.nvram();
+        if (!nvram_file) throw std::runtime_error("could not save AT28C16 NVRAM " + nvram_path->string());
+        nvram_file.write(reinterpret_cast<const char *>(image.data()),
+                         static_cast<std::streamsize>(image.size()));
+        if (!nvram_file) throw std::runtime_error("failed saving AT28C16 NVRAM " + nvram_path->string());
+        std::cout << "Saved " << image.size() << " bytes of AT28C16 NVRAM to " << *nvram_path << '\n';
+    }
+    if (std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME")) {
+        const auto total_ns = machine.profile_run_until_ns();
+        const auto gpu_ns = machine.memory().gpu().profile_execute_packet_ns();
+        const auto sound_ns = machine.profile_zn2_sound_ns();
+        const auto gte_ns = machine.memory().profile_gte_ns();
+        const auto remainder_ns = total_ns > gpu_ns + sound_ns + gte_ns
+            ? total_ns - gpu_ns - sound_ns - gte_ns : 0;
+        const auto milliseconds = [](uint64_t ns) {
+            return static_cast<double>(ns) / 1'000'000.0;
+        };
+        std::cout << "ZN runtime profile (headless execution): run_until="
+                  << milliseconds(total_ns) << " ms, GP0 packet raster/dispatch="
+                  << milliseconds(gpu_ns) << " ms / "
+                  << machine.memory().gpu().profile_execute_packet_calls()
+                  << " packets, Z80+QSound=" << milliseconds(sound_ns)
+                  << " ms, GTE=" << milliseconds(gte_ns) << " ms / "
+                  << machine.memory().profile_gte_commands()
+                  << " commands, R3000A+bus+timers remainder="
+                  << milliseconds(remainder_ns) << " ms.\n";
+    }
+    const auto& coverage = machine.counters();
+    std::cout << "ZN instructions=" << machine.cpu().instructions
+              << " cycles=" << machine.cpu().cycles << " PC=0x" << std::hex << machine.cpu().pc
+              << std::dec << " AOT=" << coverage.aot_instructions
+              << " interpreter=" << coverage.fallback_instructions
+              << " idle-loop=" << coverage.idle_loop_instructions
+              << " display=" << (frame.display_enabled ? "enabled" : "disabled")
+              << " framebuffer=" << frame.width << 'x' << frame.height
+              << " frame_updates=" << frame_updates << ".\n";
+    if (game == "tekken3")
+        std::cout << "System 12 H8/3002 interpreter cycles="
+                  << machine.system12_h8_cycles() << " PC=0x" << std::hex
+                  << machine.system12_h8_pc() << std::dec
+                  << " C352 frames=" << system12_audio_frames
+                  << " C352 writes=" << machine.system12_c352_writes()
+                  << " active_voices=" << machine.system12_active_audio_voices()
+                  << " peak=" << system12_audio_peak
+                  << " sample_rate=" << machine.system12_audio_sample_rate() << ".\n";
+    if (game == "bldyror2")
+        std::cout << "ZN-1 audio MC68000 AOT=0 fallback instructions="
+                  << machine.zn1_sound_instructions()
+                  << " YMF271 register writes=" << machine.zn1_ymf_writes()
+                  << " samples=" << machine.zn1_ymf_samples()
+                  << " peak=" << machine.zn1_ymf_peak()
+                  << " sample_rate=" << machine.zn1_audio_sample_rate()
+                  << " active_slots=" << machine.zn1_active_ymf_slots() << ".\n";
+    if (game == "sfex2pa")
+        std::cout << "ZN-2 QSound Z80 AOT=" << machine.zn2_z80_aot_instructions()
+                  << " fallback=" << machine.zn2_z80_fallback_instructions()
+                  << " audio samples="
+                  << machine.zn2_qsound_samples()
+                  << " peak=" << machine.zn2_qsound_peak()
+                  << " sample_rate=" << machine.zn2_qsound_sample_rate() << ".\n";
+    return 0;
+}
+
+
 int machine_game_command(int argc, char** argv, bool build_mode) {
     std::string machine;
     std::string board;
@@ -1406,7 +3082,18 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
     bool window = false;
     bool headless = false;
     std::uint64_t frames = 0;
+    std::optional<std::uint64_t> cycles;
     std::optional<std::filesystem::path> frame_out;
+    std::optional<std::filesystem::path> frame_sequence_dir;
+    std::uint64_t frame_sequence_step = 1;
+    std::optional<std::filesystem::path> input_replay;
+    std::optional<std::filesystem::path> nvram;
+    std::optional<std::filesystem::path> dma_command_log;
+    bool psx_interpreter_only = false;
+    bool audio_enabled = false;
+    bool audio_stereo_spread = false;
+    bool audio_pan_option_set = false;
+    std::vector<std::string> button_event_specs;
     for (int i = 2; i < argc; ++i) {
         const std::string_view option(argv[i]);
         auto value_after = [&](std::string_view name) -> std::optional<std::string> {
@@ -1420,7 +3107,22 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         else if (const auto value = value_after("--game")) game = *value;
         else if (const auto value = value_after("--rom-dir")) rom_zip = *value;
         else if (const auto value = value_after("--frames")) frames = parse_u64(*value, "frame count");
+        else if (const auto value = value_after("--cycles")) cycles = parse_u64(*value, "cycle count");
         else if (const auto value = value_after("--frame-out")) frame_out = *value;
+        else if (const auto value = value_after("--frame-sequence-dir")) frame_sequence_dir = *value;
+        else if (const auto value = value_after("--frame-sequence-step")) frame_sequence_step = parse_u64(*value, "frame sequence step");
+        else if (const auto value = value_after("--input-replay")) input_replay = *value;
+        else if (const auto value = value_after("--button-event")) button_event_specs.push_back(*value);
+        else if (const auto value = value_after("--nvram")) nvram = *value;
+        else if (const auto value = value_after("--dma-command-log")) dma_command_log = *value;
+        else if (option == "--audio") audio_enabled = true;
+        else if (option == "--psx-interpreter-only") psx_interpreter_only = true;
+        else if (const auto value = value_after("--audio-pan")) {
+            if (*value == "game") audio_stereo_spread = false;
+            else if (*value == "spread") audio_stereo_spread = true;
+            else throw std::runtime_error("--audio-pan must be game or spread");
+            audio_pan_option_set = true;
+        }
         else if (option == "--window") { window = true; headless = false; }
         else if (option == "--headless") { window = false; headless = true; }
         else if (option == "--jobs" && i + 1 < argc) {
@@ -1436,7 +3138,134 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
             + " option: " + std::string(option));
         }
     }
+    if ((frame_sequence_dir || frame_sequence_step != 1) &&
+        !(machine == "konami" && board == "tmnt2") &&
+        !((machine == "sony" || machine == "zn") &&
+          (board == "zn1" || board == "zn2")))
+        throw std::runtime_error("frame sequence capture is supported for Konami TMNT2 and Sony ZN");
+    if (psx_interpreter_only &&
+        !((machine == "sony" || machine == "zn") && board == "zn2" &&
+          game == "sfex2pa"))
+        throw std::runtime_error("--psx-interpreter-only is supported for Sony ZN-2 SFEX2PA run");
+    if (machine == "konami") {
+        if (input_replay || nvram || dma_command_log || audio_pan_option_set)
+            throw std::runtime_error("input replay, NVRAM, DMA logging and audio pan are not supported for Konami");
+        if (board == "tmnt") {
+            if (game != "tmnt") throw std::runtime_error("Original TMNT board requires --game=tmnt");
+            const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
+            const bool play_audio = !build_mode && (audio_enabled || show_window);
+            return run_konami_tmnt_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR),
+                rom_zip, build_mode, show_window, frames, cycles, frame_out, play_audio,
+                jobs, force_rebuild);
+        }
+        if (board != "tmnt2")
+            throw std::runtime_error("Konami adapter requires --board=tmnt or --board=tmnt2");
+        std::vector<InputEvent> input_events;
+        for (const auto& spec : button_event_specs)
+            input_events.push_back(parse_konami_button_event(spec));
+        const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
+        return run_konami_tmnt2_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR),
+            game, rom_zip, build_mode, show_window, frames, cycles, frame_out, frame_sequence_dir,
+            frame_sequence_step, audio_enabled || show_window,
+            input_events, jobs, force_rebuild);
+    }
+    if (machine == "seibu") {
+        if (board != "toki") throw std::runtime_error("Seibu adapter requires --board=toki");
+        if (input_replay || nvram || dma_command_log || audio_pan_option_set)
+            throw std::runtime_error("Toki does not use input replay, NVRAM, DMA logging, or audio pan");
+        std::vector<InputEvent> toki_events;
+        for (const auto& spec : button_event_specs) toki_events.push_back(parse_toki_button_event(spec));
+        const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
+        return run_seibu_toki_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+            rom_zip, build_mode, show_window, frames, cycles, frame_out, audio_enabled || show_window,
+            toki_events, jobs, force_rebuild);
+    }
+    if (machine == "sony" || machine == "zn") {
+        const bool valid_zn1 = board == "zn1" && game == "bldyror2";
+        const bool valid_zn2 = board == "zn2" && game == "sfex2pa";
+        if (!valid_zn1 && !valid_zn2)
+            throw std::runtime_error("Sony ZN adapter currently supports --board=zn1 --game=bldyror2 or --board=zn2 --game=sfex2pa");
+        if (build_mode && psx_interpreter_only)
+            throw std::runtime_error("--psx-interpreter-only is only valid for run");
+        if (audio_pan_option_set || input_replay || dma_command_log)
+            throw std::runtime_error("ZN audio pan, input replay and DMA logging are not integrated yet");
+        std::vector<InputEvent> zn_events;
+        for (const auto& spec : button_event_specs)
+            zn_events.push_back(parse_zn_button_event(spec));
+        const bool show_window = window || (!headless && !frames && !cycles);
+        if (build_mode) {
+            if (!valid_zn2)
+                throw std::runtime_error("ZN-1 AOT recipe is not available yet");
+            const std::filesystem::path source_root(MAMERECOMP_SOURCE_DIR);
+            const auto build_root = source_root / "build";
+            const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
+                : source_root.parent_path() / "mame/roms" / (game + ".zip");
+            if (!std::filesystem::is_regular_file(rom_path))
+                throw std::runtime_error("ZN ROM ZIP not found: " + rom_path.string());
+            const auto generated = build_root / "generated/sony/zn2/sfex2pa";
+            std::cout << "Generating SFEX2PA QSound Z80 AOT from its ROMs.\n" << std::flush;
+            int status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE,
+                (source_root / "tools/psx/build_zn2_aot.py").string(),
+                "--rom", rom_path.string(), "--out", generated.string(),
+                "--python", MAMERECOMP_PYTHON_EXECUTABLE});
+            if (status != 0) return status;
+            status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DMAMERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
+            if (status != 0) return status;
+            status = run_child_process({"cmake", "--build", build_root.string(),
+                "--target", "mamerecomp_zn2_sfex2pa", "--parallel", jobs});
+            if (status != 0) return status;
+            const auto pc_list = generated / "sfex2pa_ram_pcs.txt";
+            const auto ram_snapshot = generated / "sfex2pa_ram_snapshot.bin";
+            std::cout << "Profiling executed R3000A game code before compiling its RAM overlay.\n" << std::flush;
+            status = run_child_process({"env",
+                "MAMERECOMP_PSX_AOT_PROFILE=" + pc_list.string(),
+                "MAMERECOMP_ZN_DUMP_RAM=" + ram_snapshot.string(),
+                (build_root / "mamerecomp").string(), "run",
+                "--machine=sony", "--board=zn2", "--game=sfex2pa", "--headless", "--frames=1620",
+                "--button-event=300:coin1:3", "--button-event=950:start1:5",
+                "--button-event=1205:p1_button1:5"});
+            if (status != 0) return status;
+            status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE,
+                (source_root / "tools/psx/build_zn2_aot.py").string(),
+                "--rom", rom_path.string(), "--out", generated.string(),
+                "--python", MAMERECOMP_PYTHON_EXECUTABLE,
+                "--ram-snapshot", ram_snapshot.string(), "--pc-list", pc_list.string()});
+            if (status != 0) return status;
+            status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DMAMERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
+            if (status != 0) return status;
+            return run_child_process({"cmake", "--build", build_root.string(),
+                "--target", "mamerecomp_zn2_sfex2pa", "--parallel", jobs});
+        }
+        if (psx_interpreter_only)
+            std::cout << "SFEX2PA R3000A mode: interpreter-only (Z80 AOT remains enabled).\n";
+        return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
+                              show_window, audio_enabled, zn_events, frames, cycles, frame_out,
+                              frame_sequence_dir, frame_sequence_step, "Sony",
+                              valid_zn1 ? "ZN-1" : "ZN-2", nvram,
+                              psx_interpreter_only);
+    }
+    if (machine == "namco" && board == "system12") {
+        if (build_mode)
+            throw std::runtime_error("System 12 game AOT generation is not integrated yet; use run for the interpreter runtime");
+        if (game != "tekken3")
+            throw std::runtime_error("Namco System 12 currently supports --game=tekken3");
+        if (audio_pan_option_set || input_replay || nvram || dma_command_log ||
+            !button_event_specs.empty())
+            throw std::runtime_error("System 12 audio pan, input replay and NVRAM options are not integrated yet");
+        const bool show_window = window || (!headless && !frames && !cycles);
+        return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
+                              show_window, audio_enabled, {}, frames, cycles, frame_out,
+                              frame_sequence_dir, frame_sequence_step, "Namco", "System 12", std::nullopt,
+                              false);
+    }
+    if (!button_event_specs.empty())
+        throw std::runtime_error("--button-event is currently supported for Konami games only");
     if (machine == "ki" && board == "seattle") {
+        if (audio_pan_option_set) throw std::runtime_error("--audio-pan is only supported for Sega games");
         if (game != "ki1" && game != "ki2")
             throw std::runtime_error("Seattle currently supports --game=ki1 or --game=ki2");
         if (build_mode && (window || frames || frame_out))
@@ -1446,17 +3275,105 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
                                    build_mode ? false : (window || (!headless && frames == 0)),
                                    frames, frame_out);
     }
-    if (machine != "cps" || board != "cps1")
-        throw std::runtime_error("CPS1 adapter requires --machine=cps --board=cps1");
+    if (machine == "sega" || machine == "system16" || machine == "system18") {
+        if (board != "system16a" && board != "system16b" && board != "system18")
+            throw std::runtime_error("Sega adapter requires --board=system16a, system16b, or system18");
+        if (audio_stereo_spread && !audio_enabled)
+            throw std::runtime_error("--audio-pan spread requires --audio");
+        return sega_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), board, game, rom_zip,
+                                    build_mode, jobs, force_rebuild, window, headless,
+                                    frames ? std::optional<std::uint64_t>(frames) : std::nullopt,
+                                    cycles, frame_out, audio_enabled, audio_stereo_spread,
+                                    audio_pan_option_set);
+    }
+    if (machine == "midway" || machine == "tunit") {
+        if (board != "tunit")
+            throw std::runtime_error("Midway T-Unit adapter requires --board=tunit");
+        if (audio_enabled || audio_pan_option_set)
+            throw std::runtime_error("T-Unit audio is enabled by its game runner; --audio options are not available");
+        return midway_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+                                      rom_zip, build_mode, jobs, force_rebuild,
+                                      window, headless, frames, cycles, frame_out,
+                                      input_replay, nvram, dma_command_log);
+    }
+    if (input_replay || nvram || dma_command_log)
+        throw std::runtime_error("--input-replay, --nvram, and --dma-command-log are only available for Midway T-Unit games");
+    if (audio_pan_option_set) throw std::runtime_error("--audio-pan is only supported for Sega games");
+    if (machine != "cps") throw std::runtime_error("CPS adapter requires --machine=cps");
+    if (board == "cps2") {
+        if (cycles || frame_out || audio_enabled)
+            throw std::runtime_error("CPS2 supports --frames and --headless; --cycles, --frame-out, and --audio are not available yet");
+        if (headless && !frames)
+            throw std::runtime_error("CPS2 --headless requires --frames <count>");
+        if (build_mode && (window || headless || frames))
+            throw std::runtime_error("--window, --headless, and --frames are run-only options");
+
+        const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
+        const auto work_dir = root / "build/cps2/work" / game;
+        const auto module = root / "build/cps2" / ("libmamerecomp_cps2_" + game + ".so");
+        const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
+            : root.parent_path() / "mame/roms" / (game + ".zip");
+        if (!std::filesystem::is_regular_file(rom_path))
+            throw std::runtime_error("CPS2 ROM ZIP not found: " + rom_path.string());
+
+        if (build_mode) {
+            std::vector<std::string> build_command{
+                MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+                "--system", "cps2", "--game", game, "--jobs", jobs,
+                "--rom-dir", rom_path.string()
+            };
+            if (force_rebuild) build_command.emplace_back("--rebuild");
+            std::cout << (force_rebuild ? "Forcing CPS2 rebuild.\n"
+                                        : "Building CPS2 game through the CPS2Recomp backend.\n") << std::flush;
+            return run_child_process(build_command);
+        }
+
+        if (!std::filesystem::is_regular_file(module)) {
+            throw std::runtime_error("CPS2 board module is missing; run `mamerecomp build --machine=cps --board=cps2 --game="
+                + game + "` first");
+        }
+        std::vector<std::string> run_arguments{
+            "mamerecomp-cps2-" + game, "--rom", rom_path.string(),
+            "--eeprom", (work_dir / "eeprom.bin").string(),
+            "--settings", (work_dir / "settings.ini").string(),
+            "--record-entries", (work_dir / "entries.txt").string(),
+            "--cpu", "native"
+        };
+        if (headless) run_arguments.emplace_back("--headless");
+        if (frames) {
+            run_arguments.emplace_back("--frames");
+            run_arguments.push_back(std::to_string(frames));
+        }
+        std::vector<char*> argv;
+        argv.reserve(run_arguments.size());
+        for (auto& argument : run_arguments) argv.push_back(argument.data());
+
+#if defined(__unix__) || defined(__APPLE__)
+        void* handle = dlopen(module.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (!handle) throw std::runtime_error("could not load CPS2 module " + module.string() + ": " + dlerror());
+        dlerror();
+        using Cps2RunFn = int (*)(int, char**);
+        const std::string entry_name = "mamerecomp_cps2_" + game + "_run";
+        auto run = reinterpret_cast<Cps2RunFn>(dlsym(handle, entry_name.c_str()));
+        const char* symbol_error = dlerror();
+        if (symbol_error || !run) {
+            dlclose(handle);
+            throw std::runtime_error("CPS2 module entry point is missing: "
+                + std::string(symbol_error ? symbol_error : "unknown dynamic loader error"));
+        }
+        std::cout << "Launching " << game << " on cps/cps2 board module.\n" << std::flush;
+        const int status = run(static_cast<int>(argv.size()), argv.data());
+        dlclose(handle);
+        return status;
+#else
+        throw std::runtime_error("CPS2 board modules currently require a POSIX dynamic loader");
+#endif
+    }
+    if (board != "cps1")
+        throw std::runtime_error("CPS adapter requires --board=cps1 or --board=cps2");
     if (game != "sf2ce" && game != "dino")
         throw std::runtime_error("CPS1 adapter currently supports only --game=sf2ce or --game=dino");
 
-#ifndef MAMERECOMP_SOURCE_DIR
-#define MAMERECOMP_SOURCE_DIR "."
-#endif
-#ifndef MAMERECOMP_PYTHON_EXECUTABLE
-#define MAMERECOMP_PYTHON_EXECUTABLE "python3"
-#endif
     const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
     const auto work_dir = root / "build/cps1/work" / game;
     const auto build_dir = root / "build/cps1/mamerecomp-host";
@@ -1534,7 +3451,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         (work_dir / "z80_program.bin").string(), (work_dir / "z80_banked.bin").string(),
         (work_dir / "z80_misses.txt").string(), (work_dir / "z80_fallbacks.log").string(),
         (generated_roms / "gfx.bin").string(), (work_dir / "live-frame.ppm").string(),
-        "--window", "--oki", (generated_roms / "oki.bin").string(),
+        "--window",
         "--m68k-ram-entries", (work_dir / "m68k_ram_entries.txt").string(),
         "--gfxram-snapshot", (work_dir / "m68k_gfxram_snapshot.bin").string()
     };
@@ -1543,6 +3460,9 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         run_command.push_back((generated_roms / "audiocpu.bin").string());
         run_command.emplace_back("--qsound-samples");
         run_command.push_back((generated_roms / "qsound.bin").string());
+    } else {
+        run_command.emplace_back("--oki");
+        run_command.push_back((generated_roms / "oki.bin").string());
     }
     std::cout << "Launching " << game << " on " << machine << '/' << board << ".\n" << std::flush;
     return run_child_process(run_command);
@@ -1575,6 +3495,10 @@ int main(int argc, char** argv) {
             return machine_game_command(argc, argv, true);
         if (argc >= 2 && std::string_view(argv[1]) == "run")
             return machine_game_command(argc, argv, false);
+        if (argc >= 2 && std::string_view(argv[1]) == "run-full") {
+            std::cerr << "run-full is retired; use `mamerecomp run --machine=sega --board=<system16a|system16b|system18> --game=<profile>` instead.\n";
+            return 2;
+        }
         if (argc >= 2 && std::string_view(argv[1]) == "inspect-naomi-roms") {
             if (argc != 4) {
                 print_usage(argv[0]);
@@ -1988,7 +3912,9 @@ int main(int argc, char** argv) {
         if (command == "translate-full") {
             std::filesystem::path output_dir = std::filesystem::path("build") / "generated" / std::string(profile.id);
             std::vector<std::uint32_t> additional_entries;
-            std::size_t output_files = 1;
+            // Keep generated C translation units small enough to reduce peak
+            // compiler memory for large AOT translations.
+            std::size_t output_files = 16;
             for (int i = 4; i < argc; ++i) {
                 const std::string_view option(argv[i]);
                 if (option == "--out" && i + 1 < argc) {

@@ -76,8 +76,10 @@ struct System16APresenter::Impl {
             throw std::runtime_error(std::string("SDL video init failed: ") + SDL_GetError());
         window = SDL_CreateWindow(title.c_str(), 960, 672, SDL_WINDOW_RESIZABLE);
         if (!window) { SDL_QuitSubSystem(SDL_INIT_VIDEO); throw std::runtime_error(std::string("SDL window creation failed: ") + SDL_GetError()); }
-        renderer = SDL_CreateRenderer(window, nullptr);
+        renderer = SDL_CreateRenderer(window, "software");
         if (!renderer) { SDL_DestroyWindow(window); SDL_QuitSubSystem(SDL_INIT_VIDEO); throw std::runtime_error(std::string("SDL renderer creation failed: ") + SDL_GetError()); }
+        SDL_Log("MameRecomp System16 SDL video renderer: %s",
+            SDL_GetRendererName(renderer) ? SDL_GetRendererName(renderer) : "unknown");
         SDL_SetRenderVSync(renderer, 1);
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING,
             System16AFrame::width, System16AFrame::height);
@@ -364,6 +366,14 @@ bool System16APresenter::present(const System16AFrame& frame, std::span<const st
     destination.x = (output_w - destination.w) * 0.5f;
     destination.y = (output_h - destination.h) * 0.5f;
     SDL_RenderTexture(impl_->renderer, impl_->texture, nullptr, &destination);
+    // Host-side proof of concept: this label is drawn after the emulated frame,
+    // so it never changes guest video memory or captured frame output.
+    const float label_x = destination.x + 8.0f * scale;
+    const float label_y = destination.y + 8.0f * scale;
+    SDL_SetRenderDrawColor(impl_->renderer, 0, 0, 0, 255);
+    SDL_RenderDebugText(impl_->renderer, label_x + 1.0f, label_y + 1.0f, "Native Edition");
+    SDL_SetRenderDrawColor(impl_->renderer, 120, 230, 255, 255);
+    SDL_RenderDebugText(impl_->renderer, label_x, label_y, "Native Edition");
     SDL_RenderPresent(impl_->renderer);
     constexpr auto frame_duration = std::chrono::nanoseconds(1'000'000'000 / 60);
     impl_->next_frame += frame_duration;

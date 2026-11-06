@@ -141,9 +141,14 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
         z80_misses = work / "z80_misses.txt"
         z80_fallbacks = work / "z80_fallbacks.log"
         for round_index in range(4):
+            # Keep generated C translation units small enough for cc1 on large
+            # CPS-1 ROMs (notably dino), independently of compile parallelism.
+            # `jobs` limits concurrent compiler processes; it must not also
+            # force a giant number of instructions into each source file.
+            m68k_source_files = max(8, jobs * 4)
             command = [str(build / "m68krecomp"), "--raw", str(program_path), "--base", "0",
                        "--entry", hex(initial_pc), "--prefix", game, "--out", str(m68k_gen),
-                       "--files", str(jobs), "--board", "cps1"]
+                       "--files", str(m68k_source_files), "--board", "cps1"]
             if dynamic_entries.exists():
                 command.extend(["--entries", str(dynamic_entries)])
             ram_roots = [line.strip() for line in ram_entries.read_text().splitlines()

@@ -37,6 +37,9 @@ System18Sound::System18Sound(std::span<const std::uint8_t> sound_region, bool au
     m_cpu.Reset();
     m_ym0.reset();
     m_ym1.reset();
+    m_z80_bus.SetInstructionBoundary([this](std::uint64_t cycles) {
+        synchronize_audio(cycles);
+    });
     if (!audio_output) return;
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
@@ -138,10 +141,7 @@ void System18Sound::port_write(std::uint8_t port, std::uint8_t value) {
 
 void System18Sound::advance_to_main_cycles(std::uint64_t main_cycles) {
     const std::uint64_t target = main_cycles * kZ80Clock / kMainClock;
-    while (m_cpu.cycles < target) {
-        m_cpu.cycles += m_cpu.Step();
-        synchronize_audio(m_cpu.cycles);
-    }
+    m_cpu.Run(target, z80::Z80::Mode::Native);
     synchronize_audio(target);
 }
 

@@ -148,8 +148,7 @@ struct LiveWindow {
                                   SDL_WINDOW_RESIZABLE);
         if (!window)
             throw std::runtime_error(std::string("SDL window failed: ") + SDL_GetError());
-        renderer = SDL_CreateRenderer(window, nullptr);
-        if (!renderer) renderer = SDL_CreateRenderer(window, "software");
+        renderer = SDL_CreateRenderer(window, "software");
         if (!renderer)
             throw std::runtime_error(std::string("SDL renderer failed: ") + SDL_GetError());
         // The machine loop owns frame pacing. Do not let SDL's renderer add a

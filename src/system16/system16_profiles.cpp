@@ -4,9 +4,9 @@
 #include <algorithm>
 namespace mamerecomp {
 namespace {
-const std::array<GameProfile, 6> profiles{{
+const std::array<GameProfile, 7> profiles{{
     romsets::shinobi(), romsets::shinobi5(), romsets::goldnaxe(), romsets::goldnaxeud(), romsets::shdancer(),
-    romsets::mwalkd()
+    romsets::mwalkd(), romsets::eswat()
 }};
 }
 std::span<const GameProfile> game_profiles() { return profiles; }

@@ -3,10 +3,13 @@
 #include <string.h>
 
 static const M68kRecompBoardProfile s_profiles[] = {
-    /* Raw images default to direct control-flow discovery. */
-    {"generic", 0, 0},
+    /* Match the upstream raw-image frontend's pointer and indirect scans. */
+    {"generic", 1, 1},
     /* CPS-1 entry discovery is completed by observed runtime PCs. */
     {"cps1", 0, 0},
+    /* CPS-2 decrypted program images use runtime roots plus tracked jump tables;
+     * whole-ROM pointer scanning is too broad for encrypted/data-heavy regions. */
+    {"cps2", 0, 1},
     /* The imported Neo Geo flow relies on pointer and jump-table inference. */
     {"neogeo", 1, 1},
 };

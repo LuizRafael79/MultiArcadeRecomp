@@ -45,6 +45,10 @@ System16ASound::System16ASound(std::span<const std::uint8_t> sound_rom,
 
     m_cpu.Reset();
     m_ym2151.reset();
+    m_z80_bus.SetInstructionBoundary([this](std::uint64_t cycles) {
+        advance_upd7751_to_sound_cycles(cycles);
+        synchronize_ym2151(cycles);
+    });
 
     Mcs48::Bus upd_bus;
     upd_bus.read_bus = [this]() { return upd7751_bus_read(); };
@@ -160,12 +164,11 @@ void System16ASound::port_write(std::uint8_t port, std::uint8_t value) {
 
 void System16ASound::advance_to_main_cycles(std::uint64_t main_cycles) {
     const auto target = main_cycles_to_sound_cycles(main_cycles);
-    while (m_cpu.cycles < target) {
-        m_cpu.cycles += m_cpu.Step();
-        ++m_z80_instructions;
-        advance_upd7751_to_sound_cycles(m_cpu.cycles);
-        synchronize_ym2151(m_cpu.cycles);
-    }
+    const auto native_before = m_cpu.nativeInstructions;
+    const auto interpreted_before = m_cpu.interpreted;
+    m_cpu.Run(target, z80::Z80::Mode::Native);
+    m_z80_instructions += (m_cpu.nativeInstructions - native_before) + (m_cpu.interpreted - interpreted_before);
+    advance_upd7751_to_sound_cycles(m_cpu.cycles);
     advance_upd7751_to_sound_cycles(target);
     synchronize_ym2151(target);
 }

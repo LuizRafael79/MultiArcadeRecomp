@@ -50,7 +50,12 @@ int window_open(const char *title, int scale) {
     }
     s_win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                              NG_SCREEN_W * scale, NG_SCREEN_H * scale, SDL_WINDOW_RESIZABLE);
-    s_ren = SDL_CreateRenderer(s_win, -1, SDL_RENDERER_ACCELERATED);
+    s_ren = SDL_CreateRenderer(s_win, -1, SDL_RENDERER_SOFTWARE);
+    if (s_ren) {
+        SDL_RendererInfo info;
+        if (SDL_GetRendererInfo(s_ren, &info) == 0)
+            fprintf(stderr, "MameRecomp NeoGeo SDL video renderer: %s\n", info.name);
+    }
     SDL_RenderSetLogicalSize(s_ren, NG_SCREEN_W, NG_SCREEN_H);
     s_tex = SDL_CreateTexture(s_ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                               NG_SCREEN_W, NG_SCREEN_H);

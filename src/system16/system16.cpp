@@ -151,6 +151,7 @@ std::unordered_map<std::string, std::vector<std::uint8_t>> read_zip_entries(
             collect_aliases(sibling.upd7751_roms);
             collect_aliases(sibling.upd7751_data_roms);
             collect_aliases(sibling.mcu_roms);
+            collect_aliases(sibling.fd1094_key_roms);
         }
     }
     auto contents = read_one_zip(zip_path, requested, family_aliases);
@@ -299,6 +300,13 @@ std::vector<std::uint8_t> load_mcu_roms(const GameProfile& profile, const std::f
     if (profile.mcu_region_size == 0 || profile.mcu_roms.empty())
         throw std::runtime_error("game profile has no MCU ROM layout");
     return load_rom_region(zip_path, profile.parent_id, profile.id, profile.mcu_region_size, profile.mcu_roms);
+}
+
+std::vector<std::uint8_t> load_fd1094_key_roms(const GameProfile& profile, const std::filesystem::path& zip_path) {
+    if (profile.fd1094_key_region_size != 0x2000 || profile.fd1094_key_roms.empty())
+        throw std::runtime_error("game profile has no complete FD1094 key ROM layout");
+    return load_rom_region(zip_path, profile.parent_id, profile.id,
+        profile.fd1094_key_region_size, profile.fd1094_key_roms);
 }
 
 } // namespace mamerecomp

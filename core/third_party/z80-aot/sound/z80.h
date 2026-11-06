@@ -23,6 +23,9 @@ struct Z80Bus {
     virtual uint8_t ReadOpcode(uint16_t address) {
         return Read(address);
     }
+    // Interrupt acknowledge bus value, used by IM 0 boards with a daisy-chain
+    // or custom sound controller. 0xff preserves the usual RST 38h behavior.
+    virtual uint8_t InterruptAcknowledge() { return 0xff; }
     virtual void Write(uint16_t address, uint8_t value) = 0;
     virtual uint8_t In(uint16_t port) {
         return 0xFF;
@@ -45,9 +48,11 @@ struct Z80Bus {
         return true;
     }
     virtual void SetMapping(uint32_t mapping) {}
+    virtual void InstructionBoundary(uint64_t cycles) { (void)cycles; }
 };
 
 class Z80;
+struct Z80InstructionBoundary;
 // A translated routine of the sound driver (runtime/native_z80.h)
 using Z80Fn = void (*)(Z80 &);
 
@@ -77,8 +82,12 @@ public:
     unsigned Step();
     // Runs until `cycles` reaches `until` (a little past it: to the end of the instruction or block)
     void Run(uint64_t until, Mode mode);
+    Z80InstructionBoundary InstructionBoundary(uint32_t instruction_cycles);
+    void YieldForPendingInterrupt() {
+        if (m_nmi || (m_interrupt && iff1 && !m_afterEI)) budget = cycles;
+    }
     // Guest timestamp visible to device callbacks during an interpreted instruction.
-    uint64_t BusCallbackCycles() const { return cycles + m_cycles; }
+    uint64_t BusCallbackCycles() const { return cycles + m_cycles + nativeCallbackCycleOffset; }
     // Port I/O instructions used by the Neo Geo sound driver.
     void InputImmediate(uint8_t port);
     void OutputImmediate(uint8_t port);
@@ -114,6 +123,9 @@ public:
     std::vector<uint16_t> newEntries;
     uint64_t interpreted = 0; // (for --stats)
     uint64_t nativeBlocks = 0;
+    uint64_t nativeInstructions = 0;
+    uint64_t nmiServiced = 0;
+    uint32_t nativeCallbackCycleOffset = 0;
 
     // --- what instructions are made of, shared by the interpreter and translated code ---
 
@@ -214,5 +226,20 @@ private:
     void ExecuteCB(unsigned prefix);
     void ExecuteED();
 };
+
+struct Z80InstructionBoundary {
+    Z80& cpu;
+    explicit Z80InstructionBoundary(Z80& owner, uint32_t instruction_cycles)
+        : cpu(owner) { cpu.nativeCallbackCycleOffset = instruction_cycles; }
+    ~Z80InstructionBoundary() {
+        cpu.bus.InstructionBoundary(cpu.cycles);
+        cpu.nativeCallbackCycleOffset = 0;
+        cpu.YieldForPendingInterrupt();
+    }
+};
+
+inline Z80InstructionBoundary Z80::InstructionBoundary(uint32_t instruction_cycles) {
+    return Z80InstructionBoundary(*this, instruction_cycles);
+}
 
 } // namespace mamerecomp::z80

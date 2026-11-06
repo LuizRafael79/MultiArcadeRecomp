@@ -16,6 +16,91 @@ frozen at its current KOF98 prototype. CPS-1 and CPS-2 share CPU recompiler
 work where it fits, but each board and its audio/video devices have separate
 runtime profiles.
 
+### CPS-2 / per-game module checkpoint (2026-11-04)
+
+The public command now accepts `mamerecomp build/run --machine=cps
+--board=cps2 --game=sfa3`; the build delegates to the external CPS2Recomp
+checkout and the run launches its standalone executable. SFA3 was built from
+`/home/luiz/git/mame/roms/sfa3.zip` and the public headless command completed
+120 frames. CPS2Recomp's `check-blocks` also completed a 120-frame comparison
+of translated M68K and Z80 blocks against its interpreter.
+
+The shared local M68K generator was compared against CPS2Recomp's SFA3 output.
+With the `cps2` board profile it covered 106,850 of 106,946 CPS2Recomp
+instruction PCs, while also emitting about 21.5K additional dispatch PCs and
+more duplicated routine instructions. This is promising coverage, not yet
+proof of equivalent game execution: the local output has not been connected
+to the CPS-2 runner and validated through boot/gameplay. In the matched Z80
+comparison, the local generator covered all 349 CPS2Recomp instruction
+addresses and emitted three additional boundaries for precise cycle yielding.
+
+SFA3, SFZ2A and SFZ2AL now build as separate loaded board modules through
+`mamerecomp build --machine=cps --board=cps2 --game=<game>`, and run in-process
+through the same host entry point. Each game has its own build/work tree and
+`.so`; shared CPS-2 runtime and game-family sources are reused. `sfz2a` is a
+local profile that shares SFA2 gameplay sources, while `sfz2al` uses the
+upstream profile. MAME identifies `sfz2a` as Street Fighter Zero 2 (Asia
+960227) and `sfz2al` as Street Fighter Zero 2 Alpha (Asia 960826), so they are
+distinct sets rather than duplicate region labels. The upstream SDL frontend
+and F1 menu remain available.
+
+HSF2 (Hyper Street Fighter II: The Anniversary Edition, USA 040202) now uses
+the recipe added to the current CPS2Recomp checkout. MAME verifies the local
+`hsf2.zip` set and its key CRC `fc9b18c9`; this is HSF2, not Super Street
+Fighter II Turbo. The MameRecomp module includes the shared CPS2 board runtime
+and generated program-ROM AOT, while `runtime/no_game.cpp` registers no
+CPS2Recomp game-specific rewrites or modes. The generator reported 115,646
+68000 instructions in 80 C++ units and 1,358 Z80 instructions. The resulting
+`libmamerecomp_cps2_hsf2.so` is 15,714,264 bytes. A headless 1,800-frame run
+completed: 68000 AOT 42,140,651 / fallback 4,804,835; Z80 AOT 34,512,997 /
+fallback 196,061. The extra entries found during the run were saved to HSF2's
+own work tree. This validates execution for that run length, not full-game
+playability or visual/audio parity.
+
+The current external CPS2Recomp checkout is at `b51892d` (already up to date
+after the user's pull). Comparison with the previous local checkout showed no
+changes to its core M68K/Z80 generator or interpreter files; recent changes
+are concentrated in runtime/build plumbing and game profiles, including HSF2.
+Thus the updated HSF2 recipe is being used, but there is no evidence in this
+update that the underlying CPU recompilers became more mature.
+
+Headless 1,800-frame runs completed for both new sets. The first SFZ2A run
+logged opcode `0xffe4` at odd PC `0x001991`. MAME's ROM declaration confirms
+all configured ROM CRCs and key CRC `777b7358`; MAME reports the set as good
+and its driver as good. The cause was an SFA2 `FrameRegisters` rewrite attached
+at SFA2 address `0x13CE`, where SFZ2A has an unrelated `moveq`; the matching
+SFZ2A routine begins at `0x13D2`. `--check-rewrites` exposed the mismatch in
+all 199,363 calls. SFZ2A's profile now excludes only the shared `input.cpp`
+rewrite and runs the original ROM routine through AOT. A fresh 1,800-frame
+MameRecomp run completed without the illegal-opcode message: 48.94M native
+68000 instructions, 29K fallback; 32.82M native Z80 instructions, 229K
+fallback. This confirms the immediate boot-loop cause, not full gameplay
+parity. The per-game `family.h` mapping is still a follow-up: CPS2Recomp's
+`kPlaces` maps code/data addresses shared by source files, while opcode
+decoding lives in `tools/m68k.py` and discovery/emission in `tools/recomp.py`.
+
+SFZ2AL's 1,800-frame run reached about 43.83M native and 4.48M fallback
+68000 instructions, plus 32.81M native and 233K fallback Z80 instructions.
+It collected additional dynamic entries during the run, so another build can
+improve static coverage. All instruction totals are runtime counters, not
+proof of full gameplay parity.
+
+The upstream runtime already supplies `Machine`, the 68000 bus/map and frame
+timing, Z80/QSound, video, EEPROM, ROM loading/decryption and interrupt
+wiring. It currently runs with CPS2Recomp's own M68K and Z80 AOT runtimes and
+generators. Although the local M68K and Z80 generators compare competitively
+in static coverage, neither is connected to this runtime's state/dispatch ABI
+yet. Adapting and validating the shared local 68000 generator is still open;
+do not claim the cross-board CPU-sharing goal is met for CPS2 until then.
+
+The runtime is not wholesale MAME code. CPS2Recomp marks most machine/board
+code GPL-3.0-only and credits MAME-derived portions such as the CPS-2 cipher
+and QSound rewrite under BSD-3-Clause. This repository's top-level license is
+GPL-2.0-only, so the combined module must not be treated as distributable
+under the current license. The user has authorized local integration and will
+provide a license; preserve upstream attribution and resolve the final license
+before redistribution. Details are in [tools/cps2/UPSTREAM.md](tools/cps2/UPSTREAM.md).
+
 Cadillacs and Dinosaurs (`dino`) is a CPS-1 board with QSound and a Kabuki
 encrypted sound Z80. Its sound-ROM extraction, Kabuki opcode view, and native
 Z80 generation are now handled by the local CPS1 build path; the old CPS2Recomp

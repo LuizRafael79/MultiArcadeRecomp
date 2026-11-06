@@ -173,10 +173,13 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) throw std::runtime_error(SDL_GetError());
         display = SDL_CreateWindow(game.title, 960, 720, 0);
         if (!display) throw std::runtime_error(SDL_GetError());
-        renderer = SDL_CreateRenderer(display, nullptr);
+        renderer = SDL_CreateRenderer(display, "software");
+        if (!renderer) throw std::runtime_error(SDL_GetError());
+        SDL_Log("MameRecomp KI SDL video renderer: %s",
+                SDL_GetRendererName(renderer) ? SDL_GetRendererName(renderer) : "unknown");
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24,
                                     SDL_TEXTUREACCESS_STREAMING, 320, 240);
-        if (!renderer || !texture) throw std::runtime_error(SDL_GetError());
+        if (!texture) throw std::runtime_error(SDL_GetError());
         SDL_AudioSpec audio_spec{SDL_AUDIO_S16, 1, 31250};
         audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
                                           &audio_spec, nullptr, nullptr);

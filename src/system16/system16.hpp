@@ -58,6 +58,8 @@ struct GameProfile {
     std::string_view parent_id{};
     std::uint8_t soundcpu_fill = 0;
     System18RomBoard system18_rom_board = System18RomBoard::ShadowDancer171;
+    std::uint32_t fd1094_key_region_size = 0;
+    std::span<const RomRegionLoad> fd1094_key_roms{};
 };
 
 struct System16GraphicsRoms {
@@ -78,6 +80,7 @@ System16GraphicsRoms load_graphics_roms(const GameProfile& profile, const std::f
 System16ASoundRoms load_system16a_sound_roms(const GameProfile& profile, const std::filesystem::path& zip_path);
 std::vector<std::uint8_t> load_soundcpu_roms(const GameProfile& profile, const std::filesystem::path& zip_path);
 std::vector<std::uint8_t> load_mcu_roms(const GameProfile& profile, const std::filesystem::path& zip_path);
+std::vector<std::uint8_t> load_fd1094_key_roms(const GameProfile& profile, const std::filesystem::path& zip_path);
 const char* board_family_name(BoardFamily family);
 
 } // namespace mamerecomp

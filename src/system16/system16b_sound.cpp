@@ -14,16 +14,6 @@ namespace {
 constexpr std::uint32_t kYmClock = 4'000'000;
 constexpr std::uint32_t kYmClocksPerSample = 64;
 constexpr std::size_t kFlushSamples = 256;
-constexpr int kUpdStep[16][16] = {
- {0,0,1,2,3,5,7,10,0,0,-1,-2,-3,-5,-7,-10},{0,1,2,3,4,6,8,13,0,-1,-2,-3,-4,-6,-8,-13},
- {0,1,2,4,5,7,10,15,0,-1,-2,-4,-5,-7,-10,-15},{0,1,3,4,6,9,13,19,0,-1,-3,-4,-6,-9,-13,-19},
- {0,2,3,5,8,11,15,23,0,-2,-3,-5,-8,-11,-15,-23},{0,2,4,7,10,14,19,29,0,-2,-4,-7,-10,-14,-19,-29},
- {0,3,5,8,12,16,22,33,0,-3,-5,-8,-12,-16,-22,-33},{1,4,7,10,15,20,29,43,-1,-4,-7,-10,-15,-20,-29,-43},
- {1,4,8,13,18,25,35,53,-1,-4,-8,-13,-18,-25,-35,-53},{1,6,10,16,22,31,43,64,-1,-6,-10,-16,-22,-31,-43,-64},
- {2,7,12,19,27,37,51,76,-2,-7,-12,-19,-27,-37,-51,-76},{2,9,16,24,34,46,64,96,-2,-9,-16,-24,-34,-46,-64,-96},
- {3,11,19,29,41,57,79,117,-3,-11,-19,-29,-41,-57,-79,-117},{4,13,24,36,50,69,96,143,-4,-13,-24,-36,-50,-69,-96,-143},
- {4,16,29,44,62,85,118,175,-4,-16,-29,-44,-62,-85,-118,-175},{6,20,36,54,76,104,144,214,-6,-20,-36,-54,-76,-104,-144,-214}};
-constexpr int kUpdStateDelta[16] = {-1,-1,0,0,1,2,2,3,-1,-1,0,0,1,2,2,3};
 std::uint64_t main_to_z80(std::uint64_t c) { return c / 2; }
 std::uint64_t z80_to_ym(std::uint64_t c) { return (c / 5) * 4 + (c % 5) * 4 / 5; }
 }
@@ -40,6 +30,10 @@ System16BSound::System16BSound(std::span<const std::uint8_t> region, bool output
     if (m_rom.size() < 0x18000) throw std::invalid_argument("System 16B sound ROM region is too small for fixed and banked ROM");
     m_cpu.Reset();
     m_ym2151.reset();
+    m_upd7759.set_request_callback([this] { m_cpu.RaiseNmi(); ++m_upd_nmi_edges; });
+    m_z80_bus.SetInstructionBoundary([this](std::uint64_t cycles) {
+        synchronize_ym2151(z80_to_ym(cycles));
+    });
     if (!output) return;
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) throw std::runtime_error(std::string("SDL audio init failed: ") + SDL_GetError());
@@ -75,7 +69,7 @@ std::uint8_t System16BSound::memory_read(std::uint16_t a) {
 void System16BSound::memory_write(std::uint16_t a, std::uint8_t v) { if (a >= 0xf800) m_ram[a - 0xf800] = v; }
 std::uint8_t System16BSound::port_read(std::uint8_t p) {
     if ((p & 0xc0) == 0) { synchronize_ym2151(z80_to_ym(m_cpu.BusCallbackCycles())); return (p & 1) ? m_ym2151.read(1) : 0xff; }
-    if ((p & 0xc0) == 0x80) return m_upd_state == UpdState::Idle ? 0x80 : 0;
+    if ((p & 0xc0) == 0x80) return m_upd7759.idle() ? 0x80 : 0;
     if ((p & 0xc0) == 0xc0) return m_sound_latch;
     return 0xff;
 }
@@ -112,30 +106,24 @@ void System16BSound::port_write(std::uint8_t p, std::uint8_t v) {
         const bool old_md = m_md;
         m_md = (v & 0x80) == 0;
         const bool released = (v & 0x40) != 0;
-        if (m_upd_reset_released && !released) {
-            m_upd_state = UpdState::Idle; m_upd_drq = false; m_upd_clocks_left = 0;
-            m_upd_sample = 0; m_upd_adpcm_state = 0; m_upd_first_valid_header = false;
-        }
-        if (m_upd_state == UpdState::Idle && released && old_md && !m_md) {
-            m_upd_state = UpdState::Start;
-            m_upd_clocks_left = 1;
-        }
+        if (m_upd_reset_released && !released) m_upd7759.reset();
+        if (m_upd7759.idle() && released && old_md && !m_md) m_upd7759.start();
         m_upd_reset_released = released;
     } else if (page == 0x80) {
-        // The uPD7759 FIFO endpoint is captured here; its DRQ/NMI sequencer is
-        // a separate device implementation, not an YM register alias.
+        // Supply the shared uPD7759 FIFO port; its DRQ requests raise the Z80 NMI.
         m_upd7759_fifo = v;
+        m_upd7759.write_port(v);
         ++m_upd7759_writes;
     }
 }
 void System16BSound::advance_to_main_cycles(std::uint64_t c) {
     const auto target = main_to_z80(c);
-    while (m_cpu.cycles < target) {
-        if (m_cpu.NmiPending()) ++m_z80_nmi_serviced;
-        m_cpu.cycles += m_cpu.Step();
-        ++m_z80_instructions;
-        synchronize_ym2151(z80_to_ym(m_cpu.cycles));
-    }
+    const auto native_before = m_cpu.nativeInstructions;
+    const auto interpreted_before = m_cpu.interpreted;
+    const auto nmi_before = m_cpu.nmiServiced;
+    m_cpu.Run(target, z80::Z80::Mode::Native);
+    m_z80_instructions += (m_cpu.nativeInstructions - native_before) + (m_cpu.interpreted - interpreted_before);
+    m_z80_nmi_serviced += m_cpu.nmiServiced - nmi_before;
     synchronize_ym2151(z80_to_ym(target));
 }
 void System16BSound::write_sound_latch(std::uint8_t v) { m_sound_latch = v; m_cpu.RaiseInterrupt(); }
@@ -148,10 +136,10 @@ void System16BSound::synchronize_ym2151(std::uint64_t target) {
         // uPD7759 runs at 640 kHz and updates its ADPCM output every four clocks.
         // One YM output sample represents 10.24 uPD clocks; retain the fraction.
         m_upd_clock_fraction += 256;
-        while (m_upd_clock_fraction >= 25) { m_upd_clock_fraction -= 25; advance_upd7759_clock(); }
+        while (m_upd_clock_fraction >= 25) { m_upd_clock_fraction -= 25; m_upd7759.advance(1); }
         ymfm::ym2151::output_data o{}; m_ym2151.generate(&o, 1); o.clamp16();
         // Golden Axe's System16B mix routes YM2151 outputs at 0.43.
-        const int upd_pcm = int(m_upd_sample) * 128 * 48 / 100;
+        const int upd_pcm = m_upd7759.pcm_sample() * 48 / 100;
         const auto l = static_cast<std::int16_t>(std::clamp(o.data[0] * 43 / 100 + upd_pcm, -32768, 32767));
         const auto r = static_cast<std::int16_t>(std::clamp(o.data[1] * 43 / 100 + upd_pcm, -32768, 32767));
         m_audio_peak = std::max<std::uint16_t>(m_audio_peak, static_cast<std::uint16_t>(std::max(std::abs(int(l)), std::abs(int(r)))));
@@ -159,84 +147,6 @@ void System16BSound::synchronize_ym2151(std::uint64_t target) {
         ++m_audio_samples;
     }
     m_ym_clock = target;
-}
-void System16BSound::request_upd7759_byte() {
-    m_upd_drq = true;
-    m_cpu.RaiseNmi();
-    ++m_upd_nmi_edges;
-}
-void System16BSound::update_upd7759_adpcm(std::uint8_t nibble) {
-    static constexpr std::uint8_t index[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-    m_upd_sample = static_cast<std::int16_t>(m_upd_sample + kUpdStep[m_upd_adpcm_state][nibble & 15]);
-    const int state = std::clamp(int(m_upd_adpcm_state) + kUpdStateDelta[index[nibble & 15]], 0, 15);
-    m_upd_adpcm_state = static_cast<std::uint8_t>(state);
-}
-void System16BSound::advance_upd7759_clock() {
-    if (m_upd_state == UpdState::Idle) return;
-    if (m_upd_clocks_left) {
-        if (--m_upd_clocks_left) return;
-    }
-    if (m_upd_drq) {
-        m_upd_drq = false;
-        m_upd_clocks_left = m_upd_post_clocks;
-        m_upd_state = m_upd_post_state;
-        return;
-    }
-    auto request = [&](UpdState state, std::uint32_t clocks) {
-        m_upd_post_state = state;
-        m_upd_post_clocks = clocks > 21 ? clocks - 21 : 0;
-        m_upd_state = state;
-        m_upd_clocks_left = 21;
-        request_upd7759_byte();
-    };
-    switch (m_upd_state) {
-    case UpdState::Idle: return;
-    case UpdState::Start:
-        m_upd_req_sample = 0x10;
-        m_upd_state = UpdState::FirstRequest;
-        m_upd_clocks_left = 70;
-        break;
-    case UpdState::FirstRequest: request(UpdState::LastSample, 44); break;
-    case UpdState::LastSample:
-        m_upd_last_sample = m_upd7759_fifo;
-        request(m_upd_req_sample > m_upd_last_sample ? UpdState::Idle : UpdState::Dummy1, 28); break;
-    case UpdState::Dummy1: request(UpdState::AddressMsb, 32); break;
-    case UpdState::AddressMsb: m_upd_offset = std::uint32_t(m_upd7759_fifo) << 9; request(UpdState::AddressLsb, 44); break;
-    case UpdState::AddressLsb: m_upd_offset |= std::uint32_t(m_upd7759_fifo) << 1; request(UpdState::Dummy2, 36); break;
-    case UpdState::Dummy2:
-        ++m_upd_offset;
-        m_upd_first_valid_header = false;
-        request(UpdState::Header, 36);
-        break;
-    case UpdState::Header:
-        if (m_upd_repeat_count) { --m_upd_repeat_count; m_upd_offset = m_upd_repeat_offset; }
-        m_upd_header = m_upd7759_fifo;
-        switch (m_upd_header & 0xc0) {
-        case 0x00: {
-            m_upd_sample = 0;
-            m_upd_adpcm_state = 0;
-            const bool end_marker = m_upd_header == 0 && m_upd_first_valid_header;
-            const auto next_state = end_marker ? UpdState::Idle : UpdState::Header;
-            request(next_state, 1024U * ((m_upd_header & 0x3f) + 1));
-            break;
-        }
-        case 0x40: m_upd_sample_rate = (m_upd_header & 0x3f) + 1; m_upd_nibbles_left = 256; request(UpdState::NibbleMsb, 36); break;
-        case 0x80: m_upd_sample_rate = (m_upd_header & 0x3f) + 1; request(UpdState::Count, 36); break;
-        case 0xc0: m_upd_repeat_count = (m_upd_header & 7) + 1; m_upd_repeat_offset = m_upd_offset; request(UpdState::Header, 36); break;
-        }
-        if (m_upd_header != 0) m_upd_first_valid_header = true;
-        break;
-    case UpdState::Count: m_upd_nibbles_left = std::uint32_t(m_upd7759_fifo) + 1; request(UpdState::NibbleMsb, 36); break;
-    case UpdState::NibbleMsb:
-        m_upd_adpcm_data = m_upd7759_fifo; update_upd7759_adpcm(m_upd_adpcm_data >> 4);
-        m_upd_clocks_left = m_upd_sample_rate * 4;
-        m_upd_state = (--m_upd_nibbles_left == 0) ? UpdState::Header : UpdState::NibbleLsb;
-        request(m_upd_state, m_upd_sample_rate * 4); break;
-    case UpdState::NibbleLsb:
-        update_upd7759_adpcm(m_upd_adpcm_data & 15); m_upd_clocks_left = m_upd_sample_rate * 4;
-        m_upd_state = (--m_upd_nibbles_left == 0) ? UpdState::Header : UpdState::NibbleMsb;
-        break;
-    }
 }
 void System16BSound::flush_audio_samples() {
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER

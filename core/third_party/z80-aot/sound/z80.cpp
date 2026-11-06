@@ -57,7 +57,8 @@ namespace {
 
 void Z80::Reset() {
     pc = 0;
-    sp = 0xFFFF;
+    sp = 0;
+    ix = iy = 0xFFFF;
     i = refresh = 0;
     iff1 = iff2 = halted = false;
     mode = 0;
@@ -65,10 +66,9 @@ void Z80::Reset() {
     m_nmi = false;
     m_afterEI = false;
     depth = 0;
-    for (auto &v : r) {
-        v = 0xFF;
-    }
-    f = 0xFF;
+    for (auto &v : r) v = 0;
+    for (auto &v : r2) v = 0;
+    f = f2 = 0;
 }
 
 // --- memory ---
@@ -455,7 +455,12 @@ unsigned Z80::TakeInterrupt() {
         pc = Read16(static_cast<uint16_t>((i << 8) | 0xFF));
         return 19;
     }
-    pc = 0x0038; // (modes 0 and 1: nothing drives the bus, which reads as RST 38h)
+    if (mode == 0) {
+        const uint8_t vector = bus.InterruptAcknowledge();
+        pc = (vector & 0xc7) == 0xc7 ? static_cast<uint16_t>(vector & 0x38) : 0x0038;
+    } else {
+        pc = 0x0038;
+    }
     return 13;
 }
 

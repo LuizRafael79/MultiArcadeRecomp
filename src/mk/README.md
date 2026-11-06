@@ -24,6 +24,16 @@ module; the source links and license text are recorded in
 See [`RUNTIME_PORT.md`](RUNTIME_PORT.md) for the MAME-to-MameRecomp source map,
 CPU/runtime ownership boundaries and explicit remaining port work.
 
+The common launcher uses the MAME set names and Midway's T-Unit board family:
+
+```sh
+mamerecomp build --machine=midway --board=tunit --game=mk
+mamerecomp run --machine=midway --board=tunit --game=mk --frames 600
+```
+
+Headless runs can select `--cycles` and save a frame with `--frame-out`; input
+replays and isolated CMOS are available with `--input-replay` and `--nvram`.
+
 ## TMS AOT optimization hypothesis
 
 - [ ] Investigate whether the UltraCombo ADSP translator's larger generated

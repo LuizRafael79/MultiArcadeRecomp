@@ -7,4 +7,5 @@ const GameProfile& goldnaxe();
 const GameProfile& goldnaxeud();
 const GameProfile& shdancer();
 const GameProfile& mwalkd();
+const GameProfile& eswat();
 }

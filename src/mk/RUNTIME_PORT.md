@@ -15,7 +15,7 @@ The diagnostic runner in `tools/mk/trace.cpp` is not the machine runtime.
 | `src/mame/williams/midtunit_m.cpp` | `src/mk/tunit.cpp` | CMOS, MK protection sequence, sound command/status latch and reset line. CMOS persistence and the MK protection table/write-to-select behavior are ported. |
 | `src/mame/williams/midtunit_v.cpp` | `src/mk/tunit.cpp` | Video RAM banking, T-Unit graphics ROM banking, DMA register banks, pixel operations, clipping, flips, skip headers, scaling, DMA busy time, scanout, palette conversion and shift-register callbacks. The shared runtime has a profile flag for MK2's `gfx_rom_large` setting; DMA output still needs broader comparison against real traffic. |
 | `src/mame/williams/midtunit_v.ipp` | `src/mk/tunit.cpp` | Command-to-pixel-operation selection and 1–8 bpp variants are implemented in the runtime blitter. |
-| TMS34010 scanline/I/O behavior in `src/devices/cpu/tms34010/tms34010.cpp` | shared `core/cpus/tms34010` plus machine cycle API in `src/mk/tunit.cpp` | The TMS core owns CPU registers/instructions/interrupt entry. The board owns beam progression, display interrupt latching, DPYADR progression, scanout and framebuffer. The board advances in MAME's 6.25 MHz execution-cycle domain (50 MHz input clock divided by eight), updates HTOTAL at frame boundaries, exposes HCOUNT/REFCNT from the live beam/cycle state, and reproduces the guest-visible early-DI polling bit without making the CPU accept that interrupt early. |
+| TMS34010 scanline/I/O behavior in `src/devices/cpu/tms34010/tms34010.cpp` | shared `core/cpus/tms34010` plus machine cycle API in `src/mk/tunit.cpp` | The TMS core owns CPU registers/instructions/interrupt entry. The board owns beam progression, display interrupt latching, DPYADR progression, scanout and framebuffer. The board advances in MAME's 6.25 MHz execution-cycle domain (50 MHz input clock divided by eight), updates HTOTAL at frame boundaries, and reproduces the guest-visible early-DI polling bit without making the CPU accept that interrupt early. HCOUNT is read from the live beam position; its timing still needs validation against MAME during CPU memory reads. |
 | `src/mame/shared/williamssound.cpp` | `src/mk/williams_adpcm.cpp` | Williams ADPCM sound-board map, bank selection, YM2151/OKIM6295/DAC behavior and stereo sample generation are represented. The shared MC6809E backend is scheduled by the diagnostic runner, which feeds the generated samples to SDL playback in window mode. |
 | ROM declarations in `src/mame/midway/midtunit.cpp` | `tools/mk/build.py` | MK rev. 5 ROM verification, lane interleave and region assembly. This is build input preparation, not runtime hardware emulation. |
 
@@ -47,7 +47,7 @@ an interpreter.
 2. Compare DMA register reads/writes, command timing, source addressing,
    blitter output and interrupt assertion against MAME for captured MK
    commands. Current traces include triggered commands; compare them with
-   matching CMOS/input timing after the HCOUNT correction.
+   matching CMOS/input timing and the live HCOUNT path.
 3. Finish machine-side interrupt-line scheduling so DMA/display events are
    delivered at the correct CPU boundary without implementing CPU behavior in
    the machine module.
@@ -70,7 +70,8 @@ snapshots also matched in an earlier comparison; a fresh comparison is
 followed by a command-order divergence near 7.19 s. MAME's TMS core uses a
 50 MHz input clock but divides by eight for execution-cycle timing; preserve
 this distinction when translating timer, beam, audio and scripted-input
-intervals. HCOUNT now uses HEBLNK, REFCNT uses total TMS execution cycles, and
-guest-visible early DI polling is kept separate from the CPU's interrupt
-acceptance check. Interpreter reason logging remains enabled for prototype
-runs.
+intervals. REFCNT uses total TMS execution cycles. HCOUNT is derived from the
+live beam position using the MAME `screen().hpos()` mapping; its sampling time
+and the DMA/scanline interaction remain under comparison. Guest-visible early
+DI polling remains separate from the CPU's interrupt acceptance check.
+Interpreter reason logging remains enabled for prototype runs.

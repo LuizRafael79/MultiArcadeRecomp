@@ -33,6 +33,8 @@ public:
 
     std::uint64_t z80_cycles() const { return m_cpu.cycles; }
     std::uint64_t z80_instructions() const { return m_z80_instructions; }
+    std::uint64_t z80_aot_instructions() const { return m_cpu.nativeInstructions; }
+    std::uint64_t z80_fallback_instructions() const { return m_cpu.interpreted; }
     std::uint64_t ym2151_writes() const { return m_ym2151_writes; }
     std::uint64_t ym2151_key_ons() const { return m_ym2151_key_ons; }
     const std::array<std::uint64_t, 8>& ym2151_key_ons_by_channel() const { return m_ym2151_key_ons_by_channel; }

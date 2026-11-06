@@ -19,7 +19,11 @@ M68kRecompDispatchResult m68k_recomp_dispatch_once(
     M68kRecompDispatchResult result = {
         M68K_RECOMP_DISPATCH_BAD_PC, CPU.pc, 0, M68K_BUS_ACCESS_NONE
     };
-    if (entries == 0 || count == 0 || (CPU.pc & 1u) != 0) {
+    if (entries == 0 || count == 0) {
+        result.status = M68K_RECOMP_DISPATCH_NO_ENTRY;
+        return result;
+    }
+    if ((CPU.pc & 1u) != 0) {
         return result;
     }
 

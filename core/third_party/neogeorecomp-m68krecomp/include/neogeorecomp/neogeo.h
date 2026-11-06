@@ -23,6 +23,7 @@ typedef void (*ng_func_t)(void);
 typedef struct {
     uint32_t  addr;
     ng_func_t fn;
+    uint16_t  instruction_size; /* zero for legacy tables without source metadata */
 } ng_func_entry_t;
 
 /* A slice of a ROM file copied into a region. `file` is looked up in the
@@ -39,6 +40,18 @@ typedef struct {
 typedef void (*ng_prom_transform_t)(uint8_t *prom, size_t size);
 typedef uint16_t (*ng_protection_read_t)(void *context, uint32_t word_offset);
 typedef void (*ng_protection_write_t)(void *context, uint32_t address, uint16_t data);
+
+/* Optional live bus used by the shared Musashi instance. When unset, the
+ * compiler frontend's memory callbacks continue reading its current ROM image. */
+typedef struct {
+    void *context;
+    uint8_t (*read8)(void *context, uint32_t address);
+    uint16_t (*read16)(void *context, uint32_t address);
+    void (*write8)(void *context, uint32_t address, uint8_t value);
+    void (*write16)(void *context, uint32_t address, uint16_t value);
+} ng_musashi_bus_t;
+
+void ng_musashi_set_bus(const ng_musashi_bus_t *bus);
 
 #define NG_MAX_PARTS 8
 

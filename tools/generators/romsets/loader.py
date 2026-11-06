@@ -99,13 +99,22 @@ def _read_checked_member(candidates: list[Path], rom: dict, cache: dict) -> byte
         try:
             key = archive_path.resolve()
             if key not in cache:
-                cache[key] = zipfile.ZipFile(archive_path)
-            archive = cache[key]
+                archive = zipfile.ZipFile(archive_path)
+                members = {Path(info.filename).name: info.filename for info in archive.infolist()}
+                hashes = {}
+                for info in archive.infolist():
+                    hashes.setdefault((info.file_size, info.CRC), []).append(info.filename)
+                cache[key] = (archive, members, hashes)
+            archive, members, hashes = cache[key]
         except (OSError, zipfile.BadZipFile):
             continue
-        members = {Path(name).name: name for name in archive.namelist()}
-        for name in names:
-            member = members.get(name)
+        candidates_by_name = [members[name] for name in names if name in members]
+        # MAME resolves renamed ROM members by hash. ZIP's central directory
+        # already contains each member's size and CRC, so this does not require
+        # decompressing every file just to find the matching content.
+        candidates_by_name.extend(hashes.get((expected_size, expected_crc), []))
+        for member in dict.fromkeys(candidates_by_name):
+            name = Path(member).name
             if member is None:
                 continue
             data = archive.read(member)
@@ -165,11 +174,14 @@ def load_regions(manifest: dict, input_path: Path, manifest_root: Path,
                     final = dest + ((length - group) // group) * stride + group if length else dest
                     if final > size:
                         raise ValueError(f"{manifest['game']}/{region_name}: segment exceeds target region")
-                    for offset in range(0, length, group):
-                        target[dest + (offset // group) * stride:dest + (offset // group) * stride + group] = \
-                            data[src + offset:src + offset + group]
+                    if stride == group:
+                        target[dest:dest + length] = data[src:src + length]
+                    else:
+                        final = dest + ((length - group) // group) * stride + group if length else dest
+                        for lane in range(group):
+                            target[dest + lane:final:stride] = data[src + lane:src + length:group]
             output[region_name] = bytes(target)
         return output
     finally:
-        for archive in cache.values():
+        for archive, _members, _hashes in cache.values():
             archive.close()

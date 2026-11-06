@@ -166,6 +166,8 @@ def emit_routine(out, head, members, blocks, mem, prefix, precise_cycle_yield=Fa
             raw = " ".join("%02X" % mem[a] for a in range(insn.addr, nxt))
             out.append("    // %04X: %-20s %s" % (insn.addr, insn.text, raw))
             if insn.interp:
+                out.append("    {")
+                out.append("        auto boundary = c.InstructionBoundary(%d);" % insn.cycles)
                 out.append("    c.Interpret(0x%04X);" % insn.addr)
                 if insn.flow == "stop":
                     out.append("    return;")
@@ -174,8 +176,11 @@ def emit_routine(out, head, members, blocks, mem, prefix, precise_cycle_yield=Fa
                     out.append("    if (c.pc != 0x%04X) {" % nxt)
                     out.append("        return;")
                     out.append("    }")
+                out.append("    }")
                 continue
+            out.append("    ++c.nativeInstructions;")
             out.append("    {")
+            out.append("        auto boundary = c.InstructionBoundary(%d);" % insn.cycles)
             out.append("        c.refresh += %d;" % insn.refresh)
             if insn.pre_cycles:
                 out.append("        c.cycles += %d;" % insn.pre_cycles)

@@ -216,7 +216,9 @@ void Z80::Run(uint64_t until, Mode runMode) {
             return;
         }
         if (m_nmi) {
+            ++nmiServiced;
             cycles += TakeInterrupt();
+            bus.InstructionBoundary(cycles);
             continue;
         }
         if (m_afterEI) {
@@ -255,6 +257,7 @@ void Z80::Run(uint64_t until, Mode runMode) {
                                     trace_op);
             Execute(FetchOpcode(), 0);
             cycles += m_cycles;
+            bus.InstructionBoundary(cycles);
             TraceStep(*this, trace_pc, trace_op, trace_before);
             interpreted++;
             if (m_jumped) {
@@ -264,11 +267,13 @@ void Z80::Run(uint64_t until, Mode runMode) {
         }
         if (const unsigned taken = TakeInterrupt()) {
             cycles += taken;
+            bus.InstructionBoundary(cycles);
             Record(pc);
             continue;
         }
         if (halted) {
             cycles = until; // (nothing happens until the interrupt)
+            bus.InstructionBoundary(cycles);
             return;
         }
         if (runMode == Mode::Native || runMode == Mode::NativeStrict) {
@@ -276,6 +281,10 @@ void Z80::Run(uint64_t until, Mode runMode) {
                 depth = 0;
                 m_cycles = 0;
                 fn(*this);
+                // An instruction boundary may lower the active budget to
+                // yield for an interrupt. Restore the caller's run limit
+                // before the dispatcher resumes after servicing it.
+                budget = until;
                 nativeBlocks++;
                 Record(pc);
                 continue;
@@ -305,12 +314,14 @@ void Z80::Run(uint64_t until, Mode runMode) {
             const uint64_t trace_before = cycles;
             Execute(FetchOpcode(), 0);
             cycles += m_cycles;
+            bus.InstructionBoundary(cycles);
             TraceStep(*this, fallback_pc, trace_op, trace_before);
             interpreted++;
             if (m_jumped) {
                 Record(pc);
             }
-        } while (runMode != Mode::Interpreter && !halted && tables.Inside(pc));
+        } while (runMode != Mode::Interpreter && !halted && !m_nmi
+            && !(m_interrupt && iff1 && !m_afterEI) && tables.Inside(pc));
     }
 }
 

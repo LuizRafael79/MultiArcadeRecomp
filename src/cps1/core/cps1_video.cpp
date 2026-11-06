@@ -35,7 +35,10 @@ void present_live_frame(const std::vector<uint32_t>& frame) {
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { g_cps1_window_failed = true; return; }
         g_cps1_window = SDL_CreateWindow("CPS-1 MameRecomp", 768, 448, SDL_WINDOW_RESIZABLE);
         if (!g_cps1_window) { g_cps1_window_failed = true; return; }
-        g_cps1_renderer = SDL_CreateRenderer(g_cps1_window, nullptr);
+        g_cps1_renderer = SDL_CreateRenderer(g_cps1_window, "software");
+        if (g_cps1_renderer)
+            SDL_Log("MameRecomp CPS1 SDL video renderer: %s",
+                    SDL_GetRendererName(g_cps1_renderer) ? SDL_GetRendererName(g_cps1_renderer) : "unknown");
         g_cps1_texture = g_cps1_renderer ? SDL_CreateTexture(g_cps1_renderer, SDL_PIXELFORMAT_ARGB8888,
                                                                SDL_TEXTUREACCESS_STREAMING, 384, 224) : nullptr;
         if (!g_cps1_renderer || !g_cps1_texture) g_cps1_window_failed = true;

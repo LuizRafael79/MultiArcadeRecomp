@@ -138,7 +138,7 @@ TMS/T-Unit clock and reports empty-latch reads and total host stall cycles in
 the DCS summary. This is board-runtime scheduling behavior, independent of the
 TMS AOT backend.
 
-## Frozen prototype checkpoint — 2026-11-01
+## Historical strict-AOT checkpoint — 2026-11-01
 
 MK2 is frozen at the current experimental state. Do not treat the following
 strict-AOT run as a boot or visual success: it executed 227,705 TMS and 689,393
@@ -161,9 +161,28 @@ variant removed the ADSP stop and exposed the current TMS boundary above.
 
 Current ADSP rollback marker remains opcode `0x5000b1` in
 `core/cpus/adsp2105/MAME_PORT.md`; this checkpoint added no ADSP instruction
-semantics. On resuming MK2, first compare the TMS target `0xffa5add0` and its
-live opcode with MAME. Do not infer an unsupported instruction from an absent
-AOT block: it can also be an indirect entry the static traversal did not find.
+semantics. Later runs passed this old TMS boundary, so this section records
+history rather than the current state.
+
+## Current gameplay investigation — 2026-11-04
+
+The common launcher accepts MAME shortnames and runs this board with:
+
+```sh
+mamerecomp build --machine=midway --board=tunit --game=mk2
+mamerecomp run --machine=midway --board=tunit --game=mk2 --frames 600
+```
+
+For deterministic headless diagnosis, `run` also accepts `--input-replay`
+with cycle-counted active-low port values, `--nvram` for isolated CMOS, and
+`--dma-command-log` for the blitter register stream. With a controlled replay,
+the first 145 blitter commands matched MAME. The TMS AOT run diverged on
+command 146 around 7.17 seconds; TMS interpreter-only continued matching to
+command 323 and diverged at command 324 around 7.19 seconds. The earlier AOT
+divergence means the TMS translation path needs investigation in addition to
+the remaining board/scheduler mismatch. Current logs are recorded in
+`TODO.md`; no video or DMA behavior change has been made based on an unproven
+cause.
 
 The live runner preserves SDL coin input unless scripted coin events were
 requested. DCS SPORT1 now aligns the selected ADSP I register directly as MAME
