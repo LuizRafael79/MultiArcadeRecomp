@@ -36,8 +36,12 @@ Reference revisions inspected during this port:
   Thus the clear is required for the DSP's full-width Y arithmetic, though it
   does not by itself explain a 10x PCM-level difference: the X*Y operation
   multiplies by YH only, and the sample phase YL is explicitly restored.
-- Loading A0H/A1H clears the corresponding low word when AUC[4]/AUC[5] is
-  clear.
+- MAME's `dau_set_atx`/`dau_set_at` use PSW[4]/PSW[5] to decide whether an
+  A0H/A1H write preserves the low word; the JTDSP16 RTL instead exposes this
+  through AUC[4]/AUC[5]. The core now follows MAME's source rule. An A/B replay
+  with identical NVRAM over 960 frames produced bit-identical QSound PCM
+  (RMS 10,032.9; seven samples at the limit in both runs), so this semantic
+  difference does not explain the current hiss in SFEX2PA.
 - F2 RND follows the JTDSP16 bit-level path; the negative half-way tie differs
   from MAME's implementation, whose source marks the rounding rule uncertain.
 - AUC alignment value 2 shifts the 32-bit P bus left by two and then sign

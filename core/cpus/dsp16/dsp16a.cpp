@@ -254,7 +254,7 @@ std::int64_t& Dsp16A::dau_set_atx(std::uint16_t op, std::int16_t value)
 {
     auto& a = state_.a[op_d(~op)];
     if (op_x(op)) {
-        const bool preserve_low = state_.auc & (1U << (4 + op_d(~op)));
+        const bool preserve_low = state_.psw & (1U << (4 + op_d(~op)));
         a = detail::load_accumulator_high(a, value, preserve_low);
     } else a = (a & ~std::int64_t(0xffff)) | std::uint16_t(value);
     return a;
@@ -262,7 +262,7 @@ std::int64_t& Dsp16A::dau_set_atx(std::uint16_t op, std::int16_t value)
 std::int64_t& Dsp16A::dau_set_at(std::uint16_t op, std::int16_t value)
 {
     auto& a = state_.a[op_d(~op)];
-    const bool preserve_low = state_.auc & (1U << (4 + op_d(~op)));
+    const bool preserve_low = state_.psw & (1U << (4 + op_d(~op)));
     a = detail::load_accumulator_high(a, value, preserve_low);
     return a;
 }
