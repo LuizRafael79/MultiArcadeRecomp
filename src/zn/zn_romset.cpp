@@ -179,6 +179,45 @@ RomRegions load_romset(std::string_view set, const std::filesystem::path &zip) {
     return out;
 }
 
+std::vector<std::uint16_t> load_qsound_firmware(const std::filesystem::path &zip) {
+    std::unique_ptr<archive, decltype(&archive_read_free)> reader(archive_read_new(), archive_read_free);
+    if (!reader) throw std::runtime_error("could not allocate QSound firmware ZIP reader");
+    archive_read_support_filter_all(reader.get());
+    archive_read_support_format_zip(reader.get());
+    if (archive_read_open_filename(reader.get(), zip.c_str(), 10240) != ARCHIVE_OK)
+        throw std::runtime_error("could not open QSound firmware ZIP " + zip.string());
+    archive_entry *entry = nullptr;
+    int result;
+    while ((result = archive_read_next_header(reader.get(), &entry)) == ARCHIVE_OK) {
+        const char *path = archive_entry_pathname(entry);
+        const auto name = path ? std::filesystem::path(path).filename().string() : std::string{};
+        const auto size = static_cast<std::size_t>(archive_entry_size(entry));
+        if (name != "dl-1425.bin" || size != 0x6000) {
+            archive_read_data_skip(reader.get());
+            continue;
+        }
+        std::vector<std::uint8_t> bytes(size);
+        std::size_t offset = 0;
+        while (offset < bytes.size()) {
+            const auto n = archive_read_data(reader.get(), bytes.data() + offset, bytes.size() - offset);
+            if (n <= 0) throw std::runtime_error("truncated DL-1425 QSound firmware in " + zip.string());
+            offset += static_cast<std::size_t>(n);
+        }
+        const auto crc = static_cast<std::uint32_t>(crc32(0, bytes.data(), static_cast<uInt>(bytes.size())));
+        if (crc != 0xd6cf5ef5u)
+            throw std::runtime_error("DL-1425 QSound firmware failed CRC check in " + zip.string());
+        // MAME's HLE region is little endian; the first 0x2000 bytes are the
+        // shared 0x1000-word firmware/table image (remaining 0x4000 ignored).
+        std::vector<std::uint16_t> words(0x1000);
+        for (std::size_t i = 0; i < words.size(); ++i)
+            words[i] = static_cast<std::uint16_t>(bytes[i * 2] | (std::uint16_t(bytes[i * 2 + 1]) << 8));
+        return words;
+    }
+    if (result != ARCHIVE_EOF)
+        throw std::runtime_error("error reading QSound firmware ZIP " + zip.string());
+    throw std::runtime_error("DL-1425 firmware (dl-1425.bin) not found in " + zip.string());
+}
+
 CapcomZn2Board::CapcomZn2Board(const RomRegions &roms)
     : roms_(&roms), security_a_(security_key(roms.at("security_bios"))),
       security_b_(security_key(roms.at("security"))),
@@ -262,12 +301,12 @@ bool CapcomZn2Board::read(uint32_t address, unsigned size, uint32_t *value) {
     auto read_input = [&](uint32_t base, size_t port) {
         if (p < base || p > base + 3) return false;
         const uint32_t input = input_ports_[port];
-        if (port == 3 && std::getenv("MAMERECOMP_ZN_TRACE_INPUTS") && input != 0xff) {
+        if (std::getenv("MAMERECOMP_ZN_TRACE_INPUTS") && input != 0xff) {
             static unsigned traced = 0;
             if (traced++ < 64)
-                std::cerr << "ZN SYSTEM read address=0x" << std::hex << address
-                          << " size=" << std::dec << size << " value=0x"
-                          << std::hex << input << std::dec << '\n';
+                std::cerr << "ZN input-port=" << port << " read address=0x"
+                          << std::hex << address << " size=" << std::dec << size
+                          << " value=0x" << std::hex << input << std::dec << '\n';
         }
         *value = size == 1 ? input : size == 2 ? (0xff00u | input)
                                                 : (0xffffff00u | input);
@@ -318,6 +357,12 @@ bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value) {
     if (p == 0x1fb60000) {
         sound_latch_ = data;
         sound_pending_ = true;
+        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+            static unsigned traced = 0;
+            if (traced++ < 512)
+                std::cerr << "ZN2 sound latch write value=0x" << std::hex
+                          << unsigned(data) << " cycle=" << std::dec << cpu_cycles_ << '\n';
+        }
         if (sound_command_callback_)
             sound_command_callback_(sound_command_opaque_, cpu_cycles_);
         return true;

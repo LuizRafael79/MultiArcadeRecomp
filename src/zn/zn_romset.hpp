@@ -24,6 +24,9 @@ struct RomRegions {
 // Loads the MAME-defined ROM regions directly from a ZIP. No extracted ROM
 // files are written. Initial profiles cover the two ZN games in this batch.
 RomRegions load_romset(std::string_view set, const std::filesystem::path &zip);
+// Reads the MAME qsound_hle.zip firmware without extracting it. The returned
+// words are the 0x1000-word DL-1425 program/table region used by LLE and HLE.
+std::vector<std::uint16_t> load_qsound_firmware(const std::filesystem::path &zip);
 
 // Capcom ZN-2 board address decoder used with the shared PSX memory map,
 // including active-low player/system inputs and QSound/Z80 board wiring.

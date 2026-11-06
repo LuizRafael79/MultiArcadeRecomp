@@ -296,7 +296,9 @@ static inline int16_t get_sample(struct qsound_chip *chip, uint16_t bank,uint16_
 	
 	sample_data = chip->rom_data[rom_addr & chip->rom_mask];
 	
-	return (int16_t)((sample_data << 8) | (sample_data << 0));	// MAME currently expands the 8 bit ROM data to 16 bits this way.
+	// MAME's QSound HLE connects only the sample ROM's upper data byte;
+	// the lower eight bits read as zero.
+	return (int16_t)(sample_data << 8);
 }
 
 static inline int16_t* get_filter_table(struct qsound_chip *chip, uint16_t offset)
@@ -444,7 +446,7 @@ static void state_refresh_filter_2(struct qsound_chip *chip)
 		chip->alt_filter[ch].delay_pos = 0;
 		chip->alt_filter[ch].tap_count = 44;
 	
-		table = get_filter_table(chip,chip->filter[ch].table_pos);
+		table = get_filter_table(chip,chip->alt_filter[ch].table_pos);
 		if (table != NULL)
 			memcpy(chip->alt_filter[ch].taps, table, 44 * sizeof(int16_t));
 	}
@@ -583,8 +585,9 @@ static void state_normal_update(struct qsound_chip *chip)
 	{
 		// Echo is output on the unfiltered component of the left channel and
 		// the filtered component of the right channel.
-		int32_t wet = (ch == 1) ? echo_output<<16 : 0;
-		int32_t dry = (ch == 0) ? echo_output<<16 : 0;
+		int64_t wet_acc = (ch == 1) ? (int64_t)echo_output * 0x4000 : 0;
+		int64_t dry_acc = (ch == 0) ? (int64_t)echo_output * 0x4000 : 0;
+		int32_t wet, dry;
 		int32_t output = 0;
 		
 		for(int v=0; v<19; v++)
@@ -594,9 +597,19 @@ static void state_normal_update(struct qsound_chip *chip)
 				pan_index = 97;
 			
 			// Apply different volume tables on the dry and wet inputs.
-			dry -= (chip->voice_output[v] * chip->pan_tables[ch][PANTBL_DRY][pan_index])<<2;
-			wet -= (chip->voice_output[v] * chip->pan_tables[ch][PANTBL_WET][pan_index])<<2;
+			dry_acc -= (int64_t)chip->voice_output[v] * chip->pan_tables[ch][PANTBL_DRY][pan_index];
+			wet_acc -= (int64_t)chip->voice_output[v] * chip->pan_tables[ch][PANTBL_WET][pan_index];
 		}
+
+		/* Match the MAME HLE mixer: sum voices before scaling, then saturate
+		 * the accumulator. Shifting each voice before adding can overflow and
+		 * wipe out quieter effects when several channels are active. */
+		if(dry_acc < -0x1fffffff) dry_acc = -0x1fffffff;
+		if(dry_acc >  0x1fffffff) dry_acc =  0x1fffffff;
+		if(wet_acc < -0x1fffffff) wet_acc = -0x1fffffff;
+		if(wet_acc >  0x1fffffff) wet_acc =  0x1fffffff;
+		dry = (int32_t)(dry_acc * 4);
+		wet = (int32_t)(wet_acc * 4);
 		
 		// Apply FIR filter on 'wet' input
 		wet = fir(&chip->filter[ch], wet >> 16);
@@ -606,11 +619,12 @@ static void state_normal_update(struct qsound_chip *chip)
 			dry = fir(&chip->alt_filter[ch], dry >> 16);
 		
 		// output goes through a delay line and attenuation
-		output = (delay(&chip->wet[ch], wet) + delay(&chip->dry[ch], dry))<<2;
+		output = delay(&chip->wet[ch], wet) + delay(&chip->dry[ch], dry);
 		
 		// DSP round function
-		output = (output + 0x8000) & ~0xffff;
-		chip->out[ch] = output >> 16;
+		output = (output + 0x2000) & ~0x3fff;
+		output >>= 14;
+		chip->out[ch] = CLAMP(output, -0x7fff, 0x7fff);
 		
 		if(chip->delay_update)
 		{

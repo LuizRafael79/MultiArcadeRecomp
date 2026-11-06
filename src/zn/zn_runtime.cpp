@@ -70,7 +70,9 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
                                    const std::filesystem::path &zip,
                                    const PsxAotEntry *entries,
                                    size_t entry_count,
-                                   const mamerecomp::z80::Z80Code *zn2_z80_code)
+                                   const mamerecomp::z80::Z80Code *zn2_z80_code,
+                                   mamerecomp::chips::QSoundMode qsound_mode,
+                                   std::span<const std::uint16_t> qsound_firmware)
     : roms_(load_romset(set, zip)),
       memory_(std::make_unique<mamerecomp::psx::MachineMemory>(
           set == "bldyror2" ? mamerecomp::psx::kZn1MemoryConfig :
@@ -84,7 +86,8 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
         throw std::runtime_error("invalid ZN BIOS region");
     if (set == "sfex2pa") {
         zn2_ = std::make_unique<CapcomZn2Board>(roms_);
-        zn2_sound_ = std::make_unique<Zn2SoundCpu>(*zn2_, zn2_z80_code);
+        zn2_sound_ = std::make_unique<Zn2SoundCpu>(*zn2_, zn2_z80_code,
+                                                    qsound_mode, qsound_firmware);
         zn2_->set_sound_command_callback(this, sync_zn2_sound_command);
         board_bus_ = zn2_->make_bus();
     } else if (set == "bldyror2") {

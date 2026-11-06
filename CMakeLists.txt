@@ -208,7 +208,7 @@ target_include_directories(mamerecomp_zn_runtime PUBLIC
 target_include_directories(mamerecomp_zn_runtime PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound)
 target_link_libraries(mamerecomp_zn_runtime PUBLIC
-    LibArchive::LibArchive ZLIB::ZLIB mamerecomp_psx_cpu mamerecomp_h8 mamerecomp_z80_core mamerecomp_qsound_hle mamerecomp_c352 mamerecomp_at28c16)
+    LibArchive::LibArchive ZLIB::ZLIB mamerecomp_psx_cpu mamerecomp_h8 mamerecomp_z80_core mamerecomp_qsound mamerecomp_c352 mamerecomp_at28c16)
 set_property(TARGET mamerecomp_zn_runtime PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 set(MAMERECOMP_ZN2_SFEX2PA_AOT_DIR "" CACHE PATH
@@ -436,6 +436,10 @@ if(BUILD_TESTING)
     target_link_libraries(upd7759_test PRIVATE mamerecomp_upd7759)
     mamerecomp_enable_test_asserts(upd7759_test)
     add_test(NAME upd7759_test COMMAND upd7759_test)
+    add_executable(dsp16a_dau_test tests/audio/dsp16a_dau_test.cpp)
+    target_link_libraries(dsp16a_dau_test PRIVATE mamerecomp_dsp16)
+    mamerecomp_enable_test_asserts(dsp16a_dau_test)
+    add_test(NAME dsp16a_dau_test COMMAND dsp16a_dau_test)
     add_executable(psx_pipeline_test tests/psx/pipeline_test.cpp)
     target_link_libraries(psx_pipeline_test PRIVATE mamerecomp_psx_cpu)
     mamerecomp_enable_test_asserts(psx_pipeline_test)
@@ -940,6 +944,22 @@ add_library(mamerecomp_cps1 SHARED
 add_library(mamerecomp_qsound_hle STATIC core/third_party/qsound-hle/qsound.c)
 target_include_directories(mamerecomp_qsound_hle PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/qsound-hle)
+
+# Board-independent BSD-3-Clause DSP16A interpreter used by QSound LLE.
+add_library(mamerecomp_dsp16 STATIC core/cpus/dsp16/dsp16a.cpp)
+target_include_directories(mamerecomp_dsp16 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/dsp16)
+target_compile_features(mamerecomp_dsp16 PUBLIC cxx_std_20)
+set_property(TARGET mamerecomp_dsp16 PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
+# Board-neutral MAME-derived QSound peripheral with DSP16A LLE and MAME HLE.
+add_library(mamerecomp_qsound STATIC core/chips/qsound.cpp)
+target_include_directories(mamerecomp_qsound PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/dsp16
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/qsound-hle)
+target_link_libraries(mamerecomp_qsound PUBLIC mamerecomp_dsp16)
+set_property(TARGET mamerecomp_qsound PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
 target_include_directories(mamerecomp_cps1 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1/core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1"

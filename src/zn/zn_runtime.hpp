@@ -21,7 +21,9 @@ class ZnMachineRuntime {
 public:
     ZnMachineRuntime(std::string_view set, const std::filesystem::path &zip,
                      const PsxAotEntry *entries = nullptr, size_t entry_count = 0,
-                     const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr);
+                     const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr,
+                     mamerecomp::chips::QSoundMode qsound_mode = mamerecomp::chips::QSoundMode::Lle,
+                     std::span<const std::uint16_t> qsound_firmware = {});
     PsxAotExit step();
     void run_until(uint64_t target_cycle);
     void set_input_state(const mamerecomp::runtime::ArcadeInput &input);
@@ -95,8 +97,105 @@ public:
     uint32_t zn2_qsound_peak() const {
         return zn2_sound_ ? zn2_sound_->audio_peak() : 0;
     }
+    const std::array<uint32_t, 19> &zn2_qsound_voice_peaks() const {
+        static const std::array<uint32_t, 19> empty{};
+        return zn2_sound_ ? zn2_sound_->voice_peaks() : empty;
+    }
     uint32_t zn2_qsound_sample_rate() const {
         return zn2_sound_ ? zn2_sound_->audio_sample_rate() : 0;
+    }
+    mamerecomp::chips::QSoundMode zn2_qsound_mode() const {
+        return zn2_sound_ ? zn2_sound_->qsound_mode() : mamerecomp::chips::QSoundMode::Hle;
+    }
+    uint64_t zn2_qsound_dsp_cycles() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_cycles() : 0;
+    }
+    uint64_t zn2_qsound_dsp_instructions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_instructions() : 0;
+    }
+    uint16_t zn2_qsound_dsp_pc() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_pc() : 0;
+    }
+    uint64_t zn2_qsound_sample_reads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_sample_reads() : 0;
+    }
+    uint64_t zn2_qsound_pio_reads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_pio_reads() : 0;
+    }
+    uint64_t zn2_qsound_pio_writes() const {
+        return zn2_sound_ ? zn2_sound_->qsound_pio_writes() : 0;
+    }
+    uint64_t zn2_qsound_serial_words() const {
+        return zn2_sound_ ? zn2_sound_->qsound_serial_words() : 0;
+    }
+    uint64_t zn2_qsound_serial_left_words() const {
+        return zn2_sound_ ? zn2_sound_->qsound_serial_left_words() : 0;
+    }
+    uint64_t zn2_qsound_serial_right_words() const {
+        return zn2_sound_ ? zn2_sound_->qsound_serial_right_words() : 0;
+    }
+    uint64_t zn2_qsound_pcm_frames() const {
+        return zn2_sound_ ? zn2_sound_->qsound_pcm_frames() : 0;
+    }
+    uint64_t zn2_qsound_nonzero_sample_reads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_nonzero_sample_reads() : 0;
+    }
+    uint64_t zn2_qsound_nonzero_serial_words() const {
+        return zn2_sound_ ? zn2_sound_->qsound_nonzero_serial_words() : 0;
+    }
+    uint16_t zn2_qsound_serial_word_peak() const {
+        return zn2_sound_ ? zn2_sound_->qsound_serial_word_peak() : 0;
+    }
+    uint64_t zn2_qsound_dsp_ock_edges() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_ock_edges() : 0;
+    }
+    uint64_t zn2_qsound_dsp_do_transitions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_do_transitions() : 0;
+    }
+    uint64_t zn2_qsound_dsp_ose_transitions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_ose_transitions() : 0;
+    }
+    uint64_t zn2_qsound_dsp_old_transitions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_old_transitions() : 0;
+    }
+    uint64_t zn2_qsound_dsp_serial_loads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_serial_loads() : 0;
+    }
+    uint64_t zn2_qsound_dsp_sdx_writes() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_sdx_writes() : 0;
+    }
+    uint64_t zn2_qsound_dsp_nonzero_sdx_writes() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_nonzero_sdx_writes() : 0;
+    }
+    uint64_t zn2_qsound_dsp_nonzero_serial_loads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_nonzero_serial_loads() : 0;
+    }
+    uint16_t zn2_qsound_dsp_last_sdx() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx() : 0;
+    }
+    uint16_t zn2_qsound_dsp_last_serial_loaded() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_serial_loaded() : 0;
+    }
+    uint16_t zn2_qsound_dsp_last_sdx_pc() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_pc() : 0;
+    }
+    uint16_t zn2_qsound_dsp_last_sdx_opcode() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_opcode() : 0;
+    }
+    int64_t zn2_qsound_dsp_last_sdx_a0() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_a0() : 0;
+    }
+    int64_t zn2_qsound_dsp_last_sdx_a1() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_a1() : 0;
+    }
+    int16_t zn2_qsound_dsp_last_sdx_x() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_x() : 0;
+    }
+    int32_t zn2_qsound_dsp_last_sdx_y() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_y() : 0;
+    }
+    int32_t zn2_qsound_dsp_last_sdx_p() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_last_sdx_p() : 0;
     }
     std::vector<int16_t> take_zn2_audio() {
         return zn2_sound_ ? zn2_sound_->take_audio() : std::vector<int16_t>{};

@@ -3,29 +3,32 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <iostream>
 #include <utility>
 
 namespace mamerecomp::zn {
 
 Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
-                         const mamerecomp::z80::Z80Code *aot_code)
-    : board_(board), cpu_(*this), aot_code_(aot_code)
+                         const mamerecomp::z80::Z80Code *aot_code,
+                         mamerecomp::chips::QSoundMode qsound_mode,
+                         std::span<const std::uint16_t> qsound_firmware)
+    : board_(board), cpu_(*this),
+      aot_code_(std::getenv("MAMERECOMP_ZN2_Z80_INTERPRETER_ONLY") ? nullptr : aot_code),
+      qsound_(mamerecomp::chips::QSoundConfig{60'000'000, qsound_mode, qsound_firmware})
 {
     cpu_.Reset();
     profile_timing_ = std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
     mamerecomp::z80::SetZ80Code(aot_code_);
-    qsound_start(&qsound_, 60'000'000);
     samples_ = board_.qsound_samples();
-    qsound_.rom_data = samples_.data();
-    qsound_.rom_mask = samples_.size() - 1;
-    qsound_.ready_flag = 0x80;
+    qsound_.set_sample_rom(samples_);
+    qsound_.reset();
 }
 
 uint8_t Zn2SoundCpu::Read(uint16_t address)
 {
     if (address == 0xd007) {
         sync_qsound(cpu_.BusCallbackCycles());
-        return qsound_r(&qsound_);
+        return qsound_.read_status();
     }
     return board_.sound_program_read(address);
 }
@@ -34,13 +37,30 @@ void Zn2SoundCpu::Write(uint16_t address, uint8_t value)
     board_.sound_program_write(address, value);
     if (address >= 0xd000 && address <= 0xd002) {
         sync_qsound(cpu_.BusCallbackCycles());
-        qsound_w(&qsound_, static_cast<uint8_t>(address - 0xd000), value);
+        qsound_.write(static_cast<uint8_t>(address - 0xd000), value);
+        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+            static unsigned traced = 0;
+            if (traced++ < 512)
+                std::cerr << "ZN2 QSound write offset=0x" << std::hex
+                          << unsigned(address - 0xd000) << " value=0x" << unsigned(value)
+                          << " z80_pc=0x" << cpu_.pc << " cycle=" << std::dec
+                          << cpu_.cycles << '\n';
+        }
     }
 }
 uint8_t Zn2SoundCpu::In(uint16_t port)
 {
     const uint8_t value = board_.sound_port_read(static_cast<uint8_t>(port));
-    if ((port & 0xff) == 0) board_.acknowledge_sound();
+    if ((port & 0xff) == 0) {
+        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+            static unsigned traced = 0;
+            if (traced++ < 512)
+                std::cerr << "ZN2 sound latch read value=0x" << std::hex
+                          << unsigned(value) << " z80_pc=0x" << cpu_.pc
+                          << " cycle=" << std::dec << cpu_.cycles << '\n';
+        }
+        board_.acknowledge_sound();
+    }
     return value;
 }
 void Zn2SoundCpu::Out(uint16_t port, uint8_t value)
@@ -50,15 +70,20 @@ void Zn2SoundCpu::sync_qsound(uint64_t sound_cycles)
 {
     constexpr uint64_t sample_rate = 60'000'000 / 2 / 1248;
     const uint64_t target = sound_cycles * sample_rate / 8'000'000;
+    const uint64_t target_dsp_clocks = sound_cycles * 60'000'000ull / 8'000'000ull;
+    if (target_dsp_clocks > generated_dsp_clocks_) {
+        qsound_.run_clocks(target_dsp_clocks - generated_dsp_clocks_);
+        generated_dsp_clocks_ = target_dsp_clocks;
+    }
     while (generated_samples_ < target) {
-        const int count = static_cast<int>(std::min<uint64_t>(target - generated_samples_, qsound_left_.size()));
-        int16_t *outputs[]{qsound_left_.data(), qsound_right_.data()};
-        qsound_stream_update(&qsound_, outputs, count);
+        const int count = static_cast<int>(std::min<uint64_t>(target - generated_samples_, qsound_stereo_.size() / 2));
+        auto output = std::span<int16_t>(qsound_stereo_.data(), size_t(count) * 2);
+        qsound_.render(output);
         const size_t old_size = audio_queue_.size();
         audio_queue_.resize(old_size + size_t(count) * 2);
         for (int i = 0; i < count; ++i) {
-            const int16_t left = qsound_left_[size_t(i)];
-            const int16_t right = qsound_right_[size_t(i)];
+            const int16_t left = qsound_stereo_[size_t(i) * 2];
+            const int16_t right = qsound_stereo_[size_t(i) * 2 + 1];
             audio_queue_[old_size + size_t(i) * 2] = left;
             audio_queue_[old_size + size_t(i) * 2 + 1] = right;
             audio_peak_ = std::max(audio_peak_, static_cast<uint32_t>(std::max(std::abs(int(left)), std::abs(int(right)))));

@@ -1481,7 +1481,7 @@ void print_usage(const char* program) {
               << "  " << program << " build|run --machine=konami --board=tmnt2 --game=<tmnt2|ssriders> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--frame-sequence-dir <directory>] [--frame-sequence-step <frames>]\n"
               << "  " << program << " run --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build|run --machine=seibu --board=toki --game=toki [--rom-dir <toki.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
-              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--psx-interpreter-only]\n"
+              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--qsound-mode true|mixed|hle] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--psx-interpreter-only]\n"
               << "  " << program << " run --machine=namco --board=system12 --game=tekken3 [--rom-dir <tekken3.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>]\n"
               << "  " << program << " build --machine=cps --board=cps2 --game=<sfa3|sfz2a|sfz2al|hsf2> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
@@ -2597,7 +2597,9 @@ int run_zn_machine(const std::filesystem::path& source_root,
                    std::uint64_t frame_sequence_step,
                    const char *platform_name, const char *board_name,
                    const std::optional<std::filesystem::path>& nvram_option,
-                   bool psx_interpreter_only) {
+                   bool psx_interpreter_only,
+                   mamerecomp::chips::QSoundMode qsound_mode,
+                   bool qsound_mixed_requested) {
     const bool zn1 = game == "bldyror2";
     const bool system12 = game == "tekken3";
     // Match the clocks passed to CXD8530CQ/CXD8661R in MAME's zn.cpp.
@@ -2652,8 +2654,35 @@ int run_zn_machine(const std::filesystem::path& source_root,
             get_psx_entries(&zn2_psx_entries, &zn2_psx_entry_count);
     }
 #endif
+    std::vector<std::uint16_t> qsound_firmware;
+    if (game == "sfex2pa") {
+        const char *firmware_archive = qsound_mode == mamerecomp::chips::QSoundMode::Lle
+            ? "qsound.zip" : "qsound_hle.zip";
+        const char *alternate_archive = qsound_mode == mamerecomp::chips::QSoundMode::Lle
+            ? "qsound_hle.zip" : "qsound.zip";
+        const auto adjacent_firmware = rom_path.parent_path() / firmware_archive;
+        const auto alternate_adjacent = rom_path.parent_path() / alternate_archive;
+        const auto default_firmware = source_root.parent_path() / "mame/roms" / firmware_archive;
+        const auto alternate_default = source_root.parent_path() / "mame/roms" / alternate_archive;
+        const auto firmware_zip = std::filesystem::is_regular_file(adjacent_firmware)
+            ? adjacent_firmware : std::filesystem::is_regular_file(alternate_adjacent)
+                ? alternate_adjacent : std::filesystem::is_regular_file(default_firmware)
+                    ? default_firmware : alternate_default;
+        if (!std::filesystem::is_regular_file(firmware_zip))
+            throw std::runtime_error("QSound DL-1425 firmware ZIP not found: " + firmware_zip.string());
+        qsound_firmware = mamerecomp::zn::load_qsound_firmware(firmware_zip);
+        std::cout << "ZN-2 QSound mode: ";
+        if (qsound_mode == mamerecomp::chips::QSoundMode::Lle)
+            std::cout << "DSP16A LLE (forced)";
+        else if (qsound_mixed_requested)
+            std::cout << "mixed (currently starts in HLE; runtime failover is pending)";
+        else
+            std::cout << "MAME HLE (forced)";
+        std::cout << " (firmware=" << firmware_zip << ").\n";
+    }
     mamerecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
-                                             zn2_psx_entry_count, zn2_z80_code);
+                                             zn2_psx_entry_count, zn2_z80_code,
+                                             qsound_mode, qsound_firmware);
     const auto nvram_path = (game == "sfex2pa" || game == "bldyror2")
         ? std::optional<std::filesystem::path>(nvram_option.value_or(
             source_root / "build/nvram" / (game + ".at28c16")))
@@ -2681,6 +2710,18 @@ int run_zn_machine(const std::filesystem::path& source_root,
     std::unique_ptr<mamerecomp::video::SdlVideoPresenter> presenter;
     SDL_AudioStream* zn_audio_stream = nullptr;
     SDL_AudioStream* zn_spu_stream = nullptr;
+    std::ofstream zn_qsound_pcm_dump;
+    std::ofstream zn_spu_pcm_dump;
+    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_QSOUND_PCM")) {
+        zn_qsound_pcm_dump.open(dump_path, std::ios::binary | std::ios::trunc);
+        if (!zn_qsound_pcm_dump)
+            throw std::runtime_error("could not create ZN QSound PCM dump " + std::string(dump_path));
+    }
+    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_SPU_PCM")) {
+        zn_spu_pcm_dump.open(dump_path, std::ios::binary | std::ios::trunc);
+        if (!zn_spu_pcm_dump)
+            throw std::runtime_error("could not create ZN PSX SPU PCM dump " + std::string(dump_path));
+    }
     const bool zn_audio_active = show_window || audio_enabled;
     if (zn_audio_active && (game == "bldyror2" || game == "sfex2pa" || system12)) {
         if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
@@ -2738,6 +2779,9 @@ int run_zn_machine(const std::filesystem::path& source_root,
         } else {
             samples = zn1 ? machine.take_zn1_audio() : machine.take_zn2_audio();
         }
+        if (game == "sfex2pa" && zn_qsound_pcm_dump && !samples.empty())
+            zn_qsound_pcm_dump.write(reinterpret_cast<const char*>(samples.data()),
+                                     static_cast<std::streamsize>(samples.size() * sizeof(int16_t)));
         diagnostics_qsound_frames = samples.size() / 2;
         if (zn_audio_stream && !samples.empty() &&
             !SDL_PutAudioStreamData(zn_audio_stream, samples.data(),
@@ -2745,6 +2789,9 @@ int run_zn_machine(const std::filesystem::path& source_root,
             throw std::runtime_error(std::string("SDL audio queue failed: ") + SDL_GetError());
         auto spu_samples = machine.take_spu_audio();
         diagnostics_spu_frames = spu_samples.size() / 2;
+        if (zn_spu_pcm_dump && !spu_samples.empty())
+            zn_spu_pcm_dump.write(reinterpret_cast<const char*>(spu_samples.data()),
+                                  static_cast<std::streamsize>(spu_samples.size() * sizeof(int16_t)));
         if (zn_spu_stream && !spu_samples.empty() &&
             !SDL_PutAudioStreamData(zn_spu_stream, spu_samples.data(),
                                    static_cast<int>(spu_samples.size() * sizeof(int16_t))))
@@ -2974,6 +3021,16 @@ int run_zn_machine(const std::filesystem::path& source_root,
         if (zn_spu_stream) SDL_DestroyAudioStream(zn_spu_stream);
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
     }
+    if (zn_qsound_pcm_dump) {
+        zn_qsound_pcm_dump.flush();
+        if (!zn_qsound_pcm_dump)
+            throw std::runtime_error("failed writing ZN QSound PCM dump");
+    }
+    if (zn_spu_pcm_dump) {
+        zn_spu_pcm_dump.flush();
+        if (!zn_spu_pcm_dump)
+            throw std::runtime_error("failed writing ZN PSX SPU PCM dump");
+    }
 #endif
     if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_VRAM")) {
         std::ofstream dump(dump_path, std::ios::binary);
@@ -3068,6 +3125,47 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << machine.zn2_qsound_samples()
                   << " peak=" << machine.zn2_qsound_peak()
                   << " sample_rate=" << machine.zn2_qsound_sample_rate() << ".\n";
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+        std::cout << "ZN-2 DSP16A LLE cycles=" << machine.zn2_qsound_dsp_cycles()
+                  << " instructions=" << machine.zn2_qsound_dsp_instructions()
+                  << " PC=0x" << std::hex << machine.zn2_qsound_dsp_pc() << std::dec
+                  << " sample-ROM reads=" << machine.zn2_qsound_sample_reads()
+                  << " PIO reads/writes=" << machine.zn2_qsound_pio_reads() << '/'
+                  << machine.zn2_qsound_pio_writes()
+                  << " serial words=" << machine.zn2_qsound_serial_words()
+                  << " (L/R=" << machine.zn2_qsound_serial_left_words() << '/'
+                  << machine.zn2_qsound_serial_right_words() << ')'
+                  << " PCM frames=" << machine.zn2_qsound_pcm_frames()
+                  << " nonzero sample reads=" << machine.zn2_qsound_nonzero_sample_reads()
+                  << " nonzero serial words=" << machine.zn2_qsound_nonzero_serial_words()
+                  << " serial word peak=" << machine.zn2_qsound_serial_word_peak() << ".\n";
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+        std::cout << "ZN-2 DSP16A pins: OCK rising=" << machine.zn2_qsound_dsp_ock_edges()
+                  << " DO transitions=" << machine.zn2_qsound_dsp_do_transitions()
+                  << " OSE transitions=" << machine.zn2_qsound_dsp_ose_transitions()
+                  << " OLD transitions=" << machine.zn2_qsound_dsp_old_transitions()
+                  << " serial word loads=" << machine.zn2_qsound_dsp_serial_loads()
+                  << " SDX writes=" << machine.zn2_qsound_dsp_sdx_writes()
+                  << " nonzero SDX=" << machine.zn2_qsound_dsp_nonzero_sdx_writes()
+                  << " nonzero serial loads=" << machine.zn2_qsound_dsp_nonzero_serial_loads()
+                  << " last SDX/load=0x" << std::hex << machine.zn2_qsound_dsp_last_sdx()
+                  << "/0x" << machine.zn2_qsound_dsp_last_serial_loaded() << std::dec << ".\n";
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+        std::cout << "ZN-2 DSP16A last SDX at PC=0x" << std::hex
+                  << machine.zn2_qsound_dsp_last_sdx_pc() << " opcode=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_opcode() << " A0=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_a0() << " A1=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_a1() << " X=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_x() << " Y=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_y() << " P=0x"
+                  << machine.zn2_qsound_dsp_last_sdx_p() << std::dec << ".\n";
+    if (game == "sfex2pa" && zn_diagnostics) {
+        std::cerr << "ZN-2 QSound voice peaks:";
+        const auto &peaks = machine.zn2_qsound_voice_peaks();
+        for (size_t voice = 0; voice < peaks.size(); ++voice)
+            std::cerr << ' ' << voice << '=' << peaks[voice];
+        std::cerr << '\n';
+    }
     return 0;
 }
 
@@ -3089,6 +3187,8 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
     std::optional<std::filesystem::path> input_replay;
     std::optional<std::filesystem::path> nvram;
     std::optional<std::filesystem::path> dma_command_log;
+    std::string qsound_mode_option = "true";
+    bool qsound_mode_option_seen = false;
     bool psx_interpreter_only = false;
     bool audio_enabled = false;
     bool audio_stereo_spread = false;
@@ -3115,6 +3215,12 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         else if (const auto value = value_after("--button-event")) button_event_specs.push_back(*value);
         else if (const auto value = value_after("--nvram")) nvram = *value;
         else if (const auto value = value_after("--dma-command-log")) dma_command_log = *value;
+        else if (const auto value = value_after("--qsound-mode")) {
+            qsound_mode_option_seen = true;
+            if (*value != "true" && *value != "mixed" && *value != "hle")
+                throw std::runtime_error("--qsound-mode must be true, mixed, or hle");
+            qsound_mode_option = *value;
+        }
         else if (option == "--audio") audio_enabled = true;
         else if (option == "--psx-interpreter-only") psx_interpreter_only = true;
         else if (const auto value = value_after("--audio-pan")) {
@@ -3147,6 +3253,10 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         !((machine == "sony" || machine == "zn") && board == "zn2" &&
           game == "sfex2pa"))
         throw std::runtime_error("--psx-interpreter-only is supported for Sony ZN-2 SFEX2PA run");
+    if (qsound_mode_option_seen &&
+        !((machine == "sony" || machine == "zn") && board == "zn2" &&
+          game == "sfex2pa" && !build_mode))
+        throw std::runtime_error("QSound mode options are supported for Sony ZN-2 SFEX2PA run only");
     if (machine == "konami") {
         if (input_replay || nvram || dma_command_log || audio_pan_option_set)
             throw std::runtime_error("input replay, NVRAM, DMA logging and audio pan are not supported for Konami");
@@ -3246,7 +3356,11 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
                               show_window, audio_enabled, zn_events, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Sony",
                               valid_zn1 ? "ZN-1" : "ZN-2", nvram,
-                              psx_interpreter_only);
+                              psx_interpreter_only,
+                              qsound_mode_option == "true"
+                                  ? mamerecomp::chips::QSoundMode::Lle
+                                  : mamerecomp::chips::QSoundMode::Hle,
+                              qsound_mode_option == "mixed");
     }
     if (machine == "namco" && board == "system12") {
         if (build_mode)
@@ -3260,7 +3374,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
                               show_window, audio_enabled, {}, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Namco", "System 12", std::nullopt,
-                              false);
+                              false, mamerecomp::chips::QSoundMode::Lle, false);
     }
     if (!button_event_specs.empty())
         throw std::runtime_error("--button-event is currently supported for Konami games only");
