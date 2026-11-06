@@ -138,6 +138,16 @@ about 10× the MAME DSP word RMS, while local HLE is close in level. Continue by
 capturing the mixer state and command/latch timeline around the first mismatch;
 do not alter the known RTL saturation/rounding behavior based on RMS alone.
 
+The MAME QSound source confirms that a PIO read of the pending command address
+clears the DSP IRQ and schedules `set_dsp_ready` through
+`machine().scheduler().synchronize` before the DSP continues. The DSP bus now
+returns a scheduler-yield request at that point and retains unexecuted DSP
+clocks for the next run slice. A fresh erased-NVRAM 960-frame replay executes
+the LLE and preserves the expected 385,725 audio sample slots, but the first
+host command mismatch remains at command 137 (`0x84/0x011e` in MAME versus
+`0x80/0x011f` locally). This implements the MAME synchronization contract; the
+remaining command divergence is not explained by that barrier.
+
 The core still needs aligned MAME-vs-MameRecomp DSP state/SDX vectors and tests
 for signed multiplication, P, A0/A1 accumulation, saturation, and all DAU
 alignment modes. Keep QSound HLE selectable as a fallback while doing this.

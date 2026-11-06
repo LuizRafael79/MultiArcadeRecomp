@@ -57,7 +57,8 @@ void Dsp16A::reset()
     pids_count_ = pods_count_ = 0;
     pids_out_ = pods_out_ = true;
     cycles_ = instructions_ = 0;
-    half_clock_ = 0;
+    pending_clocks_ = 0;
+    scheduler_yield_requested_ = false;
     do_cache_.fill(0);
     if (bus_.interrupt_ack) bus_.interrupt_ack(true);
     if (bus_.serial_clock_out) bus_.serial_clock_out(true);
@@ -70,18 +71,26 @@ void Dsp16A::set_irq(bool asserted) { irq_in_ = asserted; }
 
 std::uint64_t Dsp16A::run_clocks(std::uint64_t clocks)
 {
-    // MAME models two DSP clocks per machine cycle. Carry an odd clock to the
-    // next call so callers can synchronize against independent devices.
-    const std::uint64_t total = clocks + half_clock_;
-    const std::uint64_t cycles = total / 2;
-    half_clock_ = static_cast<std::uint8_t>(total & 1U);
-    return run_cycles(cycles) * 2;
+    // MAME models two DSP clocks per machine cycle. Keep any unexecuted clocks
+    // when a scheduler barrier yields partway through this run slice.
+    pending_clocks_ += clocks;
+    const std::uint64_t cycles = pending_clocks_ / 2;
+    const std::uint64_t executed = run_cycles(cycles);
+    pending_clocks_ -= executed * 2;
+    return executed * 2;
 }
 
 std::uint64_t Dsp16A::run_cycles(std::uint64_t cycles)
 {
     const auto start = cycles_;
-    while (cycles_ - start < cycles) execute_cycle();
+    scheduler_yield_requested_ = false;
+    while (cycles_ - start < cycles) {
+        execute_cycle();
+        if (scheduler_yield_requested_) {
+            scheduler_yield_requested_ = false;
+            break;
+        }
+    }
     return cycles_ - start;
 }
 
@@ -411,7 +420,8 @@ void Dsp16A::pio_step()
     if (pids_count_ && !--pids_count_) {
         if (bus_.pio_read) pdx_in_ = bus_.pio_read(psel_out_ ? 1U : 0U);
         pids_out_ = true;
-        if (bus_.synchronize) bus_.synchronize();
+        if (bus_.synchronize && bus_.synchronize())
+            scheduler_yield_requested_ = true;
     }
     if (pods_count_ && !--pods_count_) {
         if (bus_.pio_write) bus_.pio_write(psel_out_ ? 1U : 0U, pdx_out_);

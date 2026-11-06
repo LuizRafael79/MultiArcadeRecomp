@@ -239,6 +239,7 @@ struct QSound::Impl {
                 command_pending = false;
                 dsp.set_irq(false);
                 sync_events.push_back({SyncEvent::Kind::Ready});
+                scheduler_barrier_pending = true;
             }
             return value;
         };
@@ -254,7 +255,12 @@ struct QSound::Impl {
             rom_offset = value;
         };
         bus.serial_clock_out = [this](bool level) { on_ock(level); };
-        bus.synchronize = [this] { drain_sync_events(); };
+        bus.synchronize = [this] {
+            const bool yield = scheduler_barrier_pending;
+            scheduler_barrier_pending = false;
+            drain_sync_events();
+            return yield;
+        };
         if (std::getenv("MAMERECOMP_QSOUND_DSP_TRACE")) {
             bus.instruction_trace = [this](dsp16::Dsp16ATracePhase phase,
                                            std::uint16_t pc,
@@ -369,7 +375,7 @@ struct QSound::Impl {
     std::vector<std::uint8_t> sample_rom;
     std::uint16_t rom_bank = 0, rom_offset = 0;
     std::uint16_t command_address = 0, command_data = 0, new_data = 0;
-    bool command_pending = false, dsp_ready = true;
+    bool command_pending = false, dsp_ready = true, scheduler_barrier_pending = false;
     std::deque<SyncEvent> sync_events;
     std::ofstream dsp_trace;
     std::uint64_t dsp_trace_after_cycles = 0;
@@ -413,6 +419,7 @@ void QSound::reset() {
         impl_->rom_bank = 0;
         impl_->rom_offset = 0;
         impl_->command_pending = false;
+        impl_->scheduler_barrier_pending = false;
         impl_->dsp_ready = true;
         impl_->sync_events.clear();
         impl_->samples[0] = impl_->samples[1] = 0;

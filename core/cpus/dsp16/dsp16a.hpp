@@ -24,9 +24,9 @@ struct Dsp16ABus {
     // Passive PIO peripheral contract. The selector is PSEL, words are PDX.
     std::function<std::uint16_t(std::uint16_t)> pio_read;
     std::function<void(std::uint16_t, std::uint16_t)> pio_write;
-    // Scheduler barrier after a completed active PIO read, matching MAME's
-    // QSound address-read/ready handshake before the next DSP cycle.
-    std::function<void()> synchronize;
+    // Scheduler barrier after a completed active PIO read. Return true to
+    // yield the DSP run slice so peer devices can run before the next cycle.
+    std::function<bool()> synchronize;
 
     // DSP serial pins. Callbacks are emitted on signal transitions.
     std::function<void(bool)> serial_clock_out; // OCK
@@ -194,6 +194,8 @@ private:
     std::uint8_t pids_count_ = 0, pods_count_ = 0;
     bool pids_out_ = true, pods_out_ = true;
     std::uint64_t cycles_ = 0, instructions_ = 0;
+    std::uint64_t pending_clocks_ = 0;
+    bool scheduler_yield_requested_ = false;
     std::uint64_t ock_rising_edges_ = 0, do_transitions_ = 0;
     std::uint64_t ose_transitions_ = 0, old_transitions_ = 0, serial_word_loads_ = 0;
     std::uint64_t sdx_writes_ = 0, nonzero_sdx_writes_ = 0, nonzero_serial_word_loads_ = 0;
@@ -202,7 +204,6 @@ private:
     std::int64_t last_sdx_a0_ = 0, last_sdx_a1_ = 0;
     std::int16_t last_sdx_x_ = 0;
     std::int32_t last_sdx_y_ = 0, last_sdx_p_ = 0;
-    std::uint8_t half_clock_ = 0;
     std::array<std::uint16_t, 16> do_cache_{};
     static constexpr std::uint16_t xaau_i_sign_ = 0x0800;
     static constexpr std::uint16_t xaau_i_mask_ = 0x0fff;
