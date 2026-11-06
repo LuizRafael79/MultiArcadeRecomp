@@ -198,6 +198,8 @@ struct QSound::Impl {
                 throw std::runtime_error("could not create QSound DSP trace " + std::string(path));
             dsp_trace << "phase,cycle,pc,opcode,auc,psw,pt,r0,r1,r2,r3,x,y,p,a0,a1\n";
         }
+        if (const char* value = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE_AFTER_CYCLES"))
+            dsp_trace_after_cycles = std::strtoull(value, nullptr, 0);
         mame_hle.init_map();
         if (!config.firmware.empty()) {
             mame_hle.load_firmware(config.firmware);
@@ -258,7 +260,8 @@ struct QSound::Impl {
                                            std::uint16_t pc,
                                            std::uint16_t opcode,
                                            const dsp16::Dsp16AState& state) {
-                if (!dsp_trace.is_open()) return;
+                if (!dsp_trace.is_open() || dsp_trace_rows >= 4096 ||
+                    dsp.cycles() < dsp_trace_after_cycles) return;
                 switch (pc) {
                 case 0x0599: case 0x059a: case 0x059b: case 0x059c:
                 case 0x05d2: case 0x05d3: case 0x05d4: case 0x05d7:
@@ -274,6 +277,7 @@ struct QSound::Impl {
                           << ',' << static_cast<std::uint32_t>(state.p)
                           << ',' << static_cast<std::uint64_t>(state.a[0])
                           << ',' << static_cast<std::uint64_t>(state.a[1]) << std::dec << '\n';
+                ++dsp_trace_rows;
             };
         }
         return bus;
@@ -368,6 +372,8 @@ struct QSound::Impl {
     bool command_pending = false, dsp_ready = true;
     std::deque<SyncEvent> sync_events;
     std::ofstream dsp_trace;
+    std::uint64_t dsp_trace_after_cycles = 0;
+    std::uint64_t dsp_trace_rows = 0;
     Dsp16A dsp;
     std::int16_t samples[2]{};
     std::uint16_t shift_register = 0;
