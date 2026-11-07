@@ -230,6 +230,7 @@ public:
         return zn2_sound_ ? zn2_sound_->cpu().interpreted : 0;
     }
 private:
+    static void sync_zn2_sound_command(void *opaque, uint64_t main_cycles);
     RomRegions roms_;
     std::unique_ptr<mamerecomp::psx::MachineMemory> memory_;
     std::unique_ptr<CapcomZn2Board> zn2_;

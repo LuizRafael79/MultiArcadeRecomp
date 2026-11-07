@@ -31,10 +31,9 @@ Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
 uint8_t Zn2SoundCpu::Read(uint16_t address)
 {
     if (address == 0xd007) {
-        // MAME's qsound_r() is a passive latch read. The Z80 runs before the
-        // QSound/DSP in each scheduler slice, so do not catch the DSP up from
-        // inside this callback; run_to_main_cycles() advances it after the Z80
-        // reaches the slice boundary.
+        // Catch the peer device up to the read's bus timestamp, then return its
+        // passive ready latch, matching the cooperative MAME scheduler path.
+        sync_qsound(cpu_.BusCallbackCycles());
         const std::uint8_t value = qsound_.read_status();
         if (std::getenv("MAMERECOMP_ZN_TRACE_QSOUND_STATUS")) {
             static std::uint64_t traced = 0;
@@ -197,10 +196,6 @@ void Zn2SoundCpu::run_to_main_cycles(uint64_t psx_cycles)
     }
     while (next_irq_ <= target) {
         run_z80_to(next_irq_);
-        // MAME completes the current execute-list slice (Z80, then QSound's
-        // DSP) before dispatching the 250 Hz timer. Catch the DSP up to this
-        // boundary before asserting the timer IRQ on the Z80.
-        sync_qsound(next_irq_);
         cpu_.SetInterruptLine(true);
         next_irq_ += irq_period;
     }

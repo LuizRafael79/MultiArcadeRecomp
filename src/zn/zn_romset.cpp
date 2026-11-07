@@ -239,19 +239,7 @@ PsxBus CapcomZn2Board::make_bus() {
     bus.advance_serial = advance_serial_cb;
     bus.serial_next_event_cycle = serial_next_event_cycle_cb;
     bus.set_cpu_cycles = cpu_cycles_cb;
-    bus.scheduler_yield_requested = scheduler_yield_cb;
     return bus;
-}
-bool CapcomZn2Board::scheduler_yield_cb(void *opaque) {
-    return static_cast<const CapcomZn2Board *>(opaque)->scheduler_event_pending();
-}
-void CapcomZn2Board::apply_sound_latch_events(uint64_t through_cycle) {
-    while (!sound_latch_events_.empty() &&
-           sound_latch_events_.front().cycle <= through_cycle) {
-        sound_latch_ = sound_latch_events_.front().value;
-        sound_pending_ = true;
-        sound_latch_events_.pop_front();
-    }
 }
 void CapcomZn2Board::cpu_cycles_cb(void *opaque, uint64_t cycles) {
     auto *self = static_cast<CapcomZn2Board *>(opaque);
@@ -372,7 +360,8 @@ bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value,
     const uint8_t data = static_cast<uint8_t>(value);
     if (p == 0x1fb00000) { bank_ = data & 0x0f; return true; }
     if (p == 0x1fb60000) {
-        sound_latch_events_.push_back({cpu_cycles_, data});
+        sound_latch_ = data;
+        sound_pending_ = true;
         if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 512)
@@ -380,6 +369,8 @@ bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value,
                           << unsigned(data) << " pc=0x" << pc << " cycle="
                           << std::dec << cpu_cycles_ << '\n';
         }
+        if (sound_command_callback_)
+            sound_command_callback_(sound_command_opaque_, cpu_cycles_);
         return true;
     }
     if (p == 0x1fa10300) {
