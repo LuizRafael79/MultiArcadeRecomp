@@ -14,7 +14,9 @@ public:
     explicit Zn2SoundCpu(CapcomZn2Board &board,
                          const mamerecomp::z80::Z80Code *aot_code = nullptr,
                          mamerecomp::chips::QSoundMode qsound_mode = mamerecomp::chips::QSoundMode::Lle,
-                         std::span<const std::uint16_t> qsound_firmware = {});
+                         std::span<const std::uint16_t> qsound_firmware = {},
+                         std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
+                         mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
     void run_to_main_cycles(uint64_t psx_cycles);
     uint64_t next_main_event_cycle() const;
     const mamerecomp::z80::Z80 &cpu() const { return cpu_; }
@@ -23,6 +25,8 @@ public:
     mamerecomp::chips::QSoundMode qsound_mode() const { return qsound_.mode(); }
     uint64_t qsound_dsp_cycles() const { return qsound_.dsp_cycles(); }
     uint64_t qsound_dsp_instructions() const { return qsound_.dsp_instructions(); }
+    uint64_t qsound_dsp_aot_instructions() const { return qsound_.dsp_aot_instructions(); }
+    uint64_t qsound_dsp_interpreted_instructions() const { return qsound_.dsp_interpreted_instructions(); }
     uint16_t qsound_dsp_pc() const { return qsound_.dsp_pc(); }
     uint64_t qsound_sample_reads() const { return qsound_.sample_reads(); }
     uint64_t qsound_pio_reads() const { return qsound_.pio_reads(); }
@@ -56,6 +60,9 @@ public:
     uint32_t audio_peak() const { return audio_peak_; }
     const std::array<uint32_t, 19> &voice_peaks() const { return voice_peaks_; }
     uint64_t profile_runtime_ns() const { return profile_runtime_ns_; }
+    uint64_t profile_z80_ns() const { return profile_z80_ns_; }
+    uint64_t profile_dsp_ns() const { return profile_dsp_ns_; }
+    uint64_t profile_qsound_render_ns() const { return profile_qsound_render_ns_; }
     std::vector<int16_t> take_audio();
 private:
     uint8_t Read(uint16_t address) override;
@@ -84,6 +91,9 @@ private:
     uint64_t next_irq_ = 32000;
     bool profile_timing_ = false;
     uint64_t profile_runtime_ns_ = 0;
+    uint64_t profile_z80_ns_ = 0;
+    uint64_t profile_dsp_ns_ = 0;
+    uint64_t profile_qsound_render_ns_ = 0;
 };
 
 } // namespace mamerecomp::zn

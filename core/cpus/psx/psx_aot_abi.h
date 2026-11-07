@@ -124,6 +124,9 @@ typedef struct PsxBus {
     // this without invoking the device-bus decoder; cache-isolated and MMIO
     // accesses continue to use their dedicated callbacks.
     uint8_t *direct_ram_write;
+    // Device callbacks can request a handoff after the current guest
+    // instruction, matching scheduler().synchronize() style events.
+    bool (*scheduler_yield_requested)(void *opaque);
 } PsxBus;
 
 // CPU-runtime helpers shared by AOT and the interpreter. Their definitions

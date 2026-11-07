@@ -52,7 +52,8 @@ MachineMemory::MachineMemory(MemoryConfig config)
     : ram_(config.ram_bytes),
       dma_(ram_, [this](unsigned source, bool active) { set_irq(source, active); }),
       vram_(config.vram_bytes), gpu_(vram_),
-      timers_([this](unsigned source, bool active) { set_irq(source, active); }),
+      timers_([this](unsigned source, bool active) { set_irq(source, active); },
+              config.cpu_cycle_hz),
       sio_(&MachineMemory::sio_irq_cb, this),
       sio1_(&MachineMemory::sio_irq_cb, this, 8),
       spu_([this](bool active) { set_irq(9, active); }),
@@ -111,6 +112,7 @@ PsxBus MachineMemory::make_bus()
     bus.cop2_read = cop2_read_cb;
     bus.cop2_write = cop2_write_cb;
     bus.check_interrupts = check_interrupts_cb;
+    bus.scheduler_yield_requested = scheduler_yield_requested_cb;
     bus.cache_read = cache_read_cb;
     bus.cache_write = cache_write_cb;
     bus.direct_ram = ram_.data();
@@ -120,6 +122,13 @@ PsxBus MachineMemory::make_bus()
     bus.direct_ram_mask = (ram_.size() & (ram_.size() - 1)) == 0
         ? ram_.size() - 1 : SIZE_MAX;
     return bus;
+}
+
+bool MachineMemory::scheduler_yield_requested_cb(void *opaque)
+{
+    const auto *self = static_cast<const MachineMemory *>(opaque);
+    return self->board_bus_ && self->board_bus_->scheduler_yield_requested &&
+        self->board_bus_->scheduler_yield_requested(self->board_bus_->opaque);
 }
 
 void MachineMemory::attach_cpu(PsxCpuState *state)
@@ -263,9 +272,23 @@ bool MachineMemory::write_cb(void *opaque, uint32_t address, unsigned size,
 {
     static const bool trace_gpu_commands = std::getenv("MAMERECOMP_ZN_TRACE_GPU_COMMANDS") != nullptr;
     static const bool trace_pointer_writes = std::getenv("MAMERECOMP_ZN_TRACE_POINTER_WRITES") != nullptr;
+    static const bool trace_sound_latch = std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS") != nullptr;
     auto *self = static_cast<MachineMemory *>(opaque);
     if (self->cpu_state_) self->current_cpu_cycles_ = self->cpu_state_->cycles;
     const uint32_t physical = address & 0x1fffffffu;
+    if (physical == 0x1fb60000 && trace_sound_latch) {
+        static unsigned logged_sound_writes = 0;
+        size_t code_offset = 0;
+        uint32_t opcode = 0xffffffffu;
+        if (self->ram_offset(pc, &code_offset) &&
+            code_offset + sizeof(opcode) <= self->ram_.size()) {
+            opcode = read_le32_direct(self->ram_.data() + code_offset);
+        }
+        if (logged_sound_writes++ < 512)
+            std::cerr << "ZN2 latch instruction pc=0x" << std::hex << pc
+                      << " opcode=0x" << opcode << " cycle=" << std::dec
+                      << self->current_cpu_cycles_ << '\n';
+    }
     if (physical >= 0x1f801814 && physical < 0x1f801818 &&
         trace_gpu_commands) {
         static unsigned logged_gpu_writes = 0;

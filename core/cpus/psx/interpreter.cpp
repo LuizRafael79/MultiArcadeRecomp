@@ -1051,6 +1051,9 @@ PSX_ALWAYS_INLINE PsxAotExit execute_one_body(PsxCpuState *state,
             else
                 counters->fallback_instructions += retired;
         }
+        if (bus && bus->scheduler_yield_requested &&
+            bus->scheduler_yield_requested(bus->opaque))
+            return PSX_AOT_DISPATCH;
         return result;
         }
     }
@@ -1239,7 +1242,9 @@ PSX_ALWAYS_INLINE PsxAotExit execute_interpreter_until(PsxCpuState *state,
     const bool direct_ram_configured = direct_ram && visible_ram_bytes &&
         direct_ram_size && direct_ram_mask != SIZE_MAX;
     uint64_t idle_loop_instructions = 0;
-    while (state->cycles < target_cycle) {
+    while (state->cycles < target_cycle &&
+           !(bus && bus->scheduler_yield_requested &&
+             bus->scheduler_yield_requested(bus->opaque))) {
         if (bus && bus->check_interrupts &&
             state->cycles >= state->next_event_cycle) {
             bus->check_interrupts(bus->opaque, state, state->pc);
@@ -1284,6 +1289,9 @@ PSX_ALWAYS_INLINE PsxAotExit execute_interpreter_until(PsxCpuState *state,
                     result = interpret_one_impl(state, bus, opcode, state->pc);
                 }
             }
+            if (bus && bus->scheduler_yield_requested &&
+                bus->scheduler_yield_requested(bus->opaque))
+                break;
         }
     }
     state->instructions = state->cycles;
@@ -1350,6 +1358,9 @@ PsxAotExit execute_until(PsxCpuState *state, const PsxBus *bus,
                                   counters ? &deltas : nullptr,
                                   call_cycle_limit);
         if (state->cycles == start_cycle) break;
+        if (bus && bus->scheduler_yield_requested &&
+            bus->scheduler_yield_requested(bus->opaque))
+            break;
     }
     state->instructions = state->cycles;
     if (counters) {

@@ -23,7 +23,9 @@ public:
                      const PsxAotEntry *entries = nullptr, size_t entry_count = 0,
                      const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr,
                      mamerecomp::chips::QSoundMode qsound_mode = mamerecomp::chips::QSoundMode::Lle,
-                     std::span<const std::uint16_t> qsound_firmware = {});
+                     std::span<const std::uint16_t> qsound_firmware = {},
+                     std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
+                     mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
     PsxAotExit step();
     void run_until(uint64_t target_cycle);
     void set_input_state(const mamerecomp::runtime::ArcadeInput &input);
@@ -51,6 +53,15 @@ public:
     uint64_t profile_run_until_ns() const { return profile_run_until_ns_; }
     uint64_t profile_zn2_sound_ns() const {
         return zn2_sound_ ? zn2_sound_->profile_runtime_ns() : 0;
+    }
+    uint64_t profile_zn2_z80_ns() const {
+        return zn2_sound_ ? zn2_sound_->profile_z80_ns() : 0;
+    }
+    uint64_t profile_zn2_dsp_ns() const {
+        return zn2_sound_ ? zn2_sound_->profile_dsp_ns() : 0;
+    }
+    uint64_t profile_zn2_qsound_render_ns() const {
+        return zn2_sound_ ? zn2_sound_->profile_qsound_render_ns() : 0;
     }
     uint64_t zn1_sound_instructions() const {
         return zn1_sound_ ? zn1_sound_->instructions() : 0;
@@ -113,6 +124,12 @@ public:
     uint64_t zn2_qsound_dsp_instructions() const {
         return zn2_sound_ ? zn2_sound_->qsound_dsp_instructions() : 0;
     }
+    uint64_t zn2_qsound_dsp_aot_instructions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_aot_instructions() : 0;
+    }
+    uint64_t zn2_qsound_dsp_interpreted_instructions() const {
+        return zn2_sound_ ? zn2_sound_->qsound_dsp_interpreted_instructions() : 0;
+    }
     uint16_t zn2_qsound_dsp_pc() const {
         return zn2_sound_ ? zn2_sound_->qsound_dsp_pc() : 0;
     }
@@ -139,6 +156,12 @@ public:
     }
     uint64_t zn2_qsound_nonzero_sample_reads() const {
         return zn2_sound_ ? zn2_sound_->qsound_nonzero_sample_reads() : 0;
+    }
+    uint64_t zn2_qsound_unmapped_sample_reads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_unmapped_sample_reads() : 0;
+    }
+    uint64_t zn2_qsound_mirrored_sample_reads() const {
+        return zn2_sound_ ? zn2_sound_->qsound_mirrored_sample_reads() : 0;
     }
     uint64_t zn2_qsound_nonzero_serial_words() const {
         return zn2_sound_ ? zn2_sound_->qsound_nonzero_serial_words() : 0;
@@ -207,7 +230,6 @@ public:
         return zn2_sound_ ? zn2_sound_->cpu().interpreted : 0;
     }
 private:
-    static void sync_zn2_sound_command(void *opaque, uint64_t main_cycles);
     RomRegions roms_;
     std::unique_ptr<mamerecomp::psx::MachineMemory> memory_;
     std::unique_ptr<CapcomZn2Board> zn2_;

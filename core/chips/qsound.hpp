@@ -7,6 +7,8 @@
 #include <memory>
 #include <span>
 
+#include "cpus/dsp16/dsp16a.hpp"
+
 namespace mamerecomp::chips {
 
 enum class QSoundMode : std::uint8_t { Hle, Lle, Mixed };
@@ -31,6 +33,8 @@ public:
     QSound& operator=(const QSound&) = delete;
 
     void set_sample_rom(std::span<const std::uint8_t> bytes);
+    void set_dsp_aot_program(std::span<const dsp16::Dsp16ACompiledEntry> entries,
+                             dsp16::Dsp16ARunHandler run_handler = nullptr);
     void set_firmware(std::span<const std::uint16_t> words);
     void reset();
     // Match qsound_device::qsound_w: its status becomes busy synchronously,
@@ -46,6 +50,8 @@ public:
     QSoundMode mode() const;
     std::uint64_t dsp_cycles() const;
     std::uint64_t dsp_instructions() const;
+    std::uint64_t dsp_aot_instructions() const;
+    std::uint64_t dsp_interpreted_instructions() const;
     std::uint16_t dsp_pc() const;
     std::uint64_t sample_reads() const;
     std::uint64_t pio_reads() const;

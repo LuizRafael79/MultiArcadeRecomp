@@ -236,15 +236,35 @@ if(MAMERECOMP_ZN2_SFEX2PA_AOT_DIR)
             "extern const PsxAotEntry psx_aot_entries[]; extern const size_t psx_aot_entry_count;\n"
             "extern \"C\" void mamerecomp_zn2_sfex2pa_psx_entries(const PsxAotEntry **entries, size_t *count) { *entries = psx_aot_entries; *count = psx_aot_entry_count; }\n")
     endif()
+    if(MAMERECOMP_DSP16A_AOT_SOURCE)
+        file(APPEND "${_zn2_adapter}"
+            "#include <cpus/dsp16/dsp16a.hpp>\n"
+            "extern \"C\" const mamerecomp::dsp16::Dsp16ACompiledEntry* mamerecomp_dsp16a_aot_entries(size_t*);\n"
+            "extern \"C\" void mamerecomp_zn2_sfex2pa_dsp16a_entries(const mamerecomp::dsp16::Dsp16ACompiledEntry **entries, size_t *count) { *entries = mamerecomp_dsp16a_aot_entries(count); }\n"
+            "extern \"C\" std::uint64_t mamerecomp_zn2_sfex2pa_dsp16a_run(mamerecomp::dsp16::Dsp16A& dsp, std::uint64_t clocks) { return dsp.run_clocks(clocks); }\n")
+    endif()
     add_library(mamerecomp_zn2_sfex2pa MODULE
         ${MAMERECOMP_ZN2_SFEX2PA_Z80_SOURCES}
         "${MAMERECOMP_ZN2_SFEX2PA_AOT_DIR}/z80/z80_table.cpp"
         ${_zn2_psx_sources} "${_zn2_adapter}")
+    if(MAMERECOMP_DSP16A_AOT_SOURCE)
+        target_sources(mamerecomp_zn2_sfex2pa PRIVATE "${MAMERECOMP_DSP16A_AOT_SOURCE}")
+        target_link_libraries(mamerecomp_zn2_sfex2pa PRIVATE mamerecomp_dsp16)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            # Keep DSP16A execution and its generated handlers in one LTO
+            # partition, while leaving the large R3000A shards out of LTO.
+            set_source_files_properties(
+                "${MAMERECOMP_DSP16A_AOT_SOURCE}" "${_zn2_adapter}"
+                PROPERTIES COMPILE_OPTIONS "-flto")
+            target_link_options(mamerecomp_zn2_sfex2pa PRIVATE "-flto")
+        endif()
+    endif()
     target_include_directories(mamerecomp_zn2_sfex2pa PRIVATE
         "${MAMERECOMP_ZN2_SFEX2PA_AOT_DIR}/z80"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound"
-        "${CMAKE_CURRENT_SOURCE_DIR}/core")
+        "${CMAKE_CURRENT_SOURCE_DIR}/core"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/dsp16")
     target_link_libraries(mamerecomp_zn2_sfex2pa PRIVATE mamerecomp_z80_core)
     if(_zn2_psx_sources)
         target_link_libraries(mamerecomp_zn2_sfex2pa PRIVATE mamerecomp_psx_cpu)
@@ -508,9 +528,17 @@ endif()
 # Midway T-Unit board adapter for the shared TMS34010 core. The generated
 # per-game CPU tables will be linked by the Mortal Kombat build pipeline;
 # board memory, VRAM, I/O registers and graphics-ROM windows stay in this SO.
-add_library(mamerecomp_tunit SHARED
+add_library(mamerecomp_tms34010 SHARED
     core/cpus/tms34010/interpreter.cpp
-    core/cpus/tms34010/mame_interpreter.cpp
+    core/cpus/tms34010/mame_interpreter.cpp)
+target_include_directories(mamerecomp_tms34010 PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core)
+set_target_properties(mamerecomp_tms34010 PROPERTIES
+    OUTPUT_NAME mamerecomp_cpu_tms34010
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+add_library(mamerecomp_tunit SHARED
     core/cpus/interpreter_trace.cpp
     src/mk/tunit.cpp
     src/mk/williams_adpcm.cpp
@@ -536,7 +564,8 @@ target_include_directories(mamerecomp_tunit PUBLIC
 set_target_properties(mamerecomp_tunit PROPERTIES
     OUTPUT_NAME mamerecomp_tunit
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-target_link_libraries(mamerecomp_tunit PRIVATE ymfm_opm)
+target_link_libraries(mamerecomp_tunit PRIVATE ymfm_opm mamerecomp_tms34010)
+set_target_properties(mamerecomp_tunit PROPERTIES BUILD_RPATH "$ORIGIN")
 
 # Shared MC6809/MC6809E fallback backend. It contains CPU semantics only;
 # the MK sound board remains in mamerecomp_tunit and is accessed via a bus.
@@ -652,8 +681,6 @@ else()
     set(MAMERECOMP_MK2_ADSP_AOT_INPUT core/cpus/adsp2105/aot_stub.cpp)
 endif()
 add_library(mamerecomp_tunit_mk2 SHARED
-    core/cpus/tms34010/interpreter.cpp
-    core/cpus/tms34010/mame_interpreter.cpp
     ${MAMERECOMP_MK2_TMS_AOT_INPUT}
     core/cpus/interpreter_trace.cpp
     src/mk/tunit.cpp
@@ -669,7 +696,7 @@ target_include_directories(mamerecomp_tunit_mk2 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/core)
 target_link_libraries(mamerecomp_tunit_mk2 PRIVATE
-    mamerecomp_dcs_audio_2k)
+    mamerecomp_dcs_audio_2k mamerecomp_tms34010)
 set_target_properties(mamerecomp_tunit_mk2 PROPERTIES
     OUTPUT_NAME mamerecomp_tunit_mk2
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -953,6 +980,14 @@ target_include_directories(mamerecomp_qsound_hle PUBLIC
 add_library(mamerecomp_dsp16 STATIC core/cpus/dsp16/dsp16a.cpp)
 target_include_directories(mamerecomp_dsp16 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/dsp16)
 target_compile_features(mamerecomp_dsp16 PUBLIC cxx_std_20)
+set_target_properties(mamerecomp_dsp16 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set(MAMERECOMP_DSP16A_AOT_SOURCE "" CACHE FILEPATH
+    "Generated DSP16A AOT source (tools/dsp16a/build_aot.py output)")
+if(MAMERECOMP_DSP16A_AOT_SOURCE)
+    if(NOT EXISTS "${MAMERECOMP_DSP16A_AOT_SOURCE}")
+        message(FATAL_ERROR "DSP16A AOT source does not exist: ${MAMERECOMP_DSP16A_AOT_SOURCE}")
+    endif()
+endif()
 set_property(TARGET mamerecomp_dsp16 PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 # Board-neutral MAME-derived QSound peripheral with DSP16A LLE and MAME HLE.

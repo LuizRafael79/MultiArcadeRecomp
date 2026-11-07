@@ -22,14 +22,22 @@ constexpr std::uint16_t reverse_bits(std::uint16_t value)
     value = static_cast<std::uint16_t>(((value & 0x0f0fU) << 4) | ((value >> 4) & 0x0f0fU));
     return static_cast<std::uint16_t>((value << 8) | (value >> 8));
 }
+
 }
 
-Dsp16A::Dsp16A(Dsp16ABus bus) : bus_(std::move(bus)) { reset(); }
+Dsp16A::Dsp16A(Dsp16ABus bus) : bus_(std::move(bus))
+{
+    reset();
+}
 
 void Dsp16A::set_firmware(std::span<const std::uint16_t> words)
 {
     firmware_.fill(0);
     std::copy_n(words.begin(), std::min(words.size(), firmware_.size()), firmware_.begin());
+    for (std::size_t pc = 0; pc < compiled_handlers_.size(); ++pc) {
+        if (compiled_handlers_[pc] && compiled_opcodes_[pc] != firmware_[pc])
+            compiled_handlers_[pc] = nullptr;
+    }
     reset();
 }
 
@@ -57,6 +65,7 @@ void Dsp16A::reset()
     pids_count_ = pods_count_ = 0;
     pids_out_ = pods_out_ = true;
     cycles_ = instructions_ = 0;
+    compiled_instructions_ = interpreted_instructions_ = 0;
     pending_clocks_ = 0;
     scheduler_yield_requested_ = false;
     do_cache_.fill(0);
@@ -65,6 +74,46 @@ void Dsp16A::reset()
     if (bus_.serial_data_out) bus_.serial_data_out(true);
     if (bus_.serial_load_out) bus_.serial_load_out(true);
     if (bus_.serial_enable_out) bus_.serial_enable_out(true);
+}
+
+void Dsp16A::set_compiled_program(std::span<const Dsp16ACompiledEntry> entries)
+{
+    compiled_handlers_.fill(nullptr);
+    compiled_opcodes_.fill(0);
+    for (const auto& entry : entries) {
+        // Only immutable internal firmware is eligible. External program/data
+        // reads and cache operands always stay on the architectural interpreter
+        // path unless they correspond to an observed internal-ROM PC.
+        if (entry.pc >= internal_program_words || !entry.handler ||
+            firmware_[entry.pc] != entry.opcode)
+            continue;
+        compiled_handlers_[entry.pc] = entry.handler;
+        compiled_opcodes_[entry.pc] = entry.opcode;
+    }
+}
+
+void Dsp16A::enable_instruction_manifest(bool enabled)
+{
+    manifest_enabled_ = enabled;
+    if (enabled) {
+        manifest_seen_.assign(internal_program_words, 0);
+        manifest_opcodes_.assign(internal_program_words, 0);
+    } else {
+        manifest_seen_.clear();
+        manifest_opcodes_.clear();
+    }
+}
+
+std::vector<Dsp16AObservedInstruction> Dsp16A::instruction_manifest() const
+{
+    std::vector<Dsp16AObservedInstruction> result;
+    for (std::size_t pc = 0; pc < manifest_seen_.size(); ++pc) {
+        if (manifest_seen_[pc] == 1)
+            result.push_back({static_cast<std::uint16_t>(pc), manifest_opcodes_[pc]});
+        else if (manifest_seen_[pc] == 2)
+            result.push_back({static_cast<std::uint16_t>(pc), 0xffffU});
+    }
+    return result;
 }
 
 void Dsp16A::set_irq(bool asserted) { irq_in_ = asserted; }
@@ -587,7 +636,7 @@ bool Dsp16A::execute_rom_cycle()
     int_enable_[0] = int_enable_[1];
     set_pc_offset(state_.pc + 1U);
     ++instructions_;
-    const unsigned cost = execute_instruction(current_op, false);
+    const unsigned cost = dispatch_instruction(current_op, false);
     if ((current_op >> 11) == 0x0eU && cache_mode_ == CacheMode::Load) {
         // The DO instruction prefetches the first body word into cache[1].
         op_ = read_program(state_.pc);
@@ -626,7 +675,7 @@ bool Dsp16A::execute_cache_cycle()
     op_ = do_cache_[cache_ptr_ & 15U];
     instruction_pc_ = static_cast<std::uint16_t>(cache_pcbase_ + cache_ptr_ - 1U);
     ++instructions_;
-    const unsigned cost = execute_instruction(op_, true);
+    const unsigned cost = dispatch_instruction(op_, true);
     if (cost > 1) phase_ = Phase::Op2;
     else advance_cache_execution();
     return true;
@@ -724,185 +773,35 @@ void Dsp16A::complete_second_phase()
 
 unsigned Dsp16A::execute_instruction(std::uint16_t op, bool from_cache)
 {
-    if (bus_.instruction_trace)
-        bus_.instruction_trace(Dsp16ATracePhase::Before, instruction_pc_, op, state_);
-    const unsigned group = op >> 11;
-    unsigned cost = 1;
-    switch (group) {
-    case 0x00: case 0x01: case 0x10: case 0x11:
-        if (check_predicate()) {
-            if (op & 0x8000U) state_.pr = state_.pc;
-            set_pc_offset(op_ja(op));
+    return execute_instruction_specialized<false, 0>(op, from_cache);
+}
+
+
+unsigned Dsp16A::dispatch_instruction(std::uint16_t op, bool from_cache)
+{
+    if (manifest_enabled_ && instruction_pc_ < internal_program_words) {
+        const auto pc = instruction_pc_;
+        if (!manifest_seen_[pc]) {
+            manifest_seen_[pc] = 1;
+            manifest_opcodes_[pc] = op;
+        } else if (manifest_opcodes_[pc] != op) {
+            // Internal ROM cannot be self-modifying. Record an invalid opcode
+            // marker instead of silently generating an unsafe PC-only entry.
+            manifest_seen_[pc] = 2;
         }
-        phase_ = Phase::Purge;
-        break;
-    case 0x02: case 0x03: yaau_short_immediate_load(op); break;
-    case 0x04: case 0x1c: {
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
     }
-    case 0x05: {
-        const auto d = dau_f1(op);
-        state_.temp = static_cast<std::int16_t>(dau_saturate(op_d(~op)) >> (op_x(op) ? 16 : 0));
-        state_.a[op_d(op)] = d;
-        dau_set_atx(op, yaau_read(op));
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    }
-    case 0x06:
-        state_.a[op_d(op)] = dau_f1(op);
-        (void)yaau_read(op);
-        break;
-    case 0x07:
-        state_.a[op_d(op)] = dau_f1(op);
-        dau_set_atx(op, yaau_read(op));
-        break;
-    case 0x08:
-        dau_set_at(op, get_r(op));
-        cost = 2;
-        break;
-    case 0x09: case 0x0b:
-        set_r(op, static_cast<std::int16_t>(dau_saturate((op >> 12) & 1U) >> 16));
-        cost = 2;
-        break;
-    case 0x0a:
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    case 0x0c:
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    case 0x0d: {
-        const auto old = get_r(op);
-        state_.temp = old;
-        const auto value = yaau_read(op);
-        set_r(op, value);
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    }
-    case 0x0e: {
-        const unsigned ni = op_ni(op);
-        const unsigned iterations = op_k(op);
-        if (ni) {
-            cache_pcbase_ = state_.pc;
-            cache_limit_ = static_cast<std::uint16_t>(ni);
-            cache_iterations_ = static_cast<std::uint16_t>(iterations);
-            cache_ptr_ = 1;
-            cache_mode_ = CacheMode::Load;
-        } else {
-            // MAME accepts the hardware's REDO form even before an explicit
-            // DO load. The cache contents are then whatever the DSP cache
-            // currently contains (zeroed here on reset), not an illegal-op
-            // condition. Do not reject valid firmware at reset.
-            cache_ptr_ = 1;
-            cache_iterations_ = static_cast<std::uint16_t>(iterations);
-            cache_mode_ = CacheMode::Execute;
-            phase_ = Phase::Prefetch;
+
+    if (instruction_pc_ < internal_program_words) {
+        const auto pc = instruction_pc_;
+        const auto handler = compiled_handlers_[pc];
+        if (handler) {
+            ++compiled_instructions_;
+            return handler(*this, from_cache);
         }
-        break;
     }
-    case 0x0f: set_r(op, yaau_read(op)); cost = 2; break;
-    case 0x12: {
-        const bool con = op_dau_con(op, false);
-        ++state_.c[1];
-        if (con) { dau_f2(op); state_.c[2] = state_.c[1]; }
-        break;
-    }
-    case 0x13: if (op_dau_con(op, true, true)) dau_f2(op); break;
-    case 0x14:
-        state_.a[op_d(op)] = dau_f1(op);
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    case 0x15:
-        state_.a[op_d(op)] = dau_f1(op);
-        state_.temp = static_cast<std::int16_t>(op_x(op) ? state_.y >> 16 : state_.y);
-        dau_set_y(op, yaau_read(op));
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    case 0x16:
-        state_.a[op_d(op)] = dau_f1(op);
-        state_.x = yaau_read(op);
-        break;
-    case 0x17:
-        state_.a[op_d(op)] = dau_f1(op);
-        dau_set_y(op, yaau_read(op));
-        break;
-    case 0x18:
-        switch (op_b(op)) {
-        case 0: if (check_predicate()) state_.pc = state_.pr; break;
-        case 1: set_iack(iack_clear_); state_.pc = state_.pi; break;
-        case 2: if (check_predicate()) state_.pc = state_.pt; break;
-        case 3: if (check_predicate()) { state_.pr = state_.pc; state_.pc = state_.pt; } break;
-        default: throw std::runtime_error("DSP16A reserved branch operation");
-        }
-        if (iack_out_) state_.pi = state_.pc;
-        if (!from_cache) phase_ = Phase::Purge;
-        break;
-    case 0x19: case 0x1b: {
-        const unsigned src = group == 0x19 ? 0U : 1U;
-        // MAME evaluates F1, snapshots the selected accumulator into Y, and
-        // only then commits the destination accumulator. Keep the snapshot
-        // separate because source and destination may name the same A register.
-        const auto result = dau_f1(op);
-        const auto y_source = state_.a[src];
-        state_.a[op_d(op)] = result;
-        state_.y = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(y_source));
-        if (from_cache && !(cache_ptr_ == cache_limit_ && cache_iterations_ == 1)) {
-            increment_pt(op);
-            state_.x = static_cast<std::int16_t>(rom_data_);
-        } else {
-            rom_data_ = read_program(state_.pt);
-            phase_ = Phase::Op2;
-            cost = 2;
-        }
-        break;
-    }
-    case 0x1a: {
-        const bool condition = op_dau_con(op, true);
-        set_predicate(condition ? pred_true_ : pred_false_);
-        if (op_d(op)) {
-            phase_ = Phase::Op2;
-            cost = 2;
-        }
-        break;
-    }
-    case 0x1d:
-        state_.a[op_d(op)] = dau_f1(op);
-        state_.temp = static_cast<std::int16_t>(state_.y >> 16);
-        dau_set_y(op, yaau_read(op));
-        rom_data_ = read_program(state_.pt);
-        phase_ = Phase::Op2;
-        cost = 2;
-        break;
-    case 0x1e: throw std::runtime_error("DSP16A reserved opcode group");
-    case 0x1f:
-        state_.a[op_d(op)] = dau_f1(op);
-        dau_set_y_high(yaau_read(op));
-        if (from_cache && !(cache_ptr_ == cache_limit_ && cache_iterations_ == 1)) {
-            increment_pt(op);
-            state_.x = static_cast<std::int16_t>(rom_data_);
-        } else {
-            rom_data_ = read_program(state_.pt);
-            phase_ = Phase::Op2;
-            cost = 2;
-        }
-        break;
-    default: throw std::runtime_error("DSP16A invalid opcode group");
-    }
-    if (flags_ & pred_mask_) {
-        // Predicates are consumed by branch/conditional instructions only.
-        if (group != 0x1a) set_predicate(pred_none_);
-    }
-    if (from_cache && (phase_ == Phase::Purge)) phase_ = Phase::Op1;
-    if (bus_.instruction_trace)
-        bus_.instruction_trace(Dsp16ATracePhase::After, instruction_pc_, op, state_);
-    return cost;
+
+    ++interpreted_instructions_;
+    return execute_instruction(op, from_cache);
 }
 
 } // namespace mamerecomp::dsp16

@@ -12,7 +12,9 @@ namespace mamerecomp::zn {
 Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
                          const mamerecomp::z80::Z80Code *aot_code,
                          mamerecomp::chips::QSoundMode qsound_mode,
-                         std::span<const std::uint16_t> qsound_firmware)
+                         std::span<const std::uint16_t> qsound_firmware,
+                         std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program,
+                         mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run)
     : board_(board), cpu_(*this),
       aot_code_(std::getenv("MAMERECOMP_ZN2_Z80_INTERPRETER_ONLY") ? nullptr : aot_code),
       qsound_(mamerecomp::chips::QSoundConfig{60'000'000, qsound_mode, qsound_firmware})
@@ -23,15 +25,16 @@ Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
     samples_ = board_.qsound_samples();
     qsound_.set_sample_rom(samples_);
     qsound_.reset();
+    qsound_.set_dsp_aot_program(dsp_aot_program, dsp_aot_run);
 }
 
 uint8_t Zn2SoundCpu::Read(uint16_t address)
 {
     if (address == 0xd007) {
-        // MAME's qsound_r() returns the ready latch without synchronizing the
-        // device itself. The cooperative bus scheduler must bring peer devices
-        // to this read's timestamp before returning the passive latch value.
-        sync_qsound(cpu_.BusCallbackCycles());
+        // MAME's qsound_r() is a passive latch read. The Z80 runs before the
+        // QSound/DSP in each scheduler slice, so do not catch the DSP up from
+        // inside this callback; run_to_main_cycles() advances it after the Z80
+        // reaches the slice boundary.
         const std::uint8_t value = qsound_.read_status();
         if (std::getenv("MAMERECOMP_ZN_TRACE_QSOUND_STATUS")) {
             static std::uint64_t traced = 0;
@@ -121,13 +124,27 @@ void Zn2SoundCpu::sync_qsound(uint64_t sound_cycles)
     const uint64_t target = qsound_target_frames(sound_cycles);
     const uint64_t target_dsp_clocks = sound_cycles * 60'000'000ull / 8'000'000ull;
     if (target_dsp_clocks > generated_dsp_clocks_) {
+        const auto start = profile_timing_
+            ? std::chrono::steady_clock::now()
+            : std::chrono::steady_clock::time_point{};
         qsound_.run_clocks(target_dsp_clocks - generated_dsp_clocks_);
+        if (profile_timing_)
+            profile_dsp_ns_ += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - start).count());
         generated_dsp_clocks_ = target_dsp_clocks;
     }
     while (generated_samples_ < target) {
         const int count = static_cast<int>(std::min<uint64_t>(target - generated_samples_, qsound_stereo_.size() / 2));
         auto output = std::span<int16_t>(qsound_stereo_.data(), size_t(count) * 2);
+        const auto render_start = profile_timing_
+            ? std::chrono::steady_clock::now()
+            : std::chrono::steady_clock::time_point{};
         qsound_.render(output);
+        if (profile_timing_)
+            profile_qsound_render_ns_ += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - render_start).count());
         const size_t old_size = audio_queue_.size();
         audio_queue_.resize(old_size + size_t(count) * 2);
         for (int i = 0; i < count; ++i) {
@@ -163,18 +180,31 @@ void Zn2SoundCpu::run_to_main_cycles(uint64_t psx_cycles)
         ? mamerecomp::z80::Z80::Mode::Native
         : mamerecomp::z80::Z80::Mode::Interpreter;
     const uint64_t target = (psx_cycles * sound_clock) / psx_cycle_hz;
+    const auto run_z80_to = [&](uint64_t cycle) {
+        if (cycle <= cpu_.cycles) return;
+        const auto start = profile_timing_
+            ? std::chrono::steady_clock::now()
+            : std::chrono::steady_clock::time_point{};
+        cpu_.Run(cycle, mode);
+        if (profile_timing_)
+            profile_z80_ns_ += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - start).count());
+    };
     if (board_.sound_pending() && !sound_nmi_delivered_) {
         cpu_.RaiseNmi();
         sound_nmi_delivered_ = true;
     }
     while (next_irq_ <= target) {
-        if (next_irq_ > cpu_.cycles)
-            cpu_.Run(next_irq_, mode);
+        run_z80_to(next_irq_);
+        // MAME completes the current execute-list slice (Z80, then QSound's
+        // DSP) before dispatching the 250 Hz timer. Catch the DSP up to this
+        // boundary before asserting the timer IRQ on the Z80.
+        sync_qsound(next_irq_);
         cpu_.SetInterruptLine(true);
         next_irq_ += irq_period;
     }
-    if (target > cpu_.cycles)
-        cpu_.Run(target, mode);
+    run_z80_to(target);
     sync_qsound(cpu_.cycles);
     if (profile_timing_)
         profile_runtime_ns_ += static_cast<uint64_t>(
@@ -192,10 +222,9 @@ uint64_t Zn2SoundCpu::next_main_event_cycle() const
         return static_cast<uint64_t>((numerator + denominator - 1) / denominator);
     };
 
-    // MAME's QSound stream clocks one sample every 1,248 DSP machine cycles;
-    // each machine cycle is two DSP input clocks. Give the Z80 a scheduler
-    // boundary at the next serial/sample event so its d007 polling sees the
-    // DSP progress without relying on an arbitrary host-side slice length.
+    // Keep the shared Z80/DSP scheduler observable at the DSP serial-frame
+    // boundary as well as at the board's periodic IRQ. The status read itself
+    // remains passive, matching qsound_r().
     const uint64_t next_sample_dsp_clock =
         (generated_dsp_clocks_ / dsp_clocks_per_sample + 1) *
         dsp_clocks_per_sample;
@@ -203,7 +232,6 @@ uint64_t Zn2SoundCpu::next_main_event_cycle() const
         __uint128_t(next_sample_dsp_clock) * z80_clock, dsp_clock);
     const uint64_t next_sample_main_cycle = ceil_div(
         __uint128_t(next_sample_z80_cycle) * main_clock, z80_clock);
-
     const uint64_t next_irq_main_cycle = ceil_div(
         __uint128_t(next_irq_) * main_clock, z80_clock);
     return std::min(next_sample_main_cycle, next_irq_main_cycle);

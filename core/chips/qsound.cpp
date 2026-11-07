@@ -202,6 +202,28 @@ struct QSound::Impl {
                 throw std::runtime_error("could not create QSound DSP trace " + std::string(path));
             dsp_trace << "phase,cycle,command_index,command_address,command_data,sdx,pc,opcode,auc,psw,pt,pr,pi,r0,r1,r2,r3,x,y,p,a0,a1\n";
         }
+        if (const char* path = std::getenv("MAMERECOMP_QSOUND_COMMAND_TRACE")) {
+            command_trace.open(path, std::ios::out | std::ios::trunc);
+            if (!command_trace)
+                throw std::runtime_error("could not create QSound command trace " + std::string(path));
+            command_trace << "event_index,dsp_cycles,address,data,pc,pr,pi,pt,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx\n";
+        }
+        if (const char* path = std::getenv("MAMERECOMP_QSOUND_PIO_TRACE")) {
+            pio_trace.open(path, std::ios::out | std::ios::trunc);
+            if (!pio_trace)
+                throw std::runtime_error("could not create QSound PIO trace " + std::string(path));
+            pio_trace << "pio_index,dsp_cycles,value,pc,pr,pi,pt,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx\n";
+        }
+        if (const char* path = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE")) {
+            bit_trace.open(path, std::ios::out | std::ios::trunc);
+            if (!bit_trace)
+                throw std::runtime_error("could not create QSound bit trace " + std::string(path));
+            bit_trace << "edge,dsp_cycles,ready_edge,old_load,shift_remaining,shift_register,channel,psel,do,ose,old,word_loads,dsp_obuf,dsp_osr,dsp_ofsr,pc,pr,pt,pi,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx,last_sdx_pc,last_sdx_opcode\n";
+        }
+        if (const char* value = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE_FROM"))
+            bit_trace_from = std::strtoull(value, nullptr, 0);
+        if (const char* value = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE_TO"))
+            bit_trace_to = std::strtoull(value, nullptr, 0);
         if (const char* value = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE_AFTER_CYCLES"))
             dsp_trace_after_cycles = std::strtoull(value, nullptr, 0);
         mame_hle.init_map();
@@ -215,6 +237,22 @@ struct QSound::Impl {
                     Dsp16A::internal_program_words)));
             dsp.reset();
         }
+        if (std::getenv("MAMERECOMP_QSOUND_DSP_AOT_MANIFEST"))
+            dsp.enable_instruction_manifest();
+    }
+
+    ~Impl()
+    {
+        const char* path = std::getenv("MAMERECOMP_QSOUND_DSP_AOT_MANIFEST");
+        if (!path || !*path)
+            return;
+        std::ofstream manifest(path, std::ios::out | std::ios::trunc);
+        if (!manifest)
+            return;
+        manifest << "# pc,opcode; ffff means the same internal PC executed with multiple opcodes\n";
+        manifest << std::hex;
+        for (const auto& entry : dsp.instruction_manifest())
+            manifest << entry.pc << ',' << entry.opcode << '\n';
     }
 
     Dsp16ABus make_dsp_bus() {
@@ -239,6 +277,20 @@ struct QSound::Impl {
             ++pio_read_count;
             const bool address_pending = command_pending;
             const std::uint16_t value = address_pending ? command_address : command_data;
+            if (pio_trace.is_open()) {
+                const auto& state = dsp.state();
+                pio_trace << std::dec << pio_read_count << ',' << dsp.cycles() << ','
+                    << std::hex << value << ',' << state.pc << ',' << state.pr << ','
+                    << state.pi << ',' << state.pt << ',' << unsigned(state.auc) << ','
+                    << state.psw << ',' << state.r[0] << ',' << state.r[1] << ','
+                    << state.r[2] << ',' << state.r[3] << ','
+                    << static_cast<std::uint16_t>(state.x) << ','
+                    << static_cast<std::uint32_t>(state.y) << ','
+                    << static_cast<std::uint32_t>(state.p) << ','
+                    << static_cast<std::uint64_t>(state.a[0]) << ','
+                    << static_cast<std::uint64_t>(state.a[1]) << ','
+                    << dsp.last_sdx_value() << std::dec << '\n';
+            }
             if (std::getenv("MAMERECOMP_QSOUND_TRACE") && pio_read_count <= 512)
                 std::cerr << "QSound DSP PIO read #" << pio_read_count
                           << " cycle=" << std::dec << dsp.cycles()
@@ -311,6 +363,20 @@ struct QSound::Impl {
                 ++command_count;
                 command_address = event.address;
                 command_data = event.data;
+                if (command_trace.is_open()) {
+                    const auto& state = dsp.state();
+                    command_trace << std::dec << command_count << ',' << dsp.cycles()
+                        << ',' << std::hex << event.address << ',' << event.data
+                        << ',' << state.pc << ',' << state.pr << ',' << state.pi
+                        << ',' << state.pt << ',' << unsigned(state.auc) << ',' << state.psw
+                        << ',' << state.r[0] << ',' << state.r[1] << ',' << state.r[2]
+                        << ',' << state.r[3] << ',' << static_cast<std::uint16_t>(state.x)
+                        << ',' << static_cast<std::uint32_t>(state.y)
+                        << ',' << static_cast<std::uint32_t>(state.p)
+                        << ',' << static_cast<std::uint64_t>(state.a[0])
+                        << ',' << static_cast<std::uint64_t>(state.a[1])
+                        << ',' << dsp.last_sdx_value() << std::dec << '\n';
+                }
                 command_pending = true;
                 dsp_ready = false;
                 dsp.set_irq(true);
@@ -327,6 +393,29 @@ struct QSound::Impl {
         }
         ock = level;
         const bool old = dsp.output_load();
+        ++ock_edge_count;
+        if (bit_trace.is_open() && dsp.cycles() >= bit_trace_from &&
+            dsp.cycles() <= bit_trace_to) {
+            const auto& state = dsp.state();
+            bit_trace << ock_edge_count << ',' << dsp.cycles() << ',' << ready_edge
+                << ',' << old_load << ',' << unsigned(shift_remaining) << ','
+                << std::hex << shift_register << ',' << unsigned(channel) << ','
+                << dsp.selected_output_channel() << ',' << dsp.data_output() << ','
+                << dsp.output_enable() << ',' << old << ',' << std::dec
+                << dsp.serial_word_loads() << ',' << std::hex
+                << dsp.last_sdx_value() << ',' << dsp.serial_output_shift() << ','
+                << dsp.serial_output_flags() << ',' << state.pc << ','
+                << state.pr << ',' << state.pt << ',' << state.pi << ','
+                << unsigned(state.auc) << ',' << state.psw << ',' << state.r[0] << ','
+                << state.r[1] << ',' << state.r[2] << ',' << state.r[3] << ','
+                << static_cast<std::uint16_t>(state.x) << ','
+                << static_cast<std::uint32_t>(state.y) << ','
+                << static_cast<std::uint32_t>(state.p) << ','
+                << static_cast<std::uint64_t>(state.a[0]) << ','
+                << static_cast<std::uint64_t>(state.a[1]) << ','
+                << dsp.last_sdx_value() << ',' << dsp.last_sdx_pc() << ','
+                << dsp.last_sdx_opcode() << std::dec << '\n';
+        }
         if (ready_edge && shift_remaining == 0 && !dsp.output_enable()) {
             if (force_alternating_channel) {
                 channel = next_alternating_channel;
@@ -431,10 +520,16 @@ struct QSound::Impl {
     bool command_pending = false, dsp_ready = true, scheduler_barrier_pending = false;
     std::deque<SyncEvent> sync_events;
     std::ofstream dsp_trace;
+    std::ofstream command_trace;
+    std::ofstream pio_trace;
+    std::ofstream bit_trace;
+    std::uint64_t bit_trace_from = 0, bit_trace_to = UINT64_MAX;
+    std::uint64_t ock_edge_count = 0;
     bool dsp_trace_full = false;
     std::uint64_t dsp_trace_after_cycles = 0;
     std::uint64_t dsp_trace_rows = 0;
     Dsp16A dsp;
+    dsp16::Dsp16ARunHandler dsp_aot_run = nullptr;
     std::int16_t samples[2]{};
     std::uint16_t shift_register = 0;
     std::uint8_t shift_remaining = 0, channel = 0;
@@ -459,6 +554,14 @@ QSound& QSound::operator=(QSound&&) noexcept = default;
 
 void QSound::set_sample_rom(std::span<const std::uint8_t> bytes) {
     impl_->set_rom(bytes);
+}
+
+void QSound::set_dsp_aot_program(std::span<const dsp16::Dsp16ACompiledEntry> entries,
+                                 dsp16::Dsp16ARunHandler run_handler) {
+    if (!std::getenv("MAMERECOMP_DSP16A_INTERPRETER_ONLY")) {
+        impl_->dsp.set_compiled_program(entries);
+        impl_->dsp_aot_run = entries.empty() ? nullptr : run_handler;
+    }
 }
 
 void QSound::set_firmware(std::span<const std::uint16_t> words) {
@@ -544,7 +647,10 @@ void QSound::run_clocks(std::uint64_t clocks) {
         impl_->advance_hle(clocks);
     try {
         impl_->drain_sync_events();
-        impl_->dsp.run_clocks(clocks);
+        if (impl_->dsp_aot_run)
+            (void)impl_->dsp_aot_run(impl_->dsp, clocks);
+        else
+            impl_->dsp.run_clocks(clocks);
         // MAME defers set_dsp_ready() with scheduler().synchronize() after
         // the DSP PIO address read. Apply the queued ready edge only once the
         // DSP run slice has yielded back to its caller.
@@ -587,6 +693,8 @@ std::uint32_t QSound::sample_rate() const {
 QSoundMode QSound::mode() const { return impl_->active_mode; }
 std::uint64_t QSound::dsp_cycles() const { return impl_->dsp.cycles(); }
 std::uint64_t QSound::dsp_instructions() const { return impl_->dsp.instructions(); }
+std::uint64_t QSound::dsp_aot_instructions() const { return impl_->dsp.compiled_instructions(); }
+std::uint64_t QSound::dsp_interpreted_instructions() const { return impl_->dsp.interpreted_instructions(); }
 std::uint16_t QSound::dsp_pc() const { return impl_->dsp.pc(); }
 std::uint64_t QSound::sample_reads() const { return impl_->sample_read_count; }
 std::uint64_t QSound::pio_reads() const { return impl_->pio_read_count; }

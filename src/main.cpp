@@ -2600,12 +2600,23 @@ int run_zn_machine(const std::filesystem::path& source_root,
                    bool psx_interpreter_only,
                    mamerecomp::chips::QSoundMode qsound_mode,
                    bool qsound_mixed_requested) {
+#if defined(__linux__)
+    // Select the XWayland backend before initializing SDL audio: a prior SDL
+    // subsystem can otherwise lock the video backend before the presenter
+    // applies the project's X11 preference.
+    if (std::getenv("WAYLAND_DISPLAY") && std::getenv("DISPLAY") &&
+        !std::getenv("SDL_VIDEODRIVER"))
+        setenv("SDL_VIDEODRIVER", "x11", 0);
+#endif
     const bool zn1 = game == "bldyror2";
     const bool system12 = game == "tekken3";
-    // Match the clocks passed to CXD8530CQ/CXD8661R in MAME's zn.cpp.
-    // Both MAME's execute loop and this interpreter advance one scheduler
-    // tick per instruction, so frame/vblank timing uses the configured clock.
-    const std::uint64_t cpu_clock_hz = (zn1 || system12) ? 67'737'600ull : 100'000'000ull;
+    // MAME configures the PSX-derived CPUs at their crystal rates, then
+    // converts four crystal clocks into one execute cycle. Frame scheduling
+    // shares the same execute-cycle counter as PsxCpuState::cycles.
+    const std::uint64_t cpu_clock_hz = zn1
+        ? mamerecomp::psx::kZn1MemoryConfig.cpu_cycle_hz
+        : system12 ? mamerecomp::psx::kSystem12MemoryConfig.cpu_cycle_hz
+                   : mamerecomp::psx::kZn2MemoryConfig.cpu_cycle_hz;
     // MAME's PSX GPU uses 59.8260978565 Hz for the default NTSC 240-line
     // mode (psxgpu_device::updatevisiblearea). Keep the CPU frame scheduler
     // on that same cadence so --frames, input events, and GPU vblank don't
@@ -2634,31 +2645,42 @@ int run_zn_machine(const std::filesystem::path& source_root,
 #endif
 
     const std::filesystem::path zn_aot_module = source_root / "build/mamerecomp_zn2_sfex2pa.so";
+    void *zn_aot_handle = nullptr;
     const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr;
     const PsxAotEntry *zn2_psx_entries = nullptr;
     size_t zn2_psx_entry_count = 0;
+    const mamerecomp::dsp16::Dsp16ACompiledEntry *zn2_dsp16a_entries = nullptr;
+    size_t zn2_dsp16a_entry_count = 0;
+    mamerecomp::dsp16::Dsp16ARunHandler zn2_dsp16a_run = nullptr;
 #if defined(__unix__) || defined(__APPLE__)
     if (game == "sfex2pa" && std::filesystem::is_regular_file(zn_aot_module)) {
-        void *handle = dlopen(zn_aot_module.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (!handle)
+        zn_aot_handle = dlopen(zn_aot_module.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (!zn_aot_handle)
             throw std::runtime_error("could not load ZN-2 AOT module " + zn_aot_module.string() + ": " + dlerror());
         using Z80CodeFn = const mamerecomp::z80::Z80Code *(*)();
-        auto get_code = reinterpret_cast<Z80CodeFn>(dlsym(handle, "mamerecomp_zn2_sfex2pa_z80_code"));
+        auto get_code = reinterpret_cast<Z80CodeFn>(dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_z80_code"));
         const char *symbol_error = dlerror();
         if (symbol_error || !get_code)
             throw std::runtime_error("ZN-2 AOT module has no Z80 table: " + std::string(symbol_error ? symbol_error : "unknown loader error"));
         zn2_z80_code = get_code();
         using PsxEntriesFn = void (*)(const PsxAotEntry **, size_t *);
-        auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(handle, "mamerecomp_zn2_sfex2pa_psx_entries"));
+        auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_psx_entries"));
         if (get_psx_entries && !psx_interpreter_only)
             get_psx_entries(&zn2_psx_entries, &zn2_psx_entry_count);
+        using Dsp16AEntriesFn = void (*)(const mamerecomp::dsp16::Dsp16ACompiledEntry **, size_t *);
+        auto get_dsp16a_entries = reinterpret_cast<Dsp16AEntriesFn>(
+            dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_entries"));
+        if (get_dsp16a_entries)
+            get_dsp16a_entries(&zn2_dsp16a_entries, &zn2_dsp16a_entry_count);
+        zn2_dsp16a_run = reinterpret_cast<mamerecomp::dsp16::Dsp16ARunHandler>(
+            dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_run"));
     }
 #endif
     std::vector<std::uint16_t> qsound_firmware;
     if (game == "sfex2pa") {
-        const char *firmware_archive = qsound_mode == mamerecomp::chips::QSoundMode::Lle
+        const char *firmware_archive = qsound_mode != mamerecomp::chips::QSoundMode::Hle
             ? "qsound.zip" : "qsound_hle.zip";
-        const char *alternate_archive = qsound_mode == mamerecomp::chips::QSoundMode::Lle
+        const char *alternate_archive = qsound_mode != mamerecomp::chips::QSoundMode::Hle
             ? "qsound_hle.zip" : "qsound.zip";
         const auto adjacent_firmware = rom_path.parent_path() / firmware_archive;
         const auto alternate_adjacent = rom_path.parent_path() / alternate_archive;
@@ -2672,17 +2694,20 @@ int run_zn_machine(const std::filesystem::path& source_root,
             throw std::runtime_error("QSound DL-1425 firmware ZIP not found: " + firmware_zip.string());
         qsound_firmware = mamerecomp::zn::load_qsound_firmware(firmware_zip);
         std::cout << "ZN-2 QSound mode: ";
-        if (qsound_mode == mamerecomp::chips::QSoundMode::Lle)
+        if (qsound_mixed_requested)
+            std::cout << "mixed (DSP16A LLE primary; automatic HLE fallback armed)";
+        else if (qsound_mode == mamerecomp::chips::QSoundMode::Lle)
             std::cout << "DSP16A LLE (forced)";
-        else if (qsound_mixed_requested)
-            std::cout << "mixed (currently starts in HLE; runtime failover is pending)";
         else
             std::cout << "MAME HLE (forced)";
         std::cout << " (firmware=" << firmware_zip << ").\n";
     }
     mamerecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
                                              zn2_psx_entry_count, zn2_z80_code,
-                                             qsound_mode, qsound_firmware);
+                                             qsound_mode, qsound_firmware,
+                                             std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry>(
+                                                 zn2_dsp16a_entries, zn2_dsp16a_entry_count),
+                                             zn2_dsp16a_run);
     const auto nvram_path = (game == "sfex2pa" || game == "bldyror2")
         ? std::optional<std::filesystem::path>(nvram_option.value_or(
             source_root / "build/nvram" / (game + ".at28c16")))
@@ -3091,6 +3116,12 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << machine.memory().profile_gte_commands()
                   << " commands, R3000A+bus+timers remainder="
                   << milliseconds(remainder_ns) << " ms.\n";
+        if (game == "sfex2pa")
+            std::cout << "  QSound breakdown: DSP16A run="
+                      << milliseconds(machine.profile_zn2_dsp_ns())
+                      << " ms, Z80 run=" << milliseconds(machine.profile_zn2_z80_ns())
+                      << " ms, QSound render="
+                      << milliseconds(machine.profile_zn2_qsound_render_ns()) << " ms.\n";
     }
     const auto& coverage = machine.counters();
     std::cout << "ZN instructions=" << machine.cpu().instructions
@@ -3128,6 +3159,8 @@ int run_zn_machine(const std::filesystem::path& source_root,
     if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
         std::cout << "ZN-2 DSP16A LLE cycles=" << machine.zn2_qsound_dsp_cycles()
                   << " instructions=" << machine.zn2_qsound_dsp_instructions()
+                  << " (AOT=" << machine.zn2_qsound_dsp_aot_instructions()
+                  << " interpreter=" << machine.zn2_qsound_dsp_interpreted_instructions() << ')'
                   << " PC=0x" << std::hex << machine.zn2_qsound_dsp_pc() << std::dec
                   << " sample-ROM reads=" << machine.zn2_qsound_sample_reads()
                   << " PIO reads/writes=" << machine.zn2_qsound_pio_reads() << '/'
@@ -3137,6 +3170,8 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << machine.zn2_qsound_serial_right_words() << ')'
                   << " PCM frames=" << machine.zn2_qsound_pcm_frames()
                   << " nonzero sample reads=" << machine.zn2_qsound_nonzero_sample_reads()
+                  << " sample ROM unmapped/mirrored=" << machine.zn2_qsound_unmapped_sample_reads()
+                  << '/' << machine.zn2_qsound_mirrored_sample_reads()
                   << " nonzero serial words=" << machine.zn2_qsound_nonzero_serial_words()
                   << " serial word peak=" << machine.zn2_qsound_serial_word_peak() << ".\n";
     if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
@@ -3359,7 +3394,9 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
                               psx_interpreter_only,
                               qsound_mode_option == "true"
                                   ? mamerecomp::chips::QSoundMode::Lle
-                                  : mamerecomp::chips::QSoundMode::Hle,
+                                  : qsound_mode_option == "mixed"
+                                      ? mamerecomp::chips::QSoundMode::Mixed
+                                      : mamerecomp::chips::QSoundMode::Hle,
                               qsound_mode_option == "mixed");
     }
     if (machine == "namco" && board == "system12") {

@@ -423,6 +423,112 @@ HLE selectable as a fallback while expanding that differential coverage.
 The launcher now defaults SFEX2PA to DSP16A LLE. `--qsound-mode=hle` forces
 the HLE path. `--qsound-mode=mixed` runs DSP16A LLE as primary while advancing
 the MAME HLE with the same firmware, commands, and clock stream as a shadow.
+
+### 2026-11-07: matched QSound-ready latency
+
+The fresh-NVRAM captures in `/tmp/qsound_pair_yhfix4` contain a directly
+matched Z80-to-QSound command: command #100 is register `0x65`, data `0x53e3`
+on both MAME and MameRecomp. MAME reports D007 busy for 3.962125 ms (1,093
+polls); MameRecomp reports busy for 18.125 us (5 polls). This is a real
+ready-latch timing divergence, not a command-payload mismatch. In the MAME
+capture the DSP-visible PC/PR remain at `0x051e/0x04ff` while the Z80 polls,
+then change when ready is observed. The local status read calls `sync_qsound`,
+and `QSound::run_clocks()` drains the Ready event immediately after the DSP
+slice yields at the PIO read. MAME's `dsp_pio_r()` instead schedules
+`set_dsp_ready()` with `scheduler().synchronize()`; the timer is dispatched
+when the global scheduler base time reaches its zero-time expiry.
+
+This supports premature local ready delivery and can change when the Z80
+issues following commands. It does not prove that the DSP performs excess
+work or that this alone causes host CPU saturation or the serial-audio hiss.
+The firmware's `DO K=16, NI=14` loop at `0x050f–0x051d` was confirmed in both
+sources; a separate, unaligned MAME trace exits that loop in about 51 us, so
+that loop alone does not explain a 3.96 ms busy interval. The next required
+comparison is the PIO-ack timestamp and DSP `total_cycles()` against the
+same-run MAME ready timer and the first subsequent serial words. Do not
+replace this with a fixed 4 ms delay or alter DO/cache iteration counts without
+that evidence.
+
+The local `QSOUND_STATUS` trace clarifies the apparent “29 us” repeat: successive
+busy polls are 29 **Z80 cycles** apart, or 3.625 us at 8 MHz. For the matched
+command #100, five local polls span 18.125 us before ready, while 1,093 MAME
+polls span 3.962125 ms. The local DSP cycle counter advances between those
+polls and `Dsp16A::run_clocks()` retains clocks left over when the PIO barrier
+yields; this is not evidence that the same 29 us of DSP work is being rerun.
+Premature ready can still let the Z80 submit later commands much earlier in
+emulated time, potentially changing DSP workload and audio cadence. Proving
+that it saturates the host requires measuring DSP instructions and host time
+over the same emulated interval; the ready-latency comparison alone does not
+show that.
+
+### 2026-11-07: paired command/serial capture
+
+A new 1,000-frame MAME/LLE and MameRecomp/LLE pair uses absent initial NVRAM,
+the same coin/start frame events, and byte-identical final AT28C16 images
+(SHA-256 `980b498dd5eacfaaf4f4d2fb9047614277000a136d1059cd879c07871fde66bb`).
+The serial files are `/tmp/qsound_ready_pair_20261107/mame_lle/qsound.pcm`
+(MAME big-endian serial words) and
+`/tmp/qsound_ready_pair_20261107/local/qsound.pcm` (local little-endian
+interleaved stereo). Reconstructing the D000/D001 payload immediately before
+each D002 address shows commands 96–105 match exactly, including #100
+`0x65/0x53e3` and #101 `0x64/0x0ce2`.
+
+The same run reproduces the ready-latency mismatch. MAME command #100 has
+1,093 busy reads from 16.252039750 s to ready at 16.256025125 s (3.985375 ms);
+its next command is written 4.001875 ms after #100. Locally, #100 is busy for
+five polls over 145 Z80 cycles (18.125 us), and #101 is issued 34.625 us after
+#100. The local QSound event trace also shows the DSP advancing past the PIO
+yield before that early ready is observed. This confirms that the local
+ready/scheduler boundary changes command cadence before the first known
+payload mismatch at #116. It is evidence of a scheduling divergence, not
+evidence that DSP cycles are being re-executed or that this alone saturates
+the host.
+
+The complete-run raw levels are now close: MAME serial-word RMS is 1,059.9
+(peak 15,783), while local stereo RMS is 1,066.8/1,020.6 (peaks 15,981/13,741).
+Ten-millisecond RMS envelopes correlate at about 0.94 at zero offset, but the
+individual sample streams do not correlate after a coarse lag search. Since
+the raw MAME dump does not record the selected channel beside each word, this
+does not yet establish sample-for-sample divergence or its first SDX cause.
+The next comparison must keep the matching command sequence and record the
+MAME scheduler base/local DSP time plus channel-tagged serial words around
+commands 100–116; do not alter DSP arithmetic or insert a fixed 4 ms delay.
+
+### 2026-11-07: scheduler-boundary experiment and serial timing
+
+The MAME diagnostic was rebuilt with separate files for D002 writes, DSP PIO
+reads, and channel-tagged serial words. This avoids the prior collision between
+the MAME Lua tap output and the device trace. The paired MAME and local runs
+again finish with byte-identical AT28C16 NVRAM (SHA-256
+`980b498dd5eacfaaf4f4d2fb9047614277000a136d1059cd879c07871fde66bb`).
+Commands match by address and data through #115; #116 is the first payload
+mismatch. The PIO traces also show matching first three boot reads. If the
+local scheduler omits the serial-frame boundary, the fourth read is delayed
+from MAME's 723,872 DSP machine cycles to local 842,147 (about 4 ms). Restoring
+the serial-frame boundary moves it to local 725,117 (about 41.5 us later than
+MAME). This rules out the coarse 4 ms-only boundary as a correct replacement,
+but the remaining phase offset still changes D007 polling cadence.
+
+For matched command #100 (`0x65/0x53e3`), the fresh MAME capture shows 1,093
+busy reads and a 4.001875 ms interval to command #101. The local serial-frame
+run issues #101 81.7 us after #100 (18 busy reads in that interval). The MAME
+and local DSP PIO snapshots therefore need scheduler-local timestamps, not
+just equal command indices, before attributing a sample-value difference to
+DSP arithmetic.
+
+The new channel-tagged capture finds the local first nonzero word after cycle
+480,000,000 at DSP cycle 485,078,329, channel 1, value `0xffff`; MAME emits
+zero at the same cycle/channel. MAME's first nonzero word in that run occurs
+at cycle 489,253,753, channel 0, value `0xffff`. This is an aligned serial
+output mismatch, but its onset follows the command-timing divergence and does
+not isolate a DSP16A instruction or pin-level cause yet.
+
+A no-trace 1,200-frame benchmark with fresh NVRAM and matching inputs produced
+identical guest counters and final DSP/QSound state in both modes. DSP16A AOT
+took 28.499 s wall time; interpreter-only took 23.342 s (about 22% faster).
+This confirms the current DSP16A AOT dispatch is a performance regression,
+not a speedup; it does not explain the serial mismatch because the captured
+guest state and output counters were identical between the two modes.
 If DSP execution throws, the runtime switches to that synchronized HLE state
 and clears queued LLE samples. The fallback emits a log with the failure
 reason. It catches unsupported or invalid DSP execution, but does not detect a
@@ -753,3 +859,37 @@ audio mismatch therefore still needs an instruction-sequence alignment after
 the game begins sending sound commands. Do not treat the repeated-loop
 register mismatch above as evidence for changing accumulator arithmetic or
 data-RAM semantics.
+
+### 2026-11-07: first QSound command-stream mismatch and AOT parity
+
+The saved MAME and local command captures
+`/tmp/qsound_mame_aligned_repro.csv` and
+`/tmp/qsound_local_aligned_repro2.log` use byte-identical post-run AT28C16
+images (SHA-256
+`c8f681548eb897e37d522d623203a8acee4150ed67c5ec03a2b0046192b6fa81`) and
+the same frame-scheduled coin/start/button inputs. Reconstructing each D001,
+D000, D002 write triplet shows matching QSound register payloads through
+one-based command 115. MAME's `qsound_w()` contract is D000=data high byte,
+D001=data low byte, and D002=register address. The first payload mismatch is
+one-based command 116 (zero-based index 115): MAME writes register `0x66`,
+data `0x0000`, from Z80 PC `0x29f3` at 16.290226750 s; MameRecomp writes
+register `0x46`, data `0x0a01`, from PC `0x29e5` at Z80 cycle 129,319,002
+(16.164875250 s at 8 MHz). The previous command 115 is register/data
+`0x8f/0x012f` on both sides. Thus the first captured mismatch is already in
+the Z80-to-QSound input stream; it is not evidence of an earlier DSP
+arithmetic mismatch. The event-time offset is non-monotonic: command-16
+timestamps differ by 16.7 ms in the opposite direction, command 32 is aligned
+to within 11 ns, and the offset grows again before command 116. This points to
+a scheduler/game-state timeline difference that must be aligned before
+comparing later DSP state or SDX output. The capture does not prove that this
+command mismatch caused the user-reported hiss.
+
+A current 1,620-frame AOT/interpreter replay with identical NVRAM seed and
+coin/start/button events produces identical DSP instruction totals, sample-ROM
+reads, PIO counts, serial word counts, nonzero SDX count, final SDX value, and
+final DSP state. AOT runs 656,025,037 instructions with zero interpreter
+fallback; interpreter-only runs the same count entirely interpreted. The
+measured elapsed time is 42.094 s for AOT and 34.408 s for interpreter-only.
+This excludes AOT-vs-interpreter semantics as the source of a difference in
+that replay, but the current per-opcode AOT dispatch regresses performance and
+does not replace the required MAME-vs-local aligned DSP/command/serial trace.

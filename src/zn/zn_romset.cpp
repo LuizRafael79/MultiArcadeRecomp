@@ -206,8 +206,12 @@ std::vector<std::uint16_t> load_qsound_firmware(const std::filesystem::path &zip
         const auto crc = static_cast<std::uint32_t>(crc32(0, bytes.data(), static_cast<uInt>(bytes.size())));
         if (crc != 0xd6cf5ef5u)
             throw std::runtime_error("DL-1425 QSound firmware failed CRC check in " + zip.string());
-        // MAME's HLE region is little endian; the first 0x2000 bytes are the
-        // shared 0x1000-word firmware/table image (remaining 0x4000 ignored).
+        // The ZIP contains raw bytes beginning 88 02. MAME's LLE region uses
+        // ROM_REGION16_BE plus ROM_LOAD16_WORD_SWAP; its HLE region uses
+        // ROM_REGION16_LE plus ROM_LOAD16_WORD. Both produce the same first
+        // DSP program word, 0x0288. Decode the raw image as little-endian here
+        // to preserve that effective word value. The first 0x2000 bytes are
+        // the shared 0x1000-word firmware/table image (remaining 0x4000 ignored).
         std::vector<std::uint16_t> words(0x1000);
         for (std::size_t i = 0; i < words.size(); ++i)
             words[i] = static_cast<std::uint16_t>(bytes[i * 2] | (std::uint16_t(bytes[i * 2 + 1]) << 8));
@@ -221,7 +225,7 @@ std::vector<std::uint16_t> load_qsound_firmware(const std::filesystem::path &zip
 CapcomZn2Board::CapcomZn2Board(const RomRegions &roms)
     : roms_(&roms), security_a_(security_key(roms.at("security_bios"))),
       security_b_(security_key(roms.at("security"))),
-      eeprom_(100'000'000, roms.at("eeprom"))
+      eeprom_(25'000'000, roms.at("eeprom"))
 {
     // MAME's generic ZN DSW defaults all four DIP bits high (0x0f).
     // capcom6b inherits zn2p; it does not replace these defaults.
@@ -235,7 +239,19 @@ PsxBus CapcomZn2Board::make_bus() {
     bus.advance_serial = advance_serial_cb;
     bus.serial_next_event_cycle = serial_next_event_cycle_cb;
     bus.set_cpu_cycles = cpu_cycles_cb;
+    bus.scheduler_yield_requested = scheduler_yield_cb;
     return bus;
+}
+bool CapcomZn2Board::scheduler_yield_cb(void *opaque) {
+    return static_cast<const CapcomZn2Board *>(opaque)->scheduler_event_pending();
+}
+void CapcomZn2Board::apply_sound_latch_events(uint64_t through_cycle) {
+    while (!sound_latch_events_.empty() &&
+           sound_latch_events_.front().cycle <= through_cycle) {
+        sound_latch_ = sound_latch_events_.front().value;
+        sound_pending_ = true;
+        sound_latch_events_.pop_front();
+    }
 }
 void CapcomZn2Board::cpu_cycles_cb(void *opaque, uint64_t cycles) {
     auto *self = static_cast<CapcomZn2Board *>(opaque);
@@ -272,8 +288,8 @@ bool CapcomZn2Board::read_cb(void *opaque, uint32_t address, unsigned size,
     return static_cast<CapcomZn2Board *>(opaque)->read(address, size, value);
 }
 bool CapcomZn2Board::write_cb(void *opaque, uint32_t address, unsigned size,
-                              uint32_t value, uint32_t) {
-    return static_cast<CapcomZn2Board *>(opaque)->write(address, size, value);
+                              uint32_t value, uint32_t pc) {
+    return static_cast<CapcomZn2Board *>(opaque)->write(address, size, value, pc);
 }
 
 bool CapcomZn2Board::read(uint32_t address, unsigned size, uint32_t *value) {
@@ -349,22 +365,21 @@ bool CapcomZn2Board::read(uint32_t address, unsigned size, uint32_t *value) {
     return false;
 }
 
-bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value) {
+bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value,
+                           uint32_t pc) {
     if (size != 1 && size != 2 && size != 4) return false;
     const uint32_t p = address & 0x1fffffff;
     const uint8_t data = static_cast<uint8_t>(value);
     if (p == 0x1fb00000) { bank_ = data & 0x0f; return true; }
     if (p == 0x1fb60000) {
-        sound_latch_ = data;
-        sound_pending_ = true;
+        sound_latch_events_.push_back({cpu_cycles_, data});
         if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 512)
                 std::cerr << "ZN2 sound latch write value=0x" << std::hex
-                          << unsigned(data) << " cycle=" << std::dec << cpu_cycles_ << '\n';
+                          << unsigned(data) << " pc=0x" << pc << " cycle="
+                          << std::dec << cpu_cycles_ << '\n';
         }
-        if (sound_command_callback_)
-            sound_command_callback_(sound_command_opaque_, cpu_cycles_);
         return true;
     }
     if (p == 0x1fa10300) {
@@ -415,7 +430,7 @@ void CapcomZn2Board::sound_port_write(uint8_t, uint8_t) {}
 RaizingZn1Board::RaizingZn1Board(const RomRegions &roms)
     : roms_(&roms), security_a_(security_key(roms.at("security_bios"))),
       security_b_(security_key(roms.at("security"))),
-      eeprom_(67'737'600, roms.at("eeprom")) {}
+      eeprom_(16'934'400, roms.at("eeprom")) {}
 PsxBus RaizingZn1Board::make_bus() {
     PsxBus bus{}; bus.opaque = this; bus.read = read_cb; bus.write = write_cb;
     bus.serial_clock = serial_clock_cb; bus.serial_data = serial_data_cb;

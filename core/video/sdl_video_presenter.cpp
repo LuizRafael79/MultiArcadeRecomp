@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 
@@ -21,6 +22,13 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
         throw std::runtime_error("SDL display aspect requires both width and height");
     if ((window_width == 0) != (window_height == 0))
         throw std::runtime_error("SDL window dimensions require both width and height");
+#if defined(__linux__)
+    // Prefer GNOME's themed XWayland frame when both Wayland and XWayland are
+    // available. Keep an explicit SDL driver choice authoritative.
+    if (std::getenv("WAYLAND_DISPLAY") && std::getenv("DISPLAY") &&
+        !std::getenv("SDL_VIDEODRIVER"))
+        setenv("SDL_VIDEODRIVER", "x11", 0);
+#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         throw std::runtime_error(std::string("SDL video init failed: ") + SDL_GetError());
     window_ = SDL_CreateWindow(title.c_str(),

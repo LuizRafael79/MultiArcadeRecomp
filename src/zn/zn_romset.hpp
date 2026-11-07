@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <array>
+#include <deque>
 #include <filesystem>
 #include <string_view>
 #include <span>
@@ -32,7 +33,6 @@ std::vector<std::uint16_t> load_qsound_firmware(const std::filesystem::path &zip
 // including active-low player/system inputs and QSound/Z80 board wiring.
 class CapcomZn2Board {
 public:
-    using SoundCommandCallback = void (*)(void *, uint64_t);
     explicit CapcomZn2Board(const RomRegions &roms);
     PsxBus make_bus();
     uint8_t bank() const { return bank_; }
@@ -46,10 +46,8 @@ public:
     void set_sound_bank(uint8_t bank) { sound_bank_ = bank & 0x0f; }
     bool sound_pending() const { return sound_pending_; }
     void acknowledge_sound() { sound_pending_ = false; }
-    void set_sound_command_callback(void *opaque, SoundCommandCallback callback) {
-        sound_command_opaque_ = opaque;
-        sound_command_callback_ = callback;
-    }
+    bool scheduler_event_pending() const { return !sound_latch_events_.empty(); }
+    void apply_sound_latch_events(uint64_t through_cycle);
     uint8_t sound_program_read(uint16_t address) const;
     void sound_program_write(uint16_t address, uint8_t value);
     uint8_t sound_port_read(uint8_t port) const;
@@ -70,8 +68,9 @@ private:
     static void advance_serial_cb(void *, uint64_t);
     static uint64_t serial_next_event_cycle_cb(void *);
     static void cpu_cycles_cb(void *, uint64_t);
+    static bool scheduler_yield_cb(void *);
     bool read(uint32_t, unsigned, uint32_t *);
-    bool write(uint32_t, unsigned, uint32_t);
+    bool write(uint32_t, unsigned, uint32_t, uint32_t pc);
     const RomRegions *roms_;
     uint8_t bank_ = 0;
     uint8_t sound_latch_ = 0;
@@ -86,14 +85,14 @@ private:
     uint64_t cpu_cycles_ = 0;
     uint8_t security_select_ = 0;
     bool sound_pending_ = false;
-    void *sound_command_opaque_ = nullptr;
-    SoundCommandCallback sound_command_callback_ = nullptr;
+    struct SoundLatchEvent { uint64_t cycle; uint8_t value; };
+    std::deque<SoundLatchEvent> sound_latch_events_;
     mamerecomp::psx::Cat702 security_a_;
     mamerecomp::psx::Cat702 security_b_;
-    // ZnMcu::advance receives the main CPU's cycle counter, so use the
-    // ZN-2 R3000A clock (the MCU itself is undumped and timer driven in MAME).
-    ZnMcu mcu_{100'000'000};
-    mamerecomp::devices::At28c16 eeprom_{100'000'000};
+    // These clocks are expressed in the PSX core's execute-cycle timebase
+    // (one tick per four R3000A crystal clocks), matching cpu_cycles_cb.
+    ZnMcu mcu_{25'000'000};
+    mamerecomp::devices::At28c16 eeprom_{25'000'000};
 };
 
 class RaizingZn1Board {
@@ -132,7 +131,7 @@ private:
     mamerecomp::psx::Cat702 security_a_;
     mamerecomp::psx::Cat702 security_b_;
     ZnMcu mcu_{16'934'400};
-    mamerecomp::devices::At28c16 eeprom_{67'737'600};
+    mamerecomp::devices::At28c16 eeprom_{16'934'400};
 };
 
 // Namco System 12 COH700 main-board mappings from MAME's namcos12.cpp.

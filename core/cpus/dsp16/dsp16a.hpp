@@ -5,14 +5,32 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <stdexcept>
+#include <vector>
 
 namespace mamerecomp::dsp16 {
 
 struct Dsp16AState;
 enum class Dsp16ATracePhase : std::uint8_t { Before, After };
+
+class Dsp16A;
+using Dsp16ACompiledHandler = unsigned (*)(Dsp16A&, bool from_cache);
+using Dsp16ARunHandler = std::uint64_t (*)(Dsp16A&, std::uint64_t clocks);
+
+struct Dsp16ACompiledEntry {
+    std::uint16_t pc = 0;
+    std::uint16_t opcode = 0;
+    Dsp16ACompiledHandler handler = nullptr;
+};
+
+struct Dsp16AObservedInstruction {
+    std::uint16_t pc = 0;
+    std::uint16_t opcode = 0;
+};
 
 struct Dsp16ABus {
     // Program reads below 0x1000 normally come from the DSP's internal ROM;
@@ -80,6 +98,23 @@ public:
     std::uint64_t run_cycles(std::uint64_t cycles);
     std::uint64_t run_clocks(std::uint64_t clocks);
 
+    // Experimental firmware-specific AOT table. Entries are only consulted
+    // after the core has fetched/selected an instruction at its architectural
+    // PC; PT/program-data reads are never candidates for AOT dispatch.
+    void set_compiled_program(std::span<const Dsp16ACompiledEntry> entries);
+    std::uint64_t compiled_instructions() const { return compiled_instructions_; }
+    std::uint64_t interpreted_instructions() const { return interpreted_instructions_; }
+    template <std::uint16_t Opcode>
+    unsigned execute_compiled_opcode(bool from_cache)
+    {
+        return execute_instruction_specialized<true, Opcode>(Opcode, from_cache);
+    }
+
+    // Optional discovery records only instructions that reach execute_instruction,
+    // never operands or YAAU/PT data reads. Used to create a conservative AOT map.
+    void enable_instruction_manifest(bool enabled = true);
+    std::vector<Dsp16AObservedInstruction> instruction_manifest() const;
+
     const Dsp16AState& state() const { return state_; }
     std::uint16_t pc() const { return state_.pc; }
     std::uint64_t cycles() const { return cycles_; }
@@ -94,6 +129,8 @@ public:
     std::uint64_t nonzero_serial_word_loads() const { return nonzero_serial_word_loads_; }
     std::uint16_t last_sdx_value() const { return sio_obuf_; }
     std::uint16_t last_serial_word_loaded() const { return last_serial_word_loaded_; }
+    std::uint16_t serial_output_shift() const { return sio_osr_; }
+    std::uint16_t serial_output_flags() const { return sio_ofsr_; }
     std::uint16_t last_sdx_pc() const { return last_sdx_pc_; }
     std::uint16_t last_sdx_opcode() const { return last_sdx_opcode_; }
     std::int64_t last_sdx_a0() const { return last_sdx_a0_; }
@@ -124,6 +161,9 @@ private:
     bool execute_rom_cycle();
     bool execute_cache_cycle();
     unsigned execute_instruction(std::uint16_t op, bool from_cache);
+    template <bool StaticOpcode, std::uint16_t Opcode>
+    unsigned execute_instruction_specialized(std::uint16_t runtime_op, bool from_cache);
+    unsigned dispatch_instruction(std::uint16_t op, bool from_cache);
     void complete_second_phase();
     void advance_cache_load(bool needs_prefetch);
     void advance_cache_execution();
@@ -198,6 +238,13 @@ private:
     bool pids_out_ = true, pods_out_ = true;
     std::uint64_t cycles_ = 0, instructions_ = 0;
     std::uint64_t pending_clocks_ = 0;
+    std::array<Dsp16ACompiledHandler, internal_program_words> compiled_handlers_{};
+    std::array<std::uint16_t, internal_program_words> compiled_opcodes_{};
+    std::uint64_t compiled_instructions_ = 0;
+    std::uint64_t interpreted_instructions_ = 0;
+    bool manifest_enabled_ = false;
+    std::vector<std::uint8_t> manifest_seen_;
+    std::vector<std::uint16_t> manifest_opcodes_;
     bool scheduler_yield_requested_ = false;
     std::uint64_t ock_rising_edges_ = 0, do_transitions_ = 0;
     std::uint64_t ose_transitions_ = 0, old_transitions_ = 0, serial_word_loads_ = 0;
@@ -219,5 +266,7 @@ private:
     static constexpr std::uint8_t iack_none_ = 0x00, iack_set_ = 0x04,
         iack_clear_ = 0x08, iack_mask_ = 0x0c;
 };
+
+#include "dsp16a_execute.ipp"
 
 } // namespace mamerecomp::dsp16

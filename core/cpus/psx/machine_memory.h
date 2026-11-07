@@ -23,16 +23,17 @@ struct MemoryConfig {
     size_t vram_bytes = 2 * 1024 * 1024;
     uint32_t ram_config = 0x00000800; // MAME console default: 2 MiB window.
     // Rate of the CPU core's execution-cycle counter, not the input crystal.
-    // MAME's PSX core converts four input clocks into one execute cycle.
+    // MAME converts four input clocks into one execute cycle; PSX cores expose
+    // one execution cycle per retired instruction to this scheduler.
     uint64_t cpu_cycle_hz = 8'467'200;
     size_t bios_window_bytes = 0x80000;
 };
 
-// MAME configures the ZN CPUs at the crystal rates below. Its PSX execute
-// loop consumes one scheduler tick per instruction, matching our instruction
-// counter; do not divide these clocks by four when advancing screen timing.
-inline constexpr MemoryConfig kZn1MemoryConfig{4 * 1024 * 1024, 2 * 1024 * 1024, 0x00000c00, 67'737'600};
-inline constexpr MemoryConfig kZn2MemoryConfig{4 * 1024 * 1024, 2 * 1024 * 1024, 0x00000300, 100'000'000};
+// MAME configures the ZN CPUs at 67.7376 MHz (ZN-1) and 100 MHz (ZN-2),
+// then maps four crystal clocks to one PSX execute cycle. Keep device time
+// aligned to that execute-cycle rate, as the instruction counter does.
+inline constexpr MemoryConfig kZn1MemoryConfig{4 * 1024 * 1024, 2 * 1024 * 1024, 0x00000c00, 16'934'400};
+inline constexpr MemoryConfig kZn2MemoryConfig{4 * 1024 * 1024, 2 * 1024 * 1024, 0x00000300, 25'000'000};
 inline constexpr MemoryConfig kSystem12MemoryConfig{4 * 1024 * 1024, 2 * 1024 * 1024, 0x00000300, 25'000'000, 0x400000};
 
 // Owns the common RAM/scratch/VRAM storage and maps BIOS plus the PSX
@@ -84,6 +85,7 @@ private:
     static bool cache_read_cb(void *, uint32_t, unsigned, uint32_t *);
     static bool cache_write_cb(void *, uint32_t, unsigned, uint32_t);
     static void check_interrupts_cb(void *, PsxCpuState *, uint32_t);
+    static bool scheduler_yield_requested_cb(void *);
     static void sio_irq_cb(void *, unsigned, bool);
     static bool cop2_command_cb(void *, PsxCpuState *, uint32_t, uint32_t);
     static bool cop2_read_cb(void *, PsxCpuState *, uint32_t, bool, unsigned, uint32_t *);

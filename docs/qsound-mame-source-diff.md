@@ -199,19 +199,27 @@ No primeiro comando, MAME escreve `D002=06` em 192644 ciclos Z80 equivalentes
 192693 e 192722; a terceira já retorna `0x80`. O próximo `D001=00` ocorre em
 192750, com PC Z80 `0x0b9e`. A sequência de endereço/dados é a mesma do runtime.
 
-No runtime anterior, o DSP só avançava em limites de slice; o Z80 lia status
-obsoleto até o próximo limite e só escrevia o próximo `D001` em 193059. Foi
-adicionado `sync_qsound(cpu_.BusCallbackCycles())` antes da leitura passiva de
-`D007` em [`zn2_sound.cpp`](../src/zn/zn2_sound.cpp). Com isso, o primeiro `D001`
-local passou para 192856. Os polls locais passam a avançar o DSP no timestamp
-do Z80, mas o status ainda fica ocupado até 192841, contra 192722 no MAME.
-Portanto a primeira divergência observável agora é o tempo de resposta do DSP
-ao comando `0x06` (cerca de 119 ciclos Z80 após polls alinhados), não a seleção
-do modo LLE nem a sequência de payload.
+Uma captura posterior mostrou que aquela diferença de resposta de até 119
+ciclos Z80 não é reproduzível e não deve ser tratada como divergência atual.
+Com a mesma sequência inicial de comandos, os polls MAME são `192664=busy`,
+`192693=busy`, `192722=ready`; no replay local recente são
+`192667=busy`, `192696=busy`, `192725=ready`. Portanto os estados de `D007`
+ficam alinhados em +3 ciclos Z80 locais. O `D002=06` local ocorre em 192634,
+10 ciclos antes do MAME (192644), e o próximo `D001` também ocorre 10 ciclos
+antes (192740 vs. 192750); esse deslocamento do fluxo Z80 explica a diferença
+de latência medida a partir do comando, sem indicar que o runtime libere o
+QSound cedo demais.
 
-Esse resultado ainda não prova que o atraso seja a causa do chiado. O próximo
-alvo é o primeiro desvio de estado do DSP durante essa resposta: MAME mostra
-`PC=0x051e`, `0x0525`, `0x056d` nos três polls; o trace local mostra
-`0x05b6`, `0x0612`, `0x050b` nos polls equivalentes antes de retornar ao vetor
-`0x0005`. Comparar a aceitação da interrupção e a leitura PIO no source DSP16
-do MAME contra o core local deve localizar o motivo desse atraso.
+O replay local usado para essa checagem está em
+`/tmp/qsound_firstcmd_local_run.log`, com polls detalhados no log e estados de
+instrução em `/tmp/qsound_firstcmd_local_dsp.csv`; os comandos efetivamente
+entregues ao DSP estão em `/tmp/qsound_firstcmd_local_commands.csv`. Foi um
+run headless de dois frames sem coin/start, então o áudio permaneceu zerado:
+isso valida apenas o primeiro handshake `0x06`, não resolve nem refuta o chiado
+durante a música. A antiga hipótese de que o primeiro `0x06` fica ocupado até
+192841 está superada por esta captura.
+
+O próximo desvio a perseguir continua sendo o primeiro comando de jogo que não
+corresponde ao MAME (one-based 116 no replay com inputs, registrado acima),
+alinhando os writes Z80, leitura PIO DSP, estado arquitetural e palavras seriais
+antes de mudar semântica do DSP16A.

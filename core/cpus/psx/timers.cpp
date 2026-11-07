@@ -39,6 +39,7 @@ uint32_t RootTimers::peek(unsigned offset) const
 void RootTimers::write(unsigned offset, uint32_t value)
 {
     Timer &t = timers_[(offset / 4) % 3];
+    t.configured = true;
     switch (offset % 4) {
     case 0: t.count = value & 0xffff; t.phase = 0; break;
     case 1:
@@ -46,40 +47,40 @@ void RootTimers::write(unsigned offset, uint32_t value)
         t.mode = (value & ~(RESET | STOP | REACHED_TARGET | REACHED_OVERFLOW)) |
                  (t.mode & (REACHED_TARGET | REACHED_OVERFLOW));
         t.phase = 0;
-        t.irq_fired = false;
         break;
     case 2: t.target = value & 0xffff; break;
     default: break;
     }
+    t.event_armed = (t.mode & STOP) == 0;
     recompute_next_event();
 }
 
 void RootTimers::recompute_next_event()
 {
-    uint64_t delay = UINT64_MAX;
+    uint64_t deadline = UINT64_MAX;
     for (unsigned i = 0; i < timers_.size(); ++i) {
-        const Timer &t = timers_[i];
-        if (t.mode & STOP) continue;
+        Timer &t = timers_[i];
+        t.event_cycle = UINT64_MAX;
+        if (!t.configured || !t.event_armed || (t.mode & STOP)) continue;
         uint64_t divider = 1;
         if (i == 0 && (t.mode & 0x100)) divider = 5;
         if (i == 1 && (t.mode & 0x100)) divider = 2150;
         if (i == 2 && (t.mode & 0x200)) divider = 8;
         const uint64_t count = t.count & 0xffffu;
-        const uint64_t to_overflow = 0x10000u - count;
-        uint64_t ticks = to_overflow;
-        const uint64_t target = t.target & 0xffffu;
-        if (target) {
-            const uint64_t to_target = target > count
-                ? target - count
-                : to_overflow + target;
-            ticks = std::min(ticks, to_target);
-        }
-        const uint64_t input_clocks = ticks * divider > t.phase
-            ? ticks * divider - t.phase : 1;
-        const uint64_t cycles = std::max<uint64_t>(1, (input_clocks + 1) / 2);
-        delay = std::min(delay, cycles);
+        const uint64_t target = (t.mode & (COUNT_TARGET | IRQ_TARGET))
+            ? t.target & 0xffffu : 0x10000u;
+        int64_t duration = static_cast<int64_t>(target) -
+                           static_cast<int64_t>(count);
+        if (duration < 1) duration += 0x10000;
+        const __uint128_t input_clocks =
+            __uint128_t(duration) * divider;
+        const __uint128_t numerator = input_clocks * cpu_cycle_hz_;
+        const uint64_t cycles = static_cast<uint64_t>(
+            (numerator + 33'868'800u - 1) / 33'868'800u);
+        t.event_cycle = elapsed_cycles_ + std::max<uint64_t>(1, cycles);
+        deadline = std::min(deadline, t.event_cycle);
     }
-    next_event_cycle_ = delay == UINT64_MAX ? UINT64_MAX : elapsed_cycles_ + delay;
+    next_event_cycle_ = deadline;
 }
 
 void RootTimers::advance(uint64_t cycles)
@@ -90,6 +91,8 @@ void RootTimers::advance(uint64_t cycles)
     for (unsigned i = 0; i < timers_.size(); ++i) {
         Timer &t = timers_[i];
         if (t.mode & STOP) continue;
+        const bool event_due = t.event_armed && t.event_cycle != UINT64_MAX &&
+                               cycles >= t.event_cycle;
         uint64_t divider = 1;
         if (i == 0 && (t.mode & 0x100)) divider = 5;
         if (i == 1 && (t.mode & 0x100)) divider = 2150;
@@ -141,12 +144,16 @@ void RootTimers::advance(uint64_t cycles)
 
         if (reached_target) t.mode |= REACHED_TARGET;
         if (reached_overflow) t.mode |= REACHED_OVERFLOW;
-        const bool request =
-            (reached_target && (t.mode & IRQ_TARGET)) ||
-            (reached_overflow && (t.mode & IRQ_OVERFLOW));
-        if (request && ((t.mode & REPEAT) || !t.irq_fired)) {
-            t.irq_fired = true;
-            if (irq_) irq_(4 + i, true);
+        if (event_due) {
+            // MAME's timer callback resets the counter/start pair even when
+            // the target and overflow modes differ. IRQ delivery is selected
+            // by the enabled IRQ bits, then repeat controls rescheduling.
+            t.count = 0;
+            t.phase = 0;
+            t.event_armed = (t.mode & REPEAT) != 0;
+            t.event_cycle = UINT64_MAX;
+            if (t.mode & (IRQ_TARGET | IRQ_OVERFLOW))
+                if (irq_) irq_(4 + i, true);
         }
     }
     recompute_next_event();
