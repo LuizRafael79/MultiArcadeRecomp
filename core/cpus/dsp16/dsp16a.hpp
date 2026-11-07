@@ -58,6 +58,7 @@ struct Dsp16AState {
     std::uint8_t auc = 0;
     std::uint16_t psw = 0;
     std::int16_t temp = 0;
+    std::uint32_t lfsr = 0xcafe'cafeU;
 };
 
 class Dsp16A {
@@ -124,7 +125,7 @@ private:
     bool execute_cache_cycle();
     unsigned execute_instruction(std::uint16_t op, bool from_cache);
     void complete_second_phase();
-    void advance_cache_load();
+    void advance_cache_load(bool needs_prefetch);
     void advance_cache_execution();
     void overlap_cache_rom_read();
     void serial_step();
@@ -132,14 +133,16 @@ private:
     void overlap_rom_data_read();
     void yaau_short_immediate_load(std::uint16_t op);
     void dau_set_y(std::uint16_t op, std::int16_t value);
+    void dau_set_y_high(std::int16_t value);
     std::int16_t yaau_read(std::uint16_t op);
     void yaau_write(std::uint16_t op, std::int16_t value);
     void yaau_write_z(std::uint16_t op);
     std::int16_t get_r(std::uint16_t op);
     void set_r(std::uint16_t op, std::int16_t value);
     std::uint16_t& set_pc_offset(std::uint16_t offset);
+    void increment_pt(std::uint16_t op);
     std::int64_t dau_saturate(unsigned accumulator) const;
-    bool op_dau_con(std::uint16_t op, bool increment);
+    bool op_dau_con(std::uint16_t op, bool increment, bool special = false);
     bool check_predicate();
     void set_predicate(std::uint8_t value);
     void set_iack(std::uint8_t value);

@@ -9,7 +9,7 @@
 
 namespace mamerecomp::chips {
 
-enum class QSoundMode : std::uint8_t { Hle, Lle };
+enum class QSoundMode : std::uint8_t { Hle, Lle, Mixed };
 
 struct QSoundConfig {
     std::uint32_t clock_hz = 60'000'000;
@@ -33,6 +33,9 @@ public:
     void set_sample_rom(std::span<const std::uint8_t> bytes);
     void set_firmware(std::span<const std::uint16_t> words);
     void reset();
+    // Match qsound_device::qsound_w: its status becomes busy synchronously,
+    // while the host command itself may be committed at a scheduler boundary.
+    void begin_command_write();
     void write(std::uint8_t offset, std::uint8_t data);
     std::uint8_t read_status();
     // Advance DSP input clocks; ignored by HLE, used by LLE.
@@ -52,6 +55,8 @@ public:
     std::uint64_t serial_right_words() const;
     std::uint64_t pcm_frames_produced() const;
     std::uint64_t nonzero_sample_reads() const;
+    std::uint64_t unmapped_sample_reads() const;
+    std::uint64_t mirrored_sample_reads() const;
     std::uint64_t nonzero_serial_words() const;
     std::uint16_t serial_word_peak() const;
     std::uint64_t dsp_ock_rising_edges() const;

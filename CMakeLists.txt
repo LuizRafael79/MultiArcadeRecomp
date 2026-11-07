@@ -472,6 +472,10 @@ if(BUILD_TESTING)
     target_link_libraries(zn_board_test PRIVATE mamerecomp_zn_runtime)
     mamerecomp_enable_test_asserts(zn_board_test)
     add_test(NAME zn_board_test COMMAND zn_board_test)
+    add_executable(zn2_sound_timing_test tests/zn/zn2_sound_timing_test.cpp)
+    target_include_directories(zn2_sound_timing_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/zn)
+    mamerecomp_enable_test_asserts(zn2_sound_timing_test)
+    add_test(NAME zn2_sound_timing_test COMMAND zn2_sound_timing_test)
     add_executable(zn_boot_smoke tools/psx/zn_boot_smoke.cpp)
     target_link_libraries(zn_boot_smoke PRIVATE mamerecomp_zn_runtime m68k_cpu_runtime)
     add_executable(konami_tmnt2_board_test tests/konami/tmnt2_board_test.cpp)
@@ -959,6 +963,12 @@ target_include_directories(mamerecomp_qsound PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/qsound-hle)
 target_link_libraries(mamerecomp_qsound PUBLIC mamerecomp_dsp16)
 set_property(TARGET mamerecomp_qsound PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+if(BUILD_TESTING)
+    add_executable(qsound_mixed_fallback_test tests/audio/qsound_mixed_fallback_test.cpp)
+    target_link_libraries(qsound_mixed_fallback_test PRIVATE mamerecomp_qsound)
+    mamerecomp_enable_test_asserts(qsound_mixed_fallback_test)
+    add_test(NAME qsound_mixed_fallback_test COMMAND qsound_mixed_fallback_test)
+endif()
 
 target_include_directories(mamerecomp_cps1 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1/core"

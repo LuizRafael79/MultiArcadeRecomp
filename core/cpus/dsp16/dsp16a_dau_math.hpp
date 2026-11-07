@@ -7,13 +7,41 @@
 
 namespace mamerecomp::dsp16::detail {
 
+constexpr std::uint64_t acc36_mask = (std::uint64_t{1} << 36) - 1;
+constexpr std::uint64_t alu37_mask = (std::uint64_t{1} << 37) - 1;
+
+constexpr std::int64_t sign_extend_alu37(std::uint64_t value)
+{
+    value &= alu37_mask;
+    if (value & (std::uint64_t{1} << 36)) value |= ~alu37_mask;
+    return std::bit_cast<std::int64_t>(value);
+}
+
 // JTDSP16 RTL F2=1011: add accumulator bit 15 to bits 35:16, then
 // clear bits 15:0. The 37-bit RTL path preserves the carry/sign behavior.
 constexpr std::int64_t round_accumulator_f2_11(std::int64_t accumulator)
 {
-    const std::int64_t upper = accumulator >> 16;
-    const auto round_bit = (static_cast<std::uint64_t>(accumulator) >> 15) & 1U;
-    return (upper + static_cast<std::int64_t>(round_bit)) * 0x1'0000;
+    const auto bits = static_cast<std::uint64_t>(accumulator) & alu37_mask;
+    const auto upper = (bits >> 16) & 0x1f'ffffU;
+    const auto round_bit = (bits >> 15) & 1U;
+    const auto rounded_upper = (upper + round_bit) & 0x1f'ffffU;
+    return sign_extend_alu37(rounded_upper << 16);
+}
+
+// JTDSP16 F2=1001: increment the source accumulator's 21-bit high field,
+// then use AUC[destination+4] to choose zero or the source low word. The
+// concatenated 37-bit ALU result retains the carry/sign guard bit.
+constexpr std::int64_t increment_accumulator_high_f2_9(std::int64_t source,
+                                                       std::uint8_t auc,
+                                                       unsigned destination)
+{
+    const auto bits = static_cast<std::uint64_t>(source) & alu37_mask;
+    const auto upper = (bits >> 16) & 0x1f'ffffU;
+    const auto incremented_upper = (upper + 1U) & 0x1f'ffffU;
+    // JTDSP16 wires clr_a0l/clr_a1l from the destination accumulator select.
+    const bool preserve_low = (auc & (1U << (4U + (destination & 1U)))) != 0;
+    const auto low = preserve_low ? bits & 0xffffU : 0U;
+    return sign_extend_alu37((incremented_upper << 16) | low);
 }
 
 // AUC[4]/AUC[5] select whether A0L/A1L are preserved when the upper

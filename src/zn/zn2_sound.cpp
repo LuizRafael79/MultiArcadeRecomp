@@ -1,4 +1,5 @@
 #include "zn2_sound.hpp"
+#include "zn2_sound_timing.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -27,8 +28,28 @@ Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
 uint8_t Zn2SoundCpu::Read(uint16_t address)
 {
     if (address == 0xd007) {
+        // MAME's qsound_r() returns the ready latch without synchronizing the
+        // device itself. The cooperative bus scheduler must bring peer devices
+        // to this read's timestamp before returning the passive latch value.
         sync_qsound(cpu_.BusCallbackCycles());
-        return qsound_.read_status();
+        const std::uint8_t value = qsound_.read_status();
+        if (std::getenv("MAMERECOMP_ZN_TRACE_QSOUND_STATUS")) {
+            static std::uint64_t traced = 0;
+            static const std::uint64_t after_cycles = [] {
+                const char *text = std::getenv(
+                    "MAMERECOMP_ZN_TRACE_QSOUND_STATUS_AFTER_CYCLES");
+                return text ? std::strtoull(text, nullptr, 0) : 0ull;
+            }();
+            const std::uint64_t cycle = cpu_.BusCallbackCycles();
+            if (cycle >= after_cycles && traced++ < 65'536)
+                std::cerr << "ZN2 QSOUND_STATUS cycle=" << cycle
+                          << " pc=0x" << std::hex << cpu_.pc
+                          << " value=0x" << unsigned(value)
+                          << " dsp_cycle=" << std::dec << qsound_.dsp_cycles()
+                          << " dsp_pc=0x" << std::hex << qsound_.dsp_pc()
+                          << " next_irq=" << std::dec << next_irq_ << '\n';
+        }
+        return value;
     }
     return board_.sound_program_read(address);
 }
@@ -36,17 +57,42 @@ void Zn2SoundCpu::Write(uint16_t address, uint8_t value)
 {
     board_.sound_program_write(address, value);
     if (address >= 0xd000 && address <= 0xd002) {
-        sync_qsound(cpu_.BusCallbackCycles());
-        qsound_.write(static_cast<uint8_t>(address - 0xd000), value);
+        if (address == 0xd002) {
+            // MAME lowers DSP-ready in qsound_w(), then applies set_cmd via
+            // scheduler().synchronize() after this Z80 instruction retires.
+            // Lower ready in the write callback before any device catch-up,
+            // while deferring payload/IRQ delivery to InstructionBoundary.
+            qsound_.begin_command_write();
+            pending_qsound_command_ = value;
+            qsound_command_pending_ = true;
+        } else {
+            // MAME's D000/D001 handlers only update m_new_data. They do not
+            // synchronize the stream or advance the DSP.
+            qsound_.write(static_cast<uint8_t>(address - 0xd000), value);
+        }
         if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
-            if (traced++ < 512)
+            if (traced++ < 4096)
                 std::cerr << "ZN2 QSound write offset=0x" << std::hex
                           << unsigned(address - 0xd000) << " value=0x" << unsigned(value)
                           << " z80_pc=0x" << cpu_.pc << " cycle=" << std::dec
                           << cpu_.cycles << '\n';
         }
     }
+}
+void Zn2SoundCpu::InstructionBoundary(uint64_t cycles)
+{
+    if (!qsound_command_pending_)
+        return;
+
+    // qsound_w() lowers ready synchronously, but MAME defers set_cmd() and the
+    // DSP IRQ until the scheduler synchronization boundary. Advance the DSP
+    // to this Z80 instruction's retirement time before making that IRQ visible;
+    // otherwise it is asserted at the previous DSP timestamp retroactively.
+    sync_qsound(cycles);
+    qsound_.write(2, pending_qsound_command_);
+    qsound_.run_clocks(0);
+    qsound_command_pending_ = false;
 }
 uint8_t Zn2SoundCpu::In(uint16_t port)
 {
@@ -60,6 +106,7 @@ uint8_t Zn2SoundCpu::In(uint16_t port)
                           << " cycle=" << std::dec << cpu_.cycles << '\n';
         }
         board_.acknowledge_sound();
+        sound_nmi_delivered_ = false;
     }
     return value;
 }
@@ -68,8 +115,10 @@ void Zn2SoundCpu::Out(uint16_t port, uint8_t value)
 
 void Zn2SoundCpu::sync_qsound(uint64_t sound_cycles)
 {
-    constexpr uint64_t sample_rate = 60'000'000 / 2 / 1248;
-    const uint64_t target = sound_cycles * sample_rate / 8'000'000;
+    // Keep the fractional QSound sample rate (60 MHz / 2 / 1248) when
+    // mapping Z80 time to output frames. Flooring it to 24,038 Hz here makes
+    // the host frame counter drift from the DSP's serial sample boundaries.
+    const uint64_t target = qsound_target_frames(sound_cycles);
     const uint64_t target_dsp_clocks = sound_cycles * 60'000'000ull / 8'000'000ull;
     if (target_dsp_clocks > generated_dsp_clocks_) {
         qsound_.run_clocks(target_dsp_clocks - generated_dsp_clocks_);
@@ -104,18 +153,19 @@ void Zn2SoundCpu::run_to_main_cycles(uint64_t psx_cycles)
     const auto profile_start = profile_timing_
         ? std::chrono::steady_clock::now()
         : std::chrono::steady_clock::time_point{};
-    // MAME's coh3002c config clocks the CXD8661R at 100 MHz and the QSound
-    // Z80 at 8 MHz. Both runtimes advance one scheduler tick per instruction.
-    constexpr uint64_t psx_cycle_hz = 100'000'000;
+    // MAME clocks the CXD8661R at 100 MHz, but its PSX core converts four
+    // crystal clocks into one execute cycle. cpu_.cycles shares that execute
+    // timebase, so pace the 8 MHz Z80 against 25 MHz here.
+    constexpr uint64_t psx_cycle_hz = 25'000'000;
     constexpr uint64_t sound_clock = 8'000'000;
     constexpr uint64_t irq_period = sound_clock / 250;
     const auto mode = mamerecomp::z80::HasZ80Code()
         ? mamerecomp::z80::Z80::Mode::Native
         : mamerecomp::z80::Z80::Mode::Interpreter;
     const uint64_t target = (psx_cycles * sound_clock) / psx_cycle_hz;
-    if (board_.sound_pending()) {
+    if (board_.sound_pending() && !sound_nmi_delivered_) {
         cpu_.RaiseNmi();
-        board_.acknowledge_sound();
+        sound_nmi_delivered_ = true;
     }
     while (next_irq_ <= target) {
         if (next_irq_ > cpu_.cycles)
@@ -134,10 +184,29 @@ void Zn2SoundCpu::run_to_main_cycles(uint64_t psx_cycles)
 
 uint64_t Zn2SoundCpu::next_main_event_cycle() const
 {
-    constexpr uint64_t psx_cycle_hz = 100'000'000;
-    constexpr uint64_t sound_clock = 8'000'000;
-    const __uint128_t numerator = __uint128_t(next_irq_) * psx_cycle_hz;
-    return static_cast<uint64_t>((numerator + sound_clock - 1) / sound_clock);
+    constexpr uint64_t main_clock = 25'000'000;
+    constexpr uint64_t z80_clock = 8'000'000;
+    constexpr uint64_t dsp_clock = 60'000'000;
+    constexpr uint64_t dsp_clocks_per_sample = 2 * 1248;
+    const auto ceil_div = [](__uint128_t numerator, uint64_t denominator) {
+        return static_cast<uint64_t>((numerator + denominator - 1) / denominator);
+    };
+
+    // MAME's QSound stream clocks one sample every 1,248 DSP machine cycles;
+    // each machine cycle is two DSP input clocks. Give the Z80 a scheduler
+    // boundary at the next serial/sample event so its d007 polling sees the
+    // DSP progress without relying on an arbitrary host-side slice length.
+    const uint64_t next_sample_dsp_clock =
+        (generated_dsp_clocks_ / dsp_clocks_per_sample + 1) *
+        dsp_clocks_per_sample;
+    const uint64_t next_sample_z80_cycle = ceil_div(
+        __uint128_t(next_sample_dsp_clock) * z80_clock, dsp_clock);
+    const uint64_t next_sample_main_cycle = ceil_div(
+        __uint128_t(next_sample_z80_cycle) * main_clock, z80_clock);
+
+    const uint64_t next_irq_main_cycle = ceil_div(
+        __uint128_t(next_irq_) * main_clock, z80_clock);
+    return std::min(next_sample_main_cycle, next_irq_main_cycle);
 }
 
 } // namespace mamerecomp::zn

@@ -32,6 +32,8 @@ public:
     uint64_t qsound_serial_right_words() const { return qsound_.serial_right_words(); }
     uint64_t qsound_pcm_frames() const { return qsound_.pcm_frames_produced(); }
     uint64_t qsound_nonzero_sample_reads() const { return qsound_.nonzero_sample_reads(); }
+    uint64_t qsound_unmapped_sample_reads() const { return qsound_.unmapped_sample_reads(); }
+    uint64_t qsound_mirrored_sample_reads() const { return qsound_.mirrored_sample_reads(); }
     uint64_t qsound_nonzero_serial_words() const { return qsound_.nonzero_serial_words(); }
     uint16_t qsound_serial_word_peak() const { return qsound_.serial_word_peak(); }
     uint64_t qsound_dsp_ock_edges() const { return qsound_.dsp_ock_rising_edges(); }
@@ -60,6 +62,7 @@ private:
     void Write(uint16_t address, uint8_t value) override;
     uint8_t In(uint16_t port) override;
     void Out(uint16_t port, uint8_t value) override;
+    void InstructionBoundary(uint64_t cycles) override;
     bool ChangesMapping(uint16_t address) override { return address == 0xd003; }
     uint32_t Mapping() override { return board_.sound_bank(); }
     void SetMapping(uint32_t mapping) override { board_.set_sound_bank(static_cast<uint8_t>(mapping)); }
@@ -72,6 +75,9 @@ private:
     std::array<int16_t, 1024> qsound_stereo_{};
     std::vector<int16_t> audio_queue_;
     uint64_t generated_samples_ = 0;
+    uint8_t pending_qsound_command_ = 0;
+    bool qsound_command_pending_ = false;
+    bool sound_nmi_delivered_ = false;
     uint64_t generated_dsp_clocks_ = 0;
     uint32_t audio_peak_ = 0;
     std::array<uint32_t, 19> voice_peaks_{};

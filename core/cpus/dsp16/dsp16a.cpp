@@ -116,6 +116,16 @@ std::uint16_t& Dsp16A::set_pc_offset(std::uint16_t offset)
     return state_.pc;
 }
 
+void Dsp16A::increment_pt(std::uint16_t op)
+{
+    // PT is a 16-bit page:offset pointer. MAME's XAAU increments only the
+    // low 12-bit offset and preserves the upper page nibble across wrap.
+    const std::int32_t increment = op_x(op) ? state_.i : 1;
+    const auto offset = static_cast<std::uint16_t>(
+        (static_cast<std::int32_t>(state_.pt & 0x0fffU) + increment) & 0x0fff);
+    state_.pt = static_cast<std::uint16_t>((state_.pt & 0xf000U) | offset);
+}
+
 std::uint16_t& Dsp16A::yaau_postmodify_r(std::uint16_t op)
 {
     auto& r = state_.r[(op >> 2) & 3U];
@@ -180,6 +190,17 @@ void Dsp16A::dau_set_y(std::uint16_t op, std::int16_t value)
     state_.y = std::bit_cast<std::int32_t>(bits);
 }
 
+void Dsp16A::dau_set_y_high(std::int16_t value)
+{
+    // The F1+Y+X instruction group (0x1f) always loads YH. Unlike the
+    // general Y/YL transfers, it does not use the opcode's X selector.
+    // Loading YH clears YL unless AUC[6] preserves it (MAME dau_set_y(s16)).
+    const std::uint32_t bits =
+        (std::uint32_t(std::uint16_t(value)) << 16) |
+        ((state_.auc & (1U << 6)) ? (std::bit_cast<std::uint32_t>(state_.y) & 0xffffU) : 0U);
+    state_.y = std::bit_cast<std::int32_t>(bits);
+}
+
 std::int16_t Dsp16A::get_r(std::uint16_t op)
 {
     switch (op_r(op)) {
@@ -207,7 +228,12 @@ void Dsp16A::set_r(std::uint16_t op, std::int16_t value)
     case 0x04: state_.j = value; break; case 0x05: state_.k = value; break;
     case 0x06: state_.rb = static_cast<std::uint16_t>(value); break; case 0x07: state_.re = static_cast<std::uint16_t>(value); break;
     case 0x08: state_.pt = static_cast<std::uint16_t>(value); break; case 0x09: state_.pr = static_cast<std::uint16_t>(value); break;
-    case 0x0a: if (!iack_out_) state_.pi = static_cast<std::uint16_t>(value); break;
+    case 0x0a:
+        if (!iack_out_) {
+            state_.pi = static_cast<std::uint16_t>(value);
+            state_.lfsr = 0xcafe'cafeU;
+        }
+        break;
     case 0x0b: state_.i = static_cast<std::int16_t>((value & 0x0fff) | ((value & 0x0800) ? 0xf000 : 0)); break;
     case 0x10: state_.x = value; break;
     case 0x11: {
@@ -263,7 +289,7 @@ std::int64_t& Dsp16A::dau_set_atx(std::uint16_t op, std::int16_t value)
 {
     auto& a = state_.a[op_d(~op)];
     if (op_x(op)) {
-        const bool preserve_low = state_.psw & (1U << (4 + op_d(~op)));
+        const bool preserve_low = state_.auc & (1U << (4 + op_d(~op)));
         a = detail::load_accumulator_high(a, value, preserve_low);
     } else a = (a & ~std::int64_t(0xffff)) | std::uint16_t(value);
     return a;
@@ -271,7 +297,7 @@ std::int64_t& Dsp16A::dau_set_atx(std::uint16_t op, std::int16_t value)
 std::int64_t& Dsp16A::dau_set_at(std::uint16_t op, std::int16_t value)
 {
     auto& a = state_.a[op_d(~op)];
-    const bool preserve_low = state_.psw & (1U << (4 + op_d(~op)));
+    const bool preserve_low = state_.auc & (1U << (4 + op_d(~op)));
     a = detail::load_accumulator_high(a, value, preserve_low);
     return a;
 }
@@ -305,7 +331,9 @@ void Dsp16A::dau_f2(std::uint16_t op)
     case 4: d = s >> 8; break; case 5: d = std::int32_t(std::uint32_t(s) << 8); break;
     case 6: d = s >> 16; break; case 7: d = std::int32_t(std::uint32_t(s) << 16); break;
     case 8: d = dau_get_p_aligned(); break;
-    case 9: d = std::int64_t(std::int32_t(std::uint32_t(s) & ~0xffffU)) + (std::int32_t(1) << 16); if (state_.auc & (1U << (op_s(op) + 4))) d |= state_.a[op_d(op)] & 0xffff; break;
+    case 9: d = detail::increment_accumulator_high_f2_9(
+                s, state_.auc, op_d(op));
+            break;
     case 10: throw std::runtime_error("DSP16A reserved F2 opcode");
     case 11: d = detail::round_accumulator_f2_11(s); break;
     case 12: d = state_.y; break; case 13: d = s + 1; break; case 14: d = s; break; case 15: d = -s; break;
@@ -313,7 +341,7 @@ void Dsp16A::dau_f2(std::uint16_t op)
     d = dau_set_psw_flags(d);
 }
 
-bool Dsp16A::op_dau_con(std::uint16_t op, bool increment)
+bool Dsp16A::op_dau_con(std::uint16_t op, bool increment, bool special)
 {
     const unsigned con = op_con(op);
     bool result = false;
@@ -322,7 +350,15 @@ bool Dsp16A::op_dau_con(std::uint16_t op, bool increment)
     case 1: result = bool(state_.psw & 0x4000U); break;
     case 2: result = bool(state_.psw & 0x2000U); break;
     case 3: result = bool(state_.psw & 0x1000U); break;
-    case 4: throw std::runtime_error("DSP16A random condition unsupported");
+    case 4: {
+        result = (state_.lfsr & 0x8000'0000U) != 0;
+        if (special) {
+            const auto feedback = ((state_.lfsr >> 31) ^ (state_.lfsr >> 21) ^
+                                   (state_.lfsr >> 1) ^ state_.lfsr) & 1U;
+            state_.lfsr = (state_.lfsr << 1) | feedback;
+        }
+        break;
+    }
     case 5: case 6: { auto& c = state_.c[(con >> 1) - 5]; result = c >= 0; if (increment) ++c; break; }
     case 7: result = true; break;
     case 8: result = !(state_.psw & 0x8000U) && !(state_.psw & 0x4000U); break;
@@ -497,7 +533,13 @@ bool Dsp16A::execute_rom_cycle()
         // stepping at the end of this same machine cycle.
         complete_second_phase();
         if (cache_mode_ == CacheMode::Load) {
-            advance_cache_load();
+            // MAME transitions straight into cache execution when the last
+            // loaded instruction completes in OP2. Its ROM-data read is
+            // overlapped with this cycle; only the one-cycle OP1 path needs
+            // a separate Prefetch phase.
+            advance_cache_load(false);
+            if (cache_mode_ == CacheMode::Execute && phase_ == Phase::Op1)
+                overlap_cache_rom_read();
             return true;
         }
         if (phase_ == Phase::Purge) return true;
@@ -528,8 +570,14 @@ bool Dsp16A::execute_rom_cycle()
     }
     set_iack(iack_none_);
 
-    if (iack_out_ && op_interruptible(current_op) &&
+    // MAME's execute_some_rom<..., Caching=true> never arbitrates IRQs while
+    // the first pass of a DO loop is being loaded into the instruction cache.
+    if (iack_out_ && cache_mode_ != CacheMode::Load && op_interruptible(current_op) &&
         ((pioc_ & int_enable_[0] & 0x001eU) || ((int_enable_[0] & 1U) && irq_in_))) {
+        // An enabled external INT input is also latched into PIOC status when
+        // it is accepted. QSound's DSP firmware can inspect this status in its
+        // interrupt handler before the host clears the IRQ on command read.
+        if (irq_in_ && (pioc_ & (1U << 5))) pioc_ |= 1U;
         set_iack(iack_set_);
         int_enable_[0] = int_enable_[1];
         state_.pc = 1;
@@ -549,7 +597,7 @@ bool Dsp16A::execute_rom_cycle()
     }
     if ((current_op >> 11) == 0x0eU && phase_ == Phase::Prefetch) return true;
     if (cache_mode_ == CacheMode::Load && cost == 1) {
-        advance_cache_load();
+        advance_cache_load(true);
         return true;
     }
     if (phase_ != Phase::Purge) {
@@ -584,13 +632,22 @@ bool Dsp16A::execute_cache_cycle()
     return true;
 }
 
-void Dsp16A::advance_cache_load()
+void Dsp16A::advance_cache_load(bool needs_prefetch)
 {
     if (cache_ptr_ >= cache_limit_) {
-        cache_mode_ = CacheMode::Execute;
-        cache_ptr_ = 1;
         if (cache_iterations_) --cache_iterations_; // first iteration ran while loading
-        phase_ = Phase::Prefetch;
+        if (!cache_iterations_) {
+            // K counts the pass performed while loading the cache as the
+            // first iteration. A one-pass loop is outside the documented
+            // DSP16A range, but must not execute the cached body a second time.
+            cache_mode_ = CacheMode::None;
+            op_ = read_program(state_.pc);
+            phase_ = Phase::Op1;
+        } else {
+            cache_mode_ = CacheMode::Execute;
+            cache_ptr_ = 1;
+            phase_ = needs_prefetch ? Phase::Prefetch : Phase::Op1;
+        }
     } else {
         ++cache_ptr_;
         op_ = read_program(state_.pc);
@@ -648,7 +705,7 @@ void Dsp16A::complete_second_phase()
         yaau_write(op_, static_cast<std::int16_t>(op_x(op_) ? state_.y >> 16 : state_.y));
         break;
     case 0x19: case 0x1b: case 0x1f:
-        state_.pt = static_cast<std::uint16_t>(state_.pt + (op_x(op_) ? state_.i : 1));
+        increment_pt(op_);
         state_.x = static_cast<std::int16_t>(rom_data_);
         break;
     case 0x1a:
@@ -656,7 +713,7 @@ void Dsp16A::complete_second_phase()
         phase_ = Phase::Purge;
         break;
     case 0x1d:
-        state_.pt = static_cast<std::uint16_t>(state_.pt + (op_x(op_) ? state_.i : 1));
+        increment_pt(op_);
         state_.x = static_cast<std::int16_t>(rom_data_);
         yaau_write_z(op_);
         break;
@@ -755,7 +812,7 @@ unsigned Dsp16A::execute_instruction(std::uint16_t op, bool from_cache)
         if (con) { dau_f2(op); state_.c[2] = state_.c[1]; }
         break;
     }
-    case 0x13: if (op_dau_con(op, true)) dau_f2(op); break;
+    case 0x13: if (op_dau_con(op, true, true)) dau_f2(op); break;
     case 0x14:
         state_.a[op_d(op)] = dau_f1(op);
         phase_ = Phase::Op2;
@@ -789,10 +846,15 @@ unsigned Dsp16A::execute_instruction(std::uint16_t op, bool from_cache)
         break;
     case 0x19: case 0x1b: {
         const unsigned src = group == 0x19 ? 0U : 1U;
-        state_.a[op_d(op)] = dau_f1(op);
-        state_.y = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(state_.a[src]));
+        // MAME evaluates F1, snapshots the selected accumulator into Y, and
+        // only then commits the destination accumulator. Keep the snapshot
+        // separate because source and destination may name the same A register.
+        const auto result = dau_f1(op);
+        const auto y_source = state_.a[src];
+        state_.a[op_d(op)] = result;
+        state_.y = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(y_source));
         if (from_cache && !(cache_ptr_ == cache_limit_ && cache_iterations_ == 1)) {
-            state_.pt = static_cast<std::uint16_t>(state_.pt + (op_x(op) ? state_.i : 1));
+            increment_pt(op);
             state_.x = static_cast<std::int16_t>(rom_data_);
         } else {
             rom_data_ = read_program(state_.pt);
@@ -821,9 +883,9 @@ unsigned Dsp16A::execute_instruction(std::uint16_t op, bool from_cache)
     case 0x1e: throw std::runtime_error("DSP16A reserved opcode group");
     case 0x1f:
         state_.a[op_d(op)] = dau_f1(op);
-        dau_set_y(op, yaau_read(op));
+        dau_set_y_high(yaau_read(op));
         if (from_cache && !(cache_ptr_ == cache_limit_ && cache_iterations_ == 1)) {
-            state_.pt = static_cast<std::uint16_t>(state_.pt + (op_x(op) ? state_.i : 1));
+            increment_pt(op);
             state_.x = static_cast<std::int16_t>(rom_data_);
         } else {
             rom_data_ = read_program(state_.pt);
