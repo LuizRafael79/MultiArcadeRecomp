@@ -215,14 +215,12 @@ std::vector<uint32_t> Spu::dma_read(size_t words)
 void Spu::advance_voice_samples(uint64_t samples)
 {
     const uint32_t irq_address = (uint32_t(registers_[kIrqAddress]) << 3) & 0x7ffffu;
-    const bool output_enabled = (registers_[kControl] & 0x8000u) &&
-                                !(registers_[kControl] & 0x4000u);
     const bool irq_enabled = (registers_[kControl] & kIrqEnable) &&
                              !(registers_[kStatus] & kIrqStatus);
     const int32_t master_l = static_cast<int16_t>(registers_[0xc0]);
     const int32_t master_r = static_cast<int16_t>(registers_[0xc1]);
     if (samples > (std::numeric_limits<size_t>::max() - audio_.size()) / 2) return;
-    if (output_enabled) audio_.reserve(audio_.size() + static_cast<size_t>(samples) * 2);
+    audio_.reserve(audio_.size() + static_cast<size_t>(samples) * 2);
     for (uint64_t out = 0; out < samples; ++out) {
         int32_t left = 0, right = 0;
         for (unsigned voice = 0; voice < 24; ++voice) {
@@ -303,10 +301,12 @@ void Spu::advance_voice_samples(uint64_t samples)
                 decode_voice_block(voice);
             }
         }
-        if (output_enabled) {
-            audio_.push_back(clamp_sample((left * master_l) >> 15));
-            audio_.push_back(clamp_sample((right * master_r) >> 15));
-        }
+        // MAME's sound_stream_update always consumes generate() output and
+        // applies the master-volume registers. It does not suppress voice
+        // samples based on SPUCNT bits 15/14. Gating here dropped every sample
+        // for SFEX2PA, which writes SPUCNT=0xc000 while keying on SPU voices.
+        audio_.push_back(clamp_sample((left * master_l) >> 15));
+        audio_.push_back(clamp_sample((right * master_r) >> 15));
     }
 }
 
