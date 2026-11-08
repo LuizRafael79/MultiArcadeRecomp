@@ -1506,6 +1506,11 @@ void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_
     const auto submit = [&](int left, int top, int w, int h) {
         if (w <= 0 || h <= 0) return;
         GpuHwState fill_state = state;
+        // GP0(02) is MAME's FrameBufferRectangleDraw: unlike normal drawing
+        // primitives, it addresses VRAM directly and ignores the GP0(E5)
+        // drawing offset. The software path already passes unshifted x/y.
+        fill_state.offset_x = 0;
+        fill_state.offset_y = 0;
         fill_state.draw_x1 = left;
         fill_state.draw_y1 = top;
         fill_state.draw_x2 = left + w - 1;

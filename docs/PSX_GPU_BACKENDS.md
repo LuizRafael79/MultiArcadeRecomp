@@ -59,6 +59,9 @@ the renderer itself has no ZN-specific types or board callbacks.
   parity test covers fills, rectangles, lines, polygons, a textured sprite,
   the E1 override, an odd GP1 display-area Y origin, and an emulated field
   transition at vblank.
+- GP0(02) framebuffer-rectangle fills use direct VRAM coordinates and ignore
+  GP0(E5)'s drawing offset, matching MAME's `FrameBufferRectangleDraw`. The
+  hardware parity test covers a fill with a nonzero E5 offset.
 - Full-game checkpoints include byte-identical software/OpenGL SFEX2PA captures
   at frames 1074 and 1560 on NVIDIA; ZN-1 Bloody Roar 2 and System 12 Tekken 3
   also have matched checkpoints. These do not prove continuous parity for
@@ -721,3 +724,17 @@ time sample was 14.05 s in software and 15.62 s with GPU_HW. This low-graphics
 boot scene does not establish relative performance under 3D gameplay, but it
 does show that the hardware path has overhead when little raster work is
 offloaded.
+
+On 2026-11-08, a 1,620-frame SFEX2PA software/GPU_HW comparison found three
+warning-screen frames (450, 750, and 900) with extra text pixels in GPU_HW;
+Intel and NVIDIA produced the same incorrect frames. GP0 command tracing
+identified `0x02` as the first command that expanded the VRAM difference. The
+OpenGL fill path had applied GP0(E5)'s draw offset to its rectangle vertices,
+while MAME's `FrameBufferRectangleDraw` and the software path use direct VRAM
+coordinates. The shifted geometry fell outside the command's rectangle clip
+but still advanced the ping-pong VRAM target, exposing stale pixels elsewhere.
+The hardware fill now clears the offset before vertex construction. After the
+fix, all ten captures from the same 1,620-frame run were byte-identical to the
+software reference on Intel UHD 630; frame 450 also matched on the NVIDIA GTX
+1650. Guest instruction/cycle counts matched in every paired run. A synthetic
+nonzero-E5 GP0(02) case and the complete PSX GPU test group pass on both GPUs.

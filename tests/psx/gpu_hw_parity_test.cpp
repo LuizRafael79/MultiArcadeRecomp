@@ -411,6 +411,24 @@ int main()
             throw std::runtime_error("PSX GPU type-1 flipped texture parity failed");
         }
 
+        // GP0(02) fills VRAM coordinates directly and ignores the GP0(E5)
+        // drawing offset, unlike normal drawing primitives.
+        const std::vector<uint32_t> offset_fill{
+            0xe5000000u | (240u << 11),
+            0x020000ffu, 0u | (240u << 16), (15u << 16) | 512u,
+            0xe5000000u,
+        };
+        send(gpu1_software, offset_fill);
+        send(gpu1_hardware, offset_fill);
+        const auto read_offset_fill = [](Gpu& gpu) {
+            gpu.write_data(0xc0000000u);
+            gpu.write_data(0u | (240u << 16));
+            gpu.write_data((1u << 16) | 1u);
+            return static_cast<uint16_t>(gpu.read_data());
+        };
+        if (read_offset_fill(gpu1_software) != read_offset_fill(gpu1_hardware))
+            throw std::runtime_error("PSX GP0 fill incorrectly applied the drawing offset");
+
         // Exercise the native-window path that the launcher selects for
         // `--gpu-hw --window`: scanout stays on the GPU, the RGB readback is
         // omitted, and the result is blitted to the SDL OpenGL backbuffer.
