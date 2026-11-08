@@ -27,7 +27,7 @@ struct BatchScanline {
 layout(std430, binding = 2) readonly buffer BatchCommands {
     ShaderCommand commands[];
 };
-layout(std430, binding = 3) readonly buffer BatchScanlines {
+layout(std430, binding = 4) readonly buffer BatchScanlines {
     BatchScanline scanlines[];
 };
 

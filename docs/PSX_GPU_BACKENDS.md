@@ -632,3 +632,31 @@ The latter includes hidden OpenGL context setup/teardown, so it is not a direct
 present comparison; that overhead is a likely contributor to the wall-time
 difference. The paired guest-cycle count and run-time measurements show a
 renderer CPU saving without a comparable whole-machine gain in this workload.
+
+On 2026-11-08, batch scanline setup was moved fully off the CPU. The CPU now
+submits one compact job per polygon; an OpenGL compute shader creates all of
+that polygon's 16.16 scanline edge/attribute records in parallel. This removes
+the per-row CPU loop and its large transient upload while keeping the existing
+fragment shader's PSX fixed-point interpolation and command ordering. The
+shader writes to a separate SSBO from the polygon-job input, then a storage
+barrier makes the generated rows visible to the batch fragment shader.
+
+The full `psx_gpu` CTest group passed with GL checks on Mesa Intel UHD 630 and
+NVIDIA GTX 1650. Matched SFEX2PA frame-1074 captures on both GPUs, using the
+same saved NVRAM and coin/start events, were byte-identical between software
+and `--gpu-hw` (SHA-256
+`54f8c52e3c8c339f1102d2de2f7a3e2ad7c32a24f612ba2231d4b13e68a8ac95`); both
+runs processed 448,800,791 guest instructions/cycles. This includes the
+character-select portrait and the textured polygons in the selected frame.
+
+Two 600-frame headless profiles per backend on the GTX 1650 used forced QSound
+HLE and identical starting NVRAM. Every run processed 56,734 GP0 packets and
+250,726,699 guest instructions/cycles. Mean CPU time in GP0 packet
+raster/dispatch was 36.9 ms with `--gpu-hw` versus 127.9 ms in software (about
+71% lower). Mean measured `run_until` was 1.97 s versus 2.19 s; the pair had
+run-to-run variation, so this is indicative rather than a stable whole-system
+speedup. In a separate opt-in GPU timer-query run, the scanline-setup dispatch
+produced 10,178 rows in 0.231 ms; the measured raster-compute work totaled
+219.97 ms. The new setup stage is therefore small relative to the existing
+pixel/raster work. The hardware path remains optional, and broader scene and
+board coverage is still needed.
