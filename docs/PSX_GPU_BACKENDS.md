@@ -814,3 +814,16 @@ System 12 `tekken3` frame 600 was also byte-identical (SHA-256
 paths executed 250,726,699 R3000A cycles and 62,681,653 H8 cycles. This is the
 JAMMA initialization scene, not 3D gameplay, so it confirms shared-backend
 parity at this checkpoint only.
+
+A new three-pair SFEX2PA headless profile on the GTX 1650 used 600 frames,
+forced QSound HLE, and a freshly zeroed temporary EEPROM before each run. All
+six runs executed 250,726,699 guest instructions/cycles and processed 56,659
+GP0 packets. Mean CPU time in GP0 raster/dispatch fell from 118.61 ms in
+software to 30.88 ms with GPU_HW (74.0% lower). Mean profiled `run_until` time
+fell from 2.038 s to 1.985 s (2.6%); the individual GPU_HW samples were
+1.952/2.048/1.953 s, so this small total-runtime difference is not a stable
+speedup claim. End-to-end process elapsed time averaged 2.198 s in software
+and 2.380 s with GPU_HW; this headless path includes OpenGL context setup and
+teardown and was slower overall. This isolates a clear CPU saving in GP0, but
+does not establish improved interactive throughput; direct-present windowed
+profiling remains the relevant whole-machine measure.
