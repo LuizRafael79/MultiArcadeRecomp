@@ -278,6 +278,14 @@ struct GpuHardwareRenderer::Impl {
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
     GLint batch_vram_height_location = -1;
+    GLint scanout_vram_location = -1;
+    GLint scanout_display_start_location = -1;
+    GLint scanout_source_offset_location = -1;
+    GLint scanout_destination_offset_location = -1;
+    GLint scanout_copy_size_location = -1;
+    GLint scanout_vram_height_location = -1;
+    GLint scanout_rgb24_location = -1;
+    GLint scanout_display_enabled_location = -1;
     GLint texture_cache_vram_height_location = -1;
     GLint batch_source_location = -1;
     GLint texture_cache_texture_page_location = -1;
@@ -489,6 +497,14 @@ struct GpuHardwareRenderer::Impl {
         vram_height_location = glGetUniformLocation(program, "uVramHeight");
         draw_vram_height_location = glGetUniformLocation(draw_program, "uVramHeight");
         batch_vram_height_location = glGetUniformLocation(batch_draw_program, "uVramHeight");
+        scanout_vram_location = glGetUniformLocation(scanout_program, "uVram");
+        scanout_display_start_location = glGetUniformLocation(scanout_program, "uDisplayStart");
+        scanout_source_offset_location = glGetUniformLocation(scanout_program, "uSourceOffset");
+        scanout_destination_offset_location = glGetUniformLocation(scanout_program, "uDestinationOffset");
+        scanout_copy_size_location = glGetUniformLocation(scanout_program, "uCopySize");
+        scanout_vram_height_location = glGetUniformLocation(scanout_program, "uVramHeight");
+        scanout_rgb24_location = glGetUniformLocation(scanout_program, "uRgb24");
+        scanout_display_enabled_location = glGetUniformLocation(scanout_program, "uDisplayEnabled");
         batch_texture_cache_location = glGetUniformLocation(batch_draw_program, "uTextureCache");
         batch_source_location = glGetUniformLocation(batch_draw_program, "uVram");
         texture_cache_vram_height_location = glGetUniformLocation(texture_cache_program, "uVramHeight");
@@ -622,7 +638,7 @@ struct GpuHardwareRenderer::Impl {
         glUseProgram(program);
         glUniform1i(glGetUniformLocation(program, "uSource"), 1);
         glUseProgram(scanout_program);
-        glUniform1i(glGetUniformLocation(scanout_program, "uVram"), 0);
+        glUniform1i(scanout_vram_location, 0);
         glUseProgram(draw_program);
         glUniform1i(glGetUniformLocation(draw_program, "uSource"), 0);
         glUseProgram(batch_draw_program);
@@ -1344,17 +1360,14 @@ struct GpuHardwareRenderer::Impl {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
         glBindImageTexture(1, scanout_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-        glUniform2i(glGetUniformLocation(scanout_program, "uDisplayStart"),
+        glUniform2i(scanout_display_start_location,
                     static_cast<GLint>(display_start_x), static_cast<GLint>(display_start_y));
-        glUniform2i(glGetUniformLocation(scanout_program, "uSourceOffset"), source_x, source_y);
-        glUniform2i(glGetUniformLocation(scanout_program, "uDestinationOffset"),
-                    destination_x, destination_y);
-        glUniform2i(glGetUniformLocation(scanout_program, "uCopySize"), copy_width, copy_height);
-        glUniform1i(glGetUniformLocation(scanout_program, "uVramHeight"),
-                    static_cast<GLint>(source_vram_height));
-        glUniform1i(glGetUniformLocation(scanout_program, "uRgb24"), rgb24 ? 1 : 0);
-        glUniform1i(glGetUniformLocation(scanout_program, "uDisplayEnabled"),
-                    display_enabled ? 1 : 0);
+        glUniform2i(scanout_source_offset_location, source_x, source_y);
+        glUniform2i(scanout_destination_offset_location, destination_x, destination_y);
+        glUniform2i(scanout_copy_size_location, copy_width, copy_height);
+        glUniform1i(scanout_vram_height_location, static_cast<GLint>(source_vram_height));
+        glUniform1i(scanout_rgb24_location, rgb24 ? 1 : 0);
+        glUniform1i(scanout_display_enabled_location, display_enabled ? 1 : 0);
         const size_t timing_query = begin_gpu_timing(GpuTimingKind::Scanout);
         glDispatchCompute((width + 7) / 8, (height + 7) / 8, 1);
         end_gpu_timing(timing_query);

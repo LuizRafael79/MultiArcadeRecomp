@@ -172,6 +172,13 @@ synchronous readback for deterministic output. The three-slot PBO ring remains
 available for asynchronous CPU readback experiments, but the interactive
 presenter no longer uses it.
 
+The scanout shader's uniform locations are resolved once when its program is
+created and reused for each vblank; the frame loop no longer asks the GL driver
+to look them up repeatedly. The existing PSX GPU parity, multi-mode scanout,
+and transfer tests pass on the NVIDIA GTX 1650 after this change. This removes
+per-frame driver queries, but a separate windowed benchmark is still needed to
+measure its total-runtime effect.
+
 The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
 when `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` was set for diagnosis, and a
 900-frame run on X11. After making the PSX native-OpenGL window borderless for
