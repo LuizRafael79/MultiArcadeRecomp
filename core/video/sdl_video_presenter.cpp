@@ -12,10 +12,12 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
                                    unsigned display_aspect_width,
                                    unsigned display_aspect_height,
                                    unsigned window_width,
-                                   unsigned window_height)
+                                   unsigned window_height,
+                                   bool native_opengl_window)
     : width_(width), height_(height),
       display_aspect_width_(display_aspect_width),
-      display_aspect_height_(display_aspect_height)
+      display_aspect_height_(display_aspect_height),
+      native_opengl_window_(native_opengl_window)
 {
     if (!width_ || !height_) throw std::runtime_error("SDL framebuffer dimensions must be positive");
     if ((display_aspect_width_ == 0) != (display_aspect_height_ == 0))
@@ -23,25 +25,61 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
     if ((window_width == 0) != (window_height == 0))
         throw std::runtime_error("SDL window dimensions require both width and height");
 #if defined(__linux__)
-    // Prefer GNOME's themed XWayland frame when both Wayland and XWayland are
-    // available. Keep an explicit SDL driver choice authoritative.
-    if (std::getenv("WAYLAND_DISPLAY") && std::getenv("DISPLAY") &&
-        !std::getenv("SDL_VIDEODRIVER"))
-        setenv("SDL_VIDEODRIVER", "x11", 0);
+    // SDL's Wayland libdecor GTK path can crash while loading themed pixbufs
+    // on this host. Prefer compositor-side Wayland decorations by default;
+    // an explicit SDL hint/environment setting still takes precedence.
+    if (!SDL_GetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR))
+        SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR, "0");
 #endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         throw std::runtime_error(std::string("SDL video init failed: ") + SDL_GetError());
+    if (native_opengl_window_) {
+        if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4) ||
+            !SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) ||
+            !SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)) {
+            const std::string error = SDL_GetError();
+            SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+            throw std::runtime_error("SDL OpenGL context setup failed: " + error);
+        }
+    }
     window_ = SDL_CreateWindow(title.c_str(),
         static_cast<int>(window_width ? window_width : width_ * 3),
         static_cast<int>(window_height ? window_height : height_ * 3),
-        SDL_WINDOW_RESIZABLE);
+        SDL_WINDOW_RESIZABLE | (native_opengl_window_ ? SDL_WINDOW_OPENGL : 0));
     if (!window_) {
         const std::string error = SDL_GetError();
         SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
         throw std::runtime_error("SDL window creation failed: " + error);
     }
-    // The emulated GPU still rasterizes into host-side VRAM in software. Only
-    // the final framebuffer upload, scaling, and window presentation use OpenGL.
+    if (native_opengl_window_) {
+        const SDL_GLContext context = SDL_GL_CreateContext(window_);
+        if (!context) {
+            const std::string error = SDL_GetError();
+            SDL_DestroyWindow(window_);
+            window_ = nullptr;
+            SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+            throw std::runtime_error("SDL OpenGL context creation failed: " + error);
+        }
+        if (!SDL_GL_MakeCurrent(window_, context)) {
+            const std::string error = SDL_GetError();
+            if (context) SDL_GL_DestroyContext(context);
+            SDL_DestroyWindow(window_);
+            window_ = nullptr;
+            SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+            throw std::runtime_error("SDL OpenGL context activation failed: " + error);
+        }
+        if (!SDL_GL_SetSwapInterval(1)) {
+            const std::string error = SDL_GetError();
+            SDL_GL_DestroyContext(context);
+            SDL_DestroyWindow(window_);
+            window_ = nullptr;
+            SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+            throw std::runtime_error("SDL OpenGL VSync setup failed: " + error);
+        }
+        gl_context_ = context;
+        return;
+    }
+    // The software-backed path uploads RGB frames to SDL's OpenGL renderer.
     renderer_ = SDL_CreateRenderer(window_, "opengl");
     if (!renderer_) {
         const std::string error = SDL_GetError();
@@ -78,6 +116,7 @@ SdlVideoPresenter::~SdlVideoPresenter()
 {
     if (texture_) SDL_DestroyTexture(texture_);
     if (renderer_) SDL_DestroyRenderer(renderer_);
+    if (gl_context_) SDL_GL_DestroyContext(static_cast<SDL_GLContext>(gl_context_));
     if (window_) SDL_DestroyWindow(window_);
     SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 }
@@ -141,6 +180,8 @@ void SdlVideoPresenter::present(std::span<const std::uint8_t> rgb)
 
 void SdlVideoPresenter::present(mamerecomp::runtime::Rgb24FrameView frame)
 {
+    if (native_opengl_window_)
+        throw std::runtime_error("RGB upload is unavailable on a native OpenGL presenter window");
     const std::size_t row_bytes = static_cast<std::size_t>(frame.width) * 3;
     const std::size_t expected = frame.pitch * frame.height;
     if (!frame.width || !frame.height || frame.pitch < row_bytes ||

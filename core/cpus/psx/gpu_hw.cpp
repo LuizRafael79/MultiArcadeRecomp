@@ -144,12 +144,15 @@ struct GpuHardwareRenderer::Impl {
     SDL_Window* window = nullptr;
     SDL_GLContext context = nullptr;
     bool owns_video = false;
+    bool owns_window = false;
+    bool owns_context = false;
     GLuint program = 0;
     GLuint scanout_program = 0;
     GLuint draw_program = 0;
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
     GLuint scanout_texture = 0;
+    GLuint scanout_framebuffer = 0;
     std::array<ScanoutReadback, 3> scanout_readbacks{};
     size_t next_scanout_readback = 0;
     uint64_t next_scanout_sequence = 1;
@@ -184,6 +187,7 @@ struct GpuHardwareRenderer::Impl {
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
         if (scanout_texture) glDeleteTextures(1, &scanout_texture);
+        if (scanout_framebuffer) glDeleteFramebuffers(1, &scanout_framebuffer);
         for (auto& readback : scanout_readbacks) {
             if (readback.fence) glDeleteSync(readback.fence);
             if (readback.buffer) glDeleteBuffers(1, &readback.buffer);
@@ -193,8 +197,8 @@ struct GpuHardwareRenderer::Impl {
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
-        if (context) SDL_GL_DestroyContext(context);
-        if (window) SDL_DestroyWindow(window);
+        if (owns_context && context) SDL_GL_DestroyContext(context);
+        if (owns_window && window) SDL_DestroyWindow(window);
         if (owns_video) SDL_QuitSubSystem(SDL_INIT_VIDEO);
     }
 
@@ -220,14 +224,19 @@ struct GpuHardwareRenderer::Impl {
                 throw std::runtime_error(std::string("SDL video init for PSX GPU failed: ") + SDL_GetError());
             owns_video = true;
         }
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-        window = SDL_CreateWindow("MameRecomp PSX GPU", 32, 32,
-                                  SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
-        if (!window) throw std::runtime_error(std::string("hidden PSX OpenGL window failed: ") + SDL_GetError());
-        context = SDL_GL_CreateContext(window);
-        if (!context) throw std::runtime_error(std::string("PSX OpenGL context creation failed: ") + SDL_GetError());
+        if (!window || !context) {
+            if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4) ||
+                !SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) ||
+                !SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE))
+                throw std::runtime_error(std::string("PSX OpenGL context attributes failed: ") + SDL_GetError());
+            window = SDL_CreateWindow("MameRecomp PSX GPU", 32, 32,
+                                      SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
+            if (!window) throw std::runtime_error(std::string("hidden PSX OpenGL window failed: ") + SDL_GetError());
+            owns_window = true;
+            context = SDL_GL_CreateContext(window);
+            if (!context) throw std::runtime_error(std::string("PSX OpenGL context creation failed: ") + SDL_GetError());
+            owns_context = true;
+        }
         if (!make_current()) throw std::runtime_error(std::string("PSX OpenGL context activation failed: ") + SDL_GetError());
         GLint major = 0, minor = 0;
         glGetIntegerv(GL_MAJOR_VERSION, &major);
@@ -270,6 +279,13 @@ struct GpuHardwareRenderer::Impl {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 640, 512, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glGenFramebuffers(1, &scanout_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, scanout_framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_2D, scanout_texture, 0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            throw std::runtime_error("PSX OpenGL scanout framebuffer is incomplete");
         for (auto& readback : scanout_readbacks) {
             glGenBuffers(1, &readback.buffer);
             glBindBuffer(GL_PIXEL_PACK_BUFFER, readback.buffer);
@@ -483,7 +499,7 @@ struct GpuHardwareRenderer::Impl {
                                      unsigned source_vram_height, int source_x, int source_y,
                                      int destination_x, int destination_y,
                                      int copy_width, int copy_height,
-                                     bool asynchronous) {
+                                     bool asynchronous, bool direct_present) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         if (!width || !height || width > 640 || height > 512 || !source_vram_height)
             throw std::runtime_error("invalid PSX OpenGL scanout dimensions");
@@ -511,9 +527,14 @@ struct GpuHardwareRenderer::Impl {
         glUniform1i(glGetUniformLocation(scanout_program, "uDisplayEnabled"),
                     display_enabled ? 1 : 0);
         glDispatchCompute((width + 7) / 8, (height + 7) / 8, 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT |
+                        GL_FRAMEBUFFER_BARRIER_BIT);
+        scanout_width = width;
+        scanout_height = height;
 
         glBindTexture(GL_TEXTURE_2D, scanout_texture);
+        if (direct_present) return {};
         if (asynchronous) {
             if (scanout_cache_width != width || scanout_cache_height != height) {
                 scanout_cache_width = width;
@@ -591,6 +612,51 @@ struct GpuHardwareRenderer::Impl {
         }
         return rgb;
     }
+
+    bool present_scanout() {
+        if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+        if (!scanout_width || !scanout_height) return false;
+        int output_width = 0;
+        int output_height = 0;
+        if (!SDL_GetWindowSizeInPixels(window, &output_width, &output_height) ||
+            output_width <= 0 || output_height <= 0)
+            throw std::runtime_error("could not query PSX OpenGL window pixel size");
+
+        int destination_width = output_width;
+        int destination_height = output_height;
+        constexpr int aspect_width = 4;
+        constexpr int aspect_height = 3;
+        if (static_cast<int64_t>(output_width) * aspect_height >
+            static_cast<int64_t>(output_height) * aspect_width) {
+            destination_width = output_height * aspect_width / aspect_height;
+        } else {
+            destination_height = output_width * aspect_height / aspect_width;
+        }
+        const int left = (output_width - destination_width) / 2;
+        const int bottom = (output_height - destination_height) / 2;
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, scanout_framebuffer);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glDrawBuffer(GL_BACK);
+        // GP0 draws leave scissor enabled for their VRAM bounds. Blits and
+        // clears honor that state too, so reset it before scaling scanout to
+        // the host window or only the last primitive's rectangle is shown.
+        glDisable(GL_SCISSOR_TEST);
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+        glViewport(0, 0, output_width, output_height);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBlitFramebuffer(0, static_cast<GLint>(scanout_height),
+                          static_cast<GLint>(scanout_width), 0,
+                          left, bottom, left + destination_width, bottom + destination_height,
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        SDL_GL_SwapWindow(window);
+        if (debug_gl && glGetError() != GL_NO_ERROR)
+            throw std::runtime_error("PSX OpenGL direct scanout presentation failed");
+        return true;
+    }
 };
 
 namespace {
@@ -641,8 +707,15 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
 }
 }
 
-GpuHardwareRenderer::GpuHardwareRenderer(std::span<const uint8_t> initial_vram)
+GpuHardwareRenderer::GpuHardwareRenderer(std::span<const uint8_t> initial_vram,
+                                         void* native_window, void* native_context)
     : impl_(std::make_unique<Impl>()) {
+    if (native_window || native_context) {
+        if (!native_window || !native_context)
+            throw std::invalid_argument("PSX OpenGL external window and context must be provided together");
+        impl_->window = static_cast<SDL_Window*>(native_window);
+        impl_->context = static_cast<SDL_GLContext>(native_context);
+    }
     impl_->initialize(initial_vram);
 }
 GpuHardwareRenderer::~GpuHardwareRenderer() = default;
@@ -843,12 +916,14 @@ std::vector<uint8_t> GpuHardwareRenderer::scanout_rgb(
     unsigned width, unsigned height, bool display_enabled, bool rgb24,
     unsigned display_start_x, unsigned display_start_y, unsigned vram_height,
     int source_x, int source_y, int destination_x, int destination_y,
-    int copy_width, int copy_height, bool asynchronous) {
+    int copy_width, int copy_height, bool asynchronous, bool direct_present) {
     return impl_->scanout_rgb(width, height, display_enabled, rgb24,
                               display_start_x, display_start_y, vram_height,
                               source_x, source_y, destination_x, destination_y,
-                              copy_width, copy_height, asynchronous);
+                              copy_width, copy_height, asynchronous, direct_present);
 }
+
+bool GpuHardwareRenderer::present_scanout() { return impl_->present_scanout(); }
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }
 

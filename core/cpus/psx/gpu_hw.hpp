@@ -29,7 +29,9 @@ struct GpuHwState {
 
 class GpuHardwareRenderer {
 public:
-    explicit GpuHardwareRenderer(std::span<const uint8_t> initial_vram);
+    explicit GpuHardwareRenderer(std::span<const uint8_t> initial_vram,
+                                 void* native_window = nullptr,
+                                 void* native_context = nullptr);
     ~GpuHardwareRenderer();
     GpuHardwareRenderer(const GpuHardwareRenderer&) = delete;
     GpuHardwareRenderer& operator=(const GpuHardwareRenderer&) = delete;
@@ -59,7 +61,9 @@ public:
                                      unsigned vram_height, int source_x, int source_y,
                                      int destination_x, int destination_y,
                                      int copy_width, int copy_height,
-                                     bool asynchronous = false);
+                                     bool asynchronous = false,
+                                     bool direct_present = false);
+    bool present_scanout();
     const std::string& renderer_name() const noexcept;
 
 private:

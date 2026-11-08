@@ -161,19 +161,26 @@ per frame, so GPU command submission and CPU-mediated presentation remain
 performance work; the window does not yet present the shared GPU texture
 directly.
 
-Interactive `--gpu-hw` scanout now has an optional three-slot pixel-buffer
-object (PBO) readback ring. It queues final RGB-frame transfers and polls their
-fences without waiting; the SDL-facing frame uses the latest completed readback
-(so it may be one or more frames old under load). Headless captures and frame
-sequences retain synchronous readback for deterministic output. A scanout probe
-matched software RGB exactly on llvmpipe, Intel UHD 630, and NVIDIA GTX 1650.
-This hides part of the GPU-to-CPU readback stall; it does not yet provide
-DuckStation-style direct GPU texture presentation or eliminate CPU frame
-conversion.
+Interactive `--gpu-hw --window` now creates one native SDL OpenGL window and
+shares its context with the PSX GPU module. The scanout compute shader writes
+the output texture, then the GPU blits that texture directly to the window's
+backbuffer with aspect-preserving scaling; this avoids mapping the frame to
+CPU memory and uploading it through `SDL_UpdateTexture`. GP0 scissor state is
+reset before the blit so the last primitive's clip rectangle cannot crop
+presentation. Headless `--frame-out` and frame-sequence captures retain
+synchronous readback for deterministic output. The three-slot PBO ring remains
+available for asynchronous CPU readback experiments, but the interactive
+presenter no longer uses it.
+
+The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
+and a 900-frame run on X11. Wayland's libdecor GTK plugin crashed in Glycin on
+this host even with the software presenter; the SDL presenter now defaults to
+compositor-side Wayland decorations unless the user explicitly configures
+`SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR`. Runtime completion is smoke-tested, but
+visual parity of the direct blit after the scissor-state fix still needs a
+pixel-capture comparison.
 
 The next DuckStation-inspired steps remain: batch compatible primitives to
-reduce per-command submission, maintain explicit texture/CLUT cache coherence
-for VRAM writes, and hand the completed GPU texture to the window presenter
-without mapping every frame to CPU memory. These must preserve PSX command
-ordering and force synchronization only where CPU-visible VRAM or scanout
-requires it.
+reduce per-command submission and maintain explicit texture/CLUT cache
+coherence for VRAM writes. These must preserve PSX command ordering and force
+synchronization only where CPU-visible VRAM or scanout requires it.

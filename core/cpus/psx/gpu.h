@@ -16,6 +16,7 @@ struct GpuFrame {
     unsigned width = 0;
     unsigned height = 0;
     bool display_enabled = false;
+    bool direct_present = false;
     std::vector<uint8_t> rgb;
 };
 
@@ -25,7 +26,9 @@ class Gpu {
 public:
     explicit Gpu(std::vector<uint8_t> &vram, unsigned gpu_type = 2);
     ~Gpu();
-    void enable_hardware_renderer();
+    void enable_hardware_renderer(void* native_window = nullptr,
+                                  void* native_context = nullptr);
+    bool present_hardware_frame();
     bool hardware_renderer_enabled() const { return bool(hardware_renderer_); }
     bool advance_screen_timing(uint64_t cpu_cycles, uint64_t cpu_cycle_hz);
     uint64_t cycles_until_screen_event(uint64_t cpu_cycle_hz) const;
@@ -44,6 +47,7 @@ public:
         if (!enabled) last_vblank_frame_.reset();
     }
     void set_hardware_scanout_async(bool enabled) { hardware_scanout_async_ = enabled; }
+    void set_hardware_scanout_direct(bool enabled) { hardware_scanout_direct_ = enabled; }
 
 private:
     void gp0(uint32_t value);
@@ -98,6 +102,7 @@ private:
     std::optional<GpuFrame> last_vblank_frame_;
     bool frame_capture_enabled_ = true;
     bool hardware_scanout_async_ = false;
+    bool hardware_scanout_direct_ = false;
     bool profile_timing_ = false;
     uint64_t profile_execute_packet_ns_ = 0;
     uint64_t profile_execute_packet_calls_ = 0;

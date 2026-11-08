@@ -2602,14 +2602,6 @@ int run_zn_machine(const std::filesystem::path& source_root,
                    bool dsp16a_no_aot,
                    mamerecomp::chips::QSoundMode qsound_mode,
                    bool qsound_mixed_requested) {
-#if defined(__linux__)
-    // Select the XWayland backend before initializing SDL audio: a prior SDL
-    // subsystem can otherwise lock the video backend before the presenter
-    // applies the project's X11 preference.
-    if (std::getenv("WAYLAND_DISPLAY") && std::getenv("DISPLAY") &&
-        !std::getenv("SDL_VIDEODRIVER"))
-        setenv("SDL_VIDEODRIVER", "x11", 0);
-#endif
     const bool zn1 = game == "bldyror2";
     const bool system12 = game == "tekken3";
     // MAME configures the PSX-derived CPUs at their crystal rates, then
@@ -2706,13 +2698,31 @@ int run_zn_machine(const std::filesystem::path& source_root,
             std::cout << "MAME HLE (forced)";
         std::cout << " (firmware=" << firmware_zip << ").\n";
     }
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    // Declare the window before the machine so the PSX renderer is destroyed
+    // before the externally owned GL context during normal return/unwinding.
+    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> presenter;
+#endif
     mamerecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
                                              zn2_psx_entry_count, zn2_z80_code,
                                              qsound_mode, qsound_firmware,
                                              std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry>(
                                                  zn2_dsp16a_entries, zn2_dsp16a_entry_count),
                                              zn2_dsp16a_run);
+    bool direct_gpu_present = false;
+#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    direct_gpu_present = gpu_hw && show_window && !frame_out && !frame_sequence_dir;
+    if (direct_gpu_present) {
+        presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
+            "Sony ZN - " + game + " - MameRecomp", 640, 480, 4, 3, 960, 720, true);
+        machine.memory().gpu().enable_hardware_renderer(
+            presenter->native_window(), presenter->native_gl_context());
+    } else if (gpu_hw) {
+        machine.memory().gpu().enable_hardware_renderer();
+    }
+#else
     if (gpu_hw) machine.memory().gpu().enable_hardware_renderer();
+#endif
     const auto nvram_path = (game == "sfex2pa" || game == "bldyror2")
         ? std::optional<std::filesystem::path>(nvram_option.value_or(
             source_root / "build/nvram" / (game + ".at28c16")))
@@ -2725,8 +2735,8 @@ int run_zn_machine(const std::filesystem::path& source_root,
     const bool capture_vblank_frames = show_window || frame_out.has_value() ||
                                        frame_sequence_dir.has_value();
     machine.memory().gpu().set_frame_capture_enabled(capture_vblank_frames);
-    machine.memory().gpu().set_hardware_scanout_async(
-        gpu_hw && show_window && !frame_out && !frame_sequence_dir);
+    machine.memory().gpu().set_hardware_scanout_direct(direct_gpu_present);
+    machine.memory().gpu().set_hardware_scanout_async(false);
     std::uint64_t instruction_budget = cycles ? *cycles
         : frames ? cycle_at_frame(frames)
         : cycle_at_frame(1);
@@ -2739,7 +2749,6 @@ int run_zn_machine(const std::filesystem::path& source_root,
     unsigned diagnostics_window_frames = 0;
     bool window_open = true;
 #ifdef MAMERECOMP_HAS_SDL3_PRESENTER
-    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> presenter;
     SDL_AudioStream* zn_audio_stream = nullptr;
     SDL_AudioStream* zn_spu_stream = nullptr;
     std::ofstream zn_qsound_pcm_dump;
@@ -2896,6 +2905,11 @@ int run_zn_machine(const std::filesystem::path& source_root,
             presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
                 "Sony ZN - " + game + " - MameRecomp", frame.width, frame.height,
                 4, 3, 960, 720);
+        }
+        if (frame.direct_present) {
+            if (!machine.memory().gpu().present_hardware_frame())
+                throw std::runtime_error("PSX OpenGL direct presenter has no scanout frame");
+            return;
         }
         presenter->present({frame.width, frame.height,
                             static_cast<std::size_t>(frame.width) * 3, frame.rgb});

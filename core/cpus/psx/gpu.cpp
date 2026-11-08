@@ -172,17 +172,23 @@ Gpu::Gpu(std::vector<uint8_t> &vram, unsigned gpu_type)
 
 Gpu::~Gpu() = default;
 
-void Gpu::enable_hardware_renderer()
+void Gpu::enable_hardware_renderer(void* native_window, void* native_context)
 {
     if (hardware_renderer_) return;
 #ifdef MAMERECOMP_PSX_GPU_OPENGL
-    hardware_renderer_ = std::make_unique<GpuHardwareRenderer>(vram_);
+    hardware_renderer_ = std::make_unique<GpuHardwareRenderer>(
+        vram_, native_window, native_context);
     hardware_vram_shadow_valid_ = true;
     std::cout << "PSX GPU OpenGL rasterizer: "
               << hardware_renderer_->renderer_name() << '\n';
 #else
     throw std::runtime_error("--gpu-hw requested, but this build has no SDL3/OpenGL PSX rasterizer; configure with -DMAMERECOMP_ENABLE_PSX_GPU_OPENGL=ON");
 #endif
+}
+
+bool Gpu::present_hardware_frame()
+{
+    return hardware_renderer_ && hardware_renderer_->present_scanout();
 }
 
 void Gpu::get_hardware_state(GpuHwState& state) const
@@ -1359,8 +1365,13 @@ GpuFrame Gpu::framebuffer_rgb() const
                               << gp0_command_counts_[op] << std::dec << '\n';
         }
     };
-    frame.rgb.resize(size_t(frame.width) * frame.height * 3, 0);
-    if (!frame.display_enabled || vram_.empty()) { report_gpu_summary(); return frame; }
+    if (!(hardware_renderer_ && hardware_scanout_direct_))
+        frame.rgb.resize(size_t(frame.width) * frame.height * 3, 0);
+    if ((!frame.display_enabled || vram_.empty()) &&
+        !(hardware_renderer_ && hardware_scanout_direct_)) {
+        report_gpu_summary();
+        return frame;
+    }
 
     constexpr size_t vram_width = 1024;
     const size_t vram_height = std::max<size_t>(1, vram_.size() / (vram_width * 2));
@@ -1395,7 +1406,9 @@ GpuFrame Gpu::framebuffer_rgb() const
         frame.rgb = hardware_renderer_->scanout_rgb(
             frame.width, frame.height, frame.display_enabled, rgb24,
             display_start_x_, display_start_y_, static_cast<unsigned>(vram_height),
-            src_x, src_y, dst_x, dst_y, columns, lines, hardware_scanout_async_);
+            src_x, src_y, dst_x, dst_y, columns, lines, hardware_scanout_async_,
+            hardware_scanout_direct_);
+        frame.direct_present = hardware_scanout_direct_;
         report_gpu_summary();
         return frame;
     }
