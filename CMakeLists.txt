@@ -523,6 +523,12 @@ if(BUILD_TESTING)
     mamerecomp_enable_test_asserts(psx_gpu_test)
     add_test(NAME psx_gpu_test COMMAND psx_gpu_test)
     if(MAMERECOMP_ENABLE_PSX_GPU_OPENGL AND SDL3_FOUND AND OpenGL_FOUND)
+        add_executable(psx_gpu_hw_parity_test tests/psx/gpu_hw_parity_test.cpp)
+        target_link_libraries(psx_gpu_hw_parity_test PRIVATE
+            mamerecomp_psx_cpu SDL3::SDL3 OpenGL::GL)
+        mamerecomp_enable_test_asserts(psx_gpu_hw_parity_test)
+        add_test(NAME psx_gpu_hw_parity_test COMMAND psx_gpu_hw_parity_test)
+        set_tests_properties(psx_gpu_hw_parity_test PROPERTIES SKIP_RETURN_CODE 77)
         add_executable(psx_gpu_hw_transfer_test tests/psx/gpu_hw_transfer_test.cpp)
         target_link_libraries(psx_gpu_hw_transfer_test PRIVATE
             mamerecomp_psx_cpu SDL3::SDL3 OpenGL::GL)

@@ -407,6 +407,16 @@ same cached source page with a GPU fill and confirms the subsequent textured
 draw sees that update as well, covering GPU-write invalidation and the
 render-target-to-texture ordering boundary.
 
+`psx_gpu_hw_parity_test` runs the same GP0 stream through separate software
+and OpenGL GPU instances, then reads back and compares all 524,288 VRAM
+pixels. The stream covers 15bpp and indexed 4bpp/CLUT texturing, Gouraud
+triangles/quads, flat/Gouraud lines, overlapping VRAM copy, mask set/check,
+semi-transparency, draw-area clipping, and fills. It passed on Mesa Intel UHD
+630 with exact VRAM parity; together with the DMA test, this gives repeatable
+driver-backed coverage of draw ordering, texture coherence, and CPU-visible
+transfers. It does not replace full-game checks on discrete GPUs or other
+driver implementations.
+
 The previous 37,590-pixel difference reported for SFEX2PA gameplay frame 1560
 was from non-batched polygons going through the OpenGL triangle-varying path.
 Those polygons now use the compute rasterizer's fixed-point scanline path,
