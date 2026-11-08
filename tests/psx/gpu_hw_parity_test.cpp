@@ -218,6 +218,34 @@ int main()
                         0x260, 0xc60, 0x10, 0x100);
         compare_scanout("320x256 PAL RGB15", 0x09u, 0, 0,
                         0x260, 0xc60, 0x23, 0x123);
+
+        // The original PSX-style GPU (type 0) stores 8bpp texture pages in
+        // interleaved VRAM rows. Exercise that distinct addressing path too.
+        std::vector<uint8_t> psx_software_vram(software_vram.size());
+        std::vector<uint8_t> psx_hardware_vram(psx_software_vram.size());
+        Gpu psx_software(psx_software_vram, 0);
+        Gpu psx_hardware(psx_hardware_vram, 0);
+        psx_software.set_frame_capture_enabled(false);
+        psx_hardware.set_frame_capture_enabled(false);
+        psx_hardware.enable_hardware_renderer(window, context);
+        const std::vector<uint32_t> interleaved_8bpp{
+            0xa0000000u, (1u << 16) | 16u, (1u << 16) | 1u, 0x0201u,
+            0xa0000000u, 64u, (1u << 16) | 3u,
+            0x001f0000u, 0x000003e0u,
+            0xe1002200u,
+            0x65000000u, (100u << 16) | 100u, 0x00040020u,
+            (1u << 16) | 2u,
+        };
+        send(psx_software, interleaved_8bpp);
+        send(psx_hardware, interleaved_8bpp);
+        const auto read_texture_pair = [](Gpu& gpu) {
+            gpu.write_data(0xc0000000u);
+            gpu.write_data((100u << 16) | 100u);
+            gpu.write_data((1u << 16) | 2u);
+            return gpu.read_data();
+        };
+        if (read_texture_pair(psx_software) != read_texture_pair(psx_hardware))
+            throw std::runtime_error("PSX type-0 interleaved 8bpp texture parity failed");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

@@ -417,7 +417,10 @@ clipping, and fills. It passed on Mesa Intel UHD
 630 with exact VRAM parity; together with the DMA test, this gives repeatable
 driver-backed coverage of draw ordering, texture coherence, and CPU-visible
 transfers. It does not replace full-game checks on discrete GPUs or other
-driver implementations.
+driver implementations. A second software/OpenGL pair uses GPU type 0 and
+compares the readback of an interleaved 8bpp texture crossing from UV row 0 to
+row 1; it passes with exact pixel parity. This exercises the older PSX texture
+addressing path separately from the ZN/System 12 GPU type 2 path.
 
 That parity test also compares the complete RGB output from software and
 OpenGL scanout after configuring GP1 modes/ranges independently on each device.
