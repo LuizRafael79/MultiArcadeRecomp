@@ -497,6 +497,12 @@ exercised odd-width CPU uploads, GP0 copies, DMA readback, and texture-cache
 coherence. This confirms those paths on a second vendor's driver; it does not
 replace a full-game NVIDIA capture or broader hardware validation.
 
+The DMA test now also primes an indexed-texture cache entry, changes its CLUT
+with a GPU fill, and redraws before a DMA A0 upload changes the same CLUT again.
+The subsequent texture draws observe both new colors. This passed on Mesa
+llvmpipe and the NVIDIA GTX 1650, exercising palette coherence across queued
+GPU writes and CPU-to-VRAM transfers.
+
 A paired SFEX2PA frame-1074 capture was then run on the GTX 1650 with the same
 ROM, coin/start events, and independent fresh temporary NVRAM files. The
 OpenGL and software PPM outputs had the same SHA-256

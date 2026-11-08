@@ -212,6 +212,30 @@ int main()
                                                       100, 100, 1, 1);
         if (!check_packed_pixels(gpu_updated_texel, {0x7c00}))
             throw std::runtime_error("indexed-texture cache was stale after GPU write");
+
+        // Indexed texture layers cache texel indices while the CLUT is read
+        // from VRAM during the draw. Updating the CLUT with a GPU command must
+        // therefore become visible before the following batched texture draw.
+        dma_ram_to_gpu(memory, bus, 0x1900,
+            {0x0200ff00u, 64u, (1u << 16) | 16u});
+        dma_ram_to_gpu(memory, bus, 0x1a00, draw_indexed_texel);
+        const auto gpu_updated_clut_texel = dma_gpu_to_ram(
+            memory, bus, 0x1b00, 0x1c00, 100, 100, 1, 1);
+        if (!check_packed_pixels(gpu_updated_clut_texel, {0x03e0}))
+            throw std::runtime_error("indexed-texture draw used stale CLUT after GPU write");
+
+        // Repeat through CPU/DMA A0 writes to cover the other direction of
+        // VRAM coherence after the texture cache has already been populated.
+        std::vector<uint32_t> clut_upload{
+            0xa0000000u, 64u, (1u << 16) | 16u,
+        };
+        clut_upload.insert(clut_upload.end(), 8, 0x7c007c00u);
+        dma_ram_to_gpu(memory, bus, 0x1d00, clut_upload);
+        dma_ram_to_gpu(memory, bus, 0x1e00, draw_indexed_texel);
+        const auto cpu_updated_clut_texel = dma_gpu_to_ram(
+            memory, bus, 0x1f00, 0x2000, 100, 100, 1, 1);
+        if (!check_packed_pixels(cpu_updated_clut_texel, {0x7c00}))
+            throw std::runtime_error("indexed-texture draw used stale CLUT after A0 upload");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
