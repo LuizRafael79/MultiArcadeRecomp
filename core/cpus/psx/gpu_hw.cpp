@@ -924,9 +924,9 @@ struct GpuHardwareRenderer::Impl {
     static int polygon_next(int point, int count, bool alternate) {
         if (count == 3) return point == 2 ? 0 : point + 1;
         if (alternate) {
-            if (point == 0) return 1;
+            if (point == 0) return 0;
             if (point == 1) return 3;
-            if (point == 2) return 0;
+            if (point == 2) return 1;
             return 2;
         }
         if (point == 0) return 1;

@@ -544,3 +544,12 @@ DSP16A LLE accounted for 9.33–9.52 s and 9.44–9.87 s respectively, so the
 available data does not establish an overall runtime speedup attributable to
 the renderer. These profiles use instrumentation and are diagnostic, not
 baseline benchmarks.
+
+An additional batched-polygon parity fixture now covers a four-vertex textured
+quad where GP0's coordinate-wrap rule rejects the first triangle and keeps the
+second. The batch scanline edge walk had a different `next` table from the
+software GPU's surviving-quad order, so it could walk into the discarded
+vertex and stretch the textured region. Matching the software order restored
+exact VRAM parity for this case on the OpenGL test path (Mesa llvmpipe). This
+synthetic regression test isolates the geometry condition; the SFEX2PA portrait
+frame should still be recaptured on the host GPU to confirm the in-game result.

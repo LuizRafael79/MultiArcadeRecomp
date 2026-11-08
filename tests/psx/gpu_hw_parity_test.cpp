@@ -120,6 +120,13 @@ int main()
             0x25000000u, 100u | (100u << 16), 0x00040000u,
             108u | (100u << 16), 0u,
             100u | (108u << 16), 3u | (1u << 8),
+            // A textured quad whose first triangle is rejected by the PSX
+            // coordinate-wrap cull rule; the surviving half must not walk
+            // through vertex 0 while interpolating its scanlines.
+            0x2d000000u, 0x00140400u, 0u,
+            150u | (20u << 16), 0x01000000u,
+            0u, 0u,
+            10u | (20u << 16), 1u,
             // Exercise all four semi-transparency equations with mask off.
             0xe6000000u,
             0xe1000000u, 0x600000f8u, 200u | (120u << 16), (1u << 16) | 1u,
