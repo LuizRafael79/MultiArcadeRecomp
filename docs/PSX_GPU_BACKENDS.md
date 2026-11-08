@@ -80,7 +80,9 @@ Implement and compare each GP0 family against the retained software path:
    the software path's fixed-point DDA and omit the terminal endpoint. GP0
    `0x80` is GPU-resident; CPU/DMA transfers still need ordering coverage.
 5. Display scanout and interlace modes, preserving GP1 display start/ranges and
-   the physical aspect ratio selected by the board/presenter.
+   the physical aspect ratio selected by the board/presenter. The GPU compute
+   scanout is implemented; direct texture presentation and remaining mode
+   parity still need work.
 
 For every stage, compare identical command streams and initial VRAM contents
 between software and OpenGL, including the final 16-bit VRAM image and the RGB
@@ -135,7 +137,26 @@ The OpenGL line compute shader now follows the fixed-point DDA step and
 endpoint rule used by the software renderer. A sequence containing clipped,
 horizontal, vertical, steep, reversed, zero-length, flat, Gouraud, and
 semi-transparent lines matched the software VRAM pixels exactly on the Intel
-UHD 630. The command SSBO uses a fenced ring so the CPU never overwrites a slot
-while the GPU is still reading it. Mesa also needs queued VRAM writes flushed
-before `glCopyImageSubData` carries dirty pixels between the ping-pong images;
-this submits work without stalling for GPU completion.
+UHD 630. Fills and lines update the current integer VRAM image in place; their
+compute operations only read or write the pixel owned by each invocation, so
+they do not need a ping-pong copy. Polygon sequences still use ping-pong and
+matched the software VRAM image in an overlapping-triangle probe without a
+per-primitive `glFlush`. The command SSBO uses a fenced ring with one fence per
+256 commands, and per-command GL error polling is opt-in via
+`MAMERECOMP_PSX_GPU_GL_CHECK`.
+
+Hardware-mode display scanout now converts the selected PSX VRAM window to RGB
+in an OpenGL compute shader. Only the final RGB frame is read back for the
+existing SDL presenter/capture interfaces; ordinary vblank capture no longer
+copies the complete emulated VRAM into the CPU shadow. CPU-visible GPUREAD and
+other operations that require the full VRAM mirror still synchronize on demand.
+The scanout probe matched the software reference across tested horizontal
+modes, RGB15/RGB24, display-start wrapping, and interlaced-height configurations.
+An SFEX2PA capture at frame 1560 matched the prior hardware scanout byte for
+byte. With `--gpu-hw`, the 1560-frame headless run took 43.2 seconds on the
+UHD 630 after removing per-primitive flushes; the GP0 profiling total fell from
+24.7 seconds to 3.1 seconds. The same run through the software rasterizer took
+45.6 seconds. The final 60-frame gameplay window still measured about 45.9 ms
+per frame, so GPU command submission and CPU-mediated presentation remain
+performance work; the window does not yet present the shared GPU texture
+directly.

@@ -1285,10 +1285,6 @@ std::vector<uint32_t> Gpu::dma_read(size_t words)
 
 GpuFrame Gpu::framebuffer_rgb() const
 {
-    if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
-        hardware_renderer_->sync_to_cpu(vram_);
-        hardware_vram_shadow_valid_ = true;
-    }
     GpuFrame frame;
     const unsigned width_code = (status_ >> 17) & 3;
     const unsigned width_high = (status_ >> 16) & 1;
@@ -1310,6 +1306,12 @@ GpuFrame Gpu::framebuffer_rgb() const
         std::getenv("MAMERECOMP_ZN_TRACE_GP0_SUMMARY_ALL") != nullptr;
     const bool report_summary = summary_enabled &&
         (summary_all || ((summary_frame++ % 60) == 0));
+    // Diagnostic summaries inspect the host VRAM mirror. Keep that opt-in
+    // path correct without making normal hardware scanout read the full VRAM.
+    if (report_summary && hardware_renderer_ && !hardware_vram_shadow_valid_) {
+        hardware_renderer_->sync_to_cpu(vram_);
+        hardware_vram_shadow_valid_ = true;
+    }
     auto report_gpu_summary = [&] {
         if (report_summary) {
             if (const char *dump_path = std::getenv("MAMERECOMP_ZN_DUMP_VRAM")) {
@@ -1389,6 +1391,14 @@ GpuFrame Gpu::framebuffer_rgb() const
         dst_x = 0;
     }
     columns = std::clamp(columns, 0, std::max(0, int(frame.width) - dst_x));
+    if (hardware_renderer_) {
+        frame.rgb = hardware_renderer_->scanout_rgb(
+            frame.width, frame.height, frame.display_enabled, rgb24,
+            display_start_x_, display_start_y_, static_cast<unsigned>(vram_height),
+            src_x, src_y, dst_x, dst_y, columns, lines);
+        report_gpu_summary();
+        return frame;
+    }
     auto expand5 = [](unsigned value) -> uint8_t {
         return static_cast<uint8_t>((value << 3) | (value >> 2));
     };

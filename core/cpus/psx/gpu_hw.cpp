@@ -17,6 +17,7 @@ constexpr int kVramWidth = 1024;
 constexpr int kMinVramHeight = 512;
 constexpr int kMaxVramHeight = 1024;
 constexpr size_t kCommandRingSlots = 4096;
+constexpr size_t kCommandBatchSlots = 256;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -136,35 +137,42 @@ struct GpuHardwareRenderer::Impl {
     SDL_GLContext context = nullptr;
     bool owns_video = false;
     GLuint program = 0;
+    GLuint scanout_program = 0;
     GLuint draw_program = 0;
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
+    GLuint scanout_texture = 0;
     GLuint framebuffer[2]{};
     GLuint vertex_array = 0;
     GLuint command_buffer = 0;
-    std::array<GLsync, kCommandRingSlots> command_fences{};
+    std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     size_t next_command_slot = 0;
     size_t command_stride = sizeof(ShaderCommand);
     GLint origin_location = -1;
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
     int vram_height = kMinVramHeight;
+    unsigned scanout_width = 0;
+    unsigned scanout_height = 0;
     unsigned current_vram = 0;
     bool vram_textures_diverged = false;
     std::array<int, 4> last_dirty_bounds{};
     std::string renderer;
     std::string init_error;
+    bool debug_gl = std::getenv("MAMERECOMP_PSX_GPU_GL_CHECK") != nullptr;
 
     ~Impl() {
         make_current();
         if (program) glDeleteProgram(program);
+        if (scanout_program) glDeleteProgram(scanout_program);
         if (draw_program) glDeleteProgram(draw_program);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
+        if (scanout_texture) glDeleteTextures(1, &scanout_texture);
         if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
-        for (GLsync fence : command_fences)
+        for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
         if (context) SDL_GL_DestroyContext(context);
         if (window) SDL_DestroyWindow(window);
@@ -202,6 +210,9 @@ struct GpuHardwareRenderer::Impl {
         if (const auto* name = glGetString(GL_RENDERER)) renderer = reinterpret_cast<const char*>(name);
         program = compile_compute_program(read_shader_source(MAMERECOMP_PSX_GPU_SHADER_PATH), init_error);
         if (!program) throw std::runtime_error(init_error);
+        scanout_program = compile_compute_program(
+            read_shader_source(MAMERECOMP_PSX_GPU_SCANOUT_SHADER_PATH), init_error);
+        if (!scanout_program) throw std::runtime_error(init_error);
         draw_program = compile_graphics_program(
             read_shader_source(MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
             read_shader_source(MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
@@ -226,6 +237,12 @@ struct GpuHardwareRenderer::Impl {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, kMaxVramHeight, 0,
                      GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
+        glGenTextures(1, &scanout_texture);
+        glBindTexture(GL_TEXTURE_2D, scanout_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 640, 512, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glGenFramebuffers(2, framebuffer);
         for (unsigned i = 0; i < 2; ++i) {
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer[i]);
@@ -249,6 +266,8 @@ struct GpuHardwareRenderer::Impl {
                      nullptr, GL_STREAM_DRAW);
         glUseProgram(program);
         glUniform1i(glGetUniformLocation(program, "uSource"), 1);
+        glUseProgram(scanout_program);
+        glUniform1i(glGetUniformLocation(scanout_program, "uVram"), 0);
         glUseProgram(draw_program);
         glUniform1i(glGetUniformLocation(draw_program, "uSource"), 0);
         glBindVertexArray(0);
@@ -284,9 +303,6 @@ struct GpuHardwareRenderer::Impl {
     unsigned prepare_destination() {
         const unsigned destination_vram = current_vram ^ 1u;
         if (vram_textures_diverged) {
-            // Mesa may defer compute writes until the next flush; submit them
-            // before copying the dirty region between VRAM textures.
-            glFlush();
             glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT |
                             GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                             GL_FRAMEBUFFER_BARRIER_BIT);
@@ -311,10 +327,23 @@ struct GpuHardwareRenderer::Impl {
         last_dirty_bounds = {min_x, min_y, max_x, max_y};
     }
 
+    void finish_in_place(int min_x, int min_y, int max_x, int max_y) {
+        if (!vram_textures_diverged) {
+            last_dirty_bounds = {min_x, min_y, max_x, max_y};
+            vram_textures_diverged = true;
+            return;
+        }
+        last_dirty_bounds[0] = std::min(last_dirty_bounds[0], min_x);
+        last_dirty_bounds[1] = std::min(last_dirty_bounds[1], min_y);
+        last_dirty_bounds[2] = std::max(last_dirty_bounds[2], max_x);
+        last_dirty_bounds[3] = std::max(last_dirty_bounds[3], max_y);
+    }
+
     size_t upload_command(const ShaderCommand& command) {
         const size_t slot = next_command_slot++ % kCommandRingSlots;
-        GLsync& fence = command_fences[slot];
-        if (fence) {
+        const size_t batch = slot / kCommandBatchSlots;
+        GLsync& fence = command_batch_fences[batch];
+        if (slot % kCommandBatchSlots == 0 && fence) {
             GLenum wait_result = GL_TIMEOUT_EXPIRED;
             while (wait_result == GL_TIMEOUT_EXPIRED)
                 wait_result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT,
@@ -333,7 +362,10 @@ struct GpuHardwareRenderer::Impl {
     }
 
     void mark_command_slot(size_t slot) {
-        command_fences[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        if (slot % kCommandBatchSlots == kCommandBatchSlots - 1) {
+            const size_t batch = slot / kCommandBatchSlots;
+            command_batch_fences[batch] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        }
     }
 
     void execute(ShaderCommand command, GLuint source_override = 0) {
@@ -347,11 +379,13 @@ struct GpuHardwareRenderer::Impl {
         command.bounds[1] = min_y;
         command.bounds[2] = max_x;
         command.bounds[3] = max_y;
-        const unsigned destination_vram = prepare_destination();
+        const bool in_place = command.header[0] == 2u || command.header[0] == 3u;
+        const unsigned destination_vram = in_place ? current_vram : prepare_destination();
         glUseProgram(program);
         const size_t command_slot = upload_command(command);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, source_override ? source_override : vram[current_vram]);
+        glBindTexture(GL_TEXTURE_2D, source_override ? source_override :
+                      (in_place ? copy_scratch : vram[current_vram]));
         glBindImageTexture(0, vram[destination_vram], 0, GL_FALSE, 0,
                            GL_READ_WRITE, GL_R16UI);
         glUniform2i(origin_location, min_x, min_y);
@@ -360,10 +394,13 @@ struct GpuHardwareRenderer::Impl {
                           (max_y - min_y + 1 + 7) / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
-        finish_write(destination_vram, min_x, min_y, max_x, max_y);
+        if (in_place) finish_in_place(min_x, min_y, max_x, max_y);
+        else finish_write(destination_vram, min_x, min_y, max_x, max_y);
         mark_command_slot(command_slot);
-        const GLenum error = glGetError();
-        if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL raster dispatch failed");
+        if (debug_gl) {
+            const GLenum error = glGetError();
+            if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL raster dispatch failed");
+        }
     }
 
     void execute_draw(ShaderCommand command) {
@@ -401,8 +438,59 @@ struct GpuHardwareRenderer::Impl {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         finish_write(destination_vram, min_x, min_y, max_x, max_y);
         mark_command_slot(command_slot);
+        if (debug_gl) {
+            const GLenum error = glGetError();
+            if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL triangle raster failed");
+        }
+    }
+
+    std::vector<uint8_t> scanout_rgb(unsigned width, unsigned height,
+                                     bool display_enabled, bool rgb24,
+                                     unsigned display_start_x, unsigned display_start_y,
+                                     unsigned source_vram_height, int source_x, int source_y,
+                                     int destination_x, int destination_y,
+                                     int copy_width, int copy_height) {
+        if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+        if (!width || !height || width > 640 || height > 512 || !source_vram_height)
+            throw std::runtime_error("invalid PSX OpenGL scanout dimensions");
+        if (scanout_width != width || scanout_height != height) {
+            glBindTexture(GL_TEXTURE_2D, scanout_texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(width),
+                         static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            scanout_width = width;
+            scanout_height = height;
+        }
+        glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glUseProgram(scanout_program);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
+        glBindImageTexture(1, scanout_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+        glUniform2i(glGetUniformLocation(scanout_program, "uDisplayStart"),
+                    static_cast<GLint>(display_start_x), static_cast<GLint>(display_start_y));
+        glUniform2i(glGetUniformLocation(scanout_program, "uSourceOffset"), source_x, source_y);
+        glUniform2i(glGetUniformLocation(scanout_program, "uDestinationOffset"),
+                    destination_x, destination_y);
+        glUniform2i(glGetUniformLocation(scanout_program, "uCopySize"), copy_width, copy_height);
+        glUniform1i(glGetUniformLocation(scanout_program, "uVramHeight"),
+                    static_cast<GLint>(source_vram_height));
+        glUniform1i(glGetUniformLocation(scanout_program, "uRgb24"), rgb24 ? 1 : 0);
+        glUniform1i(glGetUniformLocation(scanout_program, "uDisplayEnabled"),
+                    display_enabled ? 1 : 0);
+        glDispatchCompute((width + 7) / 8, (height + 7) / 8, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT);
+
+        std::vector<uint8_t> rgba(size_t(width) * height * 4);
+        glBindTexture(GL_TEXTURE_2D, scanout_texture);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+        std::vector<uint8_t> rgb(size_t(width) * height * 3);
+        for (size_t pixel = 0; pixel < size_t(width) * height; ++pixel) {
+            rgb[pixel * 3] = rgba[pixel * 4];
+            rgb[pixel * 3 + 1] = rgba[pixel * 4 + 1];
+            rgb[pixel * 3 + 2] = rgba[pixel * 4 + 2];
+        }
         const GLenum error = glGetError();
-        if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL triangle raster failed");
+        if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL scanout failed");
+        return rgb;
     }
 };
 
@@ -650,6 +738,17 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
         row += chunk_height;
         dy = 0;
     }
+}
+
+std::vector<uint8_t> GpuHardwareRenderer::scanout_rgb(
+    unsigned width, unsigned height, bool display_enabled, bool rgb24,
+    unsigned display_start_x, unsigned display_start_y, unsigned vram_height,
+    int source_x, int source_y, int destination_x, int destination_y,
+    int copy_width, int copy_height) {
+    return impl_->scanout_rgb(width, height, display_enabled, rgb24,
+                              display_start_x, display_start_y, vram_height,
+                              source_x, source_y, destination_x, destination_y,
+                              copy_width, copy_height);
 }
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }

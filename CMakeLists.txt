@@ -91,6 +91,8 @@ if(MAMERECOMP_ENABLE_PSX_GPU_OPENGL)
         target_link_libraries(mamerecomp_psx_gpu PRIVATE SDL3::SDL3 OpenGL::GL)
         configure_file(core/cpus/psx/gpu_rasterize.comp
             ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_rasterize.comp COPYONLY)
+        configure_file(core/cpus/psx/gpu_scanout.comp
+            ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_scanout.comp COPYONLY)
         configure_file(core/cpus/psx/gpu_draw.vert
             ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.vert COPYONLY)
         configure_file(core/cpus/psx/gpu_draw.frag
@@ -98,6 +100,7 @@ if(MAMERECOMP_ENABLE_PSX_GPU_OPENGL)
         target_compile_definitions(mamerecomp_psx_gpu PRIVATE
             MAMERECOMP_PSX_GPU_OPENGL=1
             MAMERECOMP_PSX_GPU_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_rasterize.comp"
+            MAMERECOMP_PSX_GPU_SCANOUT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_scanout.comp"
             MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.vert"
             MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.frag")
         message(STATUS "PSX GPU OpenGL hardware rasterizer enabled")

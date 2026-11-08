@@ -53,6 +53,12 @@ public:
                      unsigned width, unsigned height);
     void copy_rect(int sx, int sy, int dx, int dy, int width, int height,
                    const GpuHwState& state);
+    std::vector<uint8_t> scanout_rgb(unsigned width, unsigned height,
+                                     bool display_enabled, bool rgb24,
+                                     unsigned display_start_x, unsigned display_start_y,
+                                     unsigned vram_height, int source_x, int source_y,
+                                     int destination_x, int destination_y,
+                                     int copy_width, int copy_height);
     const std::string& renderer_name() const noexcept;
 
 private:

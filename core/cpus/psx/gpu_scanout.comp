@@ -1,0 +1,54 @@
+#version 430 core
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform usampler2D uVram;
+layout(rgba8, binding = 1) writeonly uniform image2D uOutput;
+
+uniform ivec2 uDisplayStart;
+uniform ivec2 uSourceOffset;
+uniform ivec2 uDestinationOffset;
+uniform ivec2 uCopySize;
+uniform int uVramHeight;
+uniform int uRgb24;
+uniform int uDisplayEnabled;
+
+uint read_vram_byte(uint byte_offset) {
+    uint byte_count = uint(uVramHeight) * 1024u * 2u;
+    uint wrapped = byte_offset % byte_count;
+    uint word_index = wrapped >> 1;
+    uint word = texelFetch(uVram,
+        ivec2(int(word_index & 1023u), int(word_index >> 10)), 0).r;
+    return (word >> ((wrapped & 1u) * 8u)) & 255u;
+}
+
+void main() {
+    ivec2 output_position = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 output_size = imageSize(uOutput);
+    if (any(greaterThanEqual(output_position, output_size))) return;
+
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    ivec2 local_position = output_position - uDestinationOffset;
+    if (uDisplayEnabled != 0 &&
+        all(greaterThanEqual(local_position, ivec2(0))) &&
+        all(lessThan(local_position, uCopySize))) {
+        ivec2 source_position = uSourceOffset + local_position;
+        if (uRgb24 != 0) {
+            uint row = uint((uDisplayStart.y + source_position.y) % uVramHeight);
+            uint byte_offset = row * 2048u + uint(uDisplayStart.x) * 2u +
+                               uint(source_position.x) * 3u;
+            color.rgb = vec3(read_vram_byte(byte_offset),
+                             read_vram_byte(byte_offset + 1u),
+                             read_vram_byte(byte_offset + 2u)) / 255.0;
+        } else {
+            int x = (uDisplayStart.x + source_position.x) & 1023;
+            int y = (uDisplayStart.y + source_position.y) % uVramHeight;
+            uint word_value = texelFetch(uVram, ivec2(x, y), 0).r;
+            uvec3 channels = uvec3(word_value & 31u, (word_value >> 5) & 31u,
+                                   (word_value >> 10) & 31u);
+            uvec3 expanded = (channels << 3) | (channels >> 2);
+            color.rgb = vec3(expanded) / 255.0;
+        }
+    }
+    imageStore(uOutput, output_position, color);
+}
