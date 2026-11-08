@@ -429,6 +429,16 @@ with OpenGL and 4.91 ms with software across 57 packets; the complete run took
 raster CPU work has little effect on total ZN-2 runtime in that test; it does
 not measure GPU execution latency or guarantee a gameplay frame rate.
 
+A fresh paired headless benchmark on the Mesa UHD 630 ran SFEX2PA for 600
+frames twice per backend with distinct temporary NVRAM files and the same ROM
+and inputs. OpenGL took 11.73 s and 11.86 s (11.79 s mean); software took
+11.88 s and 11.67 s (11.78 s mean). Each run executed exactly 250,726,699
+guest instructions/cycles and updated 600 frames. With no window or capture
+requested, this isolates raster command processing from scanout/readback and
+shows no total-runtime speedup on this CPU-dominated workload. It must not be
+used to judge direct-present throughput, which needs a separate windowed
+benchmark.
+
 The earlier frame-900 QSound-logo and frame-1500 ARIKA-intro mismatches are
 also superseded: fresh Mesa UHD 630 runs with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
 and software comparison completed 900 and 1,500 vblanks respectively, with no
