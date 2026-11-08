@@ -149,7 +149,9 @@ int main()
             0x62f80000u, 206u | (120u << 16), (1u << 16) | 1u,
             // Raw STP texture over a red destination exercises the four ABR
             // equations in the textured-sprite path, not only solid fills.
-            0xa0000000u, 48u | (48u << 16), (1u << 16) | 1u, 0x83e0u,
+            // Neighbor texels cover unmarked and transparent source pixels.
+            0xa0000000u, 48u | (48u << 16), (1u << 16) | 3u,
+            0x7c0083e0u, 0x00000000u,
             0xe1000100u, 0x600000f8u, 220u | (120u << 16), (1u << 16) | 1u,
             0x67000000u, 220u | (120u << 16), 48u | (48u << 8),
             (1u << 16) | 1u,
@@ -161,6 +163,12 @@ int main()
             (1u << 16) | 1u,
             0xe1000160u, 0x600000f8u, 226u | (120u << 16), (1u << 16) | 1u,
             0x67000000u, 226u | (120u << 16), 48u | (48u << 8),
+            (1u << 16) | 1u,
+            0xe1000100u, 0x600000f8u, 228u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 228u | (120u << 16), 49u | (48u << 8),
+            (1u << 16) | 1u,
+            0x600000f8u, 230u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 230u | (120u << 16), 50u | (48u << 8),
             (1u << 16) | 1u,
             // Mask set/check and semitransparent rectangle overlap.
             0xe6000001u,
@@ -273,6 +281,9 @@ int main()
                 throw std::runtime_error("PSX textured semitransparency fixture failed");
             }
         }
+        if (expected[120u * kReadbackWidth + 228u] != 0x7c00u ||
+            expected[120u * kReadbackWidth + 230u] != 0x001fu)
+            throw std::runtime_error("PSX textured STP transparency rules failed");
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {

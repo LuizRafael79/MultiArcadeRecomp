@@ -425,7 +425,9 @@ texture-window source addressing, Gouraud-textured triangles, Gouraud
 triangles/quads, flat/Gouraud lines, overlapping VRAM copy, all four ABR
 semi-transparency equations on solid rectangles and raw STP textured sprites,
 mask set/check, draw-area clipping, and fills. The textured fixture also
-asserts the expected RGB555 result for each ABR equation. It passed on Mesa Intel UHD
+asserts the expected RGB555 result for each ABR equation and checks that an
+unmarked texel replaces the destination while a zero texel preserves it. It
+passed on Mesa Intel UHD
 630 with exact VRAM parity; together with the DMA test, this gives repeatable
 driver-backed coverage of draw ordering, texture coherence, and CPU-visible
 transfers. It does not replace full-game checks on discrete GPUs or other
