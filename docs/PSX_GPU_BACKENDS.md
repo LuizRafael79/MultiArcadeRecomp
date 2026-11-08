@@ -600,3 +600,11 @@ respectively, under 1% apart and within observed run variation. DSP16A execution
 accounted for about 9.4–9.5 s in these runs. This workload confirms that GPU_HW
 reduces CPU work inside the renderer but is not the main lever for total ZN-2
 runtime performance; the profile is diagnostic, not a stable benchmark.
+
+The native-window direct-present path was also measured on the GTX 1650 in two
+matched 300-frame SFEX2PA pairs with fresh NVRAM. `--gpu-hw --window` took
+7.144/7.301 s; software rendering with the SDL OpenGL presenter took
+7.180/7.331 s. Each run reported 125,363,350 guest instructions/cycles and 300
+frame updates. The means (7.22 s GPU_HW, 7.26 s software) are effectively
+equal at this sample size, so direct GPU presentation introduces no observed
+total-runtime penalty but does not demonstrate a material speedup here.
