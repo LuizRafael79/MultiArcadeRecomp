@@ -24,13 +24,6 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
         throw std::runtime_error("SDL display aspect requires both width and height");
     if ((window_width == 0) != (window_height == 0))
         throw std::runtime_error("SDL window dimensions require both width and height");
-#if defined(__linux__)
-    // SDL's Wayland libdecor GTK path can crash while loading themed pixbufs
-    // on this host. Prefer compositor-side Wayland decorations by default;
-    // an explicit SDL hint/environment setting still takes precedence.
-    if (!SDL_GetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR))
-        SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR, "0");
-#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         throw std::runtime_error(std::string("SDL video init failed: ") + SDL_GetError());
     if (native_opengl_window_) {

@@ -173,12 +173,12 @@ available for asynchronous CPU readback experiments, but the interactive
 presenter no longer uses it.
 
 The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
-and a 900-frame run on X11. Wayland's libdecor GTK plugin crashed in Glycin on
-this host even with the software presenter; the SDL presenter now defaults to
-compositor-side Wayland decorations unless the user explicitly configures
-`SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR`. Runtime completion is smoke-tested, but
-visual parity of the direct blit after the scissor-state fix still needs a
-pixel-capture comparison.
+when `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` was set for diagnosis, and a
+900-frame run on X11. The default libdecor path also produced a Glycin
+segfault in a GTK background thread on this host, including with the software
+presenter. The project does not override SDL's decoration/backend choice.
+Runtime completion is smoke-tested, but visual parity of the direct blit after
+the scissor-state fix still needs a pixel-capture comparison.
 
 The next DuckStation-inspired steps remain: batch compatible primitives to
 reduce per-command submission and maintain explicit texture/CLUT cache
