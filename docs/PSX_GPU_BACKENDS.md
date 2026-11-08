@@ -488,3 +488,11 @@ GL error or RGB pixel difference reported at their final captures. Together
 with the frame-1074 portrait and frame-1560 gameplay checks, these cover the
 previously reported logo, intro, character-select, and fight scenes. They are
 specific SFEX2PA checkpoints, not proof of every GP0 family or every ZN title.
+
+On 2026-11-08, the synthetic OpenGL parity and DMA/transfer tests were also run
+directly with NVIDIA PRIME offload. Both reported
+`NVIDIA GeForce GTX 1650/PCIe/SSE2` as the active renderer and passed: parity
+covered GPU types 0, 1, and 2 plus scanout modes, while transfer coverage
+exercised odd-width CPU uploads, GP0 copies, DMA readback, and texture-cache
+coherence. This confirms those paths on a second vendor's driver; it does not
+replace a full-game NVIDIA capture or broader hardware validation.
