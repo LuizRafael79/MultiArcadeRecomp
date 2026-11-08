@@ -3,9 +3,11 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -162,6 +164,60 @@ int main()
                       << actual[first_mismatch] << std::dec << '\n';
             throw std::runtime_error("PSX GPU primitive parity check failed");
         }
+
+        const auto compare_scanout = [&](const char* name, uint32_t mode,
+                                         uint32_t start_x, uint32_t start_y,
+                                         uint32_t horizontal_start,
+                                         uint32_t horizontal_end,
+                                         uint32_t vertical_start,
+                                         uint32_t vertical_end) {
+            const std::array<uint32_t, 5> gp1{
+                0x03000000u,
+                0x05000000u | start_x | (start_y << 10),
+                0x06000000u | horizontal_start | (horizontal_end << 12),
+                0x07000000u | vertical_start | (vertical_end << 10),
+                0x08000000u | mode,
+            };
+            for (const uint32_t command : gp1) {
+                software.write_status(command);
+                hardware.write_status(command);
+            }
+            const auto expected_frame = software.framebuffer_rgb();
+            const auto actual_frame = hardware.framebuffer_rgb();
+            if (expected_frame.width != actual_frame.width ||
+                expected_frame.height != actual_frame.height ||
+                expected_frame.rgb.size() != actual_frame.rgb.size())
+                throw std::runtime_error(std::string("PSX scanout dimensions differ in ") + name);
+            size_t different_pixels = 0;
+            const size_t total_pixels = size_t(expected_frame.width) * expected_frame.height;
+            size_t first_pixel = total_pixels;
+            for (size_t pixel = 0; pixel < total_pixels; ++pixel) {
+                const size_t offset = pixel * 3;
+                if (expected_frame.rgb[offset] == actual_frame.rgb[offset] &&
+                    expected_frame.rgb[offset + 1] == actual_frame.rgb[offset + 1] &&
+                    expected_frame.rgb[offset + 2] == actual_frame.rgb[offset + 2])
+                    continue;
+                if (first_pixel == total_pixels) first_pixel = pixel;
+                ++different_pixels;
+            }
+            if (different_pixels) {
+                std::cerr << "PSX software/OpenGL scanout mismatch in " << name
+                          << ": " << different_pixels << " pixels, first at ("
+                          << first_pixel % expected_frame.width << ','
+                          << first_pixel / expected_frame.width << ")\n";
+                throw std::runtime_error("PSX GPU scanout parity check failed");
+            }
+        };
+        compare_scanout("256x240 RGB15", 0x00u, 0, 0,
+                        0x260, 0xc60, 0x10, 0x100);
+        compare_scanout("320x240 RGB24 with partial beam window", 0x11u, 1000, 500,
+                        0x2a0, 0x6a0, 0x20, 0xf0);
+        compare_scanout("384x240 RGB15", 0x41u, 1000, 500,
+                        0x260, 0xc60, 0x10, 0x100);
+        compare_scanout("512x480 interlaced RGB15", 0x26u, 1000, 500,
+                        0x260, 0xc60, 0x10, 0x100);
+        compare_scanout("320x256 PAL RGB15", 0x09u, 0, 0,
+                        0x260, 0xc60, 0x23, 0x123);
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

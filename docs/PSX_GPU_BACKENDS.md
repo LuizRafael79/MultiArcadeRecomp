@@ -419,6 +419,14 @@ driver-backed coverage of draw ordering, texture coherence, and CPU-visible
 transfers. It does not replace full-game checks on discrete GPUs or other
 driver implementations.
 
+That parity test also compares the complete RGB output from software and
+OpenGL scanout after configuring GP1 modes/ranges independently on each device.
+The exact-pixel checks cover 256x240 RGB15, 320x240 RGB24 with a partial beam
+window and a VRAM start near both wrap edges, 384-pixel horizontal mode,
+512x480 interlaced RGB15, and 320x256 PAL RGB15. These passed on the Mesa UHD
+630. Direct-present uses the same scanout compute result, but window swap and
+compositor behavior are not part of this offscreen pixel comparison.
+
 The previous 37,590-pixel difference reported for SFEX2PA gameplay frame 1560
 was from non-batched polygons going through the OpenGL triangle-varying path.
 Those polygons now use the compute rasterizer's fixed-point scanline path,
