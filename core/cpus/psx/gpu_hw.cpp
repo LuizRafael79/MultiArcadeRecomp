@@ -1737,6 +1737,39 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
     }
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
+    // The common GP0(80h) transfer has no mask semantics. Once the complete
+    // source has been snapshotted, copy its integer VRAM pixels directly on
+    // the GPU instead of dispatching the general per-pixel raster shader.
+    // Keep the shader path below for either mask flag, where destination
+    // pixels must be inspected or modified.
+    if (!state.check_mask && !state.set_mask) {
+        int row = 0;
+        while (row < height) {
+            const int destination_y = (dy + row) % impl_->vram_height;
+            const int chunk_height = std::min(height - row,
+                impl_->vram_height - destination_y);
+            int column = 0;
+            while (column < width) {
+                const int destination_x = (dx + column) & 1023;
+                const int chunk_width = std::min(width - column,
+                                                 kVramWidth - destination_x);
+                glCopyImageSubData(impl_->copy_scratch, GL_TEXTURE_2D, 0,
+                                   column, row, 0,
+                                   impl_->vram[impl_->current_vram], GL_TEXTURE_2D, 0,
+                                   destination_x, destination_y, 0,
+                                   chunk_width, chunk_height, 1);
+                impl_->finish_in_place(destination_x, destination_y,
+                    destination_x + chunk_width - 1,
+                    destination_y + chunk_height - 1);
+                column += chunk_width;
+            }
+            row += chunk_height;
+        }
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                        GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
+        return;
+    }
+
     // GP0(80h) is a VRAM-to-VRAM transfer, so keep both the source snapshot
     // and the destination writes on the device. Split at VRAM boundaries;
     // ping-ponging the integer VRAM images makes overlapping copies safe.

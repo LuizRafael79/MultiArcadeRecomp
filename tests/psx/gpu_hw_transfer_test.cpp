@@ -190,6 +190,35 @@ int main()
         if (!check_packed_pixels(filled, std::vector<uint16_t>(64, 0x03e0)))
             throw std::runtime_error("DMA GPU fill/readback wrap check failed");
 
+        // GP0(80h) uses the same mask check/set state as other VRAM writes.
+        // Exercise the shader path for a marked destination and the fast-copy
+        // path with mask state disabled, including bit-15 propagation.
+        dma_ram_to_gpu(memory, bus, 0x4b00, {0xe6000000u});
+        dma_ram_to_gpu(memory, bus, 0x4c00,
+            {0xa0000000u, (20u << 16) | 20u, (1u << 16) | 2u,
+             0x7c0003e0u});
+        dma_ram_to_gpu(memory, bus, 0x4d00, {0xe6000001u});
+        dma_ram_to_gpu(memory, bus, 0x4e00,
+            {0x600000ffu, (20u << 16) | 30u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x4f00, {0xe6000002u});
+        dma_ram_to_gpu(memory, bus, 0x5000,
+            {0x80000000u, (20u << 16) | 20u,
+             (20u << 16) | 30u, (1u << 16) | 2u});
+        const auto check_mask_copy = dma_gpu_to_ram(
+            memory, bus, 0x5100, 0x5200, 30, 20, 2, 1);
+        if (!check_packed_pixels(check_mask_copy, {0x801fu, 0x7c00u}))
+            throw std::runtime_error("GP0 copy did not honor destination check-mask");
+
+        dma_ram_to_gpu(memory, bus, 0x5300, {0xe6000001u});
+        dma_ram_to_gpu(memory, bus, 0x5400,
+            {0x80000000u, (20u << 16) | 20u,
+             (20u << 16) | 40u, (1u << 16) | 2u});
+        const auto set_mask_copy = dma_gpu_to_ram(
+            memory, bus, 0x5500, 0x5600, 40, 20, 2, 1);
+        if (!check_packed_pixels(set_mask_copy, {0x83e0u, 0xfc00u}))
+            throw std::runtime_error("GP0 copy did not honor destination set-mask");
+        dma_ram_to_gpu(memory, bus, 0x5700, {0xe6000000u});
+
         // With mask checking enabled, A0 must first read GPU-only VRAM back
         // into the CPU mirror. Preserve the marked pixel while updating its
         // unmarked neighbor from the same transfer packet.

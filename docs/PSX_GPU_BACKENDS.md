@@ -667,3 +667,21 @@ The same build was checked on ZN-1 with BLDYROR2 at frame 900. Software and
 runs processed 254,754,373 guest instructions/cycles and 900 frame updates.
 This confirms the shared PSX GPU path on both Sony board families for these
 selected captures, while broader scene coverage remains open.
+
+The 600-frame timing profile showed 758 general raster-compute dispatches
+before the GP0 copy fast path. For GP0(80h) with both mask flags clear, the
+runtime now snapshots the source region as before, then copies the integer
+pixels directly between VRAM textures with `glCopyImageSubData`; wrapped and
+overlapping rectangles stay on-device and retain snapshot semantics. Masked
+copies continue through the general shader so check-mask and set-mask behavior
+is preserved. The transfer test now explicitly covers both mask modes.
+
+With this path enabled, a matched 600-frame GTX 1650 profile recorded 379
+raster-compute dispatches and 147.85 ms total GPU time for that category,
+versus 758 dispatches and 219.97 ms before the fast path (about 33% less
+measured GPU raster time). Guest instructions/cycles remained identical. A
+single matched CPU profile measured `run_until` at 2.009 s with GPU_HW and
+2.013 s in software; this is effectively even and needs repeated runs before
+claiming an overall speedup. The frame-1074 SFEX2PA software/OpenGL captures
+remained byte-identical after the change, and the complete PSX GPU CTest group
+passed with GL checks on both Intel UHD 630 and GTX 1650.
