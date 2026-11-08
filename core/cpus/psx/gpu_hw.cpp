@@ -12,6 +12,7 @@
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 
 namespace mamerecomp::psx {
@@ -23,6 +24,7 @@ constexpr size_t kCommandRingSlots = 4096;
 constexpr size_t kCommandBatchSlots = 256;
 constexpr uint32_t kMaxBatchPrimitives = 65535;
 constexpr uint32_t kMaxBatchDepthLayers = kMaxBatchPrimitives * 2;
+constexpr uint32_t kTextureCacheLayers = 64;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -54,8 +56,51 @@ struct BatchVertex {
     uint32_t clut = 0;
     uint32_t gpu_type = 0;
     int32_t window_state[4]{};
+    uint32_t texture_layer = 0;
 };
-static_assert(sizeof(BatchVertex) == 64);
+static_assert(sizeof(BatchVertex) == 68);
+
+struct TextureCacheKey {
+    uint32_t texture_page = 0;
+    uint32_t gpu_type = 0;
+    int32_t window_x = 0;
+    int32_t window_y = 0;
+    int32_t window_mask_x = 0;
+    int32_t window_mask_y = 0;
+
+    bool operator==(const TextureCacheKey&) const = default;
+};
+
+struct TextureCacheKeyHash {
+    size_t operator()(const TextureCacheKey& key) const noexcept {
+        size_t value = key.texture_page;
+        const auto combine = [&value](uint32_t next) {
+            value ^= size_t(next) + size_t(0x9e3779b9u) + (value << 6) + (value >> 2);
+        };
+        combine(key.gpu_type);
+        combine(static_cast<uint32_t>(key.window_x));
+        combine(static_cast<uint32_t>(key.window_y));
+        combine(static_cast<uint32_t>(key.window_mask_x));
+        combine(static_cast<uint32_t>(key.window_mask_y));
+        return value;
+    }
+};
+
+struct TextureCacheEntry {
+    TextureCacheKey key{};
+    std::array<std::array<int, 4>, 2> source_regions{};
+    uint32_t source_region_count = 0;
+    uint64_t last_used = 0;
+    bool occupied = false;
+    bool valid = false;
+    bool globally_invalidated = false;
+};
+
+struct PendingBatchTexture {
+    size_t first_vertex = 0;
+    TextureCacheKey key{};
+    uint32_t vertex_count = 0;
+};
 
 GLuint compile_compute_program(const std::string& source, std::string& error) {
     const GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
@@ -170,6 +215,8 @@ struct GpuHardwareRenderer::Impl {
     GLuint scanout_program = 0;
     GLuint draw_program = 0;
     GLuint batch_draw_program = 0;
+    GLuint texture_cache_program = 0;
+    GLuint texture_cache_texture = 0;
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
     GLuint scanout_texture = 0;
@@ -194,7 +241,12 @@ struct GpuHardwareRenderer::Impl {
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
     GLint batch_vram_height_location = -1;
+    GLint texture_cache_vram_height_location = -1;
     GLint batch_source_location = -1;
+    GLint texture_cache_texture_page_location = -1;
+    GLint texture_cache_gpu_type_location = -1;
+    GLint texture_cache_window_state_location = -1;
+    GLint batch_texture_cache_location = -1;
     int vram_height = kMinVramHeight;
     unsigned scanout_width = 0;
     unsigned scanout_height = 0;
@@ -202,6 +254,14 @@ struct GpuHardwareRenderer::Impl {
     bool vram_textures_diverged = false;
     std::array<int, 4> last_dirty_bounds{};
     std::vector<BatchVertex> pending_batch_vertices;
+    std::vector<PendingBatchTexture> pending_batch_textures;
+    std::array<TextureCacheEntry, kTextureCacheLayers> texture_cache_entries{};
+    std::unordered_map<TextureCacheKey, uint32_t, TextureCacheKeyHash> texture_cache_lookup;
+    uint64_t texture_cache_clock = 0;
+    uint64_t texture_cache_hits = 0;
+    uint64_t texture_cache_generations = 0;
+    uint64_t texture_cache_invalidations = 0;
+    uint64_t texture_cache_evictions = 0;
     uint64_t pending_batch_primitive_count = 0;
     uint32_t pending_batch_depth_count = 0;
     uint64_t submitted_batch_count = 0;
@@ -232,6 +292,8 @@ struct GpuHardwareRenderer::Impl {
         if (scanout_program) glDeleteProgram(scanout_program);
         if (draw_program) glDeleteProgram(draw_program);
         if (batch_draw_program) glDeleteProgram(batch_draw_program);
+        if (texture_cache_program) glDeleteProgram(texture_cache_program);
+        if (texture_cache_texture) glDeleteTextures(1, &texture_cache_texture);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
         if (scanout_texture) glDeleteTextures(1, &scanout_texture);
@@ -308,10 +370,19 @@ struct GpuHardwareRenderer::Impl {
             read_shader_source(MAMERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH),
             read_shader_source(MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH), init_error);
         if (!batch_draw_program) throw std::runtime_error(init_error);
+        texture_cache_program = compile_compute_program(
+            read_shader_source(MAMERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
+        if (!texture_cache_program) throw std::runtime_error(init_error);
         origin_location = glGetUniformLocation(program, "uDispatchOrigin");
         vram_height_location = glGetUniformLocation(program, "uVramHeight");
         draw_vram_height_location = glGetUniformLocation(draw_program, "uVramHeight");
         batch_vram_height_location = glGetUniformLocation(batch_draw_program, "uVramHeight");
+        batch_texture_cache_location = glGetUniformLocation(batch_draw_program, "uTextureCache");
+        batch_source_location = glGetUniformLocation(batch_draw_program, "uVram");
+        texture_cache_vram_height_location = glGetUniformLocation(texture_cache_program, "uVramHeight");
+        texture_cache_texture_page_location = glGetUniformLocation(texture_cache_program, "uTexturePage");
+        texture_cache_gpu_type_location = glGetUniformLocation(texture_cache_program, "uGpuType");
+        texture_cache_window_state_location = glGetUniformLocation(texture_cache_program, "uWindowState");
         glGenTextures(2, vram);
         const auto words = to_words(initial_vram);
         for (GLuint texture : vram) {
@@ -323,6 +394,14 @@ struct GpuHardwareRenderer::Impl {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, vram_height, 0,
                          GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
         }
+        glGenTextures(1, &texture_cache_texture);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R16UI, 256, 256,
+                       static_cast<GLsizei>(kTextureCacheLayers));
         glGenTextures(1, &copy_scratch);
         glBindTexture(GL_TEXTURE_2D, copy_scratch);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -404,6 +483,9 @@ struct GpuHardwareRenderer::Impl {
         glEnableVertexAttribArray(10);
         glVertexAttribIPointer(10, 4, GL_INT, sizeof(BatchVertex),
                                reinterpret_cast<const void*>(offsetof(BatchVertex, window_state)));
+        glEnableVertexAttribArray(11);
+        glVertexAttribIPointer(11, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, texture_layer)));
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
         const size_t alignment = static_cast<size_t>(std::max(storage_alignment, 1));
@@ -420,8 +502,10 @@ struct GpuHardwareRenderer::Impl {
         glUseProgram(draw_program);
         glUniform1i(glGetUniformLocation(draw_program, "uSource"), 0);
         glUseProgram(batch_draw_program);
-        batch_source_location = glGetUniformLocation(batch_draw_program, "uSource");
+        glUniform1i(batch_texture_cache_location, 1);
         glUniform1i(batch_source_location, 0);
+        glUseProgram(texture_cache_program);
+        glUniform1i(glGetUniformLocation(texture_cache_program, "uSource"), 0);
         glBindVertexArray(0);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL resource creation failed");
@@ -439,6 +523,7 @@ struct GpuHardwareRenderer::Impl {
         }
         current_vram = 0;
         vram_textures_diverged = false;
+        invalidate_texture_cache_all();
     }
 
     void read_full(std::vector<uint8_t>& bytes) {
@@ -479,9 +564,11 @@ struct GpuHardwareRenderer::Impl {
         current_vram = destination_vram;
         vram_textures_diverged = true;
         last_dirty_bounds = {min_x, min_y, max_x, max_y};
+        invalidate_texture_cache_region(min_x, min_y, max_x, max_y);
     }
 
     void finish_in_place(int min_x, int min_y, int max_x, int max_y) {
+        invalidate_texture_cache_region(min_x, min_y, max_x, max_y);
         if (!vram_textures_diverged) {
             last_dirty_bounds = {min_x, min_y, max_x, max_y};
             vram_textures_diverged = true;
@@ -569,6 +656,134 @@ struct GpuHardwareRenderer::Impl {
         return false;
     }
 
+    TextureCacheKey make_texture_cache_key(const ShaderCommand& command) const {
+        return {command.texture[0], command.texture[2],
+                command.offset_window[2], command.offset_window[3],
+                command.window_flip[0], command.window_flip[1]};
+    }
+
+    void set_texture_cache_source_regions(TextureCacheEntry& entry) {
+        entry.source_region_count = 0;
+        entry.globally_invalidated = false;
+        const auto& key = entry.key;
+        const int depth = key.gpu_type == 2u ? int((key.texture_page >> 7) & 3u)
+                                             : int((key.texture_page >> 9) & 3u);
+        if (depth == 3) return;
+        if (key.gpu_type != 2u && (key.texture_page & 0x2000u) != 0u) {
+            entry.globally_invalidated = true;
+            return;
+        }
+
+        const int words_per_pixel_group = depth == 0 ? 4 : depth == 1 ? 2 : 1;
+        const int page_x = int(key.texture_page & 15u) * 64;
+        const int page_y = key.gpu_type == 2u
+            ? int(((key.texture_page & 0x10u) << 4) |
+                  ((key.texture_page & 0x800u) >> 2))
+            : int(key.texture_page & 0x60u) << 3;
+        const int x = page_x + key.window_x / words_per_pixel_group;
+        const int y = page_y + key.window_y;
+        const int width = (key.window_mask_x & 255) / words_per_pixel_group + 1;
+        const int height = (key.window_mask_y & 255) + 1;
+        if (x < 0 || y < 0 || x + width > kVramWidth || y + height > vram_height) {
+            entry.globally_invalidated = true;
+            return;
+        }
+        entry.source_regions[entry.source_region_count++] =
+            {x, y, x + width - 1, y + height - 1};
+    }
+
+    void invalidate_texture_cache_all() {
+        for (auto& entry : texture_cache_entries) {
+            if (entry.occupied && entry.valid) {
+                entry.valid = false;
+                ++texture_cache_invalidations;
+            }
+        }
+    }
+
+    void invalidate_texture_cache_region(int left, int top, int right, int bottom) {
+        for (auto& entry : texture_cache_entries) {
+            if (!entry.occupied || !entry.valid) continue;
+            bool overlaps = entry.globally_invalidated;
+            for (uint32_t i = 0; !overlaps && i < entry.source_region_count; ++i) {
+                const auto& region = entry.source_regions[i];
+                overlaps = !(right < region[0] || region[2] < left ||
+                             bottom < region[1] || region[3] < top);
+            }
+            if (overlaps) {
+                entry.valid = false;
+                ++texture_cache_invalidations;
+            }
+        }
+    }
+
+    uint32_t ensure_texture_cache_layer(const TextureCacheKey& key) {
+        uint32_t layer = 0;
+        auto found = texture_cache_lookup.find(key);
+        if (found != texture_cache_lookup.end()) {
+            layer = found->second;
+            auto& entry = texture_cache_entries[layer];
+            entry.last_used = ++texture_cache_clock;
+            if (entry.valid) {
+                ++texture_cache_hits;
+                return layer;
+            }
+        } else {
+            uint32_t replacement = 0;
+            uint64_t oldest = UINT64_MAX;
+            for (uint32_t i = 0; i < kTextureCacheLayers; ++i) {
+                const auto& entry = texture_cache_entries[i];
+                if (!entry.occupied) {
+                    replacement = i;
+                    break;
+                }
+                if (entry.last_used < oldest) {
+                    oldest = entry.last_used;
+                    replacement = i;
+                }
+            }
+            layer = replacement;
+            auto& entry = texture_cache_entries[layer];
+            if (entry.occupied) {
+                texture_cache_lookup.erase(entry.key);
+                ++texture_cache_evictions;
+            }
+            entry = {};
+            entry.key = key;
+            entry.occupied = true;
+            entry.last_used = ++texture_cache_clock;
+            set_texture_cache_source_regions(entry);
+            texture_cache_lookup.emplace(key, layer);
+        }
+
+        auto& entry = texture_cache_entries[layer];
+        glUseProgram(texture_cache_program);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
+        glBindImageTexture(1, texture_cache_texture, 0, GL_FALSE, layer,
+                           GL_WRITE_ONLY, GL_R16UI);
+        glUniform1i(texture_cache_vram_height_location, vram_height);
+        glUniform1ui(texture_cache_texture_page_location, key.texture_page);
+        glUniform1ui(texture_cache_gpu_type_location, key.gpu_type);
+        glUniform4i(texture_cache_window_state_location,
+                    key.window_x, key.window_y,
+                    key.window_mask_x, key.window_mask_y);
+        glDispatchCompute(32, 32, 1);
+        entry.valid = true;
+        ++texture_cache_generations;
+        return layer;
+    }
+
+    void prepare_batch_texture_cache() {
+        if (pending_batch_textures.empty()) return;
+        for (const auto& pending : pending_batch_textures) {
+            const uint32_t layer = ensure_texture_cache_layer(pending.key);
+            for (uint32_t i = 0; i < pending.vertex_count; ++i)
+                pending_batch_vertices[pending.first_vertex + i].texture_layer = layer;
+        }
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+    }
+
     bool queue_opaque_primitive(const ShaderCommand& command) {
         if (!batching_enabled) return false;
         const unsigned vertex_count = command.header[1];
@@ -609,6 +824,10 @@ struct GpuHardwareRenderer::Impl {
 
         const unsigned indices[6] = {0, 1, 2, 2, 1, 3};
         const unsigned output_count = vertex_count == 4 ? 6 : 3;
+        const size_t first_vertex = pending_batch_vertices.size();
+        if (flags & 2u)
+            pending_batch_textures.push_back({first_vertex,
+                make_texture_cache_key(command), output_count});
         for (unsigned i = 0; i < output_count; ++i) {
             const auto& source = command.vertices[vertex_count == 4 ? indices[i] : i];
             BatchVertex vertex{};
@@ -642,6 +861,7 @@ struct GpuHardwareRenderer::Impl {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
 
         const unsigned destination_vram = prepare_destination();
+        prepare_batch_texture_cache();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer[destination_vram]);
         glViewport(0, 0, kVramWidth, vram_height);
         glEnable(GL_SCISSOR_TEST);
@@ -660,6 +880,8 @@ struct GpuHardwareRenderer::Impl {
         glUniform1i(batch_vram_height_location, vram_height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
         glBindVertexArray(batch_vertex_array);
         glBindBuffer(GL_ARRAY_BUFFER, batch_vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER,
@@ -678,6 +900,7 @@ struct GpuHardwareRenderer::Impl {
         pending_batch_primitive_count = 0;
         pending_batch_depth_count = 0;
         pending_batch_vertices.clear();
+        pending_batch_textures.clear();
         if (debug_gl && glGetError() != GL_NO_ERROR)
             throw std::runtime_error("PSX OpenGL batch rasterization failed");
     }
@@ -993,7 +1216,10 @@ GpuHardwareRenderer::~GpuHardwareRenderer() {
         if (impl_->submitted_batch_count)
             std::cerr << " average=" << (double(impl_->submitted_batch_primitive_count) /
                                             double(impl_->submitted_batch_count));
-        std::cerr << '\n';
+        std::cerr << "; PSX texture cache generations=" << impl_->texture_cache_generations
+                  << " hits=" << impl_->texture_cache_hits
+                  << " invalidations=" << impl_->texture_cache_invalidations
+                  << " evictions=" << impl_->texture_cache_evictions << '\n';
     }
 }
 
@@ -1120,6 +1346,7 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     impl_->vram_textures_diverged = false;
+    impl_->invalidate_texture_cache_all();
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |

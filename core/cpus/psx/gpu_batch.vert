@@ -11,6 +11,7 @@ layout(location = 7) in uint aTexturePage;
 layout(location = 8) in uint aClut;
 layout(location = 9) in uint aGpuType;
 layout(location = 10) in ivec4 aWindowState;
+layout(location = 11) in uint aTextureLayer;
 
 uniform int uVramHeight;
 out vec3 vColor;
@@ -23,6 +24,7 @@ flat out uint vTexturePage;
 flat out uint vClut;
 flat out uint vGpuType;
 flat out ivec4 vWindowState;
+flat out uint vTextureLayer;
 
 void main() {
     vec2 xy = vec2(aPosition);
@@ -39,4 +41,5 @@ void main() {
     vClut = aClut;
     vGpuType = aGpuType;
     vWindowState = aWindowState;
+    vTextureLayer = aTextureLayer;
 }

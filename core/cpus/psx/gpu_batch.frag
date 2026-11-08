@@ -1,7 +1,8 @@
 #version 430 core
 
 layout(location = 0) out uint oColor;
-layout(binding = 0) uniform usampler2D uSource;
+layout(binding = 0) uniform usampler2D uVram;
+layout(binding = 1) uniform usampler2DArray uTextureCache;
 uniform int uVramHeight;
 in vec3 vColor;
 in vec2 vUV;
@@ -13,44 +14,12 @@ flat in uint vTexturePage;
 flat in uint vClut;
 flat in uint vGpuType;
 flat in ivec4 vWindowState;
+flat in uint vTextureLayer;
 
 uint vram_word(int x, int y) {
     int pixel_mask = (uVramHeight * 1024) - 1;
     int index = int(uint(y * 1024 + x) & uint(pixel_mask));
-    return texelFetch(uSource, ivec2(index & 1023, index >> 10), 0).r;
-}
-
-uint sample_texture(int u, int v) {
-    uint tpage = vTexturePage;
-    uint gpu_type = vGpuType;
-    int depth = gpu_type == 2u ? int((tpage >> 7) & 3u)
-                               : int((tpage >> 9) & 3u);
-    if (depth == 3) return 0u;
-    u &= vWindowState.z;
-    v &= vWindowState.w;
-    int ppw = depth == 0 ? 4 : depth == 1 ? 2 : 1;
-    int page_x = int(tpage & 15u) * 64;
-    int page_y = gpu_type == 2u
-        ? int(((tpage & 0x10u) << 4) | ((tpage & 0x800u) >> 2))
-        : int(tpage & 0x60u) << 3;
-    int base_x = page_x + vWindowState.x / ppw;
-    int base_y = page_y + vWindowState.y;
-    if (depth == 2) return vram_word(base_x + u, base_y + v);
-    int tex_x = u / ppw;
-    int tex_y = v;
-    if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 0) {
-        tex_x = ((u >> 2) & ~0x3c) + ((v << 2) & 0x3c);
-        tex_y = (v & ~0xf) + ((u >> 4) & 0xf);
-    } else if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 1) {
-        tex_x = ((u >> 1) & ~0x78) + ((u << 2) & 0x40) + ((v << 3) & 0x38);
-        tex_y = (v & ~0x7) + ((u >> 5) & 0x7);
-    }
-    uint packed_word = vram_word(base_x + tex_x, base_y + tex_y);
-    uint index = depth == 0 ? ((packed_word >> uint((u & 3) * 4)) & 15u)
-                            : ((packed_word >> uint((u & 1) * 8)) & 255u);
-    int clut_x = int(vClut & 63u) * 16;
-    int clut_y = int((vClut >> 6) & 1023u);
-    return vram_word(clut_x + int(index), clut_y);
+    return texelFetch(uVram, ivec2(index & 1023, index >> 10), 0).r;
 }
 
 void main() {
@@ -63,7 +32,18 @@ void main() {
                 ((uint(clamp(vColor.b, 0.0, 255.0)) >> 3) << 10);
     }
     if (textured) {
-        uint texel = sample_texture(int(vUV.x), int(vUV.y));
+        const int u = int(vUV.x) & vWindowState.z;
+        const int v = int(vUV.y) & vWindowState.w;
+        uint texel = texelFetch(uTextureCache,
+                                ivec3(u, v, int(vTextureLayer)), 0).r;
+        const int depth = vGpuType == 2u
+            ? int((vTexturePage >> 7) & 3u)
+            : int((vTexturePage >> 9) & 3u);
+        if (depth < 2) {
+            const int clut_x = int(vClut & 63u) * 16;
+            const int clut_y = int((vClut >> 6) & 1023u);
+            texel = vram_word(clut_x + int(texel), clut_y);
+        }
         if (texel == 0u) discard;
         if (raw_texture) {
             color = texel;

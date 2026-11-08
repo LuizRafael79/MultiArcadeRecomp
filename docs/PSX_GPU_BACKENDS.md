@@ -174,20 +174,21 @@ presenter no longer uses it.
 
 The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
 when `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` was set for diagnosis, and a
-900-frame run on X11. The default libdecor path produced a Glycin segfault in a
-GTK background thread on this host, including with the software presenter.
-During direct-OpenGL debugging only, the PSX window disables libdecor and uses
-Wayland without client-side decoration; other SDL windows keep their normal
-decoration/backend choice. Runtime completion is smoke-tested, but visual
-parity of the direct blit after the scissor-state fix still needs a
-pixel-capture comparison.
+900-frame run on X11. During direct-OpenGL debugging, the PSX window may remain
+undecorated; restoring its normal decoration is deferred until the renderer is
+stable. Other SDL windows keep their normal decoration/backend choice. Runtime
+completion is smoke-tested, and pixel output is compared against the software
+path below.
 
 The GP0 batching path submits opaque flat/Gouraud triangles and quads, textured
 and untextured, plus rectangles, through a streaming vertex buffer. Per-vertex
 attributes carry UVs and the primitive's texture page, CLUT, texture depth,
-window, color, and mask state. Textures are sampled directly from the resident
-R16UI VRAM texture on the GPU; an explicit decoded texture/CLUT cache with write
-invalidation is still pending. A temporary depth attachment assigns ordered
+window, color, and mask state. A 64-layer R16UI texture array caches 256x256
+texture-index pages; a compute shader fills cache layers while indexed texels
+read their CLUT from the current VRAM texture in the draw shader. This avoids
+duplicating identical index pages for different CLUTs. VRAM writes invalidate
+entries whose source texture intersects the write. Wrapped/interleaved layouts
+conservatively invalidate globally. A temporary depth attachment assigns ordered
 depths to the two triangles of a quad and to each successive primitive, so
 overlap preserves PSX last-draw-wins behavior within a GL submission. Flat
 colors remain in their native packed format; Gouraud and texture modulation
@@ -207,7 +208,14 @@ submitted 501,234 opaque primitives in 8,846 draws (56.7 primitives per draw)
 with VRAM read-after-write barriers enabled. One no-error-polling timing was
 45.7 seconds with batching versus 57.8 seconds without; that is a promising 21%
 improvement, but should be repeated before it is treated as a stable benchmark.
-Remaining work includes an explicit decoded texture/CLUT cache and batching
-semitransparent/check-mask commands while preserving VRAM read-after-write
-visibility. CPU-visible VRAM operations and scanout remain explicit
-synchronization points.
+The CLUT-independent cache produced the same 1,800-frame capture byte-for-byte
+as the previous direct-VRAM sampling path (zero differing pixels). It generated
+7,442 layers, recorded 458,077 hits, 7,433 invalidations, and no evictions;
+compared with the earlier CLUT-inclusive cache, generations fell from 31,822
+and evictions from 24,563. A single matched 1,800-frame run took 44.1 seconds
+on the GTX 1650 with the cache and 47.6 seconds on the software renderer; this
+is an initial measurement, not a stable benchmark. A separate 600-frame run
+with `MAMERECOMP_PSX_GPU_GL_CHECK=1` completed without OpenGL errors. Remaining
+work includes reducing invalidations, batching semitransparent/check-mask
+commands, and broader GP0/VRAM parity coverage. CPU-visible VRAM operations and
+scanout remain explicit synchronization points.
