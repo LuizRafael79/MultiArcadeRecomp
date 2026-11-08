@@ -1481,7 +1481,7 @@ void print_usage(const char* program) {
               << "  " << program << " build|run --machine=konami --board=tmnt2 --game=<tmnt2|ssriders> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--frame-sequence-dir <directory>] [--frame-sequence-step <frames>]\n"
               << "  " << program << " run --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build|run --machine=seibu --board=toki --game=toki [--rom-dir <toki.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
-              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--qsound-mode true|mixed|hle] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--r3000a-no-aot] [--z80-no-aot] [--dsp16a-no-aot] [--no-aot]\n"
+              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--gpu-hw] [--rom-dir <game.zip>] [--qsound-mode true|mixed|hle] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--r3000a-no-aot] [--z80-no-aot] [--dsp16a-no-aot] [--no-aot]\n"
               << "  " << program << " run --machine=namco --board=system12 --game=tekken3 [--rom-dir <tekken3.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>]\n"
               << "  " << program << " build --machine=cps --board=cps2 --game=<sfa3|sfz2a|sfz2al|hsf2> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
@@ -3244,6 +3244,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
     bool z80_no_aot = false;
     bool dsp16a_no_aot = false;
     bool no_aot = false;
+    bool gpu_hw = false;
     bool audio_enabled = false;
     bool audio_stereo_spread = false;
     bool audio_pan_option_set = false;
@@ -3280,6 +3281,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         else if (option == "--z80-no-aot") z80_no_aot = true;
         else if (option == "--dsp16a-no-aot") dsp16a_no_aot = true;
         else if (option == "--no-aot") no_aot = true;
+        else if (option == "--gpu-hw") gpu_hw = true;
         else if (const auto value = value_after("--audio-pan")) {
             if (*value == "game") audio_stereo_spread = false;
             else if (*value == "spread") audio_stereo_spread = true;
@@ -3312,6 +3314,11 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         throw std::runtime_error("per-CPU AoT controls are supported for Sony ZN-2 SFEX2PA run only");
     if (no_aot)
         r3000a_no_aot = z80_no_aot = dsp16a_no_aot = true;
+    if (gpu_hw && build_mode)
+        throw std::runtime_error("--gpu-hw is only valid for run");
+    if (gpu_hw && !((machine == "sony" || machine == "zn") ||
+                    (machine == "namco" && board == "system12")))
+        throw std::runtime_error("--gpu-hw is supported only on PSX GPU-based Sony ZN and Namco System 12 runs");
     if (qsound_mode_option_seen &&
         !((machine == "sony" || machine == "zn") && board == "zn2" &&
           game == "sfex2pa" && !build_mode))
@@ -3354,6 +3361,8 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         const bool valid_zn2 = board == "zn2" && game == "sfex2pa";
         if (!valid_zn1 && !valid_zn2)
             throw std::runtime_error("Sony ZN adapter currently supports --board=zn1 --game=bldyror2 or --board=zn2 --game=sfex2pa");
+        if (gpu_hw)
+            throw std::runtime_error("--gpu-hw requests PSX GP0 rasterization on OpenGL, but that backend is not implemented yet; without the flag the software rasterizer is used");
         if (build_mode && (r3000a_no_aot || z80_no_aot || dsp16a_no_aot || no_aot))
             throw std::runtime_error("per-CPU AoT controls are only valid for run");
         if (audio_pan_option_set || input_replay || dma_command_log)
@@ -3429,6 +3438,8 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
                               qsound_mode_option == "mixed");
     }
     if (machine == "namco" && board == "system12") {
+        if (gpu_hw)
+            throw std::runtime_error("--gpu-hw requests PSX GP0 rasterization on OpenGL, but that backend is not implemented yet; without the flag the software rasterizer is used");
         if (build_mode)
             throw std::runtime_error("System 12 game AOT generation is not integrated yet; use run for the interpreter runtime");
         if (game != "tekken3")

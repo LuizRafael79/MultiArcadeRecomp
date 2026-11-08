@@ -46,6 +46,10 @@ continues to provide its bus mapping, clock, IRQ wiring, and display connection.
    back to software. Keep headless deterministic capture on the software path
    unless an OpenGL context is explicitly available.
 
+The CLI switch is `--gpu-hw`; omitting it selects the software rasterizer.
+Until the GP0 OpenGL backend is available, explicitly requesting `--gpu-hw`
+fails with a diagnostic instead of silently running the software renderer.
+
 ## Raster coverage order
 
 Implement and compare each GP0 family against the retained software path:
