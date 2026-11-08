@@ -223,3 +223,8 @@ commands, and broader GP0/VRAM parity coverage. CPU-visible VRAM operations and
 scanout remain explicit synchronization points. GP0 `A0` reads back the full
 VRAM first only when stale host data must be consulted for check-mask behavior;
 the 1,800-frame capture remained unchanged after this transfer-path change.
+GP0 `C0` now reads only its requested rectangle into the host mirror. A VRAM
+write generation forces that rectangle to refresh if GPU work occurs between
+successive GPUREADs; querying the generation flushes pending raster batches
+first. An end-to-end GP0 `C0` probe read pixels across both VRAM edges and
+observed a queued GPU draw inserted between consecutive GPUREAD words.

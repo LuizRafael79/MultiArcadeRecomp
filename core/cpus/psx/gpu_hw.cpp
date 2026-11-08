@@ -253,6 +253,7 @@ struct GpuHardwareRenderer::Impl {
     unsigned current_vram = 0;
     bool vram_textures_diverged = false;
     std::array<int, 4> last_dirty_bounds{};
+    uint64_t vram_write_generation = 0;
     std::vector<BatchVertex> pending_batch_vertices;
     std::vector<PendingBatchTexture> pending_batch_textures;
     std::array<TextureCacheEntry, kTextureCacheLayers> texture_cache_entries{};
@@ -524,6 +525,7 @@ struct GpuHardwareRenderer::Impl {
         current_vram = 0;
         vram_textures_diverged = false;
         invalidate_texture_cache_all();
+        ++vram_write_generation;
     }
 
     void read_full(std::vector<uint8_t>& bytes) {
@@ -565,10 +567,12 @@ struct GpuHardwareRenderer::Impl {
         vram_textures_diverged = true;
         last_dirty_bounds = {min_x, min_y, max_x, max_y};
         invalidate_texture_cache_region(min_x, min_y, max_x, max_y);
+        ++vram_write_generation;
     }
 
     void finish_in_place(int min_x, int min_y, int max_x, int max_y) {
         invalidate_texture_cache_region(min_x, min_y, max_x, max_y);
+        ++vram_write_generation;
         if (!vram_textures_diverged) {
             last_dirty_bounds = {min_x, min_y, max_x, max_y};
             vram_textures_diverged = true;
@@ -1298,6 +1302,64 @@ void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height
 }
 
 void GpuHardwareRenderer::sync_to_cpu(std::vector<uint8_t>& vram) { impl_->read_full(vram); }
+void GpuHardwareRenderer::sync_rect_to_cpu(std::vector<uint8_t>& bytes,
+        unsigned x, unsigned y, unsigned width, unsigned height) {
+    impl_->flush_draw_batch();
+    if (!width || !height) return;
+    if (!impl_->make_current())
+        throw std::runtime_error("could not activate PSX OpenGL context");
+    const unsigned x0 = x & 1023u;
+    const unsigned y0 = y % unsigned(impl_->vram_height);
+    const unsigned first_width = std::min(width, unsigned(kVramWidth) - x0);
+    const unsigned first_height = std::min(height,
+        unsigned(impl_->vram_height) - y0);
+    std::vector<uint16_t> pixels(size_t(width) * height);
+    const auto read_piece = [&](unsigned src_x, unsigned src_y,
+                                unsigned piece_width, unsigned piece_height,
+                                unsigned dst_x, unsigned dst_y) {
+        if (!piece_width || !piece_height) return;
+        std::vector<uint16_t> piece(size_t(piece_width) * piece_height);
+        glReadPixels(int(src_x), int(src_y), int(piece_width), int(piece_height),
+                     GL_RED_INTEGER, GL_UNSIGNED_SHORT, piece.data());
+        for (unsigned row = 0; row < piece_height; ++row)
+            std::copy_n(piece.data() + size_t(row) * piece_width, piece_width,
+                        pixels.data() + size_t(dst_y + row) * width + dst_x);
+    };
+    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                    GL_TEXTURE_UPDATE_BARRIER_BIT);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, impl_->framebuffer[impl_->current_vram]);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    GLint previous_pack_alignment = 4;
+    glGetIntegerv(GL_PACK_ALIGNMENT, &previous_pack_alignment);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    read_piece(x0, y0, first_width, first_height, 0, 0);
+    if (first_width < width)
+        read_piece(0, y0, width - first_width, first_height, first_width, 0);
+    if (first_height < height)
+        read_piece(x0, 0, first_width, height - first_height, 0, first_height);
+    if (first_width < width && first_height < height)
+        read_piece(0, 0, width - first_width, height - first_height,
+                   first_width, first_height);
+    glPixelStorei(GL_PACK_ALIGNMENT, previous_pack_alignment);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    if (impl_->debug_gl && glGetError() != GL_NO_ERROR)
+        throw std::runtime_error("PSX OpenGL partial VRAM readback failed");
+    if (bytes.size() < size_t(kVramWidth) * impl_->vram_height * 2)
+        bytes.resize(size_t(kVramWidth) * impl_->vram_height * 2);
+    for (unsigned row = 0; row < height; ++row)
+        for (unsigned col = 0; col < width; ++col) {
+            const unsigned px = (x0 + col) & 1023u;
+            const unsigned py = (y0 + row) % unsigned(impl_->vram_height);
+            const uint16_t pixel = pixels[size_t(row) * width + col];
+            const size_t at = (size_t(py) * kVramWidth + px) * 2;
+            bytes[at] = uint8_t(pixel);
+            bytes[at + 1] = uint8_t(pixel >> 8);
+        }
+}
+uint64_t GpuHardwareRenderer::vram_write_generation() {
+    impl_->flush_draw_batch();
+    return impl_->vram_write_generation;
+}
 void GpuHardwareRenderer::sync_from_cpu(std::span<const uint8_t> vram) { impl_->upload_full(vram); }
 
 void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x,
@@ -1346,6 +1408,7 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     impl_->vram_textures_diverged = false;
+    ++impl_->vram_write_generation;
     const int x0 = int(x & 1023u);
     const int y0 = int(y % unsigned(impl_->vram_height));
     impl_->invalidate_texture_cache_region(x0, y0,

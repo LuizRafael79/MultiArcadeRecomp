@@ -1128,6 +1128,7 @@ void Gpu::execute_packet()
         transfer_w_ = packet_[2] & 0x3ff; transfer_h_ = (packet_[2] >> 16) & 0x3ff;
         if (!transfer_w_) transfer_w_ = 1024; if (!transfer_h_) transfer_h_ = 512;
         transfer_pos_ = 0;
+        transfer_readback_valid_ = false;
         if (op == 0xc0) {
             transfer_from_vram_ = true;
             transfer_to_vram_ = false;
@@ -1152,16 +1153,22 @@ void Gpu::execute_packet()
 uint32_t Gpu::read_data()
 {
     if (!(status_ & (1u << 27)) || !transfer_from_vram_) return gpu_info_;
-    if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
-        hardware_renderer_->sync_to_cpu(vram_);
-        hardware_vram_shadow_valid_ = true;
-    }
     const uint32_t total = transfer_w_ * transfer_h_;
     if (transfer_pos_ >= total) {
         transfer_pos_ = 0;
         transfer_from_vram_ = false;
+        transfer_readback_valid_ = false;
         status_ &= ~(1u << 27);
         return gpu_info_;
+    }
+    if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
+        const uint64_t generation = hardware_renderer_->vram_write_generation();
+        if (!transfer_readback_valid_ || transfer_readback_generation_ != generation) {
+            hardware_renderer_->sync_rect_to_cpu(vram_, transfer_x_, transfer_y_,
+                                                 transfer_w_, transfer_h_);
+            transfer_readback_generation_ = hardware_renderer_->vram_write_generation();
+            transfer_readback_valid_ = true;
+        }
     }
     uint32_t result = 0;
     for (unsigned half = 0; half < 2; ++half) {
@@ -1170,6 +1177,7 @@ uint32_t Gpu::read_data()
             // odd pixel count and ends halfway through a GPUREAD word.
             transfer_pos_ = 0;
             transfer_from_vram_ = false;
+            transfer_readback_valid_ = false;
             status_ &= ~(1u << 27);
             break;
         }
@@ -1180,6 +1188,7 @@ uint32_t Gpu::read_data()
         if (transfer_pos_ == total) {
             transfer_pos_ = 0;
             transfer_from_vram_ = false;
+            transfer_readback_valid_ = false;
             status_ &= ~(1u << 27);
             break;
         }

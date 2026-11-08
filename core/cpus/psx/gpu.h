@@ -120,6 +120,8 @@ private:
     uint32_t transfer_pos_ = 0;
     bool transfer_to_vram_ = false;
     bool transfer_from_vram_ = false;
+    bool transfer_readback_valid_ = false;
+    uint64_t transfer_readback_generation_ = 0;
     bool draw_mask_ = false;
     bool check_mask_ = false;
 };

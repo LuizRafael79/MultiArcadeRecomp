@@ -50,6 +50,9 @@ public:
                             const GpuHwState& state, bool raw_texture,
                             bool semi_transparent);
     void sync_to_cpu(std::vector<uint8_t>& vram);
+    void sync_rect_to_cpu(std::vector<uint8_t>& vram, unsigned x, unsigned y,
+                          unsigned width, unsigned height);
+    uint64_t vram_write_generation();
     void sync_from_cpu(std::span<const uint8_t> vram);
     void upload_rect(std::span<const uint8_t> vram, unsigned x, unsigned y,
                      unsigned width, unsigned height);
