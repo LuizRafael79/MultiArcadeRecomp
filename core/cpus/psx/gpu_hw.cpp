@@ -1464,7 +1464,7 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
                                raw_texture, semi_transparent, clut);
     command.header[3] = vertices.empty() ? 0 : vertices.front().color;
     if (impl_->queue_opaque_primitive(command)) return;
-    impl_->execute_draw(command);
+    impl_->execute(command);
 }
 
 void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_t color) {

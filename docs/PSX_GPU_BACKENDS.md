@@ -399,3 +399,15 @@ host it passed on the Mesa UHD 630 through the real MachineMemory DMA channel
 block GPU-to-RAM DMA and GP0 C0. It also checks a GPU fill followed by DMA C0
 readback across X=1023 and Y=511. This exercises the upload, copy, readback,
 and DMA synchronization paths rather than relying only on a game capture.
+
+The previous 37,590-pixel difference reported for SFEX2PA gameplay frame 1560
+was from non-batched polygons going through the OpenGL triangle-varying path.
+Those polygons now use the compute rasterizer's fixed-point scanline path,
+matching the MAME-derived software rasterizer. A fresh frame-1560 run on Mesa
+UHD 630 had zero command-level VRAM transitions for the traced textured
+polygons and sprites, and the final RGB comparison reported no differing
+pixels. On a separate 180-frame headless profile, GP0 dispatch took 0.70 ms
+with OpenGL and 4.91 ms with software across 57 packets; the complete run took
+4,019 ms and the DSP16A run accounted for 2,832 ms. This explains why reducing
+raster CPU work has little effect on total ZN-2 runtime in that test; it does
+not measure GPU execution latency or guarantee a gameplay frame rate.
