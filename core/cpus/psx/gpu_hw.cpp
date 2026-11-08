@@ -522,6 +522,53 @@ struct GpuHardwareRenderer::Impl {
         }
     }
 
+    bool texture_read_overlaps_pending_writes(const ShaderCommand& command) const {
+        if (pending_batch_vertices.empty() || (command.header[2] & 2u) == 0)
+            return false;
+
+        const uint32_t tpage = command.texture[0];
+        const uint32_t gpu_type = command.texture[2];
+        const int depth = gpu_type == 2u ? int((tpage >> 7) & 3u)
+                                         : int((tpage >> 9) & 3u);
+        if (depth == 3) return false;
+        if (gpu_type != 2u && (tpage & 0x2000u) != 0u)
+            return true; // conservatively flush interleaved texture layouts
+
+        const int words_per_pixel_group = depth == 0 ? 4 : depth == 1 ? 2 : 1;
+        const int page_x = int(tpage & 15u) * 64;
+        const int page_y = gpu_type == 2u
+            ? int(((tpage & 0x10u) << 4) | ((tpage & 0x800u) >> 2))
+            : int(tpage & 0x60u) << 3;
+        const int source_x = page_x + command.offset_window[2] / words_per_pixel_group;
+        const int source_y = page_y + command.offset_window[3];
+        const int source_width = (command.window_flip[0] & 255) /
+                                 words_per_pixel_group + 1;
+        const int source_height = (command.window_flip[1] & 255) + 1;
+        const auto& dirty = pending_batch_dirty_bounds;
+        const auto intersects = [&](int x0, int y0, int x1, int y1) {
+            return !(x1 < dirty[0] || dirty[2] < x0 ||
+                     y1 < dirty[1] || dirty[3] < y0);
+        };
+
+        if (source_x < 0 || source_y < 0 || source_x + source_width > kVramWidth ||
+            source_y + source_height > vram_height)
+            return true; // wrapped source addressing is handled conservatively
+        if (intersects(source_x, source_y, source_x + source_width - 1,
+                       source_y + source_height - 1))
+            return true;
+
+        if (depth < 2) {
+            const int clut_x = int(command.texture[1] & 63u) * 16;
+            const int clut_y = int((command.texture[1] >> 6) & 1023u);
+            const int clut_width = depth == 0 ? 16 : 256;
+            if (clut_y >= vram_height || clut_x + clut_width > kVramWidth)
+                return true;
+            if (intersects(clut_x, clut_y, clut_x + clut_width - 1, clut_y))
+                return true;
+        }
+        return false;
+    }
+
     bool queue_opaque_primitive(const ShaderCommand& command) {
         if (!batching_enabled) return false;
         const unsigned vertex_count = command.header[1];
@@ -545,6 +592,7 @@ struct GpuHardwareRenderer::Impl {
             return true;
         bool must_flush = !pending_batch_vertices.empty() &&
             pending_batch_draw_area != draw_area;
+        if (texture_read_overlaps_pending_writes(command)) must_flush = true;
         if (pending_batch_primitive_count >= batch_primitive_limit) must_flush = true;
         if (must_flush) flush_draw_batch();
         if (pending_batch_vertices.empty()) {

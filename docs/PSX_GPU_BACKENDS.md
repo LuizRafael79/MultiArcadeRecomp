@@ -191,19 +191,23 @@ invalidation is still pending. A temporary depth attachment assigns ordered
 depths to the two triangles of a quad and to each successive primitive, so
 overlap preserves PSX last-draw-wins behavior within a GL submission. Flat
 colors remain in their native packed format; Gouraud and texture modulation
-colors are converted from RGB888. Draw-area changes,
-semitransparent/check-mask commands, CPU-visible VRAM operations, and scanout
-flush the queue. `MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
+colors are converted from RGB888. Draw-area changes, semitransparent/check-mask
+commands, CPU-visible VRAM operations, and scanout flush the queue. Before
+queuing a textured primitive, the renderer checks whether its source page or
+CLUT intersects pending writes; if so it flushes first so the texture fetch
+sees the updated VRAM snapshot. Interleaved and wrapped source regions
+conservatively force that flush. `MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
 `MAMERECOMP_PSX_GPU_BATCH_LIMIT` caps primitives per submission, and
 `MAMERECOMP_PSX_GPU_BATCH_STATS=1` prints aggregate counts.
 
 Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through gameplay
 with fresh NVRAM. The batch and non-batch frame captures were byte-identical
 (0 differing pixels), including with OpenGL error checks enabled. The scene
-submitted 501,234 opaque primitives in 5,835 draws (85.9 primitives per draw).
-One no-error-polling timing was 45.7 seconds with batching versus 57.8 seconds
-without; that is a promising 21% improvement, but should be repeated before it
-is treated as a stable benchmark. Remaining performance work includes explicit
-texture/CLUT cache invalidation and batching semitransparent/check-mask commands
-while preserving VRAM read-after-write visibility. CPU-visible VRAM operations
-and scanout remain explicit synchronization points.
+submitted 501,234 opaque primitives in 8,846 draws (56.7 primitives per draw)
+with VRAM read-after-write barriers enabled. One no-error-polling timing was
+45.7 seconds with batching versus 57.8 seconds without; that is a promising 21%
+improvement, but should be repeated before it is treated as a stable benchmark.
+Remaining work includes an explicit decoded texture/CLUT cache and batching
+semitransparent/check-mask commands while preserving VRAM read-after-write
+visibility. CPU-visible VRAM operations and scanout remain explicit
+synchronization points.
