@@ -660,3 +660,10 @@ produced 10,178 rows in 0.231 ms; the measured raster-compute work totaled
 219.97 ms. The new setup stage is therefore small relative to the existing
 pixel/raster work. The hardware path remains optional, and broader scene and
 board coverage is still needed.
+
+The same build was checked on ZN-1 with BLDYROR2 at frame 900. Software and
+`--gpu-hw` captures were byte-identical (SHA-256
+`d7e9d8804401845dbb13bac87db56b73b50dc53cf088dd5770f0a0bf8df5326a`); both
+runs processed 254,754,373 guest instructions/cycles and 900 frame updates.
+This confirms the shared PSX GPU path on both Sony board families for these
+selected captures, while broader scene coverage remains open.
