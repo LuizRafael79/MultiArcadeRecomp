@@ -423,8 +423,9 @@ and OpenGL GPU instances, then reads back and compares all 524,288 VRAM
 pixels. The stream covers 15bpp, indexed 4bpp/CLUT and 8bpp/CLUT texturing,
 texture-window source addressing, Gouraud-textured triangles, Gouraud
 triangles/quads, flat/Gouraud lines, overlapping VRAM copy, all four ABR
-semi-transparency equations with mask disabled, mask set/check, draw-area
-clipping, and fills. It passed on Mesa Intel UHD
+semi-transparency equations on solid rectangles and raw STP textured sprites,
+mask set/check, draw-area clipping, and fills. The textured fixture also
+asserts the expected RGB555 result for each ABR equation. It passed on Mesa Intel UHD
 630 with exact VRAM parity; together with the DMA test, this gives repeatable
 driver-backed coverage of draw ordering, texture coherence, and CPU-visible
 transfers. It does not replace full-game checks on discrete GPUs or other

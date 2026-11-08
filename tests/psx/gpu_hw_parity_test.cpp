@@ -147,6 +147,21 @@ int main()
             0x62f80000u, 204u | (120u << 16), (1u << 16) | 1u,
             0xe1000060u, 0x600000f8u, 206u | (120u << 16), (1u << 16) | 1u,
             0x62f80000u, 206u | (120u << 16), (1u << 16) | 1u,
+            // Raw STP texture over a red destination exercises the four ABR
+            // equations in the textured-sprite path, not only solid fills.
+            0xa0000000u, 48u | (48u << 16), (1u << 16) | 1u, 0x83e0u,
+            0xe1000100u, 0x600000f8u, 220u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 220u | (120u << 16), 48u | (48u << 8),
+            (1u << 16) | 1u,
+            0xe1000120u, 0x600000f8u, 222u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 222u | (120u << 16), 48u | (48u << 8),
+            (1u << 16) | 1u,
+            0xe1000140u, 0x600000f8u, 224u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 224u | (120u << 16), 48u | (48u << 8),
+            (1u << 16) | 1u,
+            0xe1000160u, 0x600000f8u, 226u | (120u << 16), (1u << 16) | 1u,
+            0x67000000u, 226u | (120u << 16), 48u | (48u << 8),
+            (1u << 16) | 1u,
             // Mask set/check and semitransparent rectangle overlap.
             0xe6000001u,
             0x600000ffu, 120u | (120u << 16), (8u << 16) | 8u,
@@ -247,6 +262,17 @@ int main()
         constexpr size_t solid_rect_pixel = 210u * kReadbackWidth + 320u;
         if (expected[solid_rect_pixel] != 0x4210u)
             throw std::runtime_error("PSX solid rectangle was unexpectedly dithered");
+        const std::array<uint16_t, 4> textured_abr_expected{
+            0x81efu, 0x83ffu, 0x801fu, 0x80ffu};
+        for (size_t mode = 0; mode < textured_abr_expected.size(); ++mode) {
+            const size_t pixel = 120u * kReadbackWidth + 220u + mode * 2;
+            if (expected[pixel] != textured_abr_expected[mode]) {
+                std::cerr << "PSX textured ABR mode " << mode << " expected 0x"
+                          << std::hex << textured_abr_expected[mode]
+                          << " got 0x" << expected[pixel] << std::dec << '\n';
+                throw std::runtime_error("PSX textured semitransparency fixture failed");
+            }
+        }
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {
