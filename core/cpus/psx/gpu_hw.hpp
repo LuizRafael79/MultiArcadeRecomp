@@ -58,7 +58,8 @@ public:
                                      unsigned display_start_x, unsigned display_start_y,
                                      unsigned vram_height, int source_x, int source_y,
                                      int destination_x, int destination_y,
-                                     int copy_width, int copy_height);
+                                     int copy_width, int copy_height,
+                                     bool asynchronous = false);
     const std::string& renderer_name() const noexcept;
 
 private:

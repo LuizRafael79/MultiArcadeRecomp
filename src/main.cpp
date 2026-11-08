@@ -2725,6 +2725,8 @@ int run_zn_machine(const std::filesystem::path& source_root,
     const bool capture_vblank_frames = show_window || frame_out.has_value() ||
                                        frame_sequence_dir.has_value();
     machine.memory().gpu().set_frame_capture_enabled(capture_vblank_frames);
+    machine.memory().gpu().set_hardware_scanout_async(
+        gpu_hw && show_window && !frame_out && !frame_sequence_dir);
     std::uint64_t instruction_budget = cycles ? *cycles
         : frames ? cycle_at_frame(frames)
         : cycle_at_frame(1);

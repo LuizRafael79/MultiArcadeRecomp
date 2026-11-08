@@ -43,6 +43,7 @@ public:
         frame_capture_enabled_ = enabled;
         if (!enabled) last_vblank_frame_.reset();
     }
+    void set_hardware_scanout_async(bool enabled) { hardware_scanout_async_ = enabled; }
 
 private:
     void gp0(uint32_t value);
@@ -96,6 +97,7 @@ private:
     uint64_t screen_cycle_hz_ = 0;
     std::optional<GpuFrame> last_vblank_frame_;
     bool frame_capture_enabled_ = true;
+    bool hardware_scanout_async_ = false;
     bool profile_timing_ = false;
     uint64_t profile_execute_packet_ns_ = 0;
     uint64_t profile_execute_packet_calls_ = 0;

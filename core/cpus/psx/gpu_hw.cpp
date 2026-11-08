@@ -133,6 +133,14 @@ std::vector<uint16_t> to_words(std::span<const uint8_t> bytes) {
 } // namespace
 
 struct GpuHardwareRenderer::Impl {
+    struct ScanoutReadback {
+        GLuint buffer = 0;
+        GLsync fence = nullptr;
+        uint64_t sequence = 0;
+        unsigned width = 0;
+        unsigned height = 0;
+    };
+
     SDL_Window* window = nullptr;
     SDL_GLContext context = nullptr;
     bool owns_video = false;
@@ -142,6 +150,13 @@ struct GpuHardwareRenderer::Impl {
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
     GLuint scanout_texture = 0;
+    std::array<ScanoutReadback, 3> scanout_readbacks{};
+    size_t next_scanout_readback = 0;
+    uint64_t next_scanout_sequence = 1;
+    uint64_t displayed_scanout_sequence = 0;
+    unsigned scanout_cache_width = 0;
+    unsigned scanout_cache_height = 0;
+    std::vector<uint8_t> scanout_cache;
     GLuint framebuffer[2]{};
     GLuint vertex_array = 0;
     GLuint command_buffer = 0;
@@ -169,6 +184,10 @@ struct GpuHardwareRenderer::Impl {
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
         if (scanout_texture) glDeleteTextures(1, &scanout_texture);
+        for (auto& readback : scanout_readbacks) {
+            if (readback.fence) glDeleteSync(readback.fence);
+            if (readback.buffer) glDeleteBuffers(1, &readback.buffer);
+        }
         if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
@@ -243,6 +262,12 @@ struct GpuHardwareRenderer::Impl {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 640, 512, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        for (auto& readback : scanout_readbacks) {
+            glGenBuffers(1, &readback.buffer);
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, readback.buffer);
+            glBufferData(GL_PIXEL_PACK_BUFFER, 640 * 512 * 4, nullptr, GL_STREAM_READ);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         glGenFramebuffers(2, framebuffer);
         for (unsigned i = 0; i < 2; ++i) {
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer[i]);
@@ -449,7 +474,8 @@ struct GpuHardwareRenderer::Impl {
                                      unsigned display_start_x, unsigned display_start_y,
                                      unsigned source_vram_height, int source_x, int source_y,
                                      int destination_x, int destination_y,
-                                     int copy_width, int copy_height) {
+                                     int copy_width, int copy_height,
+                                     bool asynchronous) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         if (!width || !height || width > 640 || height > 512 || !source_vram_height)
             throw std::runtime_error("invalid PSX OpenGL scanout dimensions");
@@ -479,8 +505,71 @@ struct GpuHardwareRenderer::Impl {
         glDispatchCompute((width + 7) / 8, (height + 7) / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT);
 
-        std::vector<uint8_t> rgba(size_t(width) * height * 4);
         glBindTexture(GL_TEXTURE_2D, scanout_texture);
+        if (asynchronous) {
+            if (scanout_cache_width != width || scanout_cache_height != height) {
+                scanout_cache_width = width;
+                scanout_cache_height = height;
+                scanout_cache.assign(size_t(width) * height * 3, 0);
+                displayed_scanout_sequence = 0;
+            }
+
+            for (auto& readback : scanout_readbacks) {
+                if (!readback.fence) continue;
+                const GLenum status = glClientWaitSync(
+                    readback.fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+                if (status != GL_ALREADY_SIGNALED && status != GL_CONDITION_SATISFIED) {
+                    if (status == GL_WAIT_FAILED && debug_gl)
+                        throw std::runtime_error("waiting for PSX scanout readback failed");
+                    continue;
+                }
+                if (readback.width == width && readback.height == height &&
+                    readback.sequence >= displayed_scanout_sequence) {
+                    const size_t rgba_size = size_t(width) * height * 4;
+                    glBindBuffer(GL_PIXEL_PACK_BUFFER, readback.buffer);
+                    const auto* rgba = static_cast<const uint8_t*>(glMapBufferRange(
+                        GL_PIXEL_PACK_BUFFER, 0, static_cast<GLsizeiptr>(rgba_size),
+                        GL_MAP_READ_BIT));
+                    if (rgba) {
+                        for (size_t pixel = 0; pixel < size_t(width) * height; ++pixel) {
+                            scanout_cache[pixel * 3] = rgba[pixel * 4];
+                            scanout_cache[pixel * 3 + 1] = rgba[pixel * 4 + 1];
+                            scanout_cache[pixel * 3 + 2] = rgba[pixel * 4 + 2];
+                        }
+                        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+                        displayed_scanout_sequence = readback.sequence;
+                    }
+                    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+                }
+                glDeleteSync(readback.fence);
+                readback.fence = nullptr;
+            }
+
+            for (size_t attempt = 0; attempt < scanout_readbacks.size(); ++attempt) {
+                const size_t slot = (next_scanout_readback + attempt) % scanout_readbacks.size();
+                auto& readback = scanout_readbacks[slot];
+                if (readback.fence) continue;
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, readback.buffer);
+                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                readback.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+                readback.sequence = next_scanout_sequence++;
+                readback.width = width;
+                readback.height = height;
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+                next_scanout_readback = (slot + 1) % scanout_readbacks.size();
+                break;
+            }
+            // Submit at vblank so the following frame can poll a completed
+            // transfer without synchronously waiting for the GPU.
+            glFlush();
+            if (debug_gl) {
+                const GLenum error = glGetError();
+                if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL async scanout failed");
+            }
+            return scanout_cache;
+        }
+
+        std::vector<uint8_t> rgba(size_t(width) * height * 4);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
         std::vector<uint8_t> rgb(size_t(width) * height * 3);
         for (size_t pixel = 0; pixel < size_t(width) * height; ++pixel) {
@@ -488,8 +577,10 @@ struct GpuHardwareRenderer::Impl {
             rgb[pixel * 3 + 1] = rgba[pixel * 4 + 1];
             rgb[pixel * 3 + 2] = rgba[pixel * 4 + 2];
         }
-        const GLenum error = glGetError();
-        if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL scanout failed");
+        if (debug_gl) {
+            const GLenum error = glGetError();
+            if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL scanout failed");
+        }
         return rgb;
     }
 };
@@ -744,11 +835,11 @@ std::vector<uint8_t> GpuHardwareRenderer::scanout_rgb(
     unsigned width, unsigned height, bool display_enabled, bool rgb24,
     unsigned display_start_x, unsigned display_start_y, unsigned vram_height,
     int source_x, int source_y, int destination_x, int destination_y,
-    int copy_width, int copy_height) {
+    int copy_width, int copy_height, bool asynchronous) {
     return impl_->scanout_rgb(width, height, display_enabled, rgb24,
                               display_start_x, display_start_y, vram_height,
                               source_x, source_y, destination_x, destination_y,
-                              copy_width, copy_height);
+                              copy_width, copy_height, asynchronous);
 }
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }

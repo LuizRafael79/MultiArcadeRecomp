@@ -160,3 +160,20 @@ UHD 630 after removing per-primitive flushes; the GP0 profiling total fell from
 per frame, so GPU command submission and CPU-mediated presentation remain
 performance work; the window does not yet present the shared GPU texture
 directly.
+
+Interactive `--gpu-hw` scanout now has an optional three-slot pixel-buffer
+object (PBO) readback ring. It queues final RGB-frame transfers and polls their
+fences without waiting; the SDL-facing frame uses the latest completed readback
+(so it may be one or more frames old under load). Headless captures and frame
+sequences retain synchronous readback for deterministic output. A scanout probe
+matched software RGB exactly on llvmpipe, Intel UHD 630, and NVIDIA GTX 1650.
+This hides part of the GPU-to-CPU readback stall; it does not yet provide
+DuckStation-style direct GPU texture presentation or eliminate CPU frame
+conversion.
+
+The next DuckStation-inspired steps remain: batch compatible primitives to
+reduce per-command submission, maintain explicit texture/CLUT cache coherence
+for VRAM writes, and hand the completed GPU texture to the window presenter
+without mapping every frame to CPU memory. These must preserve PSX command
+ordering and force synchronization only where CPU-visible VRAM or scanout
+requires it.

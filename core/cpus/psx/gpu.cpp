@@ -1395,7 +1395,7 @@ GpuFrame Gpu::framebuffer_rgb() const
         frame.rgb = hardware_renderer_->scanout_rgb(
             frame.width, frame.height, frame.display_enabled, rgb24,
             display_start_x_, display_start_y_, static_cast<unsigned>(vram_height),
-            src_x, src_y, dst_x, dst_y, columns, lines);
+            src_x, src_y, dst_x, dst_y, columns, lines, hardware_scanout_async_);
         report_gpu_summary();
         return frame;
     }
