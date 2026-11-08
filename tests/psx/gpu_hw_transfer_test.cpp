@@ -277,6 +277,38 @@ int main()
             memory, bus, 0x1f00, 0x2000, 100, 100, 1, 1);
         if (!check_packed_pixels(cpu_updated_clut_texel, {0x7c00}))
             throw std::runtime_error("indexed-texture draw used stale CLUT after A0 upload");
+
+        // GP0 0x80 must invalidate a cached indexed source page when it copies
+        // a different texel into the sampled UV. The source and destination
+        // words are both inside the same 4bpp texture page.
+        dma_ram_to_gpu(memory, bus, 0x2100,
+            {0xa0000000u, (10u << 16) | 64u, (1u << 16) | 1u, 1u,
+             0xa0000000u, (10u << 16) | 120u, (1u << 16) | 1u, 3u,
+             0xa0000000u, (2u << 16) | 16u, (1u << 16) | 16u,
+             0x001f0000u, 0x7c000000u,
+             0u, 0u, 0u, 0u, 0u, 0u});
+        const std::vector<uint32_t> page_one_indexed_draw{
+            0xe1000001u,
+            0x65000000u,
+            (300u << 16) | 300u,
+            0x00810a00u,
+            (1u << 16) | 1u,
+        };
+        dma_ram_to_gpu(memory, bus, 0x2200, page_one_indexed_draw);
+        const auto cached_page_texel = dma_gpu_to_ram(
+            memory, bus, 0x2300, 0x2400, 300, 300, 1, 1);
+        if (!check_packed_pixels(cached_page_texel, {0x001f}))
+            throw std::runtime_error("initial nonzero texture-page cache check failed");
+
+        dma_ram_to_gpu(memory, bus, 0x2500,
+            {0xa0000000u, (2u << 16) | 19u, (1u << 16) | 1u, 0x03e0u,
+             0x80000000u, (10u << 16) | 120u, (10u << 16) | 64u,
+             (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x2600, page_one_indexed_draw);
+        const auto copied_page_texel = dma_gpu_to_ram(
+            memory, bus, 0x2700, 0x2800, 300, 300, 1, 1);
+        if (!check_packed_pixels(copied_page_texel, {0x03e0}))
+            throw std::runtime_error("GP0 copy left an indexed-texture cache page stale");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

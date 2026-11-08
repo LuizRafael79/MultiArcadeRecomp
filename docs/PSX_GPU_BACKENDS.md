@@ -411,10 +411,13 @@ cache key. C0 readback observes the new CLUT color, verifying that CPU writes
 invalidate cached GPU texture data before the next draw. It then modifies the
 same cached source page with a GPU fill and confirms the subsequent textured
 draw sees that update as well, covering GPU-write invalidation and the
-render-target-to-texture ordering boundary. It also draws a GPU-only marked
-pixel, enables check-mask, then performs an A0 upload over that pixel and its
-unmarked neighbor. DMA C0 confirms the marked texel is preserved while the
-neighbor is updated, covering the stale-shadow synchronization required before
+render-target-to-texture ordering boundary. A separate nonzero-page fixture
+then copies a different indexed texel into an already cached page with GP0
+`0x80`; the following draw sees the copied index and current CLUT value. This
+covers copy-triggered cache invalidation and sampling order. It also draws a
+GPU-only marked pixel, enables check-mask, then performs an A0 upload over
+that pixel and its unmarked neighbor. DMA C0 confirms the marked texel is
+preserved while the neighbor is updated, covering stale-shadow synchronization before
 CPU-side mask checks. The full PSX GPU suite passed with GL checks enabled on
 both the NVIDIA GTX 1650 and Mesa Intel UHD 630 host drivers.
 
