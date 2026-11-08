@@ -411,8 +411,9 @@ render-target-to-texture ordering boundary.
 and OpenGL GPU instances, then reads back and compares all 524,288 VRAM
 pixels. The stream covers 15bpp, indexed 4bpp/CLUT and 8bpp/CLUT texturing,
 texture-window source addressing, Gouraud-textured triangles, Gouraud
-triangles/quads, flat/Gouraud lines, overlapping VRAM copy, mask set/check,
-semi-transparency, draw-area clipping, and fills. It passed on Mesa Intel UHD
+triangles/quads, flat/Gouraud lines, overlapping VRAM copy, all four ABR
+semi-transparency equations with mask disabled, mask set/check, draw-area
+clipping, and fills. It passed on Mesa Intel UHD
 630 with exact VRAM parity; together with the DMA test, this gives repeatable
 driver-backed coverage of draw ordering, texture coherence, and CPU-visible
 transfers. It does not replace full-game checks on discrete GPUs or other

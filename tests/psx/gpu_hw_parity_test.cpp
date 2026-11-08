@@ -118,6 +118,16 @@ int main()
             0x25000000u, 100u | (100u << 16), 0x00040000u,
             108u | (100u << 16), 0u,
             100u | (108u << 16), 3u | (1u << 8),
+            // Exercise all four semi-transparency equations with mask off.
+            0xe6000000u,
+            0xe1000000u, 0x600000f8u, 200u | (120u << 16), (1u << 16) | 1u,
+            0x62f80000u, 200u | (120u << 16), (1u << 16) | 1u,
+            0xe1000020u, 0x600000f8u, 202u | (120u << 16), (1u << 16) | 1u,
+            0x62f80000u, 202u | (120u << 16), (1u << 16) | 1u,
+            0xe1000040u, 0x600000f8u, 204u | (120u << 16), (1u << 16) | 1u,
+            0x62f80000u, 204u | (120u << 16), (1u << 16) | 1u,
+            0xe1000060u, 0x600000f8u, 206u | (120u << 16), (1u << 16) | 1u,
+            0x62f80000u, 206u | (120u << 16), (1u << 16) | 1u,
             // Mask set/check and semitransparent rectangle overlap.
             0xe6000001u,
             0x600000ffu, 120u | (120u << 16), (8u << 16) | 8u,
