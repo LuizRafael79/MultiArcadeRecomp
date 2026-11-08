@@ -439,6 +439,25 @@ shows no total-runtime speedup on this CPU-dominated workload. It must not be
 used to judge direct-present throughput, which needs a separate windowed
 benchmark.
 
+Cross-board 600-frame headless timing on the same UHD 630 was also repeated
+twice. Bloody Roar 2 (ZN-1) took 1.63/1.63 s with OpenGL and 1.57/1.57 s with
+software, with identical 169,836,249 guest cycles/instructions. Its OpenGL run
+submitted 124,852 primitives in 518 batches and reported one texture-cache
+generation, 101,700 hits, and no invalidations/evictions. Tekken 3 (System 12)
+took 5.18/5.17 s with OpenGL and 5.18/5.15 s with software, with identical
+250,726,699 guest cycles/instructions and 62,681,653 H8 cycles. Its OpenGL run
+submitted 51,767 primitives in 313 batches, with one texture-cache generation,
+51,669 hits, and no invalidations/evictions. These boot/attract workloads show
+the renderer is active on ZN-1 and System 12, but their total runtime remains
+dominated by CPU/device execution and does not show an overall speedup.
+
+The direct-present route was separately timed once on a windowed 300-frame
+SFEX2PA run: 6.949 s with the PSX OpenGL blit and 6.950 s with the SDL
+presenter receiving the software-rendered RGB frame. Guest cycles and
+instructions matched. This establishes that direct presentation avoids a
+visible CPU-side penalty in this sample, but is not a repeated throughput
+result and does not show a material total-runtime gain.
+
 The earlier frame-900 QSound-logo and frame-1500 ARIKA-intro mismatches are
 also superseded: fresh Mesa UHD 630 runs with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
 and software comparison completed 900 and 1,500 vblanks respectively, with no
