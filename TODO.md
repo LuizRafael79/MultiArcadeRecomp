@@ -3,7 +3,7 @@
 ## Foco atual (2026-11-07)
 
 - [ ] Congelar DSP16A LLE/AOT no estado atual; não alterar esse caminho enquanto o trabalho estiver em Bloody Roar 2.
-- [ ] Bloody Roar 2 (`bldyror2`): o usuário confirma que o jogo funciona muito bem fora a abertura FMV, que aparece corrompida. Investigar e corrigir somente essa divergência comparando MDEC/GPU e temporização com o MAME. Falta também integrar uma receita AOT para o jogo; tratar isso após a abertura.
+- [ ] Bloody Roar 2 (`bldyror2`): abertura FMV corrigida após alinhar o DMA2 linked-list ao MAME: preservar o terminador `0xffffff` antes de alinhar o endereço, evitando despachar `0xfffffc` como cabeçalho GP0. Capturas após Raizing (frames 900 e 1200) agora mostram o FMV coerente. Falta integrar a receita AOT do jogo.
 - [ ] Depois de Bloody Roar 2, desacoplar Tekken 3 do runtime de placa ZN e continuar a correção do jogo sem misturar seus componentes específicos com ZN-1/ZN-2.
 
 

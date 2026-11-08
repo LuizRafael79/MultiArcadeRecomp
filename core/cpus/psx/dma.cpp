@@ -165,7 +165,9 @@ void DmaController::start(unsigned channel)
     }
 
     if (channel == 2 && to_device && sync == 2) {
-        uint32_t address = c.base & 0x00fffffc;
+        // Preserve the 24-bit end-of-list sentinel before aligning/masking
+        // RAM addresses. MAME checks 0x00ffffff before applying the RAM mask.
+        uint32_t address = c.base & 0x00ffffff;
         const bool has_linked_list = address != 0x00ffffff;
         uint32_t total_words = 0;
         size_t nodes = 0;
