@@ -798,3 +798,18 @@ and GPU_HW (SHA-256
 runs reported the same guest instruction/cycle count. These results validate
 this title and scene on Intel UHD 630, not continuous parity or performance on
 all Sony-derived boards.
+
+The same line-batched build was checked on ZN-1 `bldyror2` and Namco System
+12 `tekken3`. On ZN-1, paired 600-frame headless runs processed 128,804 GP0
+packets and 169,836,249 guest cycles in both modes. GP0 CPU time was 233.68 ms
+in software and 87.13 ms with GPU_HW; `run_until` was 1.344 s and 1.224 s
+respectively. GPU_HW submitted 125,360 primitives in 49 batches and used one
+texture-cache generation. Frame 600 was byte-identical between software and
+GPU_HW (SHA-256
+`5c906a1da3d3b85fa2121f394acfa6a300062bd0b1f653eee40192cb5e2a984e`).
+
+System 12 `tekken3` frame 600 was also byte-identical (SHA-256
+`de1cae4b28f306cf50ef96d72a79959d9fa58e93c42176737c16a17cdb28e690`). Both
+paths executed 250,726,699 R3000A cycles and 62,681,653 H8 cycles. This is the
+JAMMA initialization scene, not 3D gameplay, so it confirms shared-backend
+parity at this checkpoint only.
