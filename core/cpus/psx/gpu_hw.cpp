@@ -43,6 +43,7 @@ struct alignas(16) ShaderCommand {
     int32_t bounds[4]{};
 };
 static_assert(sizeof(ShaderCommand) % 16 == 0);
+static_assert(sizeof(ShaderCommand) == 224);
 
 struct BatchVertex {
     int32_t position[2]{};
@@ -57,8 +58,9 @@ struct BatchVertex {
     uint32_t gpu_type = 0;
     int32_t window_state[4]{};
     uint32_t texture_layer = 0;
+    uint32_t command_index = 0;
 };
-static_assert(sizeof(BatchVertex) == 68);
+static_assert(sizeof(BatchVertex) == 72);
 
 struct TextureCacheKey {
     uint32_t texture_page = 0;
@@ -233,6 +235,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint vertex_array = 0;
     GLuint batch_vertex_array = 0;
     GLuint batch_vertex_buffer = 0;
+    GLuint batch_command_buffer = 0;
     GLuint command_buffer = 0;
     std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     size_t next_command_slot = 0;
@@ -255,6 +258,7 @@ struct GpuHardwareRenderer::Impl {
     std::array<int, 4> last_dirty_bounds{};
     uint64_t vram_write_generation = 0;
     std::vector<BatchVertex> pending_batch_vertices;
+    std::vector<ShaderCommand> pending_batch_commands;
     std::vector<PendingBatchTexture> pending_batch_textures;
     std::array<TextureCacheEntry, kTextureCacheLayers> texture_cache_entries{};
     std::unordered_map<TextureCacheKey, uint32_t, TextureCacheKeyHash> texture_cache_lookup;
@@ -308,6 +312,7 @@ struct GpuHardwareRenderer::Impl {
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (batch_vertex_array) glDeleteVertexArrays(1, &batch_vertex_array);
         if (batch_vertex_buffer) glDeleteBuffers(1, &batch_vertex_buffer);
+        if (batch_command_buffer) glDeleteBuffers(1, &batch_command_buffer);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
@@ -487,6 +492,12 @@ struct GpuHardwareRenderer::Impl {
         glEnableVertexAttribArray(11);
         glVertexAttribIPointer(11, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
                                reinterpret_cast<const void*>(offsetof(BatchVertex, texture_layer)));
+        glEnableVertexAttribArray(12);
+        glVertexAttribIPointer(12, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, command_index)));
+        glGenBuffers(1, &batch_command_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_command_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
         const size_t alignment = static_cast<size_t>(std::max(storage_alignment, 1));
@@ -794,12 +805,6 @@ struct GpuHardwareRenderer::Impl {
         const uint32_t flags = command.header[2];
         if (vertex_count != 3 && vertex_count != 4)
             return false;
-        // Polygon UV/color interpolation follows the PSX's fixed-point
-        // scanline walk in the compute shader. OpenGL's native varying
-        // interpolation in the batch pipeline is mathematically different
-        // for these primitives and can select adjacent texture pixels.
-        if (flags & 2u) return false;
-
         const int left = std::clamp(command.bounds[0], 0, kVramWidth - 1);
         const int top = std::clamp(command.bounds[1], 0, vram_height - 1);
         const int right = std::clamp(command.bounds[2], 0, kVramWidth - 1);
@@ -835,24 +840,40 @@ struct GpuHardwareRenderer::Impl {
         }
         ++pending_batch_primitive_count;
         const uint32_t set_mask = (flags & 16u) ? 0x8000u : 0u;
-
-        const unsigned indices[6] = {0, 1, 2, 2, 1, 3};
-        const unsigned output_count = vertex_count == 4 ? 6 : 3;
+        const uint32_t command_index = static_cast<uint32_t>(pending_batch_commands.size());
+        pending_batch_commands.push_back(command);
         const size_t first_vertex = pending_batch_vertices.size();
+        const unsigned output_count = 6;
         if (flags & 2u)
             pending_batch_textures.push_back({first_vertex,
                 make_texture_cache_key(command), output_count});
+        // Polygons use a screen-aligned bounding quad. The fragment shader
+        // evaluates the original GP0 vertices with the PSX's 16.16 scanline
+        // stepping, avoiding hardware triangle interpolation differences.
+        // Rectangle primitives keep their native two-triangle geometry.
+        const std::array<std::array<int, 2>, 6> polygon_positions{{
+            {{left, top}}, {{right + 1, top}}, {{left, bottom + 1}},
+            {{left, bottom + 1}}, {{right + 1, top}}, {{right + 1, bottom + 1}}}};
+        const unsigned indices[6] = {0, 1, 2, 2, 1, 3};
+        const bool polygon = command.header[0] == 0u;
         for (unsigned i = 0; i < output_count; ++i) {
-            const auto& source = command.vertices[vertex_count == 4 ? indices[i] : i];
             BatchVertex vertex{};
-            vertex.position[0] = source.xyuv[0];
-            vertex.position[1] = source.xyuv[1];
+            if (command.header[0] == 0u) {
+                vertex.position[0] = polygon_positions[i][0];
+                vertex.position[1] = polygon_positions[i][1];
+            } else {
+                const auto& source = command.vertices[vertex_count == 4 ? indices[i] : i];
+                vertex.position[0] = source.xyuv[0];
+                vertex.position[1] = source.xyuv[1];
+            }
+            const auto& source = command.vertices[vertex_count == 4 ? indices[i] :
+                                                   std::min(i, vertex_count - 1)];
             vertex.uv[0] = source.xyuv[2];
             vertex.uv[1] = source.xyuv[3];
             vertex.color = (flags & (1u | 2u)) ? source.color : command.header[3];
-            const uint32_t triangle_depth = pending_batch_depth_count +
-                ((vertex_count == 4 && i >= 3) ? 2u : 1u);
-            vertex.depth = static_cast<float>(triangle_depth) /
+            const uint32_t vertex_depth = pending_batch_depth_count +
+                (polygon || vertex_count != 4 ? 1u : (i < 3 ? 1u : 2u));
+            vertex.depth = static_cast<float>(vertex_depth) /
                            static_cast<float>(kMaxBatchDepthLayers);
             vertex.set_mask = set_mask;
             vertex.gouraud = (flags & 1u) ? 1u : 0u;
@@ -864,9 +885,10 @@ struct GpuHardwareRenderer::Impl {
             vertex.window_state[1] = command.offset_window[3];
             vertex.window_state[2] = command.window_flip[0];
             vertex.window_state[3] = command.window_flip[1];
+            vertex.command_index = command_index;
             pending_batch_vertices.push_back(vertex);
         }
-        pending_batch_depth_count += vertex_count == 4 ? 2u : 1u;
+        pending_batch_depth_count += !polygon && vertex_count == 4 ? 2u : 1u;
         return true;
     }
 
@@ -901,6 +923,12 @@ struct GpuHardwareRenderer::Impl {
         glBufferData(GL_ARRAY_BUFFER,
                      static_cast<GLsizeiptr>(pending_batch_vertices.size() * sizeof(BatchVertex)),
                      pending_batch_vertices.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_command_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+                     static_cast<GLsizeiptr>(pending_batch_commands.size() * sizeof(ShaderCommand)),
+                     pending_batch_commands.data(), GL_STREAM_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, batch_command_buffer);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         glDrawArrays(GL_TRIANGLES, 0,
                      static_cast<GLsizei>(pending_batch_vertices.size()));
         glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
@@ -914,6 +942,7 @@ struct GpuHardwareRenderer::Impl {
         pending_batch_primitive_count = 0;
         pending_batch_depth_count = 0;
         pending_batch_vertices.clear();
+        pending_batch_commands.clear();
         pending_batch_textures.clear();
         if (debug_gl && glGetError() != GL_NO_ERROR)
             throw std::runtime_error("PSX OpenGL batch rasterization failed");

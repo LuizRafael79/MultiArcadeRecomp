@@ -305,3 +305,19 @@ stable benchmark. Textured-polygon batching is currently bypassed to preserve
 fixed-point semantics; reproducing the scanline interpolation in the batch
 shader, then measuring interactive direct presentation and validating ZN-1
 and System 12, remain open work.
+
+The follow-up batch implementation stores each original GP0 polygon in an
+SSBO and draws its bounded screen rectangle. The fragment shader applies the
+same 16.16 edge and attribute stepping used by the compute rasterizer, then
+does texture-cache lookup, CLUT, mask, and blending in the normal ordered
+batch. This restores batching for textured triangles and quads without relying
+on OpenGL's varying interpolation. On 2026-11-08, SFEX2PA frame 1074 rendered
+pixel-identically to the software capture; traced textured commands `0x2e` and
+`0x2c` each had zero differing VRAM pixels. The portrait remains intact. A
+matched 600-frame headless run took 19.56 s with `--gpu-hw` and 19.64 s with
+software rendering, with identical guest instruction/cycle totals. This
+sample shows parity and removes the earlier measured GPU penalty, but does
+not demonstrate a meaningful speedup; CPU-side guest work still dominates
+this headless measurement. The earlier statements that textured polygons
+bypass batching and that the 1,074-frame result was slower describe the
+previous implementation and are superseded by this checkpoint.
