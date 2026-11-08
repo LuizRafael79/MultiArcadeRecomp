@@ -75,3 +75,10 @@ batched drawing, VRAM texture caching, and synchronization at CPU-visible VRAM
 accesses. This project will implement its backend independently and will not
 copy DuckStation source files. The MAME software renderer remains the behavioral
 reference for the current baseline and for differences in PSX GPU semantics.
+
+Cruis'n USA's V-Unit module already has an in-project GLSL 4.30 compute
+rasterizer in `src/midway/vunit/core/vunit_video_gl.cpp`. Its tiled command
+dispatch and shader compilation/context setup are useful shared infrastructure
+patterns. Its `RasterCommand` data, texture RAM layout, palette rules, and
+512x400 targets are V-Unit-specific; the PSX backend needs its own GLSL shader
+for GP0 primitives, CLUT/texture pages, 1024x512 16-bit VRAM, and PSX blending.
