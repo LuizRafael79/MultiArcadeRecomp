@@ -583,3 +583,13 @@ matrix and per-primitive enable rules were checked against the local DuckStation
 GPU command setup and shader implementation; sprites and raw textures remain
 undithered, while Gouraud/modulated textured polygons and lines use the E1 state
 as appropriate.
+
+Two fresh-NVRAM 600-frame SFEX2PA headless profile pairs were measured on the
+GTX 1650 with `MAMERECOMP_ZN_PROFILE_RUNTIME=1`. Both modes processed 52,742
+GP0 packets and 250,726,699 guest instructions/cycles. Mean CPU time attributed
+to GP0 packet raster/dispatch was 51.75 ms with `--gpu-hw` and 87.65 ms with
+software (about 41% less). Mean `run_until` was 11.55 s and 11.64 s
+respectively, under 1% apart and within observed run variation. DSP16A execution
+accounted for about 9.4–9.5 s in these runs. This workload confirms that GPU_HW
+reduces CPU work inside the renderer but is not the main lever for total ZN-2
+runtime performance; the profile is diagnostic, not a stable benchmark.
