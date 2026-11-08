@@ -2,12 +2,19 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 layout(binding = 0) uniform usampler2D uSource;
-layout(r16ui, binding = 1) writeonly uniform uimage2D uCacheImage;
+layout(r16ui, binding = 1) writeonly uniform uimage2DArray uCacheImage;
+struct TextureCacheJob {
+    uint layer;
+    uint texture_page;
+    uint gpu_type;
+    uint padding;
+    ivec4 window_state;
+};
+layout(std430, binding = 5) readonly buffer TextureCacheJobs {
+    TextureCacheJob jobs[];
+};
 
 uniform int uVramHeight;
-uniform uint uTexturePage;
-uniform uint uGpuType;
-uniform ivec4 uWindowState;
 
 uint vram_word(int x, int y) {
     int pixel_mask = (uVramHeight * 1024) - 1;
@@ -15,21 +22,21 @@ uint vram_word(int x, int y) {
     return texelFetch(uSource, ivec2(index & 1023, index >> 10), 0).r;
 }
 
-uint sample_texture(int u, int v) {
-    uint tpage = uTexturePage;
-    uint gpu_type = uGpuType;
+uint sample_texture(TextureCacheJob job, int u, int v) {
+    uint tpage = job.texture_page;
+    uint gpu_type = job.gpu_type;
     int depth = gpu_type == 2u ? int((tpage >> 7) & 3u)
                                : int((tpage >> 9) & 3u);
     if (depth == 3) return 0u;
-    u &= uWindowState.z;
-    v &= uWindowState.w;
+    u &= job.window_state.z;
+    v &= job.window_state.w;
     int ppw = depth == 0 ? 4 : depth == 1 ? 2 : 1;
     int page_x = int(tpage & 15u) * 64;
     int page_y = gpu_type == 2u
         ? int(((tpage & 0x10u) << 4) | ((tpage & 0x800u) >> 2))
         : int(tpage & 0x60u) << 3;
-    int base_x = page_x + uWindowState.x / ppw;
-    int base_y = page_y + uWindowState.y;
+    int base_x = page_x + job.window_state.x / ppw;
+    int base_y = page_y + job.window_state.y;
     if (depth == 2) return vram_word(base_x + u, base_y + v);
     int tex_x = u / ppw;
     int tex_y = v;
@@ -47,8 +54,9 @@ uint sample_texture(int u, int v) {
 }
 
 void main() {
+    const TextureCacheJob job = jobs[gl_GlobalInvocationID.z];
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     if (pixel.x >= 256 || pixel.y >= 256) return;
-    const uint texel = sample_texture(pixel.x, pixel.y);
-    imageStore(uCacheImage, pixel, uvec4(texel, 0u, 0u, 0u));
+    const uint texel = sample_texture(job, pixel.x, pixel.y);
+    imageStore(uCacheImage, ivec3(pixel, int(job.layer)), uvec4(texel, 0u, 0u, 0u));
 }

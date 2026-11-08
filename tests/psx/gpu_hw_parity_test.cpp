@@ -211,6 +211,36 @@ int main()
         send(software, commands);
         send(hardware, commands);
 
+        // Fill 64 distinct 15bpp texture pages and submit all of them in a
+        // single draw batch. Cache generation must protect every referenced
+        // layer from LRU replacement until that batch has finished drawing.
+        std::vector<uint32_t> texture_cache_pressure;
+        texture_cache_pressure.push_back(0xe6000000u);
+        for (unsigned page = 0; page < 16; ++page) {
+            texture_cache_pressure.insert(texture_cache_pressure.end(), {
+                0xa0000000u, page * 64u, (1u << 16) | 1u, 0x7fffu});
+        }
+        texture_cache_pressure.push_back(0xe200039cu);
+        unsigned texture_index = 0;
+        for (unsigned abr = 0; abr < 4; ++abr) {
+            for (unsigned page = 0; page < 16; ++page, ++texture_index) {
+                const uint32_t tpage = 0x100u | page | (abr << 5);
+                texture_cache_pressure.insert(texture_cache_pressure.end(), {
+                    0xe1000000u | tpage,
+                    0x65000000u,
+                    (600u + texture_index) | (400u << 16),
+                    0u,
+                    (1u << 16) | 1u});
+            }
+        }
+        texture_cache_pressure.insert(texture_cache_pressure.end(), {
+            0xe2000000u,
+            // A direct VRAM fill drains the queued sprite batch before the
+            // cache-pressure pixels are checked below.
+            0x02000000u, 1000u | (500u << 16), (1u << 16) | 1u});
+        send(software, texture_cache_pressure);
+        send(hardware, texture_cache_pressure);
+
         // In interleaved 480i, DuckStation skips writes to the active
         // displayed field unless GP0(E1).draw_to_displayed_field is set.
         // The reset field bit is odd, so the default display start selects
@@ -294,6 +324,15 @@ int main()
         constexpr size_t solid_rect_pixel = 210u * kReadbackWidth + 320u;
         if (expected[solid_rect_pixel] != 0x4210u)
             throw std::runtime_error("PSX solid rectangle was unexpectedly dithered");
+        for (unsigned pixel = 0; pixel < 64; ++pixel) {
+            if (expected[400u * kReadbackWidth + 600u + pixel] != 0x7fffu) {
+                std::cerr << "texture-cache pressure pixel " << pixel << " expected 0x7fff, got 0x"
+                          << std::hex << expected[400u * kReadbackWidth + 600u + pixel]
+                          << " hardware 0x" << actual[400u * kReadbackWidth + 600u + pixel]
+                          << std::dec << '\n';
+                throw std::runtime_error("PSX texture-cache layer-pressure fixture failed");
+            }
+        }
         const std::array<uint16_t, 4> textured_abr_expected{
             0x81efu, 0x83ffu, 0x801fu, 0x80ffu};
         for (size_t mode = 0; mode < textured_abr_expected.size(); ++mode) {

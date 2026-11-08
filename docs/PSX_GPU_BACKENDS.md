@@ -863,3 +863,25 @@ and 2.380 s with GPU_HW; this headless path includes OpenGL context setup and
 teardown and was slower overall. This isolates a clear CPU saving in GP0, but
 does not establish improved interactive throughput; direct-present windowed
 profiling remains the relevant whole-machine measure.
+
+Texture-cache page generation is now queued in the same draw batch and emitted
+as one layered compute dispatch instead of one dispatch per invalid page. Each
+batch protects all resident cache layers it references from LRU replacement;
+the batch is flushed before it needs more than the 64-layer cache. The parity
+fixture seeds and draws 64 distinct 15bpp pages in one batch and checks all 64
+pixels against the software GPU. It passed on Mesa Intel UHD 630; a run of the
+fixture generated 78 pages in 14 dispatches, with one dispatch covering all
+64 pages in the stress batch. The prior per-page path would submit 78
+dispatches. The three PSX GPU CTests also passed on llvmpipe and the Intel GPU.
+
+A fresh 600-frame SFEX2PA profile on Intel UHD 630, with forced QSound HLE and
+isolated EEPROMs, executed 250,726,699 guest cycles and 34,621 GP0 packets in
+both modes. GP0 host time was 380.04 ms in software and 36.90 ms in GPU_HW;
+`run_until` was 2.651 s and 2.534 s in this pair. GPU_HW generated 10 texture
+pages in 6 dispatches, versus 10 dispatches in the previous per-page path.
+These timings are one sample and do not establish a stable total-runtime gain.
+The same build then captured SFEX2PA frame 1074 on both backends; the 512×240
+PPMs were byte-identical (SHA-256
+`75a664abef6fb51831c87cae08b3ab72acabbae7e613363a7680b1342274d026`), and both
+runs executed 448,800,791 guest cycles. The Ryu portrait remains intact after
+the cache batching change.
