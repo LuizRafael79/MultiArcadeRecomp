@@ -331,6 +331,14 @@ or a differing visible pixel. The ZN-1 run included coin/start inputs. These
 checks establish scanout parity for these captured runs, not full game
 correctness or 3D gameplay coverage.
 
+A paired 600-vblank headless capture of System 12 `tekken3` was then run on
+the NVIDIA GTX 1650 with and without `--gpu-hw`. Both 640×240 PPMs were
+byte-identical (SHA-256
+`de1cae4b28f306cf50ef96d72a79959d9fa58e93c42176737c16a17cdb28e690`), and
+both runs reported 250,726,699 R3000A instructions/cycles and 62,681,653 H8
+cycles. This confirms shared-backend image parity at that boot checkpoint on
+System 12; it is not a gameplay parity or performance result.
+
 The direct-present window path completed 300 SFEX2PA frames in 10.91 s; the
 software rasterizer completed the same input sequence in 10.70 s after
 disabling SDL's Wayland libdecor plugin. Both runs had identical guest cycle
