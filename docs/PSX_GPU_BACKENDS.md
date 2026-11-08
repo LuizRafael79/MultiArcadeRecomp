@@ -506,3 +506,12 @@ reported 448,800,791 guest instructions/cycles and 1,074 frame updates. This
 confirms the portrait fix and this real ZN-2 scene on NVIDIA; it remains a
 single-frame gameplay validation, not a performance benchmark or full-title
 parity proof.
+
+The matched SFEX2PA gameplay frame 1560 was also captured on the GTX 1650 with
+the same coin/start/attack events and independent fresh NVRAM. The OpenGL and
+software PPM files were byte-identical (SHA-256
+`48f8ff6ef121e4ef4ee4bb37f6e4d6d0e201e9c71e4c81fcf59943e8097ea453`), and
+both runs reported 651,889,417 guest instructions/cycles and 1,560 frame
+updates. This checks the 3D fight scene on the discrete driver in addition to
+the portrait frame; it is still a selected-frame comparison, not a continuous
+full-title image-parity or performance result.
