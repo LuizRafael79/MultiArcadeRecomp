@@ -11,6 +11,8 @@ CPU rasterizer.
 The GPU device belongs to the shared PSX-derived SoC. ZN-1, ZN-2, System 12,
 and future Sony-based boards should use the same GPU implementation; board code
 continues to provide its bus mapping, clock, IRQ wiring, and display connection.
+Both Sony ZN and Namco System 12 accept the same `--gpu-hw` backend selection;
+the renderer itself has no ZN-specific types or board callbacks.
 
 ## Current structure
 
@@ -112,3 +114,13 @@ all GP0 families: final 16-bit VRAM comparisons, Gouraud cases, semi-
 transparency, wrapped fills, line edge rules, and GP0 transfer interactions
 still need coverage. Hardware remains selected explicitly with `--gpu-hw`;
 the no-flag software path remains the comparison baseline.
+
+An in-game SFEX2PA capture on the Intel UHD 630 exposed a Gouraud-texture
+modulation bug: the shader packed interpolated vertex color to RGB555, then
+incorrectly treated that packed value as RGB888 for texture modulation. The
+shader now modulates from the interpolated 8-bit vertex color. At frame 1560,
+the fighter models render with the expected white gi and natural skin tones;
+the red/green color corruption is gone. Pixel-level parity with the software
+path is still incomplete (the matched frame differs in 37,590 pixels, mostly
+small rasterization/color-edge differences), so broader GPU validation remains
+open.

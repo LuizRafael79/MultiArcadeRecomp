@@ -82,8 +82,9 @@ void main() {
     uint flags = command.header.z;
     bool textured = (flags & 2u) != 0u;
     bool raw_texture = (flags & 4u) != 0u;
+    bool gouraud = (flags & 1u) != 0u;
     uint result = command.header.w;
-    if ((flags & 1u) != 0u) {
+    if (gouraud) {
         result = (uint(clamp(vColor.r, 0.0, 255.0)) >> 3) |
                  ((uint(clamp(vColor.g, 0.0, 255.0)) >> 3) << 5) |
                  ((uint(clamp(vColor.b, 0.0, 255.0)) >> 3) << 10);
@@ -97,8 +98,10 @@ void main() {
         } else {
             uvec3 tex = uvec3(texel & 31u, (texel >> 5) & 31u,
                               (texel >> 10) & 31u);
-            uvec3 shade = uvec3(result & 255u, (result >> 8) & 255u,
-                                (result >> 16) & 255u);
+            // Gouraud textured primitives keep the interpolated 8-bit
+            // command color for modulation. `result` above is its packed
+            // RGB555 destination value and cannot be unpacked as RGB888.
+            uvec3 shade = uvec3(clamp(vColor, vec3(0.0), vec3(255.0)));
             uvec3 modulated = min(uvec3(31u), tex * shade / 128u);
             result = modulated.x | (modulated.y << 5) | (modulated.z << 10) |
                      (texel & 0x8000u);
