@@ -1293,12 +1293,20 @@ void GpuHardwareRenderer::draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
 void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height,
         int u, int v, uint32_t color, uint32_t clut, const GpuHwState& state,
         bool raw_texture, bool semi_transparent) {
+    // With integer-positioned edges, OpenGL evaluates the first fragment at
+    // x/y + 0.5. A flipped UV decreases from the edge coordinate, so integer
+    // truncation would select u-1/v-1 on the first pixel. DuckStation's
+    // GPU_HW starts flipped rectangles at texcoord+1 and subtracts the extent
+    // at the far edge, preserving the PSX's first texel.
+    const int u_start = u + (state.flip_x < 0 ? 1 : 0);
+    const int v_start = v + (state.flip_y < 0 ? 1 : 0);
+    const int u_end = state.flip_x < 0 ? u_start - width : u + width;
+    const int v_end = state.flip_y < 0 ? v_start - height : v + height;
     const std::array<GpuHwVertex, 4> vertices{{
-        {x, y, u, v, color},
-        {x + width, y, u + width * state.flip_x, v, color},
-        {x, y + height, u, v + height * state.flip_y, color},
-        {x + width, y + height, u + width * state.flip_x,
-         v + height * state.flip_y, color}}};
+        {x, y, u_start, v_start, color},
+        {x + width, y, u_end, v_start, color},
+        {x, y + height, u_start, v_end, color},
+        {x + width, y + height, u_end, v_end, color}}};
     auto command = make_command(1, vertices, state, false, true, raw_texture,
                                 semi_transparent, clut);
     command.header[3] = color;

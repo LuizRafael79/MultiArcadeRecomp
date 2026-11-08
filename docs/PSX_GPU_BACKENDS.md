@@ -264,4 +264,12 @@ software-textured-polygon fallback probe also left the portrait missing, so
 the defect is not isolated to that path. The GP0 packet trace for this scene
 is available with `MAMERECOMP_PSX_GPU_COMPARE_TRACE_FRAME`; the next diagnosis
 needs to follow the relevant draw and its VRAM source data against the software
-reference.
+reference. That trace showed the flipped `GP0 0x64` rectangle (`tpage=0x18b4`)
+was sampling its first texel one position too early. The rectangle path now
+uses DuckStation's `tex_start = tex_left + 1` convention when flipped, with the
+extent subtracted from that start. This removed that command's new pixel
+mismatches and reduced the frame's software/GPU difference from about 35,800
+to 29,300 pixels, but did not visibly restore the Ryu portrait. After that
+correction, the first new mismatches in the traced frame come from textured
+polygon commands (`GP0 0x2e`), which remain to be compared against MAME's
+scanline interpolation.
