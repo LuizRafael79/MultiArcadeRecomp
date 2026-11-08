@@ -190,6 +190,22 @@ int main()
         if (!check_packed_pixels(filled, std::vector<uint16_t>(64, 0x03e0)))
             throw std::runtime_error("DMA GPU fill/readback wrap check failed");
 
+        // With mask checking enabled, A0 must first read GPU-only VRAM back
+        // into the CPU mirror. Preserve the marked pixel while updating its
+        // unmarked neighbor from the same transfer packet.
+        dma_ram_to_gpu(memory, bus, 0x4400, {0xe6000001u});
+        dma_ram_to_gpu(memory, bus, 0x4500,
+            {0x600000ffu, (250u << 16) | 500u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x4600, {0xe6000002u});
+        dma_ram_to_gpu(memory, bus, 0x4700,
+            {0xa0000000u, (250u << 16) | 500u, (1u << 16) | 2u,
+             0x03e003e0u});
+        const auto mask_checked_upload = dma_gpu_to_ram(
+            memory, bus, 0x4800, 0x4900, 500, 250, 2, 1);
+        if (!check_packed_pixels(mask_checked_upload, {0x801f, 0x03e0}))
+            throw std::runtime_error("A0 check-mask did not preserve GPU-written VRAM");
+        dma_ram_to_gpu(memory, bus, 0x4a00, {0xe6000000u});
+
         // The indexed-texture cache stores texel indices, but its source page
         // must still be invalidated when an A0 transfer changes that page.
         // Keep the CLUT outside the texture page and draw twice with the same
