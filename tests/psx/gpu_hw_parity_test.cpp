@@ -122,6 +122,10 @@ int main()
             0x30808080u, 300u | (200u << 16), 0x00808080u,
             308u | (200u << 16), 0x00808080u,
             300u | (208u << 16),
+            // Lines use the compute rasterizer and follow E1 dithering, while
+            // solid rectangles remain undithered even with E1 bit 9 enabled.
+            0x40808080u, 300u | (210u << 16), 308u | (210u << 16),
+            0x60808080u, 320u | (210u << 16), (1u << 16) | 1u,
             // Textured triangle with UVs and the CLUT encoded in the packet.
             0x25000000u, 100u | (100u << 16), 0x00040000u,
             108u | (100u << 16), 0u,
@@ -165,6 +169,12 @@ int main()
         constexpr size_t dither_pixel = 202u * kReadbackWidth + 302u;
         if (expected[dither_pixel] != 0x3defu)
             throw std::runtime_error("PSX dithering fixture did not match its expected RGB555 value");
+        constexpr size_t dither_line_pixel = 210u * kReadbackWidth + 300u;
+        if (expected[dither_line_pixel] != 0x3defu)
+            throw std::runtime_error("PSX line dithering fixture did not match its expected RGB555 value");
+        constexpr size_t solid_rect_pixel = 210u * kReadbackWidth + 320u;
+        if (expected[solid_rect_pixel] != 0x4210u)
+            throw std::runtime_error("PSX solid rectangle was unexpectedly dithered");
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {

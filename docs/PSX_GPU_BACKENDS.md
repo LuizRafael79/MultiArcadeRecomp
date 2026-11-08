@@ -574,11 +574,12 @@ runs executed 448,800,791 guest instructions/cycles. The Ryu portrait is intact
 in the new capture. This verifies that selected frame on NVIDIA, not continuous
 full-game parity.
 
-The GP0 dithering path is now checked with E1 bit 9 set and a constant-color
-Gouraud triangle. The fixture asserts the expected RGB555 value `0x3def` at a
-known pixel in the 4x4 dither matrix, then compares the entire VRAM image
-between software and OpenGL. It passed on Mesa llvmpipe and NVIDIA GTX 1650.
-The dither matrix and per-primitive enable rules were checked against the
-local DuckStation GPU command setup and shader implementation; sprites and raw
-textures remain undithered, while Gouraud/modulated textured polygons and lines
-use the E1 state as appropriate.
+The GP0 dithering path is checked with E1 bit 9 set and a constant-color
+Gouraud triangle and flat line. Both assert the expected RGB555 value `0x3def`
+at known matrix positions; a solid rectangle asserts `0x4210` to verify it
+stays undithered. The fixture then compares the entire VRAM image between
+software and OpenGL. It passes on Mesa llvmpipe and NVIDIA GTX 1650. The dither
+matrix and per-primitive enable rules were checked against the local DuckStation
+GPU command setup and shader implementation; sprites and raw textures remain
+undithered, while Gouraud/modulated textured polygons and lines use the E1 state
+as appropriate.
