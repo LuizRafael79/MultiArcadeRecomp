@@ -705,3 +705,14 @@ byte-identical between software and GPU_HW. The three PSX GPU CTests also pass
 on both hardware devices. These checks cover selected ZN-1/ZN-2 frames and the
 draw-area batching case; they do not establish full-game parity on every
 DuckStation GPU_HW feature.
+
+The same current build was rechecked on Namco System 12/Tekken 3 using the
+NVIDIA GTX 1650: frame 600 and frame 1800 captures were byte-identical between
+software and `--gpu-hw`; at frame 1800 both reported 752,180,096 R3000A
+instructions/cycles and 188,045,002 H8 cycles. The image still shows the JAMMA
+initialization screen, so this is boot-scene parity only; the current JVS/input
+path does not reach the 3D attract/gameplay scene. One matched 1,800-frame wall
+time sample was 14.05 s in software and 15.62 s with GPU_HW. This low-graphics
+boot scene does not establish relative performance under 3D gameplay, but it
+does show that the hardware path has overhead when little raster work is
+offloaded.
