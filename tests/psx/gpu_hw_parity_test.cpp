@@ -98,6 +98,22 @@ int main()
             0xe1000000u,
             0x65000000u, 90u | (90u << 16), 0x00040000u,
             (1u << 16) | 4u,
+            // Texture-window origin changes the packed source word for 4bpp.
+            0xa0000000u, 2u, (1u << 16) | 1u, 1u,
+            0xe2000400u,
+            0x65000000u, 80u | (80u << 16), 0x00040000u,
+            (1u << 16) | 1u,
+            0xe2000000u,
+            // 8bpp uses two indices per source word and the same CLUT lookup.
+            0xe1000080u,
+            0xa0000000u, 10u, (1u << 16) | 1u, 0x0201u,
+            0x65000000u, 110u | (90u << 16), 0x00040014u,
+            (1u << 16) | 2u,
+            // Gouraud modulation over a raw 15bpp source texture.
+            0xe1000100u,
+            0x34808080u, 150u | (100u << 16), 0u,
+            0x0000ffffu, 158u | (100u << 16), 0x01000000u,
+            0x00ff0080u, 150u | (108u << 16), 0u,
             // Textured triangle with UVs and the CLUT encoded in the packet.
             0x25000000u, 100u | (100u << 16), 0x00040000u,
             108u | (100u << 16), 0u,

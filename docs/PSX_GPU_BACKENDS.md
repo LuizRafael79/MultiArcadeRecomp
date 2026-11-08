@@ -409,7 +409,8 @@ render-target-to-texture ordering boundary.
 
 `psx_gpu_hw_parity_test` runs the same GP0 stream through separate software
 and OpenGL GPU instances, then reads back and compares all 524,288 VRAM
-pixels. The stream covers 15bpp and indexed 4bpp/CLUT texturing, Gouraud
+pixels. The stream covers 15bpp, indexed 4bpp/CLUT and 8bpp/CLUT texturing,
+texture-window source addressing, Gouraud-textured triangles, Gouraud
 triangles/quads, flat/Gouraud lines, overlapping VRAM copy, mask set/check,
 semi-transparency, draw-area clipping, and fills. It passed on Mesa Intel UHD
 630 with exact VRAM parity; together with the DMA test, this gives repeatable
