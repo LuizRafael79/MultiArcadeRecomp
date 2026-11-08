@@ -228,3 +228,13 @@ write generation forces that rectangle to refresh if GPU work occurs between
 successive GPUREADs; querying the generation flushes pending raster batches
 first. An end-to-end GP0 `C0` probe read pixels across both VRAM edges and
 observed a queued GPU draw inserted between consecutive GPUREAD words.
+
+Cross-board validation on ZN-1 ran Bloody Roar 2 for 900 frames: the
+OpenGL/rasterizer and software frame captures were byte-identical. The GPU path
+submitted 134,006 primitives in 677 batches, with 13 texture generations and
+no cache evictions. A separate 900-frame native-window run completed through
+the direct-present path; its 15.7-second wall time includes presentation
+pacing and is not a throughput benchmark. The headless capture run was slower
+than software in this single sample (5.72 s versus 4.71 s), which is a reminder
+that readback-heavy validation does not measure the intended direct-present
+interactive path.
