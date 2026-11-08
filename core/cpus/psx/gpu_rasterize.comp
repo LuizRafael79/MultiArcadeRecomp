@@ -79,6 +79,9 @@ uint blend555(uint back, uint front, uint mode) {
     else c = min(uvec3(31u), b + (f >> 2));
     return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
 }
+int floor_fixed16(int value) {
+    return value >= 0 ? value / 65536 : -((-value + 65535) / 65536);
+}
 void main() {
     ivec2 p = uDispatchOrigin + ivec2(gl_GlobalInvocationID.xy);
     if (p.x < command.bounds.x || p.y < command.bounds.y ||
@@ -95,12 +98,33 @@ void main() {
     } else if (kind == 3u) {
         Vertex a = command.vertices[0];
         Vertex b = command.vertices[1];
-        vec2 delta = vec2(b.xyuv.xy - a.xyuv.xy);
-        float length_sq = dot(delta, delta);
-        float t = length_sq > 0.0 ? clamp(dot(center - vec2(a.xyuv.xy), delta) / length_sq, 0.0, 1.0) : 0.0;
-        vec2 nearest = vec2(a.xyuv.xy) + delta * t;
-        covered = distance(center, nearest) <= 0.71;
-        weights = vec3(1.0 - t, t, 0.0);
+        ivec2 delta = b.xyuv.xy - a.xyuv.xy;
+        int steps = max(1, max(abs(delta.x), abs(delta.y)));
+        int step_index;
+        if (abs(delta.x) >= abs(delta.y) && delta.x != 0)
+            step_index = delta.x > 0 ? p.x - a.xyuv.x : a.xyuv.x - p.x;
+        else if (delta.y != 0)
+            step_index = delta.y > 0 ? p.y - a.xyuv.y : a.xyuv.y - p.y;
+        else
+            step_index = 0;
+        if (step_index < 0 || step_index >= steps) return;
+        ivec2 delta_fixed = (delta * 65536) / steps;
+        ivec2 position_fixed = a.xyuv.xy * 65536 + step_index * delta_fixed;
+        if (floor_fixed16(position_fixed.x) != p.x ||
+            floor_fixed16(position_fixed.y) != p.y)
+            return;
+        covered = true;
+        if ((command.header.z & 1u) != 0u) {
+            ivec3 c0 = ivec3(a.color & 255u, (a.color >> 8) & 255u,
+                             (a.color >> 16) & 255u);
+            ivec3 c1 = ivec3(b.color & 255u, (b.color >> 8) & 255u,
+                             (b.color >> 16) & 255u);
+            ivec3 delta_color_fixed = ((c1 - c0) * 65536) / steps;
+            ivec3 color_fixed = c0 * 65536 + step_index * delta_color_fixed;
+            result = uint(color_fixed.r >> 19) |
+                     (uint(color_fixed.g >> 19) << 5) |
+                     (uint(color_fixed.b >> 19) << 10);
+        }
     } else {
         tri[0] = 0; tri[1] = 1; tri[2] = 2;
         covered = triangle_weights(command.vertices[0].xyuv.xy,
@@ -124,17 +148,6 @@ void main() {
     } else if (kind == 3u) {
         if (p.x < command.draw_area.x || p.y < command.draw_area.y ||
             p.x > command.draw_area.z || p.y > command.draw_area.w) return;
-        if ((command.header.z & 1u) != 0u) {
-            vec3 color = vec3(command.vertices[0].color & 255u,
-                (command.vertices[0].color >> 8) & 255u,
-                (command.vertices[0].color >> 16) & 255u) * weights.x +
-                vec3(command.vertices[1].color & 255u,
-                (command.vertices[1].color >> 8) & 255u,
-                (command.vertices[1].color >> 16) & 255u) * weights.y;
-            result = (uint(clamp(color.r, 0.0, 255.0)) >> 3) |
-                ((uint(clamp(color.g, 0.0, 255.0)) >> 3) << 5) |
-                ((uint(clamp(color.b, 0.0, 255.0)) >> 3) << 10);
-        }
     } else if (kind != 3u) {
         if (p.x < command.draw_area.x || p.y < command.draw_area.y ||
             p.x > command.draw_area.z || p.y > command.draw_area.w) return;

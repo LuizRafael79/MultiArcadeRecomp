@@ -16,6 +16,7 @@ namespace {
 constexpr int kVramWidth = 1024;
 constexpr int kMinVramHeight = 512;
 constexpr int kMaxVramHeight = 1024;
+constexpr size_t kCommandRingSlots = 4096;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -141,6 +142,9 @@ struct GpuHardwareRenderer::Impl {
     GLuint framebuffer[2]{};
     GLuint vertex_array = 0;
     GLuint command_buffer = 0;
+    std::array<GLsync, kCommandRingSlots> command_fences{};
+    size_t next_command_slot = 0;
+    size_t command_stride = sizeof(ShaderCommand);
     GLint origin_location = -1;
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
@@ -160,6 +164,8 @@ struct GpuHardwareRenderer::Impl {
         if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
+        for (GLsync fence : command_fences)
+            if (fence) glDeleteSync(fence);
         if (context) SDL_GL_DestroyContext(context);
         if (window) SDL_DestroyWindow(window);
         if (owns_video) SDL_QuitSubSystem(SDL_INIT_VIDEO);
@@ -232,9 +238,15 @@ struct GpuHardwareRenderer::Impl {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glGenVertexArrays(1, &vertex_array);
         glBindVertexArray(vertex_array);
+        GLint storage_alignment = 1;
+        glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
+        const size_t alignment = static_cast<size_t>(std::max(storage_alignment, 1));
+        command_stride = (sizeof(ShaderCommand) + alignment - 1) / alignment * alignment;
         glGenBuffers(1, &command_buffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ShaderCommand), nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+                     static_cast<GLsizeiptr>(command_stride * kCommandRingSlots),
+                     nullptr, GL_STREAM_DRAW);
         glUseProgram(program);
         glUniform1i(glGetUniformLocation(program, "uSource"), 1);
         glUseProgram(draw_program);
@@ -272,6 +284,9 @@ struct GpuHardwareRenderer::Impl {
     unsigned prepare_destination() {
         const unsigned destination_vram = current_vram ^ 1u;
         if (vram_textures_diverged) {
+            // Mesa may defer compute writes until the next flush; submit them
+            // before copying the dirty region between VRAM textures.
+            glFlush();
             glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT |
                             GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                             GL_FRAMEBUFFER_BARRIER_BIT);
@@ -296,6 +311,31 @@ struct GpuHardwareRenderer::Impl {
         last_dirty_bounds = {min_x, min_y, max_x, max_y};
     }
 
+    size_t upload_command(const ShaderCommand& command) {
+        const size_t slot = next_command_slot++ % kCommandRingSlots;
+        GLsync& fence = command_fences[slot];
+        if (fence) {
+            GLenum wait_result = GL_TIMEOUT_EXPIRED;
+            while (wait_result == GL_TIMEOUT_EXPIRED)
+                wait_result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT,
+                                               1'000'000'000ull);
+            glDeleteSync(fence);
+            fence = nullptr;
+            if (wait_result == GL_WAIT_FAILED)
+                throw std::runtime_error("waiting for PSX OpenGL command slot failed");
+        }
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
+        const GLintptr offset = static_cast<GLintptr>(slot * command_stride);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, sizeof(command), &command);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, command_buffer, offset,
+                          sizeof(command));
+        return slot;
+    }
+
+    void mark_command_slot(size_t slot) {
+        command_fences[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
     void execute(ShaderCommand command, GLuint source_override = 0) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
@@ -309,9 +349,7 @@ struct GpuHardwareRenderer::Impl {
         command.bounds[3] = max_y;
         const unsigned destination_vram = prepare_destination();
         glUseProgram(program);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(command), &command);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, command_buffer);
+        const size_t command_slot = upload_command(command);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, source_override ? source_override : vram[current_vram]);
         glBindImageTexture(0, vram[destination_vram], 0, GL_FALSE, 0,
@@ -323,6 +361,7 @@ struct GpuHardwareRenderer::Impl {
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
         finish_write(destination_vram, min_x, min_y, max_x, max_y);
+        mark_command_slot(command_slot);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL raster dispatch failed");
     }
@@ -351,9 +390,7 @@ struct GpuHardwareRenderer::Impl {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_DITHER);
         glUseProgram(draw_program);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(command), &command);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, command_buffer);
+        const size_t command_slot = upload_command(command);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
         glBindVertexArray(vertex_array);
@@ -363,6 +400,7 @@ struct GpuHardwareRenderer::Impl {
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         finish_write(destination_vram, min_x, min_y, max_x, max_y);
+        mark_command_slot(command_slot);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL triangle raster failed");
     }
@@ -560,6 +598,7 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
     // Snapshot the complete source rectangle before writing any destination
     // pixels. This preserves overlap semantics even when either rectangle
     // wraps at the VRAM edge and the copy needs several dispatches.
+    glFlush();
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
     int source_row = 0;

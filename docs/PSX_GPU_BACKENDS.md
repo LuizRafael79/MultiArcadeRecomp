@@ -76,8 +76,9 @@ Implement and compare each GP0 family against the retained software path:
    including CLUT, texture page/window, transparency, and texture STP.
 3. Gouraud interpolation, dithering, draw-area clipping/offset, mask test/set,
    and the four semi-transparency equations.
-4. Lines, VRAM copy, and transfer interaction. GP0 `0x80` is GPU-resident;
-   CPU/DMA transfers still need to order against pending GPU draws.
+4. Lines, VRAM copy, and transfer interaction. Flat and Gouraud lines now use
+   the software path's fixed-point DDA and omit the terminal endpoint. GP0
+   `0x80` is GPU-resident; CPU/DMA transfers still need ordering coverage.
 5. Display scanout and interlace modes, preserving GP1 display start/ranges and
    the physical aspect ratio selected by the board/presenter.
 
@@ -129,3 +130,12 @@ open.
 GP0 `0x80` was verified on the Intel UHD 630 with wrapped, overlapping, and
 mask-tested copy probes against a CPU snapshot reference. An end-to-end GP0
 `0x80` followed by GP0 `0xc0` readback also matched all copied words.
+
+The OpenGL line compute shader now follows the fixed-point DDA step and
+endpoint rule used by the software renderer. A sequence containing clipped,
+horizontal, vertical, steep, reversed, zero-length, flat, Gouraud, and
+semi-transparent lines matched the software VRAM pixels exactly on the Intel
+UHD 630. The command SSBO uses a fenced ring so the CPU never overwrites a slot
+while the GPU is still reading it. Mesa also needs queued VRAM writes flushed
+before `glCopyImageSubData` carries dirty pixels between the ping-pong images;
+this submits work without stalling for GPU completion.
