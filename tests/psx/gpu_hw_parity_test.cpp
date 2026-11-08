@@ -244,8 +244,37 @@ int main()
             gpu.write_data((1u << 16) | 2u);
             return gpu.read_data();
         };
-        if (read_texture_pair(psx_software) != read_texture_pair(psx_hardware))
+        const uint32_t psx_software_pair = read_texture_pair(psx_software);
+        const uint32_t psx_hardware_pair = read_texture_pair(psx_hardware);
+        if (psx_software_pair != psx_hardware_pair)
             throw std::runtime_error("PSX type-0 interleaved 8bpp texture parity failed");
+
+        std::vector<uint8_t> gpu1_software_vram(software_vram.size());
+        std::vector<uint8_t> gpu1_hardware_vram(gpu1_software_vram.size());
+        Gpu gpu1_software(gpu1_software_vram, 1);
+        Gpu gpu1_hardware(gpu1_hardware_vram, 1);
+        gpu1_software.set_frame_capture_enabled(false);
+        gpu1_hardware.set_frame_capture_enabled(false);
+        gpu1_hardware.enable_hardware_renderer(window, context);
+        const std::vector<uint32_t> flipped_wrapped_sprite{
+            0xa0000000u, 0u, (1u << 16) | 1u, 0x001fu,
+            0xa0000000u, 255u, (1u << 16) | 1u, 0x03e0u,
+            0xe1001400u,
+            0x65000000u, (100u << 16) | 100u, 0u,
+            (1u << 16) | 2u,
+        };
+        send(gpu1_software, flipped_wrapped_sprite);
+        send(gpu1_hardware, flipped_wrapped_sprite);
+        const uint32_t gpu1_software_pair = read_texture_pair(gpu1_software);
+        const uint32_t gpu1_hardware_pair = read_texture_pair(gpu1_hardware);
+        if (gpu1_software_pair != 0x03e0001fu)
+            throw std::runtime_error("PSX GPU type-1 flipped UV fixture is invalid");
+        if (gpu1_software_pair != gpu1_hardware_pair) {
+            std::cerr << "PSX GPU type-1 flipped UV wrap mismatch: software=0x"
+                      << std::hex << gpu1_software_pair << " hardware=0x"
+                      << gpu1_hardware_pair << std::dec << '\n';
+            throw std::runtime_error("PSX GPU type-1 flipped texture parity failed");
+        }
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

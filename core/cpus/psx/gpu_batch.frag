@@ -93,7 +93,10 @@ void main() {
     const ShaderCommand command = commands[vCommandIndex];
     const bool polygon = command.header.x == 0u;
     const ivec2 pixel = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
-    ivec2 uv_sample = ivec2(vUV);
+    // A flipped sprite can interpolate to a negative half-texel at its far
+    // edge. Conversion to int truncates toward zero; floor preserves the
+    // preceding UV so the later PSX 8-bit wrap selects texel 255.
+    ivec2 uv_sample = ivec2(floor(vUV));
     ivec3 color_sample = ivec3(clamp(vColor, vec3(0.0), vec3(255.0)));
     if (polygon) {
         if (pixel.x < command.bounds.x || pixel.y < command.bounds.y ||

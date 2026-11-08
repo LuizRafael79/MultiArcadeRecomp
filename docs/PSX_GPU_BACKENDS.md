@@ -420,7 +420,13 @@ transfers. It does not replace full-game checks on discrete GPUs or other
 driver implementations. A second software/OpenGL pair uses GPU type 0 and
 compares the readback of an interleaved 8bpp texture crossing from UV row 0 to
 row 1; it passes with exact pixel parity. This exercises the older PSX texture
-addressing path separately from the ZN/System 12 GPU type 2 path.
+addressing path separately from the ZN/System 12 GPU type 2 path. A GPU type 1
+case also draws a horizontally flipped raw 15bpp sprite from U=0 across the
+255→0 boundary. That test found a real OpenGL mismatch: interpolation reached
+U=-0.5 at the second pixel and GLSL integer conversion truncated it to zero,
+repeating the first texel. Both the draw and batch fragment shaders now floor
+interpolated UVs before the 8-bit wrap; the test now matches the software
+pixels `[0x001f, 0x03e0]` exactly.
 
 That parity test also compares the complete RGB output from software and
 OpenGL scanout after configuring GP1 modes/ranges independently on each device.

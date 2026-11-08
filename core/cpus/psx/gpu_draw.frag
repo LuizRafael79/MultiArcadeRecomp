@@ -91,7 +91,13 @@ void main() {
     }
     uint texel = 0u;
     if (textured) {
-        texel = sample_texture(int(vUV.x), int(vUV.y));
+        // Raster fragments sample at pixel centers. A flipped rectangle can
+        // interpolate to a negative half-texel at the far edge; GLSL's int
+        // conversion truncates that toward zero, while PSX UVs wrap modulo
+        // 256 after selecting the preceding texel. Floor before wrapping so
+        // U/V 0 correctly continue at 255 instead of repeating texel zero.
+        const ivec2 uv_sample = ivec2(floor(vUV));
+        texel = sample_texture(uv_sample.x, uv_sample.y);
         if (texel == 0u) discard;
         if (raw_texture) {
             result = texel;
