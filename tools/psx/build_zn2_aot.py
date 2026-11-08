@@ -56,7 +56,8 @@ def main() -> int:
         args.python, str(Path(__file__).resolve().parent / "recomp.py"),
         "--program", str(program), "--base", "0x80000000",
         "--entry", "0x80000000", "--entries-file", str(args.pc_list),
-        "--entries-only", "--out", str(psx_output),
+        "--entries-only", "--validate-source-every-instruction",
+        "--out", str(psx_output),
     ], check=False).returncode
 
 

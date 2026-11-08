@@ -324,7 +324,8 @@ def emit_instruction(pc: int, word: int) -> str:
     return head + f"    return psx_aot_interpret_one(s, bus, 0x{word:08x}u, pc);\n"
 
 
-def emit_block(block: list[tuple[int, int]]) -> str:
+def emit_block(block: list[tuple[int, int]],
+               validate_source_every_instruction: bool = False) -> str:
     """Emit one bounded straight-line function, preserving per-op boundaries."""
     lines: list[str] = []
     chain_block = len(block) > 1 and not any(is_memory_access(word)
@@ -340,6 +341,8 @@ def emit_block(block: list[tuple[int, int]]) -> str:
     for index, (pc, word) in enumerate(block):
         lines.append(f"instruction_{index}:\n    {{\n")
         if index:
+            source_guard = ("true" if validate_source_every_instruction
+                            else f"event_due_{index}")
             lines.append(f"    if (entry_offset < {index} && s->cycles >= cycle_limit) return PSX_AOT_DISPATCH;\n")
             lines.append(
                 f"    const bool event_due_{index} = entry_offset < {index} && s->cycles >= s->next_event_cycle;\n"
@@ -347,7 +350,7 @@ def emit_block(block: list[tuple[int, int]]) -> str:
                 f"        bus->check_interrupts(bus->opaque, s, 0x{pc:08x}u);\n"
                 f"    if (entry_offset < {index} && (s->cp0[12] & 1u) && (s->cp0[12] & s->cp0[13] & 0x0000ff00u))\n"
                 f"        return psx_aot_raise_exception(s, 0u, 0x{pc:08x}u, 0);\n"
-                f"    if (event_due_{index}) {{\n"
+                f"    if ({source_guard}) {{\n"
                 "        uint32_t actual_opcode = 0;\n"
                 f"        const uint32_t physical_pc = 0x{pc:08x}u & 0x1fffffffu;\n"
                 "        const size_t ram_size = bus ? bus->direct_ram_size : 0;\n"
@@ -388,6 +391,8 @@ def main():
     parser.add_argument("--entries-file", type=Path, help="additional entry PCs, one hexadecimal value per line")
     parser.add_argument("--entries-only", action="store_true",
                         help="translate only supplied/profiled PCs and form bounded blocks")
+    parser.add_argument("--validate-source-every-instruction", action="store_true",
+                        help="validate each chained instruction against live memory before executing it")
     parser.add_argument("--out", required=True, type=Path, help="generated C++ module path")
     args = parser.parse_args()
     try:
@@ -431,7 +436,8 @@ def main():
         for block in blocks[start:start + FUNCTIONS_PER_SOURCE]:
             pc = block[0][0]
             shard_lines.append(f"PsxAotExit psx_block_{pc:08x}(PsxCpuState *s, const PsxBus *bus, uint64_t cycle_limit, uint8_t entry_offset)\n{{\n")
-            shard_lines.append(emit_block(block))
+            shard_lines.append(emit_block(
+                block, args.validate_source_every_instruction))
             shard_lines.append("}\n\n")
         shard.write_text("".join(shard_lines))
 
