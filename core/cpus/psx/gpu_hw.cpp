@@ -1817,8 +1817,10 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
 
     // Snapshot the complete source rectangle before writing any destination
     // pixels. This preserves overlap semantics even when either rectangle
-    // wraps at the VRAM edge and the copy needs several dispatches.
-    glFlush();
+    // wraps at the VRAM edge and the copy needs several dispatches. OpenGL
+    // preserves command order in this context; the barrier makes prior draw
+    // and image writes visible to the texture-copy operation without forcing
+    // an extra host-side submission here.
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
     int source_row = 0;

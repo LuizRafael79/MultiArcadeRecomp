@@ -31,6 +31,8 @@ the renderer itself has no ZN-specific types or board callbacks.
 - Batches flush at ordering boundaries, including destination read/write
   overlap, texture/CLUT reads that overlap pending writes, CPU-visible VRAM
   operations, and scanout. GPU-to-GPU GP0 `0x80` copies use a source snapshot.
+  The copy stays in the same OpenGL command stream and uses explicit image/
+  texture barriers; it does not force a separate `glFlush` submission.
   GP0 A0 uploads update only their rectangle; C0 reads back only the requested
   rectangle. DMA2 linked-list upload/readback and odd-width wrapped transfers
   have automated coverage.
