@@ -1481,7 +1481,7 @@ void print_usage(const char* program) {
               << "  " << program << " build|run --machine=konami --board=tmnt2 --game=<tmnt2|ssriders> [--rom-dir <game.zip>] [--window|--headless --frames <count>|--cycles <count>] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--frame-sequence-dir <directory>] [--frame-sequence-step <frames>]\n"
               << "  " << program << " run --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build|run --machine=seibu --board=toki --game=toki [--rom-dir <toki.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
-              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--qsound-mode true|mixed|hle] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--psx-interpreter-only]\n"
+              << "  " << program << " run --machine=sony --board=<zn1|zn2> --game=<bldyror2|sfex2pa> [--rom-dir <game.zip>] [--qsound-mode true|mixed|hle] [--window|--headless --frames <count>|--cycles <count>] [--audio] [--button-event <frame>:<button>:<duration>] [--frame-out <image.ppm>] [--r3000a-no-aot] [--z80-no-aot] [--dsp16a-no-aot] [--no-aot]\n"
               << "  " << program << " run --machine=namco --board=system12 --game=tekken3 [--rom-dir <tekken3.zip>] [--window|--headless --frames <count>|--cycles <count>] [--frame-out <image.ppm>]\n"
               << "  " << program << " build --machine=konami --board=tmnt --game=tmnt [--rom-dir <tmnt.zip>]\n"
               << "  " << program << " build --machine=cps --board=cps2 --game=<sfa3|sfz2a|sfz2al|hsf2> [--rom-dir <game.zip>] [--jobs <count>] [--rebuild]\n"
@@ -2597,7 +2597,9 @@ int run_zn_machine(const std::filesystem::path& source_root,
                    std::uint64_t frame_sequence_step,
                    const char *platform_name, const char *board_name,
                    const std::optional<std::filesystem::path>& nvram_option,
-                   bool psx_interpreter_only,
+                   bool r3000a_no_aot,
+                   bool z80_no_aot,
+                   bool dsp16a_no_aot,
                    mamerecomp::chips::QSoundMode qsound_mode,
                    bool qsound_mixed_requested) {
 #if defined(__linux__)
@@ -2662,18 +2664,20 @@ int run_zn_machine(const std::filesystem::path& source_root,
         const char *symbol_error = dlerror();
         if (symbol_error || !get_code)
             throw std::runtime_error("ZN-2 AOT module has no Z80 table: " + std::string(symbol_error ? symbol_error : "unknown loader error"));
-        zn2_z80_code = get_code();
+        if (!z80_no_aot)
+            zn2_z80_code = get_code();
         using PsxEntriesFn = void (*)(const PsxAotEntry **, size_t *);
         auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_psx_entries"));
-        if (get_psx_entries && !psx_interpreter_only)
+        if (get_psx_entries && !r3000a_no_aot)
             get_psx_entries(&zn2_psx_entries, &zn2_psx_entry_count);
         using Dsp16AEntriesFn = void (*)(const mamerecomp::dsp16::Dsp16ACompiledEntry **, size_t *);
         auto get_dsp16a_entries = reinterpret_cast<Dsp16AEntriesFn>(
             dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_entries"));
-        if (get_dsp16a_entries)
+        if (get_dsp16a_entries && !dsp16a_no_aot)
             get_dsp16a_entries(&zn2_dsp16a_entries, &zn2_dsp16a_entry_count);
-        zn2_dsp16a_run = reinterpret_cast<mamerecomp::dsp16::Dsp16ARunHandler>(
-            dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_run"));
+        if (!dsp16a_no_aot)
+            zn2_dsp16a_run = reinterpret_cast<mamerecomp::dsp16::Dsp16ARunHandler>(
+                dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_run"));
     }
 #endif
     std::vector<std::uint16_t> qsound_firmware;
@@ -3224,7 +3228,10 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
     std::optional<std::filesystem::path> dma_command_log;
     std::string qsound_mode_option = "true";
     bool qsound_mode_option_seen = false;
-    bool psx_interpreter_only = false;
+    bool r3000a_no_aot = false;
+    bool z80_no_aot = false;
+    bool dsp16a_no_aot = false;
+    bool no_aot = false;
     bool audio_enabled = false;
     bool audio_stereo_spread = false;
     bool audio_pan_option_set = false;
@@ -3257,7 +3264,10 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
             qsound_mode_option = *value;
         }
         else if (option == "--audio") audio_enabled = true;
-        else if (option == "--psx-interpreter-only") psx_interpreter_only = true;
+        else if (option == "--psx-interpreter-only" || option == "--r3000a-no-aot") r3000a_no_aot = true;
+        else if (option == "--z80-no-aot") z80_no_aot = true;
+        else if (option == "--dsp16a-no-aot") dsp16a_no_aot = true;
+        else if (option == "--no-aot") no_aot = true;
         else if (const auto value = value_after("--audio-pan")) {
             if (*value == "game") audio_stereo_spread = false;
             else if (*value == "spread") audio_stereo_spread = true;
@@ -3284,10 +3294,12 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         !((machine == "sony" || machine == "zn") &&
           (board == "zn1" || board == "zn2")))
         throw std::runtime_error("frame sequence capture is supported for Konami TMNT2 and Sony ZN");
-    if (psx_interpreter_only &&
-        !((machine == "sony" || machine == "zn") && board == "zn2" &&
+    if ((r3000a_no_aot || z80_no_aot || dsp16a_no_aot || no_aot) &&
+        !(!build_mode && (machine == "sony" || machine == "zn") && board == "zn2" &&
           game == "sfex2pa"))
-        throw std::runtime_error("--psx-interpreter-only is supported for Sony ZN-2 SFEX2PA run");
+        throw std::runtime_error("per-CPU AoT controls are supported for Sony ZN-2 SFEX2PA run only");
+    if (no_aot)
+        r3000a_no_aot = z80_no_aot = dsp16a_no_aot = true;
     if (qsound_mode_option_seen &&
         !((machine == "sony" || machine == "zn") && board == "zn2" &&
           game == "sfex2pa" && !build_mode))
@@ -3330,8 +3342,8 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         const bool valid_zn2 = board == "zn2" && game == "sfex2pa";
         if (!valid_zn1 && !valid_zn2)
             throw std::runtime_error("Sony ZN adapter currently supports --board=zn1 --game=bldyror2 or --board=zn2 --game=sfex2pa");
-        if (build_mode && psx_interpreter_only)
-            throw std::runtime_error("--psx-interpreter-only is only valid for run");
+        if (build_mode && (r3000a_no_aot || z80_no_aot || dsp16a_no_aot || no_aot))
+            throw std::runtime_error("per-CPU AoT controls are only valid for run");
         if (audio_pan_option_set || input_replay || dma_command_log)
             throw std::runtime_error("ZN audio pan, input replay and DMA logging are not integrated yet");
         std::vector<InputEvent> zn_events;
@@ -3385,13 +3397,18 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
             return run_child_process({"cmake", "--build", build_root.string(),
                 "--target", "mamerecomp_zn2_sfex2pa", "--parallel", jobs});
         }
-        if (psx_interpreter_only)
-            std::cout << "SFEX2PA R3000A mode: interpreter-only (Z80 AOT remains enabled).\n";
+        if (r3000a_no_aot || z80_no_aot || dsp16a_no_aot) {
+            std::cout << "SFEX2PA AoT overrides:";
+            if (r3000a_no_aot) std::cout << " R3000A=interpreter";
+            if (z80_no_aot) std::cout << " Z80=interpreter";
+            if (dsp16a_no_aot) std::cout << " DSP16A=interpreter";
+            std::cout << ".\n";
+        }
         return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
                               show_window, audio_enabled, zn_events, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Sony",
                               valid_zn1 ? "ZN-1" : "ZN-2", nvram,
-                              psx_interpreter_only,
+                              r3000a_no_aot, z80_no_aot, dsp16a_no_aot,
                               qsound_mode_option == "true"
                                   ? mamerecomp::chips::QSoundMode::Lle
                                   : qsound_mode_option == "mixed"
@@ -3411,7 +3428,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
                               show_window, audio_enabled, {}, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Namco", "System 12", std::nullopt,
-                              false, mamerecomp::chips::QSoundMode::Lle, false);
+                              false, false, false, mamerecomp::chips::QSoundMode::Lle, false);
     }
     if (!button_event_specs.empty())
         throw std::runtime_error("--button-event is currently supported for Konami games only");
