@@ -918,3 +918,14 @@ the omitted instructions to the interpreter. The current AoT advantage is
 therefore not improved by a simple frequency cutoff. This headless benchmark
 isolates the CPU execution path and does not rule out additional scheduling or
 presentation costs in windowed gameplay.
+
+The runtime profiler now reports QSound sync request count and DSP run-slice
+size when `MAMERECOMP_ZN_PROFILE_RUNTIME=1` is set. In a matched 1,200-frame
+full-table replay, AoT and interpreter both made 26,735 sync requests and
+26,733 DSP slices, advancing exactly 1,203,488,190 DSP clocks. Average slice
+size was 45,018 clocks (minimum 82, maximum 1,003,073) in both runs. The
+measured DSP run time was 20.512 s with AoT and 15.822 s interpreted; the GP0
+and R3000A/bus/timer measurements were nearly unchanged. This rules out a
+different sync-call cadence as the source of this AoT/interpreter timing gap
+in the headless replay. Z80 timing contains nested QSound synchronization and
+should not be added to the DSP timing as an independent cost.

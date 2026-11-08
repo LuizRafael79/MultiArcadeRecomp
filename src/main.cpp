@@ -3126,6 +3126,18 @@ int run_zn_machine(const std::filesystem::path& source_root,
                       << " ms, Z80 run=" << milliseconds(machine.profile_zn2_z80_ns())
                       << " ms, QSound render="
                       << milliseconds(machine.profile_zn2_qsound_render_ns()) << " ms.\n";
+        if (game == "sfex2pa") {
+            const auto dsp_slices = machine.profile_zn2_dsp_slice_calls();
+            const auto total_dsp_clocks = machine.profile_zn2_dsp_slice_clocks();
+            std::cout << "  QSound scheduling: sync requests="
+                      << machine.profile_zn2_qsound_sync_calls()
+                      << ", DSP run slices=" << dsp_slices
+                      << ", clocks/slice avg="
+                      << (dsp_slices ? total_dsp_clocks / dsp_slices : 0)
+                      << " min=" << machine.profile_zn2_dsp_slice_min_clocks()
+                      << " max=" << machine.profile_zn2_dsp_slice_max_clocks()
+                      << ", total clocks=" << total_dsp_clocks << ".\n";
+        }
     }
     const auto& coverage = machine.counters();
     std::cout << "ZN instructions=" << machine.cpu().instructions

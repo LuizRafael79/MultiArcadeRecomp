@@ -63,6 +63,21 @@ public:
     uint64_t profile_zn2_qsound_render_ns() const {
         return zn2_sound_ ? zn2_sound_->profile_qsound_render_ns() : 0;
     }
+    uint64_t profile_zn2_qsound_sync_calls() const {
+        return zn2_sound_ ? zn2_sound_->profile_qsound_sync_calls() : 0;
+    }
+    uint64_t profile_zn2_dsp_slice_calls() const {
+        return zn2_sound_ ? zn2_sound_->profile_dsp_slice_calls() : 0;
+    }
+    uint64_t profile_zn2_dsp_slice_clocks() const {
+        return zn2_sound_ ? zn2_sound_->profile_dsp_slice_clocks() : 0;
+    }
+    uint64_t profile_zn2_dsp_slice_min_clocks() const {
+        return zn2_sound_ ? zn2_sound_->profile_dsp_slice_min_clocks() : 0;
+    }
+    uint64_t profile_zn2_dsp_slice_max_clocks() const {
+        return zn2_sound_ ? zn2_sound_->profile_dsp_slice_max_clocks() : 0;
+    }
     uint64_t zn1_sound_instructions() const {
         return zn1_sound_ ? zn1_sound_->instructions() : 0;
     }

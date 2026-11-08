@@ -63,6 +63,11 @@ public:
     uint64_t profile_z80_ns() const { return profile_z80_ns_; }
     uint64_t profile_dsp_ns() const { return profile_dsp_ns_; }
     uint64_t profile_qsound_render_ns() const { return profile_qsound_render_ns_; }
+    uint64_t profile_qsound_sync_calls() const { return profile_qsound_sync_calls_; }
+    uint64_t profile_dsp_slice_calls() const { return profile_dsp_slice_calls_; }
+    uint64_t profile_dsp_slice_clocks() const { return profile_dsp_slice_clocks_; }
+    uint64_t profile_dsp_slice_min_clocks() const { return profile_dsp_slice_min_clocks_; }
+    uint64_t profile_dsp_slice_max_clocks() const { return profile_dsp_slice_max_clocks_; }
     std::vector<int16_t> take_audio();
 private:
     uint8_t Read(uint16_t address) override;
@@ -94,6 +99,11 @@ private:
     uint64_t profile_z80_ns_ = 0;
     uint64_t profile_dsp_ns_ = 0;
     uint64_t profile_qsound_render_ns_ = 0;
+    uint64_t profile_qsound_sync_calls_ = 0;
+    uint64_t profile_dsp_slice_calls_ = 0;
+    uint64_t profile_dsp_slice_clocks_ = 0;
+    uint64_t profile_dsp_slice_min_clocks_ = 0;
+    uint64_t profile_dsp_slice_max_clocks_ = 0;
 };
 
 } // namespace mamerecomp::zn

@@ -117,16 +117,28 @@ void Zn2SoundCpu::Out(uint16_t port, uint8_t value)
 
 void Zn2SoundCpu::sync_qsound(uint64_t sound_cycles)
 {
+    if (profile_timing_)
+        ++profile_qsound_sync_calls_;
     // Keep the fractional QSound sample rate (60 MHz / 2 / 1248) when
     // mapping Z80 time to output frames. Flooring it to 24,038 Hz here makes
     // the host frame counter drift from the DSP's serial sample boundaries.
     const uint64_t target = qsound_target_frames(sound_cycles);
     const uint64_t target_dsp_clocks = sound_cycles * 60'000'000ull / 8'000'000ull;
     if (target_dsp_clocks > generated_dsp_clocks_) {
+        const uint64_t dsp_clock_slice = target_dsp_clocks - generated_dsp_clocks_;
+        if (profile_timing_) {
+            ++profile_dsp_slice_calls_;
+            profile_dsp_slice_clocks_ += dsp_clock_slice;
+            if (!profile_dsp_slice_min_clocks_ ||
+                dsp_clock_slice < profile_dsp_slice_min_clocks_)
+                profile_dsp_slice_min_clocks_ = dsp_clock_slice;
+            profile_dsp_slice_max_clocks_ = std::max(
+                profile_dsp_slice_max_clocks_, dsp_clock_slice);
+        }
         const auto start = profile_timing_
             ? std::chrono::steady_clock::now()
             : std::chrono::steady_clock::time_point{};
-        qsound_.run_clocks(target_dsp_clocks - generated_dsp_clocks_);
+        qsound_.run_clocks(dsp_clock_slice);
         if (profile_timing_)
             profile_dsp_ns_ += static_cast<uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
