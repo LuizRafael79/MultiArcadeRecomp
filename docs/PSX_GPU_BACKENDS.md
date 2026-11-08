@@ -372,3 +372,10 @@ error or scanout difference reported; both textured polygon commands in the
 portrait scene again had zero differing VRAM pixels. This supplements the
 GTX 1650 comparison and catches driver-specific behavior on the integrated
 GPU.
+
+After the scanline precomputation change, the Mesa UHD 630 smoke comparisons
+were repeated for ZN-1 `bldyror2` and Namco System 12 `tekken3`, each for 600
+vblanks with `MAMERECOMP_PSX_GPU_GL_CHECK=1` and the software reference
+enabled. They completed at 512×480 and 640×240 respectively, with no GL error
+or differing scanout reported. These are boot/scanout checks and do not claim
+full gameplay parity for either title.
