@@ -82,16 +82,152 @@ uint blend555(uint back, uint front, uint mode) {
 int floor_fixed16(int value) {
     return value >= 0 ? value / 65536 : -((-value + 65535) / 65536);
 }
+int polygon_next(int point, int count, bool alternate) {
+    if (count == 3) return point == 2 ? 0 : point + 1;
+    if (alternate) {
+        if (point == 0) return 0;
+        if (point == 1) return 3;
+        if (point == 2) return 1;
+        return 2;
+    }
+    if (point == 0) return 1;
+    if (point == 1) return 3;
+    if (point == 2) return 0;
+    return 2;
+}
+int polygon_prev(int point, int count, bool alternate) {
+    if (count == 3) return point == 0 ? 2 : point - 1;
+    if (alternate) {
+        if (point == 0) return 0;
+        if (point == 1) return 2;
+        if (point == 2) return 3;
+        return 1;
+    }
+    if (point == 0) return 2;
+    if (point == 1) return 0;
+    if (point == 2) return 3;
+    return 1;
+}
+int polygon_x(int point) { return command.vertices[point].xyuv.x; }
+int polygon_y(int point) { return command.vertices[point].xyuv.y; }
+int polygon_attribute(int point, int field_id) {
+    if (field_id == 0) return polygon_x(point);
+    if (field_id == 1) return command.vertices[point].xyuv.z;
+    if (field_id == 2) return command.vertices[point].xyuv.w;
+    uint color = command.vertices[point].color;
+    if (field_id == 3) return int(color & 255u);
+    if (field_id == 4) return int((color >> 8) & 255u);
+    return int((color >> 16) & 255u);
+}
+bool polygon_cull_point(int a, int b) {
+    return abs(polygon_x(a) - polygon_x(b)) > 1023 ||
+           abs(polygon_y(a) - polygon_y(b)) > 1023;
+}
+bool polygon_cull_triangle(int first) {
+    int a = first, b = first + 1, c = first + 2;
+    return polygon_cull_point(a, b) || polygon_cull_point(b, c) ||
+           polygon_cull_point(c, a);
+}
+int polygon_edge_fixed(int from, int to, int scan_y, int field_id) {
+    int y0 = polygon_y(from);
+    int dy = polygon_y(to) - y0;
+    if (dy <= 0) return 0;
+    int first = polygon_attribute(from, field_id);
+    int last = polygon_attribute(to, field_id);
+    int slope = ((last - first) * 65536) / dy;
+    return first * 65536 + slope * (scan_y - y0);
+}
+bool polygon_scanline_sample(ivec2 pixel, out ivec2 uv, out ivec3 color) {
+    int count = int(command.header.y);
+    bool alternate = false;
+    int first_candidate = 0;
+    int left_top = 0;
+    if (count == 4) {
+        if (polygon_cull_triangle(0)) {
+            if (polygon_cull_triangle(1)) return false;
+            alternate = true;
+            first_candidate = 1;
+            left_top = 1;
+        } else if (polygon_cull_triangle(1)) {
+            count = 3;
+        }
+    } else if (count != 3 || polygon_cull_triangle(0)) {
+        return false;
+    }
+    for (int point = first_candidate; point < count; ++point) {
+        int y = polygon_y(point);
+        int top_y = polygon_y(left_top);
+        if (y < top_y || (y == top_y && polygon_x(point) < polygon_x(left_top)))
+            left_top = point;
+    }
+
+    int left_from = -1;
+    int left_to = -1;
+    int right_from = -1;
+    int right_to = -1;
+    int point = left_top;
+    for (int step = 0; step < count; ++step) {
+        int next_point = polygon_prev(point, count, alternate);
+        if (polygon_y(point) <= pixel.y && pixel.y < polygon_y(next_point)) {
+            left_from = point;
+            left_to = next_point;
+            break;
+        }
+        point = next_point;
+    }
+    point = left_top;
+    for (int step = 0; step < count; ++step) {
+        int next_point = polygon_next(point, count, alternate);
+        if (polygon_y(point) <= pixel.y && pixel.y < polygon_y(next_point)) {
+            right_from = point;
+            right_to = next_point;
+            break;
+        }
+        point = next_point;
+    }
+    if (left_from < 0 || right_from < 0) return false;
+
+    int left_x = polygon_edge_fixed(left_from, left_to, pixel.y, 0) >> 16;
+    int right_x = polygon_edge_fixed(right_from, right_to, pixel.y, 0) >> 16;
+    if (left_x == right_x) return false;
+    int left_fixed[5];
+    int right_fixed[5];
+    for (int field_id = 1; field_id < 6; ++field_id) {
+        left_fixed[field_id - 1] = polygon_edge_fixed(
+            left_from, left_to, pixel.y, field_id);
+        right_fixed[field_id - 1] = polygon_edge_fixed(
+            right_from, right_to, pixel.y, field_id);
+    }
+    bool left_is_first = left_x < right_x;
+    int x_start = min(left_x, right_x);
+    int x_end = max(left_x, right_x);
+    int distance = x_end - x_start;
+    if (distance <= 0 || pixel.x < x_start || pixel.x >= x_end) return false;
+    for (int field_id = 0; field_id < 5; ++field_id) {
+        int start = left_is_first ? left_fixed[field_id] : right_fixed[field_id];
+        int end = left_is_first ? right_fixed[field_id] : left_fixed[field_id];
+        int delta = (end - start) / distance;
+        int value = (start + delta * (pixel.x - x_start)) >> 16;
+        if (field_id == 0) uv.x = value;
+        else if (field_id == 1) uv.y = value;
+        else color[field_id - 2] = value;
+    }
+    return true;
+}
 void main() {
     ivec2 p = uDispatchOrigin + ivec2(gl_GlobalInvocationID.xy);
     if (p.x < command.bounds.x || p.y < command.bounds.y ||
         p.x > command.bounds.z || p.y > command.bounds.w ||
         p.x < 0 || p.y < 0 || p.x >= 1024 || p.y >= uVramHeight) return;
     uint kind = command.header.x;
-    vec2 center = vec2(p) + vec2(0.5);
+    // GP0 polygon texels are stepped at integer scanline coordinates by the
+    // PSX/MAME path. Keep rectangle and line rasterization at pixel centers.
+    vec2 center = vec2(p) + (kind == 0u ? vec2(0.0) : vec2(0.5));
     uint result = command.header.w;
     bool covered = false;
     vec3 weights = vec3(0.0);
+    ivec2 polygon_uv = ivec2(0);
+    ivec3 polygon_color = ivec3(0);
     int tri[3];
     if (kind == 2u || kind == 4u) {
         covered = true;
@@ -125,6 +261,8 @@ void main() {
                      (uint(color_fixed.g >> 19) << 5) |
                      (uint(color_fixed.b >> 19) << 10);
         }
+    } else if (kind == 0u) {
+        covered = polygon_scanline_sample(p, polygon_uv, polygon_color);
     } else {
         tri[0] = 0; tri[1] = 1; tri[2] = 2;
         covered = triangle_weights(command.vertices[0].xyuv.xy,
@@ -154,24 +292,26 @@ void main() {
         int ia = tri[0], ib = tri[1], ic = tri[2];
         result = command.header.w;
         if ((command.header.z & 1u) != 0u) {
-            vec3 color = vec3(command.vertices[ia].color & 255u,
-                (command.vertices[ia].color >> 8) & 255u,
-                (command.vertices[ia].color >> 16) & 255u) * weights.x +
+            vec3 color = kind == 0u ? vec3(polygon_color) :
+                vec3(command.vertices[ia].color & 255u,
+                    (command.vertices[ia].color >> 8) & 255u,
+                    (command.vertices[ia].color >> 16) & 255u) * weights.x +
                 vec3(command.vertices[ib].color & 255u,
-                (command.vertices[ib].color >> 8) & 255u,
-                (command.vertices[ib].color >> 16) & 255u) * weights.y +
+                    (command.vertices[ib].color >> 8) & 255u,
+                    (command.vertices[ib].color >> 16) & 255u) * weights.y +
                 vec3(command.vertices[ic].color & 255u,
-                (command.vertices[ic].color >> 8) & 255u,
-                (command.vertices[ic].color >> 16) & 255u) * weights.z;
+                    (command.vertices[ic].color >> 8) & 255u,
+                    (command.vertices[ic].color >> 16) & 255u) * weights.z;
             result = (uint(clamp(color.r, 0.0, 255.0)) >> 3) |
                 ((uint(clamp(color.g, 0.0, 255.0)) >> 3) << 5) |
                 ((uint(clamp(color.b, 0.0, 255.0)) >> 3) << 10);
         }
         if ((command.header.z & 2u) != 0u) {
-            vec3 uvw = vec3(command.vertices[ia].xyuv.zw, 0.0) * weights.x +
-                       vec3(command.vertices[ib].xyuv.zw, 0.0) * weights.y +
-                       vec3(command.vertices[ic].xyuv.zw, 0.0) * weights.z;
-            uint texel = sample_texture(int(uvw.x), int(uvw.y));
+            ivec2 uv = kind == 0u ? polygon_uv : ivec2(
+                vec2(command.vertices[ia].xyuv.zw) * weights.x +
+                vec2(command.vertices[ib].xyuv.zw) * weights.y +
+                vec2(command.vertices[ic].xyuv.zw) * weights.z);
+            uint texel = sample_texture(uv.x, uv.y);
             if (texel == 0u) return;
             if ((command.header.z & 4u) == 0u) {
                 uvec3 tex = uvec3(texel & 31u, (texel >> 5) & 31u, (texel >> 10) & 31u);
@@ -182,11 +322,15 @@ void main() {
                          (texel & 0x8000u);
             } else result = texel;
             if ((command.header.z & 8u) != 0u && (texel & 0x8000u) != 0u)
-                result = blend555(imageLoad(uDestination, p).r, result,
+                result = blend555(texelFetch(uSource, p, 0).r, result,
                     command.texture.w & 3u);
         }
     }
-    uint old = imageLoad(uDestination, p).r;
+    // Draw primitives read blending and check-mask state from the current
+    // VRAM texture. The ping-pong destination is only a write target and can
+    // contain an older copy outside the last dirty rectangle.
+    uint old = (kind == 0u || kind == 1u)
+        ? texelFetch(uSource, p, 0).r : imageLoad(uDestination, p).r;
     if ((command.header.z & 32u) != 0u && (old & 0x8000u) != 0u) return;
     // Textured primitives already apply semitransparency above, and only when
     // the sampled texel has STP set. Untextured primitives blend every covered

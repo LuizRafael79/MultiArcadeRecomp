@@ -794,6 +794,11 @@ struct GpuHardwareRenderer::Impl {
         const uint32_t flags = command.header[2];
         if (vertex_count != 3 && vertex_count != 4)
             return false;
+        // Polygon UV/color interpolation follows the PSX's fixed-point
+        // scanline walk in the compute shader. OpenGL's native varying
+        // interpolation in the batch pipeline is mathematically different
+        // for these primitives and can select adjacent texture pixels.
+        if (flags & 2u) return false;
 
         const int left = std::clamp(command.bounds[0], 0, kVramWidth - 1);
         const int top = std::clamp(command.bounds[1], 0, vram_height - 1);

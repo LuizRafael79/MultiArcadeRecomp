@@ -285,3 +285,23 @@ portrait intact; compared with the software frame, 1,842 of 122,880 RGB pixels
 differ, concentrated above the character grid. This visual capture validates
 the portrait fix but does not establish full VRAM parity; the remaining
 pixel-level difference needs separate analysis.
+
+Also on 2026-11-08, the selected frame's first remaining polygon differences
+were traced to using barycentric interpolation in the OpenGL compute shader,
+while MAME and the software reference step polygon edges and UV/color values
+in signed 16.16 fixed point once per scanline and pixel. The compute shader now
+uses that fixed-point scanline walk for GP0 triangles and quads, including
+MAME's degenerate-quad culling/order. Textured polygons bypass the native
+varying-interpolation batch shader and use this compute path; untextured
+polygons remain batched. With the default batching setting, frame 1074's
+selected `0x2e` and `0x2c` polygon commands had zero VRAM differences against
+the software reference, and the complete 512×240 capture was pixel-identical.
+This is a targeted SFEX2PA frame check, not full polygon-family parity.
+
+One unprofiled 1,074-frame headless capture took 36.05 s on the GTX 1650 with
+`--gpu-hw`, compared with 33.92 s through the software rasterizer using the
+same inputs (about 6% slower for this run). These single samples are not a
+stable benchmark. Textured-polygon batching is currently bypassed to preserve
+fixed-point semantics; reproducing the scanline interpolation in the batch
+shader, then measuring interactive direct presentation and validating ZN-1
+and System 12, remain open work.
