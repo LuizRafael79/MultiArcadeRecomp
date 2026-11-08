@@ -792,8 +792,7 @@ struct GpuHardwareRenderer::Impl {
         if (!batching_enabled) return false;
         const unsigned vertex_count = command.header[1];
         const uint32_t flags = command.header[2];
-        if ((vertex_count != 3 && vertex_count != 4) ||
-            (flags & (8u | 32u)) != 0)
+        if (vertex_count != 3 && vertex_count != 4)
             return false;
 
         const int left = std::clamp(command.bounds[0], 0, kVramWidth - 1);
@@ -811,6 +810,12 @@ struct GpuHardwareRenderer::Impl {
             return true;
         bool must_flush = !pending_batch_vertices.empty() &&
             pending_batch_draw_area != draw_area;
+        const bool reads_destination = (flags & (8u | 32u)) != 0;
+        if (!pending_batch_vertices.empty() && reads_destination) {
+            const auto& dirty = pending_batch_dirty_bounds;
+            must_flush |= !(right < dirty[0] || dirty[2] < left ||
+                            bottom < dirty[1] || dirty[3] < top);
+        }
         if (texture_read_overlaps_pending_writes(command)) must_flush = true;
         if (pending_batch_primitive_count >= batch_primitive_limit) must_flush = true;
         if (must_flush) flush_draw_batch();

@@ -43,10 +43,12 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
             throw std::runtime_error("SDL OpenGL context setup failed: " + error);
         }
     }
+    const SDL_WindowFlags window_flags = SDL_WINDOW_RESIZABLE |
+        (native_opengl_window_ ? (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS) : 0);
     window_ = SDL_CreateWindow(title.c_str(),
         static_cast<int>(window_width ? window_width : width_ * 3),
         static_cast<int>(window_height ? window_height : height_ * 3),
-        SDL_WINDOW_RESIZABLE | (native_opengl_window_ ? SDL_WINDOW_OPENGL : 0));
+        window_flags);
     if (!window_) {
         const std::string error = SDL_GetError();
         SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);

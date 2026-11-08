@@ -192,12 +192,16 @@ conservatively invalidate globally. A temporary depth attachment assigns ordered
 depths to the two triangles of a quad and to each successive primitive, so
 overlap preserves PSX last-draw-wins behavior within a GL submission. Flat
 colors remain in their native packed format; Gouraud and texture modulation
-colors are converted from RGB888. Draw-area changes, semitransparent/check-mask
-commands, CPU-visible VRAM operations, and scanout flush the queue. Before
-queuing a textured primitive, the renderer checks whether its source page or
-CLUT intersects pending writes; if so it flushes first so the texture fetch
-sees the updated VRAM snapshot. Interleaved and wrapped source regions
-conservatively force that flush. `MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
+colors are converted from RGB888. Semitransparent primitives apply all four
+PSX ABR equations in the fragment shader, and mask-test primitives read the
+old STP bit from source VRAM. A destination-reading primitive flushes if its
+draw bounds overlap pending writes; disjoint blend/mask commands remain in the
+same batch. Draw-area changes, CPU-visible VRAM operations, and scanout also
+flush the queue. Before queuing a textured primitive, the renderer checks
+whether its source page or CLUT intersects pending writes; if so it flushes
+first so the texture fetch sees the updated VRAM snapshot. Interleaved and
+wrapped source regions conservatively force that flush.
+`MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
 `MAMERECOMP_PSX_GPU_BATCH_LIMIT` caps primitives per submission, and
 `MAMERECOMP_PSX_GPU_BATCH_STATS=1` prints aggregate counts.
 
@@ -205,22 +209,28 @@ Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through gameplay
 with fresh NVRAM. The batch and non-batch frame captures were byte-identical
 (0 differing pixels), including with OpenGL error checks enabled. The scene
 submitted 501,234 opaque primitives in 8,846 draws (56.7 primitives per draw)
-with VRAM read-after-write barriers enabled. One no-error-polling timing was
-45.7 seconds with batching versus 57.8 seconds without; that is a promising 21%
-improvement, but should be repeated before it is treated as a stable benchmark.
+with VRAM read-after-write barriers enabled. An earlier opaque-only batch run
+submitted 501,234 primitives in 8,846 draws. After adding safe batching for
+semitransparent and mask-test commands, the same script submitted 512,479
+primitives in 12,950 draws (39.6 primitives per draw); the extra 11,245
+primitives were commands that previously used individual draws. The capture
+remained byte-identical to the opaque-only result. A repeated run with OpenGL
+error checks enabled took 44.3 seconds and produced the same SHA-256 as both
+the earlier batch capture and the cached direct-VRAM capture. These timing
+samples are too few to establish a stable speedup.
 The CLUT-independent cache produced the same 1,800-frame capture byte-for-byte
 as the previous direct-VRAM sampling path (zero differing pixels). It generated
-7,437 layers, recorded 458,082 hits, 7,428 invalidations, and no evictions;
+7,477 layers, recorded 466,666 hits, 7,468 invalidations, and no evictions;
 compared with the earlier CLUT-inclusive cache, generations fell from 31,822
-and evictions from 24,563. A single matched 1,800-frame run took 44.1 seconds
-on the GTX 1650 with the cache and 47.6 seconds on the software renderer; this
-is an initial measurement, not a stable benchmark. After changing GP0 `A0` to
-upload only its destination rectangle, a repeat GPU run took 45.0 seconds and
-remained byte-identical to the prior GPU capture. A separate 600-frame run
+and evictions from 24,563. The single matched 1,800-frame software run took
+47.6 seconds; GPU timings are listed above and remain initial measurements,
+not a stable benchmark. After changing GP0 `A0` to upload only its destination
+rectangle, a repeat GPU run remained byte-identical to the prior GPU capture.
+A separate 600-frame run
 with `MAMERECOMP_PSX_GPU_GL_CHECK=1` completed without OpenGL errors. Remaining
-work includes reducing invalidations, batching semitransparent/check-mask
-commands, and broader GP0/VRAM parity coverage. CPU-visible VRAM operations and
-scanout remain explicit synchronization points. GP0 `A0` reads back the full
+work includes reducing cache invalidations and broadening GP0/VRAM parity
+coverage. CPU-visible VRAM operations and scanout remain explicit
+synchronization points. GP0 `A0` reads back the full
 VRAM first only when stale host data must be consulted for check-mask behavior;
 the 1,800-frame capture remained unchanged after this transfer-path change.
 GP0 `C0` now reads only its requested rectangle into the host mirror. A VRAM
@@ -230,9 +240,10 @@ first. An end-to-end GP0 `C0` probe read pixels across both VRAM edges and
 observed a queued GPU draw inserted between consecutive GPUREAD words.
 
 Cross-board validation on ZN-1 ran Bloody Roar 2 for 900 frames: the
-OpenGL/rasterizer and software frame captures were byte-identical. The GPU path
-submitted 134,006 primitives in 677 batches, with 13 texture generations and
-no cache evictions. A separate 900-frame native-window run completed through
+OpenGL/rasterizer and software frame captures were byte-identical, including
+after semitransparency/mask batching. The GPU path submitted 134,046
+primitives in 717 batches, with 13 texture generations and no cache evictions.
+A separate 900-frame native-window run completed through
 the direct-present path; its 15.7-second wall time includes presentation
 pacing and is not a throughput benchmark. The headless capture run was slower
 than software in this single sample (5.72 s versus 4.71 s), which is a reminder

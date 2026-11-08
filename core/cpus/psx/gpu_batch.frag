@@ -22,10 +22,22 @@ uint vram_word(int x, int y) {
     return texelFetch(uVram, ivec2(index & 1023, index >> 10), 0).r;
 }
 
+uint blend555(uint back, uint front, uint mode) {
+    uvec3 b = uvec3(back & 31u, (back >> 5) & 31u, (back >> 10) & 31u);
+    uvec3 f = uvec3(front & 31u, (front >> 5) & 31u, (front >> 10) & 31u);
+    uvec3 c;
+    if (mode == 0u) c = (b + f) >> 1;
+    else if (mode == 1u) c = min(uvec3(31u), b + f);
+    else if (mode == 2u) c = uvec3(max(ivec3(b) - ivec3(f), ivec3(0)));
+    else c = min(uvec3(31u), b + (f >> 2));
+    return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
+}
+
 void main() {
     const bool textured = (vFlags & 2u) != 0u;
     const bool raw_texture = (vFlags & 4u) != 0u;
     uint color = vFlatColor;
+    uint texel = 0u;
     if (!textured && vGouraud != 0u) {
         color = (uint(clamp(vColor.r, 0.0, 255.0)) >> 3) |
                 ((uint(clamp(vColor.g, 0.0, 255.0)) >> 3) << 5) |
@@ -34,8 +46,8 @@ void main() {
     if (textured) {
         const int u = int(vUV.x) & vWindowState.z;
         const int v = int(vUV.y) & vWindowState.w;
-        uint texel = texelFetch(uTextureCache,
-                                ivec3(u, v, int(vTextureLayer)), 0).r;
+        texel = texelFetch(uTextureCache,
+                           ivec3(u, v, int(vTextureLayer)), 0).r;
         const int depth = vGpuType == 2u
             ? int((vTexturePage >> 7) & 3u)
             : int((vTexturePage >> 9) & 3u);
@@ -55,6 +67,16 @@ void main() {
             color = modulated.x | (modulated.y << 5) | (modulated.z << 10) |
                     (texel & 0x8000u);
         }
+    }
+    const ivec2 pixel = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
+    uint old = 0u;
+    if ((vFlags & (8u | 32u)) != 0u)
+        old = vram_word(pixel.x, pixel.y);
+    if ((vFlags & 32u) != 0u && (old & 0x8000u) != 0u) discard;
+    if ((vFlags & 8u) != 0u && (!textured || (texel & 0x8000u) != 0u)) {
+        const uint abr = vGpuType == 2u
+            ? ((vTexturePage >> 5) & 3u) : ((vTexturePage >> 7) & 3u);
+        color = blend555(old, color, abr);
     }
     oColor = color | vSetMask;
 }
