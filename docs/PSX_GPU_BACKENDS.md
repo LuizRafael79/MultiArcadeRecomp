@@ -14,78 +14,53 @@ continues to provide its bus mapping, clock, IRQ wiring, and display connection.
 Both Sony ZN and Namco System 12 accept the same `--gpu-hw` backend selection;
 the renderer itself has no ZN-specific types or board callbacks.
 
-## Current structure
+## Current implementation status
 
-- `core/cpus/psx/gpu.cpp` contains GP0/GP1 command handling, device state,
-  software rasterization, VRAM transfers, and scanout capture in one class.
-- `mamerecomp_psx_gpu` is now a separate CMake target from
-  `mamerecomp_psx_cpu`; `MachineMemory` composes both through the common PSX
-  device API. This is the first structural seam for a reusable backend.
-- `core/video/sdl_video_presenter.cpp` creates an SDL `opengl` presenter, but
-  its API receives CPU RGB frames. It does not rasterize PSX commands.
-- The software backend writes directly into the host VRAM vector. The OpenGL
-  backend owns ping-pong integer VRAM textures and a CPU mirror; GPUREAD, DMA,
-  uploads, save states, and capture require explicit ordering and coherence.
+- `mamerecomp_psx_gpu` is a reusable PSX GPU target composed by the common PSX
+  machine layer. GP0/GP1 decoding and device-visible state stay in `gpu.cpp`;
+  raster work is routed through the `GpuHardwareRenderer` backend interface.
+- Software rendering remains the default. `--gpu-hw` explicitly selects the
+  OpenGL 4.3 backend and fails clearly when the SDL3/OpenGL build support is
+  unavailable. ZN-1, ZN-2, and Namco System 12 use this same PSX implementation.
+- OpenGL keeps two integer `R16UI` VRAM textures plus the CPU-visible mirror.
+  Polygon and rectangle commands are batched in GP0 order through vertex and
+  command/scanline SSBOs; fills, lines, texture-cache generation, VRAM copies,
+  and scanout use compute shaders. The 64-layer cache stores indexed texture
+  pages while CLUT colors are sampled from current VRAM. Fixed-point scanline
+  interpolation is used for polygons to match the software reference.
+- Batches flush at ordering boundaries, including destination read/write
+  overlap, texture/CLUT reads that overlap pending writes, CPU-visible VRAM
+  operations, and scanout. GPU-to-GPU GP0 `0x80` copies use a source snapshot.
+  GP0 A0 uploads update only their rectangle; C0 reads back only the requested
+  rectangle. DMA2 linked-list upload/readback and odd-width wrapped transfers
+  have automated coverage.
+- With `--gpu-hw --window`, the scanout compute shader writes the display
+  texture and the GPU presents it directly to the native SDL OpenGL window.
+  Headless image captures use synchronous readback for deterministic output.
+  The three-slot PBO readback ring remains experimental and is not used by the
+  direct-present path.
+- Synthetic parity tests cover GPU types 0/1/2, representative flat/Gouraud and
+  textured primitives, dithering, clipping, mask and transparency behavior,
+  GP1 scanout modes, texture/CLUT coherence, and DMA/GP0 transfers. They pass on
+  llvmpipe and the NVIDIA GTX 1650. Intel UHD 630, NVIDIA GTX 1650, and Mesa
+  software rendering have been used for runtime checks.
+- Full-game checkpoints include byte-identical software/OpenGL SFEX2PA captures
+  at frames 1074 and 1560 on NVIDIA; ZN-1 Bloody Roar 2 and System 12 Tekken 3
+  also have matched checkpoints. These do not prove continuous parity for
+  every command stream or every title.
+- Two paired 600-frame headless profiles cut CPU time attributed to GP0 by
+  about 41%, but total `run_until` time changed by less than 1%; DSP16A is the
+  dominant cost in that SFEX2PA profile. Two paired 300-frame windowed runs
+  showed near-equal total time for direct-present GPU_HW and the software/SDL
+  presenter. These measurements show no material whole-machine speedup yet.
 
-## Target architecture
+### Remaining work
 
-1. Keep GP0/GP1 decoding, status, timing, transfer registers, and board-visible
-   behavior in the shared PSX GPU device.
-2. Move draw operations behind a backend interface owned by the independent
-   PSX GPU module. The software implementation remains the default/reference
-   backend and continues to operate on the existing VRAM storage.
-3. Add an optional OpenGL implementation in that same module. It owns device
-   VRAM images and submits drawing in GP0 order. The texture dimensions follow
-   the VRAM allocation supplied by the PSX-derived machine (1024 pixels wide;
-   512 or 1024 rows in the current ZN configurations); host output resolution
-   and window aspect do not change the emulated drawing surface.
-4. Synchronize only at observable boundaries: CPU/DMA reads of VRAM, CPU/DMA
-   writes that overlap pending GPU work, scanout capture, and state save/load.
-   Insert the required OpenGL memory barriers between ordered commands; avoid
-   reading the whole VRAM back after every primitive. GP0 `0x80` VRAM copies
-   now snapshot and copy through GPU textures/compute dispatches.
-5. Expose an explicit backend choice (`software` or `opengl`). If OpenGL is
-   unavailable, report that clearly when requested; automatic mode may fall
-   back to software. Keep headless deterministic capture on the software path
-   unless an OpenGL context is explicitly available.
-
-The CLI switch is `--gpu-hw`; omitting it selects the software rasterizer.
-When the build includes SDL3 and OpenGL, `--gpu-hw` creates an OpenGL 4.3
-context. GP0 flat/Gouraud polygons and solid/textured rectangles are rasterized
-by the OpenGL triangle pipeline in `gpu_draw.vert` and `gpu_draw.frag`; fills
-and lines use the OpenGL compute shader in `gpu_rasterize.comp`. Both paths
-write the same integer VRAM textures in GP0 order. The software rasterizer
-remains the default when the flag is omitted. A build without SDL3/OpenGL
-reports an error if `--gpu-hw` is requested.
-
-OpenGL VRAM is dynamically sized from the machine's allocation. Coordinate
-mapping was verified on the Intel UHD 630: a test rectangle requested at
-`(10,20)` is read back at `(10,20)..(19,29)`. The FBO Y mapping and rectangle
-quad vertex order must stay consistent with the PSX VRAM convention and the
-GP0 strip order (`TL, TR, BL, BR`). CPU-visible VRAM and scanout still trigger
-readback; the backend is not yet fully GPU-resident for scanout and CPU/DMA
-transfers.
-
-## Raster coverage order
-
-Implement and compare each GP0 family against the retained software path:
-
-1. Fill rectangle and untextured flat triangles/quads.
-2. Textured rectangles and polygons for 4-bit, 8-bit, and 15-bit texels,
-   including CLUT, texture page/window, transparency, and texture STP.
-3. Gouraud interpolation, dithering, draw-area clipping/offset, mask test/set,
-   and the four semi-transparency equations.
-4. Lines, VRAM copy, and transfer interaction. Flat and Gouraud lines now use
-   the software path's fixed-point DDA and omit the terminal endpoint. GP0
-   `0x80` is GPU-resident; CPU/DMA transfers still need ordering coverage.
-5. Display scanout and interlace modes, preserving GP1 display start/ranges and
-   the physical aspect ratio selected by the board/presenter. GPU compute
-   scanout and direct texture presentation are implemented; parity for all
-   display modes still needs work.
-
-For every stage, compare identical command streams and initial VRAM contents
-between software and OpenGL, including the final 16-bit VRAM image and the RGB
-scanout. Keep the software renderer selectable for regression diagnosis.
+Broaden parity coverage across command combinations and long-running gameplay,
+repeat real-game comparisons on more Sony-derived boards and GPU vendors, and
+measure direct-present throughput with controlled repeated runs. The current
+hardware path requires OpenGL 4.3 and has been validated on a limited set of
+drivers; it is not yet a proof of full GPU_HW feature parity with DuckStation.
 
 ## Reference and implementation boundary
 
@@ -103,7 +78,11 @@ texture RAM, palette rules, and 512x400 targets differ from PSX GP0, CLUT,
 texture pages, 1024x512 16-bit VRAM, and blending. The PSX-specific GLSL shader
 is `core/cpus/psx/gpu_rasterize.comp`.
 
-## Current validation status
+## Historical implementation notes
+
+The dated entries below record intermediate states of the renderer. Some
+describe bugs and gaps that later entries in this file resolve; use the current
+implementation summary above as the authoritative status.
 
 The path builds and has been exercised on the host's Mesa Intel UHD 630
 hardware renderer (not llvmpipe). A matched 1,800-frame SFEX2PA sequence was
