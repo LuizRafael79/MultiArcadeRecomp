@@ -164,6 +164,43 @@ int main()
                                            1008, 511, 32, 2);
         if (!check_packed_pixels(filled, std::vector<uint16_t>(64, 0x03e0)))
             throw std::runtime_error("DMA GPU fill/readback wrap check failed");
+
+        // The indexed-texture cache stores texel indices, but its source page
+        // must still be invalidated when an A0 transfer changes that page.
+        // Keep the CLUT outside the texture page and draw twice with the same
+        // page/window key so the second draw exercises cache invalidation.
+        dma_ram_to_gpu(memory, bus, 0xb00,
+            {0xa0000000u, 0u, (1u << 16) | 1u, 1u});
+        dma_ram_to_gpu(memory, bus, 0xc00,
+            {0xa0000000u, 64u, (1u << 16) | 3u,
+             0x001f0000u, 0x000003e0u});
+        const auto source_texel = dma_gpu_to_ram(memory, bus, 0xc80, 0xc90,
+                                                 0, 0, 1, 1);
+        const auto palette_texel = dma_gpu_to_ram(memory, bus, 0xca0, 0xcb0,
+                                                  65, 0, 1, 1);
+        if (!check_packed_pixels(source_texel, {1}) ||
+            !check_packed_pixels(palette_texel, {0x001f}))
+            throw std::runtime_error("test texture or CLUT upload was incorrect");
+        dma_ram_to_gpu(memory, bus, 0xd00, {0xe1000000u});
+        const std::vector<uint32_t> draw_indexed_texel{
+            0x65000000u,
+            (100u << 16) | 100u,
+            0x00040000u,
+            (1u << 16) | 1u,
+        };
+        dma_ram_to_gpu(memory, bus, 0xe00, draw_indexed_texel);
+        const auto first_texel = dma_gpu_to_ram(memory, bus, 0xf00, 0x1000,
+                                                100, 100, 1, 1);
+        if (!check_packed_pixels(first_texel, {0x001f}))
+            throw std::runtime_error("initial indexed-texture cache check failed");
+
+        dma_ram_to_gpu(memory, bus, 0x1100,
+            {0xa0000000u, 0u, (1u << 16) | 1u, 2u});
+        dma_ram_to_gpu(memory, bus, 0x1200, draw_indexed_texel);
+        const auto updated_texel = dma_gpu_to_ram(memory, bus, 0x1300, 0x1400,
+                                                  100, 100, 1, 1);
+        if (!check_packed_pixels(updated_texel, {0x03e0}))
+            throw std::runtime_error("indexed-texture cache was stale after A0 upload");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

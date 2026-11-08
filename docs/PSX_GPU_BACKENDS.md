@@ -398,7 +398,11 @@ host it passed on the Mesa UHD 630 through the real MachineMemory DMA channel
 `0x80` copy through linked-list RAM-to-GPU DMA, then reads the pixels through
 block GPU-to-RAM DMA and GP0 C0. It also checks a GPU fill followed by DMA C0
 readback across X=1023 and Y=511. This exercises the upload, copy, readback,
-and DMA synchronization paths rather than relying only on a game capture.
+and DMA synchronization paths rather than relying only on a game capture. The
+test also draws an indexed texel to populate the texture-page cache, changes
+that source texel using a later A0 DMA upload, and draws again with the same
+cache key. C0 readback observes the new CLUT color, verifying that CPU writes
+invalidate cached GPU texture data before the next draw.
 
 The previous 37,590-pixel difference reported for SFEX2PA gameplay frame 1560
 was from non-batched polygons going through the OpenGL triangle-varying path.
