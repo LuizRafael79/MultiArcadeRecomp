@@ -321,3 +321,10 @@ not demonstrate a meaningful speedup; CPU-side guest work still dominates
 this headless measurement. The earlier statements that textured polygons
 bypass batching and that the 1,074-frame result was slower describe the
 previous implementation and are superseded by this checkpoint.
+
+The same OpenGL path was smoke-tested on 2026-11-08 with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
+on ZN-1 `bldyror2` (120 vblanks, 87 visible captures) and Namco System 12
+`tekken3` (120 vblanks, one visible capture during early boot). Both selected
+the NVIDIA GTX 1650 renderer and completed without GL errors or reported
+software-image differences. These are backend-integration checks only; the
+System 12 sample ends during boot and does not validate gameplay rendering.
