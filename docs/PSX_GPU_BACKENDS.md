@@ -47,8 +47,16 @@ continues to provide its bus mapping, clock, IRQ wiring, and display connection.
    unless an OpenGL context is explicitly available.
 
 The CLI switch is `--gpu-hw`; omitting it selects the software rasterizer.
-Until the GP0 OpenGL backend is available, explicitly requesting `--gpu-hw`
-fails with a diagnostic instead of silently running the software renderer.
+When the build includes SDL3 and OpenGL, this switch currently creates a hidden
+OpenGL 4.3 context and dispatches GP0 work through
+`core/cpus/psx/gpu_rasterize.comp`. A build without those dependencies reports
+an error if `--gpu-hw` is requested. The shader keeps emulated VRAM as a
+1024x512 `R16UI` image and handles the currently connected fill, flat/Gouraud
+polygon, line, solid rectangle, and textured rectangle/polygon paths. VRAM
+readback still occurs when the CPU-visible VRAM or scanout is requested, and
+GP0 `0x80` currently synchronizes through the CPU implementation. Thus this is
+an active hardware raster backend, but not yet a fully GPU-resident scanout or
+transfer path.
 
 ## Raster coverage order
 
@@ -77,8 +85,19 @@ copy DuckStation source files. The MAME software renderer remains the behavioral
 reference for the current baseline and for differences in PSX GPU semantics.
 
 Cruis'n USA's V-Unit module already has an in-project GLSL 4.30 compute
-rasterizer in `src/midway/vunit/core/vunit_video_gl.cpp`. Its tiled command
-dispatch and shader compilation/context setup are useful shared infrastructure
-patterns. Its `RasterCommand` data, texture RAM layout, palette rules, and
-512x400 targets are V-Unit-specific; the PSX backend needs its own GLSL shader
-for GP0 primitives, CLUT/texture pages, 1024x512 16-bit VRAM, and PSX blending.
+rasterizer in `src/midway/vunit/core/vunit_video_gl.cpp`. The PSX backend uses
+the same general approach—compute dispatch, resident device memory, and shader
+compilation—but V-Unit's shader cannot be reused directly: its command format,
+texture RAM, palette rules, and 512x400 targets differ from PSX GP0, CLUT,
+texture pages, 1024x512 16-bit VRAM, and blending. The PSX-specific GLSL shader
+is `core/cpus/psx/gpu_rasterize.comp`.
+
+## Current validation status
+
+The OpenGL path has been built and exercised on llvmpipe. SFEX2PA's 900-frame
+logo capture is recognizable, but its RGB output still differs from the
+software path; the current image comparison is not a parity pass. Hardware
+tests on a physical GPU and final 16-bit VRAM comparisons for all GP0 families
+remain pending. In particular, textured semi-transparency and wrapped fill
+rectangles have explicit shader handling, but still need a deterministic
+command-stream comparison against the software implementation.

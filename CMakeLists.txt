@@ -12,8 +12,9 @@ find_package(ZLIB REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 option(MAMERECOMP_ENABLE_OPENGL_VIDEO "Build the optional OpenGL tilemap renderer" ON)
 option(MAMERECOMP_ENABLE_VUNIT_OPENGL "Build the optional V-Unit OpenGL DMA rasterizer" OFF)
+option(MAMERECOMP_ENABLE_PSX_GPU_OPENGL "Build the optional PSX GP0 OpenGL rasterizer" ON)
 option(MAMERECOMP_ENABLE_WINDOW "Build SDL3 live window presentation when SDL3 is available" ON)
-if(MAMERECOMP_ENABLE_WINDOW OR MAMERECOMP_ENABLE_OPENGL_VIDEO OR MAMERECOMP_ENABLE_VUNIT_OPENGL)
+if(MAMERECOMP_ENABLE_WINDOW OR MAMERECOMP_ENABLE_OPENGL_VIDEO OR MAMERECOMP_ENABLE_VUNIT_OPENGL OR MAMERECOMP_ENABLE_PSX_GPU_OPENGL)
     find_package(SDL3 CONFIG QUIET)
 endif()
 
@@ -83,6 +84,24 @@ add_library(mamerecomp_psx_gpu STATIC
 target_include_directories(mamerecomp_psx_gpu PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
 set_property(TARGET mamerecomp_psx_gpu PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+if(MAMERECOMP_ENABLE_PSX_GPU_OPENGL)
+    find_package(OpenGL QUIET)
+    if(SDL3_FOUND AND OpenGL_FOUND)
+        target_sources(mamerecomp_psx_gpu PRIVATE core/cpus/psx/gpu_hw.cpp)
+        target_link_libraries(mamerecomp_psx_gpu PRIVATE SDL3::SDL3 OpenGL::GL)
+        configure_file(core/cpus/psx/gpu_rasterize.comp
+            ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_rasterize.comp COPYONLY)
+        target_compile_definitions(mamerecomp_psx_gpu PRIVATE
+            MAMERECOMP_PSX_GPU_OPENGL=1
+            MAMERECOMP_PSX_GPU_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_rasterize.comp")
+        message(STATUS "PSX GPU OpenGL GP0 rasterizer enabled")
+    else()
+        target_sources(mamerecomp_psx_gpu PRIVATE core/cpus/psx/gpu_hw_stub.cpp)
+        message(STATUS "SDL3/OpenGL development files not found; PSX hardware rasterizer unavailable")
+    endif()
+else()
+    target_sources(mamerecomp_psx_gpu PRIVATE core/cpus/psx/gpu_hw_stub.cpp)
+endif()
 
 # Shared PlayStation-derived R3000A pipeline helpers. The board bus, COP2/GTE,
 # interpreter, and generated game modules are connected in later ZN stages.

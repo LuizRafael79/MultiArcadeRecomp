@@ -2588,7 +2588,7 @@ int run_konami_tmnt_machine(const std::filesystem::path& source_root,
 int run_zn_machine(const std::filesystem::path& source_root,
                    const std::string& game,
                    const std::optional<std::filesystem::path>& rom_zip,
-                   bool show_window, bool audio_enabled,
+                   bool show_window, bool audio_enabled, bool gpu_hw,
                    const std::vector<InputEvent>& button_events,
                    std::uint64_t frames,
                    const std::optional<std::uint64_t>& cycles,
@@ -2712,6 +2712,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                                              std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry>(
                                                  zn2_dsp16a_entries, zn2_dsp16a_entry_count),
                                              zn2_dsp16a_run);
+    if (gpu_hw) machine.memory().gpu().enable_hardware_renderer();
     const auto nvram_path = (game == "sfex2pa" || game == "bldyror2")
         ? std::optional<std::filesystem::path>(nvram_option.value_or(
             source_root / "build/nvram" / (game + ".at28c16")))
@@ -3361,8 +3362,6 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
         const bool valid_zn2 = board == "zn2" && game == "sfex2pa";
         if (!valid_zn1 && !valid_zn2)
             throw std::runtime_error("Sony ZN adapter currently supports --board=zn1 --game=bldyror2 or --board=zn2 --game=sfex2pa");
-        if (gpu_hw)
-            throw std::runtime_error("--gpu-hw requests PSX GP0 rasterization on OpenGL, but that backend is not implemented yet; without the flag the software rasterizer is used");
         if (build_mode && (r3000a_no_aot || z80_no_aot || dsp16a_no_aot || no_aot))
             throw std::runtime_error("per-CPU AoT controls are only valid for run");
         if (audio_pan_option_set || input_replay || dma_command_log)
@@ -3426,7 +3425,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
             std::cout << ".\n";
         }
         return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
-                              show_window, audio_enabled, zn_events, frames, cycles, frame_out,
+                              show_window, audio_enabled, gpu_hw, zn_events, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Sony",
                               valid_zn1 ? "ZN-1" : "ZN-2", nvram,
                               r3000a_no_aot, z80_no_aot, dsp16a_no_aot,
@@ -3438,8 +3437,6 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
                               qsound_mode_option == "mixed");
     }
     if (machine == "namco" && board == "system12") {
-        if (gpu_hw)
-            throw std::runtime_error("--gpu-hw requests PSX GP0 rasterization on OpenGL, but that backend is not implemented yet; without the flag the software rasterizer is used");
         if (build_mode)
             throw std::runtime_error("System 12 game AOT generation is not integrated yet; use run for the interpreter runtime");
         if (game != "tekken3")
@@ -3449,7 +3446,7 @@ int machine_game_command(int argc, char** argv, bool build_mode) {
             throw std::runtime_error("System 12 audio pan, input replay and NVRAM options are not integrated yet");
         const bool show_window = window || (!headless && !frames && !cycles);
         return run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
-                              show_window, audio_enabled, {}, frames, cycles, frame_out,
+                              show_window, audio_enabled, gpu_hw, {}, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Namco", "System 12", std::nullopt,
                               false, false, false, mamerecomp::chips::QSoundMode::Lle, false);
     }

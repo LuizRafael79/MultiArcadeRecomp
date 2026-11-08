@@ -1,0 +1,180 @@
+#version 430 core
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(r16ui, binding = 0) uniform uimage2D uDestination;
+layout(binding = 1) uniform usampler2D uSource;
+
+struct Vertex {
+    ivec4 xyuv;
+    uint color;
+    uint pad0;
+    uint pad1;
+    uint pad2;
+};
+struct Command {
+    uvec4 header;       // kind, vertex count, flags, RGB/555 color
+    ivec4 draw_area;
+    ivec4 offset_window;
+    ivec4 window_flip;
+    uvec4 texture;      // tpage, CLUT, GPU type, reserved
+    Vertex vertices[4];
+    ivec4 bounds;
+};
+layout(std430, binding = 0) readonly buffer CommandBuffer { Command command; };
+uniform ivec2 uDispatchOrigin;
+
+float edge(ivec2 a, ivec2 b, vec2 p) {
+    return (p.x - float(a.x)) * float(b.y - a.y) -
+           (p.y - float(a.y)) * float(b.x - a.x);
+}
+bool triangle_weights(ivec2 a, ivec2 b, ivec2 c, vec2 p, out vec3 w) {
+    float area = edge(a, b, vec2(c));
+    if (abs(area) < 0.5) return false;
+    w = vec3(edge(b, c, p), edge(c, a, p), edge(a, b, p)) / area;
+    return all(greaterThanEqual(w, vec3(-0.0001)));
+}
+uint vram_word(int x, int y) {
+    int index = (y * 1024 + x) & 0x7ffff;
+    return texelFetch(uSource, ivec2(index & 1023, index >> 10), 0).r;
+}
+uint sample_texture(int u, int v) {
+    uint tpage = command.texture.x;
+    uint gpu_type = command.texture.z;
+    int depth = gpu_type == 2u ? int((tpage >> 7) & 3u) : int((tpage >> 9) & 3u);
+    if (depth == 3) return 0u;
+    u &= command.window_flip.x;
+    v &= command.window_flip.y;
+    int ppw = depth == 0 ? 4 : depth == 1 ? 2 : 1;
+    int page_x = int(tpage & 15u) * 64;
+    int page_y = gpu_type == 2u
+        ? int(((tpage & 0x10u) << 4) | ((tpage & 0x800u) >> 2))
+        : int(tpage & 0x60u) << 3;
+    int base_x = page_x + command.offset_window.z / ppw;
+    int base_y = page_y + command.offset_window.w;
+    if (depth == 2) return vram_word(base_x + u, base_y + v);
+    int tex_x = u / ppw;
+    int tex_y = v;
+    if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 0) {
+        tex_x = ((u >> 2) & ~0x3c) + ((v << 2) & 0x3c);
+        tex_y = (v & ~0xf) + ((u >> 4) & 0xf);
+    } else if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 1) {
+        tex_x = ((u >> 1) & ~0x78) + ((u << 2) & 0x40) + ((v << 3) & 0x38);
+        tex_y = (v & ~0x7) + ((u >> 5) & 0x7);
+    }
+    uint packed_word = vram_word(base_x + tex_x, base_y + tex_y);
+    uint index = depth == 0 ? ((packed_word >> uint((u & 3) * 4)) & 15u)
+                            : ((packed_word >> uint((u & 1) * 8)) & 255u);
+    int clut_x = int(command.texture.y & 63u) * 16;
+    int clut_y = int((command.texture.y >> 6) & 1023u);
+    return vram_word(clut_x + int(index), clut_y);
+}
+uint blend555(uint back, uint front, uint mode) {
+    uvec3 b = uvec3(back & 31u, (back >> 5) & 31u, (back >> 10) & 31u);
+    uvec3 f = uvec3(front & 31u, (front >> 5) & 31u, (front >> 10) & 31u);
+    uvec3 c;
+    if (mode == 0u) c = (b + f) >> 1;
+    else if (mode == 1u) c = min(uvec3(31u), b + f);
+    else if (mode == 2u) c = uvec3(max(ivec3(b) - ivec3(f), ivec3(0)));
+    else c = min(uvec3(31u), b + (f >> 2));
+    return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
+}
+void main() {
+    ivec2 p = uDispatchOrigin + ivec2(gl_GlobalInvocationID.xy);
+    if (p.x < command.bounds.x || p.y < command.bounds.y ||
+        p.x > command.bounds.z || p.y > command.bounds.w ||
+        p.x < 0 || p.y < 0 || p.x >= 1024 || p.y >= 512) return;
+    uint kind = command.header.x;
+    vec2 center = vec2(p) + vec2(0.5);
+    uint result = command.header.w;
+    bool covered = false;
+    vec3 weights = vec3(0.0);
+    int tri[3];
+    if (kind == 2u) {
+        covered = true;
+    } else if (kind == 3u) {
+        Vertex a = command.vertices[0];
+        Vertex b = command.vertices[1];
+        vec2 delta = vec2(b.xyuv.xy - a.xyuv.xy);
+        float length_sq = dot(delta, delta);
+        float t = length_sq > 0.0 ? clamp(dot(center - vec2(a.xyuv.xy), delta) / length_sq, 0.0, 1.0) : 0.0;
+        vec2 nearest = vec2(a.xyuv.xy) + delta * t;
+        covered = distance(center, nearest) <= 0.71;
+        weights = vec3(1.0 - t, t, 0.0);
+    } else {
+        tri[0] = 0; tri[1] = 1; tri[2] = 2;
+        covered = triangle_weights(command.vertices[0].xyuv.xy,
+            command.vertices[1].xyuv.xy, command.vertices[2].xyuv.xy, center, weights);
+        if (!covered && command.header.y == 4u) {
+            // GP0 quads arrive as a triangle strip: (0,1,2), then (2,1,3).
+            tri[0] = 2; tri[1] = 1; tri[2] = 3;
+            covered = triangle_weights(command.vertices[2].xyuv.xy,
+                command.vertices[1].xyuv.xy, command.vertices[3].xyuv.xy, center, weights);
+        }
+    }
+    if (!covered) return;
+    if (kind == 2u) {
+        uint destination = imageLoad(uDestination, p).r;
+        if ((command.header.z & 32u) != 0u && (destination & 0x8000u) != 0u) return;
+    } else if (kind == 3u) {
+        if (p.x < command.draw_area.x || p.y < command.draw_area.y ||
+            p.x > command.draw_area.z || p.y > command.draw_area.w) return;
+        if ((command.header.z & 1u) != 0u) {
+            vec3 color = vec3(command.vertices[0].color & 255u,
+                (command.vertices[0].color >> 8) & 255u,
+                (command.vertices[0].color >> 16) & 255u) * weights.x +
+                vec3(command.vertices[1].color & 255u,
+                (command.vertices[1].color >> 8) & 255u,
+                (command.vertices[1].color >> 16) & 255u) * weights.y;
+            result = (uint(clamp(color.r, 0.0, 255.0)) >> 3) |
+                ((uint(clamp(color.g, 0.0, 255.0)) >> 3) << 5) |
+                ((uint(clamp(color.b, 0.0, 255.0)) >> 3) << 10);
+        }
+    } else if (kind != 3u) {
+        if (p.x < command.draw_area.x || p.y < command.draw_area.y ||
+            p.x > command.draw_area.z || p.y > command.draw_area.w) return;
+        int ia = tri[0], ib = tri[1], ic = tri[2];
+        result = command.header.w;
+        if ((command.header.z & 1u) != 0u) {
+            vec3 color = vec3(command.vertices[ia].color & 255u,
+                (command.vertices[ia].color >> 8) & 255u,
+                (command.vertices[ia].color >> 16) & 255u) * weights.x +
+                vec3(command.vertices[ib].color & 255u,
+                (command.vertices[ib].color >> 8) & 255u,
+                (command.vertices[ib].color >> 16) & 255u) * weights.y +
+                vec3(command.vertices[ic].color & 255u,
+                (command.vertices[ic].color >> 8) & 255u,
+                (command.vertices[ic].color >> 16) & 255u) * weights.z;
+            result = (uint(clamp(color.r, 0.0, 255.0)) >> 3) |
+                ((uint(clamp(color.g, 0.0, 255.0)) >> 3) << 5) |
+                ((uint(clamp(color.b, 0.0, 255.0)) >> 3) << 10);
+        }
+        if ((command.header.z & 2u) != 0u) {
+            vec3 uvw = vec3(command.vertices[ia].xyuv.zw, 0.0) * weights.x +
+                       vec3(command.vertices[ib].xyuv.zw, 0.0) * weights.y +
+                       vec3(command.vertices[ic].xyuv.zw, 0.0) * weights.z;
+            uint texel = sample_texture(int(uvw.x), int(uvw.y));
+            if (texel == 0u) return;
+            if ((command.header.z & 4u) == 0u) {
+                uvec3 tex = uvec3(texel & 31u, (texel >> 5) & 31u, (texel >> 10) & 31u);
+                uvec3 shade = uvec3(result & 255u, (result >> 8) & 255u, (result >> 16) & 255u);
+                result = min(uvec3(31u), tex * shade / 128u).x |
+                         (min(uvec3(31u), tex * shade / 128u).y << 5) |
+                         (min(uvec3(31u), tex * shade / 128u).z << 10) |
+                         (texel & 0x8000u);
+            } else result = texel;
+            if ((command.header.z & 8u) != 0u && (texel & 0x8000u) != 0u)
+                result = blend555(imageLoad(uDestination, p).r, result,
+                    command.texture.w & 3u);
+        }
+    }
+    uint old = imageLoad(uDestination, p).r;
+    if ((command.header.z & 32u) != 0u && (old & 0x8000u) != 0u) return;
+    // Textured primitives already apply semitransparency above, and only when
+    // the sampled texel has STP set. Untextured primitives blend every covered
+    // pixel. Do not blend textured pixels a second time here.
+    bool textured = (command.header.z & 2u) != 0u;
+    if ((command.header.z & 8u) != 0u &&
+        (kind == 3u || ((kind == 0u || kind == 1u) && !textured)))
+        result = blend555(old, result, command.texture.w & 3u);
+    if ((command.header.z & 16u) != 0u) result |= 0x8000u;
+    imageStore(uDestination, p, uvec4(result, 0u, 0u, 0u));
+}

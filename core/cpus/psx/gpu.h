@@ -3,10 +3,14 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <memory>
 #include <span>
 #include <vector>
 
 namespace mamerecomp::psx {
+
+class GpuHardwareRenderer;
+struct GpuHwState;
 
 struct GpuFrame {
     unsigned width = 0;
@@ -20,6 +24,9 @@ struct GpuFrame {
 class Gpu {
 public:
     explicit Gpu(std::vector<uint8_t> &vram, unsigned gpu_type = 2);
+    ~Gpu();
+    void enable_hardware_renderer();
+    bool hardware_renderer_enabled() const { return bool(hardware_renderer_); }
     bool advance_screen_timing(uint64_t cpu_cycles, uint64_t cpu_cycle_hz);
     uint64_t cycles_until_screen_event(uint64_t cpu_cycle_hz) const;
     const std::optional<GpuFrame>& last_vblank_frame() const { return last_vblank_frame_; }
@@ -66,8 +73,11 @@ private:
     static int16_t coord_y(uint32_t v);
     size_t wrap_vram_y(size_t y) const;
     size_t wrap_vram_pixel(size_t pixel) const;
+    void get_hardware_state(GpuHwState& state) const;
 
     std::vector<uint8_t> &vram_;
+    std::unique_ptr<GpuHardwareRenderer> hardware_renderer_;
+    mutable bool hardware_vram_shadow_valid_ = true;
     size_t vram_height_ = 1;
     size_t vram_height_mask_ = 0;
     size_t vram_pixel_count_ = 1;

@@ -1,8 +1,10 @@
 #include "gpu.h"
+#include "gpu_hw.hpp"
 
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 
 #include <algorithm>
 #include <chrono>
@@ -168,6 +170,41 @@ Gpu::Gpu(std::vector<uint8_t> &vram, unsigned gpu_type)
     vram_pixel_mask_ = vram_pixel_count_ - 1;
 }
 
+Gpu::~Gpu() = default;
+
+void Gpu::enable_hardware_renderer()
+{
+    if (hardware_renderer_) return;
+#ifdef MAMERECOMP_PSX_GPU_OPENGL
+    hardware_renderer_ = std::make_unique<GpuHardwareRenderer>(vram_);
+    hardware_vram_shadow_valid_ = true;
+    std::cout << "PSX GPU OpenGL rasterizer: "
+              << hardware_renderer_->renderer_name() << '\n';
+#else
+    throw std::runtime_error("--gpu-hw requested, but this build has no SDL3/OpenGL PSX rasterizer; configure with -DMAMERECOMP_ENABLE_PSX_GPU_OPENGL=ON");
+#endif
+}
+
+void Gpu::get_hardware_state(GpuHwState& state) const
+{
+    state.draw_x1 = draw_area_x1_;
+    state.draw_y1 = draw_area_y1_;
+    state.draw_x2 = draw_area_x2_;
+    state.draw_y2 = draw_area_y2_;
+    state.offset_x = draw_offset_x_;
+    state.offset_y = draw_offset_y_;
+    state.window_x = int(texture_window_x_);
+    state.window_y = int(texture_window_y_);
+    state.window_mask_x = int(texture_window_mask_x_);
+    state.window_mask_y = int(texture_window_mask_y_);
+    state.flip_x = texture_flip_x_;
+    state.flip_y = texture_flip_y_;
+    state.texture_page = texture_page_;
+    state.gpu_type = gpu_type_;
+    state.set_mask = draw_mask_;
+    state.check_mask = check_mask_;
+}
+
 size_t Gpu::wrap_vram_y(size_t y) const
 {
     return vram_height_power_of_two_ ? (y & vram_height_mask_)
@@ -293,6 +330,11 @@ void Gpu::fill_rect(int x, int y, int w, int h, uint16_t color, bool honor_mask)
 {
     w = std::clamp(w, 0, 1024);
     h = std::clamp(h, 0, int(std::max<size_t>(1, vram_.size() / (1024 * 2))));
+    if (hardware_renderer_ && !honor_mask) {
+        hardware_renderer_->fill_rect(x, y, w, h, color);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     for (int yy = 0; yy < h; ++yy) for (int xx = 0; xx < w; ++xx) {
         if (honor_mask) write_pixel(x + xx, y + yy, color);
         else put_pixel(x + xx, y + yy, color);
@@ -301,6 +343,13 @@ void Gpu::fill_rect(int x, int y, int w, int h, uint16_t color, bool honor_mask)
 void Gpu::draw_solid_rect(int x, int y, int w, int h, uint16_t color,
                           bool semi_transparent)
 {
+    if (hardware_renderer_) {
+        GpuHwState state;
+        get_hardware_state(state);
+        hardware_renderer_->draw_rect(x, y, w, h, color, state, semi_transparent);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     const int vram_height = int(std::max<size_t>(1, vram_.size() / (1024 * 2)));
     const int left = x + draw_offset_x_;
     const int top = y + draw_offset_y_;
@@ -331,6 +380,15 @@ void Gpu::draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2,
 void Gpu::draw_line(int x0, int y0, int x1, int y1, uint32_t color0,
                     uint32_t color1, bool gouraud, bool semi_transparent)
 {
+    if (hardware_renderer_) {
+        GpuHwState state;
+        get_hardware_state(state);
+        hardware_renderer_->draw_line({x0, y0, 0, 0, color0},
+                                      {x1, y1, 0, 0, color1},
+                                      state, gouraud, semi_transparent);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     const int dx_pixels = std::abs(x1 - x0);
     const int dy_pixels = std::abs(y1 - y0);
     const int steps = std::max(1, std::max(dx_pixels, dy_pixels));
@@ -379,6 +437,18 @@ void Gpu::draw_line(int x0, int y0, int x1, int y1, uint32_t color0,
 void Gpu::draw_flat_polygon(const int *x, const int *y, unsigned count,
                             uint16_t color, bool semi_transparent)
 {
+    if (hardware_renderer_) {
+        std::array<GpuHwVertex, 4> vertices{};
+        for (unsigned i = 0; i < count && i < vertices.size(); ++i)
+            vertices[i] = {x[i], y[i], 0, 0, color};
+        GpuHwState state;
+        get_hardware_state(state);
+        hardware_renderer_->draw_polygon(std::span(vertices.data(), std::min(count, 4u)),
+                                         state, false, false, false,
+                                         semi_transparent, 0);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     PolygonEdges polygon{};
     if (!find_polygon_edges(x, y, count, polygon)) return;
     count = polygon.count;
@@ -441,6 +511,18 @@ void Gpu::draw_gouraud_polygon(const int *x, const int *y,
                                const uint32_t *color, unsigned count,
                                bool semi_transparent)
 {
+    if (hardware_renderer_) {
+        std::array<GpuHwVertex, 4> vertices{};
+        for (unsigned i = 0; i < count && i < vertices.size(); ++i)
+            vertices[i] = {x[i], y[i], 0, 0, color[i]};
+        GpuHwState state;
+        get_hardware_state(state);
+        hardware_renderer_->draw_polygon(std::span(vertices.data(), std::min(count, 4u)),
+                                         state, false, true, false,
+                                         semi_transparent, 0);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     PolygonEdges polygon{};
     if (!color || !find_polygon_edges(x, y, count, polygon)) return;
     count = polygon.count;
@@ -589,6 +671,19 @@ void Gpu::draw_textured_polygon(const int *x, const int *y, const int *u, const 
                                 bool gouraud, bool semi_transparent)
 {
     if (!u || !v || !color) return;
+    if (hardware_renderer_) {
+        std::array<GpuHwVertex, 4> vertices{};
+        for (unsigned i = 0; i < count && i < vertices.size(); ++i)
+            vertices[i] = {x[i], y[i], u[i], v[i], color[i]};
+        GpuHwState state;
+        get_hardware_state(state);
+        state.texture_page = tpage;
+        hardware_renderer_->draw_polygon(std::span(vertices.data(), std::min(count, 4u)),
+                                         state, true, gouraud, raw_texture,
+                                         semi_transparent, clut);
+        hardware_vram_shadow_valid_ = false;
+        return;
+    }
     PolygonEdges polygon{};
     if (!find_polygon_edges(x, y, count, polygon)) return;
     count = polygon.count;
@@ -764,7 +859,13 @@ void Gpu::gp0(uint32_t value)
             write_pixel(int(transfer_x_ + transfer_pos_ % transfer_w_),
                       int(transfer_y_ + transfer_pos_ / transfer_w_),
                       uint16_t(value >> (half * 16)));
-        if (transfer_pos_ >= total) transfer_to_vram_ = false;
+        if (transfer_pos_ >= total) {
+            transfer_to_vram_ = false;
+            if (hardware_renderer_) {
+                hardware_renderer_->sync_from_cpu(vram_);
+                hardware_vram_shadow_valid_ = true;
+            }
+        }
         return;
     }
     if (packet_.empty()) {
@@ -949,9 +1050,17 @@ void Gpu::execute_packet()
             const int origin_y = y + draw_offset_y_;
             const bool raw = (op & 1) != 0;
             const bool semi = (op & 2) != 0;
-            const unsigned abr = gpu_type_ == 2 ? ((tpage >> 5) & 3)
-                                                 : ((tpage >> 7) & 3);
-            for (int dy = 0; dy < h; ++dy) {
+            if (hardware_renderer_) {
+                GpuHwState state;
+                get_hardware_state(state);
+                state.texture_page = tpage;
+                hardware_renderer_->draw_textured_rect(x, y, w, h, u0, v0,
+                    opword, clut, state, raw, semi);
+                hardware_vram_shadow_valid_ = false;
+            } else {
+              const unsigned abr = gpu_type_ == 2 ? ((tpage >> 5) & 3)
+                                                   : ((tpage >> 7) & 3);
+              for (int dy = 0; dy < h; ++dy) {
                 const int py = origin_y + dy;
                 if (py < draw_area_y1_ || py > draw_area_y2_ || py < 0 || py > 1023) continue;
                 const int tv = (v0 + dy * texture_flip_y_) & 255;
@@ -976,6 +1085,7 @@ void Gpu::execute_packet()
                     }
                     write_pixel(px, py, out);
                 }
+              }
             }
         }
     } else if (op == 0x80) {
@@ -983,9 +1093,17 @@ void Gpu::execute_packet()
         uint32_t dx = packet_[2] & 0x3ff, dy = (packet_[2] >> 16) & 0x3ff;
         uint32_t w = packet_[3] & 0x3ff, h = (packet_[3] >> 16) & 0x3ff;
         if (!w) w = 1024; if (!h) h = 512;
+        if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
+            hardware_renderer_->sync_to_cpu(vram_);
+            hardware_vram_shadow_valid_ = true;
+        }
         std::vector<uint16_t> tmp(size_t(w) * h);
         for (uint32_t y = 0; y < h; ++y) for (uint32_t x = 0; x < w; ++x) tmp[size_t(y)*w+x] = get_pixel(sx+x, sy+y);
         for (uint32_t y = 0; y < h; ++y) for (uint32_t x = 0; x < w; ++x) write_pixel(dx+x, dy+y, tmp[size_t(y)*w+x]);
+        if (hardware_renderer_) {
+            hardware_renderer_->sync_from_cpu(vram_);
+            hardware_vram_shadow_valid_ = true;
+        }
     } else if (op == 0xa0 || op == 0xc0) {
         transfer_x_ = packet_[1] & 0x3ff; transfer_y_ = (packet_[1] >> 16) & 0x3ff;
         transfer_w_ = packet_[2] & 0x3ff; transfer_h_ = (packet_[2] >> 16) & 0x3ff;
@@ -1015,6 +1133,10 @@ void Gpu::execute_packet()
 uint32_t Gpu::read_data()
 {
     if (!(status_ & (1u << 27)) || !transfer_from_vram_) return gpu_info_;
+    if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
+        hardware_renderer_->sync_to_cpu(vram_);
+        hardware_vram_shadow_valid_ = true;
+    }
     const uint32_t total = transfer_w_ * transfer_h_;
     if (transfer_pos_ >= total) {
         transfer_pos_ = 0;
@@ -1152,6 +1274,10 @@ std::vector<uint32_t> Gpu::dma_read(size_t words)
 
 GpuFrame Gpu::framebuffer_rgb() const
 {
+    if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
+        hardware_renderer_->sync_to_cpu(vram_);
+        hardware_vram_shadow_valid_ = true;
+    }
     GpuFrame frame;
     const unsigned width_code = (status_ >> 17) & 3;
     const unsigned width_high = (status_ >> 16) & 1;
