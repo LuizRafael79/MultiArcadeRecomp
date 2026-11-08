@@ -199,7 +199,15 @@ struct GpuHardwareRenderer::Impl {
     }
 
     bool make_current() const {
-        return context && window && SDL_GL_MakeCurrent(window, context);
+        if (!context || !window) return false;
+        // The GP0 path calls this for each command. SDL_GL_MakeCurrent is
+        // needlessly expensive when the PSX context is already current (the
+        // common case between vblanks), so only switch after another SDL
+        // renderer/context has actually taken ownership of the thread.
+        if (SDL_GL_GetCurrentContext() == context &&
+            SDL_GL_GetCurrentWindow() == window)
+            return true;
+        return SDL_GL_MakeCurrent(window, context);
     }
 
     bool initialize(std::span<const uint8_t> initial_vram) {
