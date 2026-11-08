@@ -692,6 +692,13 @@ and physical NVIDIA GTX 1650. Running the same tests inside the sandbox selects
 llvmpipe even when NVIDIA PRIME variables are set, so that result is not
 counted as physical-GPU validation.
 
+The GP0 parity fixture now also sends variable-length flat and Gouraud polyline
+packets through the public command processor, including the `0x50005000`
+terminator and connected segments. It checks representative endpoint and
+interpolated-color pixels in the software reference before comparing the full
+VRAM image. The updated test passed on both physical GPUs above; this closes a
+packet-dispatch coverage gap that direct line-segment tests did not exercise.
+
 The 600-frame timing profile showed 758 general raster-compute dispatches
 before the GP0 copy fast path. For GP0(80h) with both mask flags clear, the
 runtime now snapshots the source region as before, then copies the integer

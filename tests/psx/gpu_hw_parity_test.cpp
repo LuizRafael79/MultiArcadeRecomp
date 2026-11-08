@@ -93,6 +93,14 @@ int main()
             0x400000ffu, 8u | (80u << 16), 72u | (80u << 16),
             0x500000ffu, 72u | (84u << 16), 0x00ff0000u,
             8u | (120u << 16),
+            // GP0 polylines are variable-length packets terminated by the
+            // 0x50005000 marker. Exercise multiple connected segments through
+            // the same GP0 dispatcher that the hardware backend uses.
+            0x480000ffu, 400u | (400u << 16), 416u | (400u << 16),
+            416u | (416u << 16), 0x50005000u,
+            0x580000ffu, 480u | (430u << 16), 0x0000ff00u,
+            496u | (430u << 16), 0x00ff0000u,
+            496u | (446u << 16), 0x50005000u,
             // Seed a 4bpp page and CLUT, then exercise indexed texture lookup.
             0xa0000000u, 0u, (1u << 16) | 4u, 0x4321u, 0u,
             0xa0000000u, 64u, (1u << 16) | 16u,
@@ -284,6 +292,13 @@ int main()
         if (expected[120u * kReadbackWidth + 228u] != 0x7c00u ||
             expected[120u * kReadbackWidth + 230u] != 0x001fu)
             throw std::runtime_error("PSX textured STP transparency rules failed");
+        if (expected[400u * kReadbackWidth + 400u] != 0x001fu ||
+            expected[400u * kReadbackWidth + 415u] != 0x001fu ||
+            expected[415u * kReadbackWidth + 416u] != 0x001fu ||
+            expected[430u * kReadbackWidth + 480u] != 0x001fu ||
+            expected[430u * kReadbackWidth + 496u] != 0x03e0u ||
+            expected[445u * kReadbackWidth + 496u] == 0u)
+            throw std::runtime_error("PSX GP0 polyline packet fixture failed");
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {
