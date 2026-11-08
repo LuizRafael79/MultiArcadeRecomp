@@ -393,7 +393,9 @@ after the change reported no scanout or textured-command pixel differences.
 
 `psx_gpu_hw_transfer_test` is built only when the OpenGL backend is available;
 it skips when the host cannot create an OpenGL 4.3 context. On the development
-host it passed on the Mesa UHD 630 and checks an odd-width A0 upload crossing
-both VRAM edges, a GP0 `0x80` copy from the uploaded texture, C0 readback, and a
-GPU fill/readback crossing X=1023 and Y=511. This directly exercises the
-upload and synchronization paths rather than relying only on a game capture.
+host it passed on the Mesa UHD 630 through the real MachineMemory DMA channel
+2 callbacks. It sends an odd-width A0 upload across both VRAM edges and a GP0
+`0x80` copy through linked-list RAM-to-GPU DMA, then reads the pixels through
+block GPU-to-RAM DMA and GP0 C0. It also checks a GPU fill followed by DMA C0
+readback across X=1023 and Y=511. This exercises the upload, copy, readback,
+and DMA synchronization paths rather than relying only on a game capture.
