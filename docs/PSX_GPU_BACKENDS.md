@@ -174,11 +174,12 @@ presenter no longer uses it.
 
 The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
 when `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` was set for diagnosis, and a
-900-frame run on X11. During direct-OpenGL debugging, the PSX window may remain
-undecorated; restoring its normal decoration is deferred until the renderer is
-stable. Other SDL windows keep their normal decoration/backend choice. Runtime
-completion is smoke-tested, and pixel output is compared against the software
-path below.
+900-frame run on X11. After making the PSX native-OpenGL window borderless for
+debugging, a 600-frame X11 run completed all 600 scanout updates using the
+direct blit path. Wayland was not revalidated in this run. Restoring normal
+decoration is deferred until the renderer is stable; other SDL windows keep
+their normal decoration/backend choice. Runtime completion is smoke-tested,
+and pixel output is compared against the software path below.
 
 The GP0 batching path submits opaque flat/Gouraud triangles and quads, textured
 and untextured, plus rectangles, through a streaming vertex buffer. Per-vertex
