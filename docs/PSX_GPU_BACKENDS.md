@@ -44,8 +44,8 @@ the renderer itself has no ZN-specific types or board callbacks.
 - Synthetic parity tests cover GPU types 0/1/2, representative flat/Gouraud and
   textured primitives, dithering, clipping, mask and transparency behavior,
   GP1 scanout modes, texture/CLUT coherence, and DMA/GP0 transfers. They pass on
-  llvmpipe and the NVIDIA GTX 1650. Intel UHD 630, NVIDIA GTX 1650, and Mesa
-  software rendering have been used for runtime checks.
+  Mesa Intel UHD 630 and the NVIDIA GTX 1650 with GL error checks enabled.
+  llvmpipe and Mesa software rendering have also been used for runtime checks.
 - GP0 drawing now follows DuckStation's interlaced 480i field rule: draws skip
   rows belonging to the active displayed field unless GP0(E1) enables drawing
   to that field. The active row parity includes GP1 display-area Y and the
