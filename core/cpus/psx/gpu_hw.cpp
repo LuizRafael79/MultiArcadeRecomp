@@ -22,6 +22,7 @@ constexpr int kMaxVramHeight = 1024;
 constexpr size_t kCommandRingSlots = 4096;
 constexpr size_t kCommandBatchSlots = 256;
 constexpr uint32_t kMaxBatchPrimitives = 65535;
+constexpr uint32_t kMaxBatchDepthLayers = kMaxBatchPrimitives * 2;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -43,12 +44,18 @@ static_assert(sizeof(ShaderCommand) % 16 == 0);
 
 struct BatchVertex {
     int32_t position[2]{};
+    int32_t uv[2]{};
     uint32_t color = 0;
     float depth = 0.0f;
     uint32_t set_mask = 0;
     uint32_t gouraud = 0;
+    uint32_t flags = 0;
+    uint32_t texture_page = 0;
+    uint32_t clut = 0;
+    uint32_t gpu_type = 0;
+    int32_t window_state[4]{};
 };
-static_assert(sizeof(BatchVertex) == 24);
+static_assert(sizeof(BatchVertex) == 64);
 
 GLuint compile_compute_program(const std::string& source, std::string& error) {
     const GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
@@ -187,6 +194,7 @@ struct GpuHardwareRenderer::Impl {
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
     GLint batch_vram_height_location = -1;
+    GLint batch_source_location = -1;
     int vram_height = kMinVramHeight;
     unsigned scanout_width = 0;
     unsigned scanout_height = 0;
@@ -195,6 +203,7 @@ struct GpuHardwareRenderer::Impl {
     std::array<int, 4> last_dirty_bounds{};
     std::vector<BatchVertex> pending_batch_vertices;
     uint64_t pending_batch_primitive_count = 0;
+    uint32_t pending_batch_depth_count = 0;
     uint64_t submitted_batch_count = 0;
     uint64_t submitted_batch_primitive_count = 0;
     std::array<int, 4> pending_batch_draw_area{};
@@ -377,6 +386,24 @@ struct GpuHardwareRenderer::Impl {
         glEnableVertexAttribArray(4);
         glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
                                reinterpret_cast<const void*>(offsetof(BatchVertex, gouraud)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribIPointer(5, 2, GL_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, uv)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribIPointer(6, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, flags)));
+        glEnableVertexAttribArray(7);
+        glVertexAttribIPointer(7, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, texture_page)));
+        glEnableVertexAttribArray(8);
+        glVertexAttribIPointer(8, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, clut)));
+        glEnableVertexAttribArray(9);
+        glVertexAttribIPointer(9, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, gpu_type)));
+        glEnableVertexAttribArray(10);
+        glVertexAttribIPointer(10, 4, GL_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, window_state)));
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
         const size_t alignment = static_cast<size_t>(std::max(storage_alignment, 1));
@@ -392,6 +419,9 @@ struct GpuHardwareRenderer::Impl {
         glUniform1i(glGetUniformLocation(scanout_program, "uVram"), 0);
         glUseProgram(draw_program);
         glUniform1i(glGetUniformLocation(draw_program, "uSource"), 0);
+        glUseProgram(batch_draw_program);
+        batch_source_location = glGetUniformLocation(batch_draw_program, "uSource");
+        glUniform1i(batch_source_location, 0);
         glBindVertexArray(0);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL resource creation failed");
@@ -492,12 +522,12 @@ struct GpuHardwareRenderer::Impl {
         }
     }
 
-    bool queue_untextured_opaque(const ShaderCommand& command) {
+    bool queue_opaque_primitive(const ShaderCommand& command) {
         if (!batching_enabled) return false;
         const unsigned vertex_count = command.header[1];
         const uint32_t flags = command.header[2];
         if ((vertex_count != 3 && vertex_count != 4) ||
-            (flags & (2u | 8u | 32u)) != 0)
+            (flags & (8u | 32u)) != 0)
             return false;
 
         const int left = std::clamp(command.bounds[0], 0, kVramWidth - 1);
@@ -527,19 +557,35 @@ struct GpuHardwareRenderer::Impl {
             pending_batch_dirty_bounds[3] = std::max(pending_batch_dirty_bounds[3], bottom);
         }
         ++pending_batch_primitive_count;
-        const float depth = static_cast<float>(pending_batch_primitive_count) /
-                            static_cast<float>(kMaxBatchPrimitives);
         const uint32_t set_mask = (flags & 16u) ? 0x8000u : 0u;
 
         const unsigned indices[6] = {0, 1, 2, 2, 1, 3};
         const unsigned output_count = vertex_count == 4 ? 6 : 3;
         for (unsigned i = 0; i < output_count; ++i) {
             const auto& source = command.vertices[vertex_count == 4 ? indices[i] : i];
-            const uint32_t color = (flags & 1u) ? source.color : command.header[3];
-            pending_batch_vertices.push_back({
-                {source.xyuv[0], source.xyuv[1]}, color, depth, set_mask,
-                (flags & 1u) ? 1u : 0u});
+            BatchVertex vertex{};
+            vertex.position[0] = source.xyuv[0];
+            vertex.position[1] = source.xyuv[1];
+            vertex.uv[0] = source.xyuv[2];
+            vertex.uv[1] = source.xyuv[3];
+            vertex.color = (flags & (1u | 2u)) ? source.color : command.header[3];
+            const uint32_t triangle_depth = pending_batch_depth_count +
+                ((vertex_count == 4 && i >= 3) ? 2u : 1u);
+            vertex.depth = static_cast<float>(triangle_depth) /
+                           static_cast<float>(kMaxBatchDepthLayers);
+            vertex.set_mask = set_mask;
+            vertex.gouraud = (flags & 1u) ? 1u : 0u;
+            vertex.flags = flags;
+            vertex.texture_page = command.texture[0];
+            vertex.clut = command.texture[1];
+            vertex.gpu_type = command.texture[2];
+            vertex.window_state[0] = command.offset_window[2];
+            vertex.window_state[1] = command.offset_window[3];
+            vertex.window_state[2] = command.window_flip[0];
+            vertex.window_state[3] = command.window_flip[1];
+            pending_batch_vertices.push_back(vertex);
         }
+        pending_batch_depth_count += vertex_count == 4 ? 2u : 1u;
         return true;
     }
 
@@ -564,6 +610,8 @@ struct GpuHardwareRenderer::Impl {
         glDisable(GL_DITHER);
         glUseProgram(batch_draw_program);
         glUniform1i(batch_vram_height_location, vram_height);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
         glBindVertexArray(batch_vertex_array);
         glBindBuffer(GL_ARRAY_BUFFER, batch_vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER,
@@ -580,6 +628,7 @@ struct GpuHardwareRenderer::Impl {
         ++submitted_batch_count;
         submitted_batch_primitive_count += pending_batch_primitive_count;
         pending_batch_primitive_count = 0;
+        pending_batch_depth_count = 0;
         pending_batch_vertices.clear();
         if (debug_gl && glGetError() != GL_NO_ERROR)
             throw std::runtime_error("PSX OpenGL batch rasterization failed");
@@ -906,7 +955,7 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
     auto command = make_command(0, vertices, state, gouraud, textured,
                                raw_texture, semi_transparent, clut);
     command.header[3] = vertices.empty() ? 0 : vertices.front().color;
-    if (impl_->queue_untextured_opaque(command)) return;
+    if (impl_->queue_opaque_primitive(command)) return;
     impl_->execute_draw(command);
 }
 
@@ -944,7 +993,7 @@ void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
     auto command = make_command(1, vertices, state, false, false, false,
                                 semi_transparent, 0);
     command.header[3] = color;
-    if (impl_->queue_untextured_opaque(command)) return;
+    if (impl_->queue_opaque_primitive(command)) return;
     impl_->execute_draw(command);
 }
 
@@ -970,6 +1019,7 @@ void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height
     auto command = make_command(1, vertices, state, false, true, raw_texture,
                                 semi_transparent, clut);
     command.header[3] = color;
+    if (impl_->queue_opaque_primitive(command)) return;
     impl_->execute_draw(command);
 }
 

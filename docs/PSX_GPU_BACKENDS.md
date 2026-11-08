@@ -182,23 +182,28 @@ decoration/backend choice. Runtime completion is smoke-tested, but visual
 parity of the direct blit after the scissor-state fix still needs a
 pixel-capture comparison.
 
-The first GP0 batching path now submits opaque, untextured flat/Gouraud triangles
-and quads, plus rectangles, through a streaming vertex buffer. A temporary
-depth attachment gives each primitive an increasing depth so overlapping
-commands retain PSX last-draw-wins ordering inside one GL submission. Flat
-colors remain in their native packed format; only Gouraud colors are converted
-from RGB888. Draw-area changes, textured/semitransparent/check-mask commands,
-CPU-visible VRAM operations, and scanout flush the queue. The path can be
-disabled with `MAMERECOMP_PSX_GPU_BATCHING=0`; `MAMERECOMP_PSX_GPU_BATCH_LIMIT`
-can cap primitives per submission, and `MAMERECOMP_PSX_GPU_BATCH_STATS=1`
-prints aggregate counts.
+The GP0 batching path submits opaque flat/Gouraud triangles and quads, textured
+and untextured, plus rectangles, through a streaming vertex buffer. Per-vertex
+attributes carry UVs and the primitive's texture page, CLUT, texture depth,
+window, color, and mask state. Textures are sampled directly from the resident
+R16UI VRAM texture on the GPU; an explicit decoded texture/CLUT cache with write
+invalidation is still pending. A temporary depth attachment assigns ordered
+depths to the two triangles of a quad and to each successive primitive, so
+overlap preserves PSX last-draw-wins behavior within a GL submission. Flat
+colors remain in their native packed format; Gouraud and texture modulation
+colors are converted from RGB888. Draw-area changes,
+semitransparent/check-mask commands, CPU-visible VRAM operations, and scanout
+flush the queue. `MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
+`MAMERECOMP_PSX_GPU_BATCH_LIMIT` caps primitives per submission, and
+`MAMERECOMP_PSX_GPU_BATCH_STATS=1` prints aggregate counts.
 
-Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through the start
-of gameplay with fresh NVRAM. The batch and non-batch frame captures were
-byte-identical (0 differing pixels). The scene submitted 35,715 primitives in
-1,996 draws (17.9 primitives per draw). One end-to-end timing was 57.6 seconds
-with batching and 57.8 seconds without; this is within run-to-run noise and is
-not evidence of an overall speedup. The next performance work is explicit
-texture/CLUT caching and batching textured primitives while preserving VRAM
-read-after-write visibility. These paths must force synchronization only where
-CPU-visible VRAM or scanout requires it.
+Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through gameplay
+with fresh NVRAM. The batch and non-batch frame captures were byte-identical
+(0 differing pixels), including with OpenGL error checks enabled. The scene
+submitted 501,234 opaque primitives in 5,835 draws (85.9 primitives per draw).
+One no-error-polling timing was 45.7 seconds with batching versus 57.8 seconds
+without; that is a promising 21% improvement, but should be repeated before it
+is treated as a stable benchmark. Remaining performance work includes explicit
+texture/CLUT cache invalidation and batching semitransparent/check-mask commands
+while preserving VRAM read-after-write visibility. CPU-visible VRAM operations
+and scanout remain explicit synchronization points.
