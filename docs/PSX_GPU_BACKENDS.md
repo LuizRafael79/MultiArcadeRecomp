@@ -676,6 +676,22 @@ runs processed 254,754,373 guest instructions/cycles and 900 frame updates.
 This confirms the shared PSX GPU path on both Sony board families for these
 selected captures, while broader scene coverage remains open.
 
+On 2026-11-08, the current workspace build was rechecked outside the sandbox on
+the physical Intel UHD 630. Matched software and `--gpu-hw` captures were
+byte-identical for SFEX2PA's frame-1074 character-select scene (SHA-256
+`54f8c52e3c8c339f1102d2de2f7a3e2ad7c32a24f612ba2231d4b13e68a8ac95`,
+448,800,791 guest instructions/cycles), BLDYROR2 at frame 900 (SHA-256
+`d7e9d8804401845dbb13bac87db56b73b50dc53cf088dd5770f0a0bf8df5326a`,
+254,754,373 guest instructions/cycles), and Tekken 3/System 12 at frame 600
+(SHA-256 `de1cae4b28f306cf50ef96d72a79959d9fa58e93c42176737c16a17cdb28e690`,
+250,726,699 R3000A instructions/cycles and 62,681,653 H8 cycles). This
+reconfirms the ZN-2 portrait and cross-board scanout after the GP0 fill-offset
+fix; these remain selected checkpoints rather than full-title parity proofs.
+The three PSX GPU CTests also passed outside the sandbox on both the UHD 630
+and physical NVIDIA GTX 1650. Running the same tests inside the sandbox selects
+llvmpipe even when NVIDIA PRIME variables are set, so that result is not
+counted as physical-GPU validation.
+
 The 600-frame timing profile showed 758 general raster-compute dispatches
 before the GP0 copy fast path. For GP0(80h) with both mask flags clear, the
 runtime now snapshots the source region as before, then copies the integer
