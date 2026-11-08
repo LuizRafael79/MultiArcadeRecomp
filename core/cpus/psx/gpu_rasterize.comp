@@ -228,6 +228,8 @@ void main() {
     if (p.x < command.bounds.x || p.y < command.bounds.y ||
         p.x > command.bounds.z || p.y > command.bounds.w ||
         p.x < 0 || p.y < 0 || p.x >= 1024 || p.y >= uVramHeight) return;
+    if ((command.header.z & 128u) != 0u &&
+        (uint(p.y) & 1u) == ((command.texture.w >> 8) & 1u)) return;
     uint kind = command.header.x;
     // GP0 polygon texels are stepped at integer scanline coordinates by the
     // PSX/MAME path. Keep rectangle and line rasterization at pixel centers.

@@ -164,8 +164,49 @@ int main()
         send(software, commands);
         send(hardware, commands);
 
+        // In interleaved 480i, DuckStation skips writes to the active
+        // displayed field unless GP0(E1).draw_to_displayed_field is set.
+        // The reset field bit is odd, so the default display start selects
+        // odd VRAM rows as the field to skip.
+        software.write_status(0x08000024u);
+        hardware.write_status(0x08000024u);
+        const std::vector<uint32_t> interlaced_commands{
+            0xe1000000u,
+            0x020000ffu, 300u | (300u << 16), (4u << 16) | 4u,
+            0x6000ff00u, 320u | (300u << 16), (4u << 16) | 4u,
+            0x400000ffu, 330u | (300u << 16), 334u | (303u << 16),
+            0x200000ffu, 340u | (300u << 16),
+            344u | (300u << 16), 340u | (304u << 16),
+            // Enable writing to the displayed field; both row parities draw.
+            0xe1000400u,
+            0x0200ff00u, 350u | (310u << 16), (2u << 16) | 2u,
+        };
+        send(software, interlaced_commands);
+        send(hardware, interlaced_commands);
+
         const auto expected = read_vram(software);
         const auto actual = read_vram(hardware);
+        if (expected[300u * kReadbackWidth + 288u] == 0 ||
+            expected[301u * kReadbackWidth + 288u] != 0 ||
+            expected[300u * kReadbackWidth + 320u] == 0 ||
+            expected[301u * kReadbackWidth + 320u] != 0 ||
+            expected[300u * kReadbackWidth + 330u] == 0 ||
+            expected[301u * kReadbackWidth + 331u] != 0 ||
+            expected[300u * kReadbackWidth + 340u] == 0 ||
+            expected[301u * kReadbackWidth + 340u] != 0 ||
+            expected[310u * kReadbackWidth + 336u] == 0 ||
+            expected[311u * kReadbackWidth + 336u] == 0) {
+            std::cerr << "interlace pixels fill=" << std::hex
+                      << expected[300u * kReadbackWidth + 288u] << '/'
+                      << expected[301u * kReadbackWidth + 288u] << " rect="
+                      << expected[300u * kReadbackWidth + 320u] << '/'
+                      << expected[301u * kReadbackWidth + 320u] << " poly="
+                      << expected[300u * kReadbackWidth + 340u] << '/'
+                      << expected[301u * kReadbackWidth + 340u] << " active="
+                      << expected[310u * kReadbackWidth + 336u] << '/'
+                      << expected[311u * kReadbackWidth + 336u] << std::dec << '\n';
+            throw std::runtime_error("PSX interlaced draw-field fixture failed");
+        }
         constexpr size_t dither_pixel = 202u * kReadbackWidth + 302u;
         if (expected[dither_pixel] != 0x3defu)
             throw std::runtime_error("PSX dithering fixture did not match its expected RGB555 value");

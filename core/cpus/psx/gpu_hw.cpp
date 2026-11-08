@@ -1517,7 +1517,8 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
     command.header[2] = (gouraud ? 1u : 0u) | (textured ? 2u : 0u) |
                         (raw_texture ? 4u : 0u) | (semi_transparent ? 8u : 0u) |
                         (state.set_mask ? 16u : 0u) | (state.check_mask ? 32u : 0u) |
-                        (dither ? 64u : 0u);
+                        (dither ? 64u : 0u) |
+                        (state.interlaced_rendering ? 128u : 0u);
     command.draw_area[0] = state.draw_x1;
     command.draw_area[1] = state.draw_y1;
     command.draw_area[2] = state.draw_x2;
@@ -1533,8 +1534,9 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
     command.texture[0] = state.texture_page;
     command.texture[1] = clut;
     command.texture[2] = state.gpu_type;
-    command.texture[3] = state.gpu_type == 2
-        ? ((state.texture_page >> 5) & 3u) : ((state.texture_page >> 7) & 3u);
+    command.texture[3] = (state.gpu_type == 2
+        ? ((state.texture_page >> 5) & 3u) : ((state.texture_page >> 7) & 3u)) |
+        ((state.active_line_lsb & 1u) << 8);
     int min_x = kVramWidth - 1, min_y = kMaxVramHeight - 1, max_x = 0, max_y = 0;
     for (size_t i = 0; i < vertices.size() && i < 4; ++i) {
         auto& out = command.vertices[i];
@@ -1590,7 +1592,8 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
     impl_->execute(command);
 }
 
-void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_t color) {
+void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_t color,
+                                    const GpuHwState& state) {
     width = std::clamp(width, 0, kVramWidth);
     height = std::clamp(height, 0, impl_->vram_height);
     if (!width || !height) return;
@@ -1602,12 +1605,14 @@ void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_
         if (w <= 0 || h <= 0) return;
         ShaderCommand command{};
         command.header[0] = 2;
+        command.header[2] = state.interlaced_rendering ? 128u : 0u;
         command.header[3] = color;
         command.bounds[0] = left;
         command.bounds[1] = top;
         command.bounds[2] = left + w - 1;
         command.bounds[3] = top + h - 1;
         command.texture[2] = 2;
+        command.texture[3] = (state.active_line_lsb & 1u) << 8;
         impl_->execute(command);
     };
     submit(wrapped_x, wrapped_y, first_width, first_height);

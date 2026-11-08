@@ -237,6 +237,22 @@ void Gpu::get_hardware_state(GpuHwState& state) const
     state.set_mask = draw_mask_;
     state.check_mask = check_mask_;
     state.dither_enable = dither_enable_;
+    // DuckStation skips writes to the currently displayed field in 480i
+    // unless GP0(E1).draw_to_displayed_field is set. The active scanline
+    // parity includes the programmed display-area Y origin.
+    state.interlaced_rendering = (status_ & ((1u << 19) | (1u << 22) | (1u << 10))) ==
+                                 ((1u << 19) | (1u << 22));
+    state.active_line_lsb = (display_start_y_ + ((status_ >> 13) & 1u)) & 1u;
+}
+
+bool Gpu::skip_render_line(int y) const
+{
+    const bool interlaced_rendering =
+        (status_ & ((1u << 19) | (1u << 22) | (1u << 10))) ==
+        ((1u << 19) | (1u << 22));
+    const unsigned active_line_lsb =
+        (display_start_y_ + ((status_ >> 13) & 1u)) & 1u;
+    return interlaced_rendering && (static_cast<unsigned>(y) & 1u) == active_line_lsb;
 }
 
 size_t Gpu::wrap_vram_y(size_t y) const
@@ -365,13 +381,19 @@ void Gpu::fill_rect(int x, int y, int w, int h, uint16_t color, bool honor_mask)
     w = std::clamp(w, 0, 1024);
     h = std::clamp(h, 0, int(std::max<size_t>(1, vram_.size() / (1024 * 2))));
     if (hardware_renderer_ && !honor_mask) {
-        hardware_renderer_->fill_rect(x, y, w, h, color);
+        GpuHwState state;
+        get_hardware_state(state);
+        hardware_renderer_->fill_rect(x, y, w, h, color, state);
         hardware_vram_shadow_valid_ = false;
         return;
     }
-    for (int yy = 0; yy < h; ++yy) for (int xx = 0; xx < w; ++xx) {
-        if (honor_mask) write_pixel(x + xx, y + yy, color);
-        else put_pixel(x + xx, y + yy, color);
+    for (int yy = 0; yy < h; ++yy) {
+        const int py = y + yy;
+        if (!honor_mask && skip_render_line(py)) continue;
+        for (int xx = 0; xx < w; ++xx) {
+            if (honor_mask) write_pixel(x + xx, y + yy, color);
+            else put_pixel(x + xx, y + yy, color);
+        }
     }
 }
 void Gpu::draw_solid_rect(int x, int y, int w, int h, uint16_t color,
@@ -394,6 +416,7 @@ void Gpu::draw_solid_rect(int x, int y, int w, int h, uint16_t color,
     const unsigned abr = gpu_type_ == 2 ? ((texture_page_ >> 5) & 3)
                                          : ((texture_page_ >> 7) & 3);
     for (int py = y0; py < y1; ++py) {
+        if (skip_render_line(py)) continue;
         for (int px = x0; px < x1; ++px) {
             const uint16_t out = semi_transparent
                 ? blend_rgb555(get_pixel(px, py), color, abr) : color;
@@ -444,7 +467,7 @@ void Gpu::draw_line(int x0, int y0, int x1, int y1, uint32_t color0,
     for (int i = 0; i < steps; ++i) {
         const int px = int(x >> 16) + draw_offset_x_;
         const int py = int(y >> 16) + draw_offset_y_;
-        if (px >= std::max(0, draw_area_x1_) &&
+        if (!skip_render_line(py) && px >= std::max(0, draw_area_x1_) &&
             px <= std::min(1023, draw_area_x2_) &&
             py >= std::max(0, draw_area_y1_) &&
             py <= std::min(vram_height - 1, draw_area_y2_)) {
@@ -523,7 +546,7 @@ void Gpu::draw_flat_polygon(const int *x, const int *y, unsigned count,
         const int py = scan_y + draw_offset_y_;
         const int lx = int(left_x >> 16) + draw_offset_x_;
         const int rx = int(right_x >> 16) + draw_offset_x_;
-        if (lx != rx && py >= draw_area_y1_ && py <= draw_area_y2_ &&
+        if (!skip_render_line(py) && lx != rx && py >= draw_area_y1_ && py <= draw_area_y2_ &&
             py >= 0 && py < vram_height) {
             const int start = std::max(std::min(lx, rx), draw_area_x1_);
             const int end = std::min(std::max(lx, rx), draw_area_x2_ + 1);
@@ -612,7 +635,7 @@ void Gpu::draw_gouraud_polygon(const int *x, const int *y,
             set_edge(false, from, right, dy);
         }
         const int py = scan_y + draw_offset_y_;
-        if ((lx >> 16) != (rx >> 16) && py >= draw_area_y1_ &&
+        if (!skip_render_line(py) && (lx >> 16) != (rx >> 16) && py >= draw_area_y1_ &&
             py <= draw_area_y2_ && py >= 0 && py < vram_height) {
             const int left_x = int(lx >> 16) + draw_offset_x_;
             const int right_x = int(rx >> 16) + draw_offset_x_;
@@ -812,7 +835,7 @@ void Gpu::draw_textured_polygon(const int *x, const int *y, const int *u, const 
             set_edge(false, from, right, dy);
         }
         const int py = scan_y + draw_offset_y_;
-        if ((lx >> 16) != (rx >> 16) && py >= draw_area_y1_ &&
+        if (!skip_render_line(py) && (lx >> 16) != (rx >> 16) && py >= draw_area_y1_ &&
             py <= draw_area_y2_ && py >= 0 && py < vram_height) {
             const int left_x = int(lx >> 16) + draw_offset_x_;
             const int right_x = int(rx >> 16) + draw_offset_x_;
@@ -1092,7 +1115,7 @@ void Gpu::execute_packet()
                                                    : ((tpage >> 7) & 3);
               for (int dy = 0; dy < h; ++dy) {
                 const int py = origin_y + dy;
-                if (py < draw_area_y1_ || py > draw_area_y2_ || py < 0 || py > 1023) continue;
+                if (skip_render_line(py) || py < draw_area_y1_ || py > draw_area_y2_ || py < 0 || py > 1023) continue;
                 const int tv = (v0 + dy * texture_flip_y_) & 255;
                 for (int dx = 0; dx < w; ++dx) {
                     const int px = origin_x + dx;

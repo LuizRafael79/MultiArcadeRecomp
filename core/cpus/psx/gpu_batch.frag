@@ -104,6 +104,9 @@ void main() {
     const ShaderCommand command = commands[vCommandIndex];
     const bool polygon = command.header.x == 0u;
     const ivec2 pixel = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
+    if ((command.header.z & 128u) != 0u &&
+        (uint(pixel.y) & 1u) == ((command.texture.w >> 8) & 1u))
+        discard;
     // A flipped sprite can interpolate to a negative half-texel at its far
     // edge. Conversion to int truncates toward zero; floor preserves the
     // preceding UV so the later PSX 8-bit wrap selects texel 255.

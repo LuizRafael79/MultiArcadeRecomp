@@ -55,6 +55,7 @@ private:
     void decode_tpage(uint32_t tpage);
     void put_pixel(int x, int y, uint16_t color);
     void write_pixel(int x, int y, uint16_t color);
+    bool skip_render_line(int y) const;
     uint16_t get_pixel(int x, int y) const;
     uint16_t get_pixel_linear(int x, int y) const;
     void fill_rect(int x, int y, int w, int h, uint16_t color, bool honor_mask = false);

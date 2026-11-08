@@ -91,6 +91,9 @@ void main() {
         discard;
 
     uint flags = command.header.z;
+    if ((flags & 128u) != 0u &&
+        (uint(pixel.y) & 1u) == ((command.texture.w >> 8) & 1u))
+        discard;
     bool textured = (flags & 2u) != 0u;
     bool raw_texture = (flags & 4u) != 0u;
     bool gouraud = (flags & 1u) != 0u;

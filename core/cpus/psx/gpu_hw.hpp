@@ -26,6 +26,8 @@ struct GpuHwState {
     bool set_mask = false;
     bool check_mask = false;
     bool dither_enable = false;
+    bool interlaced_rendering = false;
+    unsigned active_line_lsb = 0;
 };
 
 class GpuHardwareRenderer {
@@ -40,7 +42,8 @@ public:
     void draw_polygon(std::span<const GpuHwVertex> vertices, const GpuHwState& state,
                       bool textured, bool gouraud, bool raw_texture,
                       bool semi_transparent, uint32_t clut);
-    void fill_rect(int x, int y, int width, int height, uint16_t color);
+    void fill_rect(int x, int y, int width, int height, uint16_t color,
+                   const GpuHwState& state);
     void draw_rect(int x, int y, int width, int height, uint32_t color,
                    const GpuHwState& state, bool semi_transparent);
     void draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
