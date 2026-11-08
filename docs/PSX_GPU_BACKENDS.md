@@ -402,7 +402,10 @@ and DMA synchronization paths rather than relying only on a game capture. The
 test also draws an indexed texel to populate the texture-page cache, changes
 that source texel using a later A0 DMA upload, and draws again with the same
 cache key. C0 readback observes the new CLUT color, verifying that CPU writes
-invalidate cached GPU texture data before the next draw.
+invalidate cached GPU texture data before the next draw. It then modifies the
+same cached source page with a GPU fill and confirms the subsequent textured
+draw sees that update as well, covering GPU-write invalidation and the
+render-target-to-texture ordering boundary.
 
 The previous 37,590-pixel difference reported for SFEX2PA gameplay frame 1560
 was from non-batched polygons going through the OpenGL triangle-varying path.

@@ -172,8 +172,9 @@ int main()
         dma_ram_to_gpu(memory, bus, 0xb00,
             {0xa0000000u, 0u, (1u << 16) | 1u, 1u});
         dma_ram_to_gpu(memory, bus, 0xc00,
-            {0xa0000000u, 64u, (1u << 16) | 3u,
-             0x001f0000u, 0x000003e0u});
+            {0xa0000000u, 64u, (1u << 16) | 16u,
+             0x001f0000u, 0x000003e0u,
+             0u, 0u, 0u, 0u, 0u, 0x7c000000u});
         const auto source_texel = dma_gpu_to_ram(memory, bus, 0xc80, 0xc90,
                                                  0, 0, 1, 1);
         const auto palette_texel = dma_gpu_to_ram(memory, bus, 0xca0, 0xcb0,
@@ -201,6 +202,16 @@ int main()
                                                   100, 100, 1, 1);
         if (!check_packed_pixels(updated_texel, {0x03e0}))
             throw std::runtime_error("indexed-texture cache was stale after A0 upload");
+
+        // A GPU draw that changes the cached source page must also invalidate
+        // the page before a later textured draw samples it.
+        dma_ram_to_gpu(memory, bus, 0x1500,
+            {0x020000f8u, 0u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x1600, draw_indexed_texel);
+        const auto gpu_updated_texel = dma_gpu_to_ram(memory, bus, 0x1700, 0x1800,
+                                                      100, 100, 1, 1);
+        if (!check_packed_pixels(gpu_updated_texel, {0x7c00}))
+            throw std::runtime_error("indexed-texture cache was stale after GPU write");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
