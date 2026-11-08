@@ -1,5 +1,11 @@
 # TODO — MameRecomp
 
+## Foco atual (2026-11-07)
+
+- [ ] Congelar DSP16A LLE/AOT no estado atual; não alterar esse caminho enquanto o trabalho estiver em Bloody Roar 2.
+- [ ] Bloody Roar 2 (`bldyror2`): o usuário confirma que o jogo funciona muito bem fora a abertura FMV, que aparece corrompida. Investigar e corrigir somente essa divergência comparando MDEC/GPU e temporização com o MAME. Falta também integrar uma receita AOT para o jogo; tratar isso após a abertura.
+- [ ] Depois de Bloody Roar 2, desacoplar Tekken 3 do runtime de placa ZN e continuar a correção do jogo sem misturar seus componentes específicos com ZN-1/ZN-2.
+
 
 ## Vídeo compartilhado
 
