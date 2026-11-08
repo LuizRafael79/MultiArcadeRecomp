@@ -37,7 +37,8 @@ the renderer itself has no ZN-specific types or board callbacks.
   texture barriers; it does not force a separate `glFlush` submission.
   GP0 A0 uploads update only their rectangle; C0 reads back only the requested
   rectangle. DMA2 linked-list upload/readback and odd-width wrapped transfers
-  have automated coverage.
+  have automated coverage, including odd-width wrapped uploads and uploads
+  beginning at an odd VRAM X coordinate.
 - With `--gpu-hw --window`, the scanout compute shader writes the display
   texture and the GPU presents it directly to the native SDL OpenGL window.
   Headless image captures use synchronous readback for deterministic output.

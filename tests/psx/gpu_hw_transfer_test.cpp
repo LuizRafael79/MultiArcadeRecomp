@@ -156,6 +156,31 @@ int main()
                 std::vector<uint16_t>(uploaded.begin(), uploaded.end())))
             throw std::runtime_error("DMA A0/80/C0 wrapped transfer check failed");
 
+        // Exercise a transfer whose source begins at an odd VRAM X coordinate.
+        // Keep it separate from the edge-wrap case above so both address
+        // alignment and wrap splitting remain covered independently.
+        constexpr std::array<uint16_t, 9> odd_x_uploaded{
+            0x0f01, 0x1f02, 0x2f03,
+            0x3f04, 0x4f05, 0x5f06,
+            0x6f07, 0x7f08, 0x0f09,
+        };
+        std::vector<uint32_t> odd_x_upload_packet{
+            0xa0000000u,
+            (47u << 16) | 101u,
+            (3u << 16) | 3u,
+        };
+        for (size_t i = 0; i < odd_x_uploaded.size(); i += 2) {
+            odd_x_upload_packet.push_back(odd_x_uploaded[i] |
+                (i + 1 < odd_x_uploaded.size()
+                    ? uint32_t(odd_x_uploaded[i + 1]) << 16 : 0));
+        }
+        dma_ram_to_gpu(memory, bus, 0x7000, odd_x_upload_packet);
+        const auto odd_x_copied = dma_gpu_to_ram(memory, bus, 0x7100, 0x7200,
+                                                  101, 47, 3, 3);
+        if (!check_packed_pixels(odd_x_copied,
+                std::vector<uint16_t>(odd_x_uploaded.begin(), odd_x_uploaded.end())))
+            throw std::runtime_error("DMA A0 upload with odd X alignment failed");
+
         // Preserve unrelated VRAM regions through several ping-pong writes:
         // A0 upload, batched draw, GP0 copy, another draw, and a second copy.
         dma_ram_to_gpu(memory, bus, 0x3000,
