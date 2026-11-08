@@ -604,3 +604,14 @@ matched 300-frame SFEX2PA pairs with fresh NVRAM. `--gpu-hw --window` took
 frame updates. The means (7.22 s GPU_HW, 7.26 s software) are effectively
 equal at this sample size, so direct GPU presentation introduces no observed
 total-runtime penalty but does not demonstrate a material speedup here.
+
+A separate headless A/B used forced QSound HLE and two 600-frame SFEX2PA runs
+per backend on the GTX 1650, restoring the same NVRAM and logs before each run.
+Each run processed 56,734 GP0 packets and 250,726,699 guest instructions/cycles.
+GP0 CPU raster/dispatch averaged 40.0 ms with `--gpu-hw` and 91.8 ms with
+software (56% lower); measured `run_until` averaged 1.935 s and 1.991 s,
+respectively. Wall time averaged 2.432 s with GPU_HW and 2.263 s with software.
+The latter includes hidden OpenGL context setup/teardown, so it is not a direct
+present comparison; that overhead is a likely contributor to the wall-time
+difference. The paired guest-cycle count and run-time measurements show a
+renderer CPU saving without a comparable whole-machine gain in this workload.
