@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -24,6 +25,7 @@ constexpr size_t kCommandRingSlots = 4096;
 constexpr size_t kCommandBatchSlots = 256;
 constexpr uint32_t kMaxBatchPrimitives = 65535;
 constexpr uint32_t kMaxBatchDepthLayers = kMaxBatchPrimitives * 2;
+constexpr size_t kMaxBatchScanlineRows = 1'000'000;
 constexpr uint32_t kTextureCacheLayers = 64;
 
 struct alignas(16) ShaderVertex {
@@ -41,9 +43,16 @@ struct alignas(16) ShaderCommand {
     uint32_t texture[4]{};
     ShaderVertex vertices[4]{};
     int32_t bounds[4]{};
+    int32_t batch_scanline[4]{};
 };
-static_assert(sizeof(ShaderCommand) % 16 == 0);
-static_assert(sizeof(ShaderCommand) == 224);
+static_assert(sizeof(ShaderCommand) == 240);
+
+struct alignas(16) BatchScanline {
+    int32_t start[8]{};
+    int32_t step[8]{};
+    int32_t span[4]{};
+};
+static_assert(sizeof(BatchScanline) == 80);
 
 struct BatchVertex {
     int32_t position[2]{};
@@ -236,6 +245,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint batch_vertex_array = 0;
     GLuint batch_vertex_buffer = 0;
     GLuint batch_command_buffer = 0;
+    GLuint batch_scanline_buffer = 0;
     GLuint command_buffer = 0;
     std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     size_t next_command_slot = 0;
@@ -259,6 +269,7 @@ struct GpuHardwareRenderer::Impl {
     uint64_t vram_write_generation = 0;
     std::vector<BatchVertex> pending_batch_vertices;
     std::vector<ShaderCommand> pending_batch_commands;
+    std::vector<BatchScanline> pending_batch_scanlines;
     std::vector<PendingBatchTexture> pending_batch_textures;
     std::array<TextureCacheEntry, kTextureCacheLayers> texture_cache_entries{};
     std::unordered_map<TextureCacheKey, uint32_t, TextureCacheKeyHash> texture_cache_lookup;
@@ -313,6 +324,7 @@ struct GpuHardwareRenderer::Impl {
         if (batch_vertex_array) glDeleteVertexArrays(1, &batch_vertex_array);
         if (batch_vertex_buffer) glDeleteBuffers(1, &batch_vertex_buffer);
         if (batch_command_buffer) glDeleteBuffers(1, &batch_command_buffer);
+        if (batch_scanline_buffer) glDeleteBuffers(1, &batch_scanline_buffer);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
@@ -497,6 +509,9 @@ struct GpuHardwareRenderer::Impl {
                                reinterpret_cast<const void*>(offsetof(BatchVertex, command_index)));
         glGenBuffers(1, &batch_command_buffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_command_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+        glGenBuffers(1, &batch_scanline_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_scanline_buffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
@@ -799,6 +814,169 @@ struct GpuHardwareRenderer::Impl {
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     }
 
+    static int polygon_x(const ShaderCommand& command, int point) {
+        return command.vertices[point].xyuv[0];
+    }
+
+    static int polygon_y(const ShaderCommand& command, int point) {
+        return command.vertices[point].xyuv[1];
+    }
+
+    static int polygon_next(int point, int count, bool alternate) {
+        if (count == 3) return point == 2 ? 0 : point + 1;
+        if (alternate) {
+            if (point == 0) return 1;
+            if (point == 1) return 3;
+            if (point == 2) return 0;
+            return 2;
+        }
+        if (point == 0) return 1;
+        if (point == 1) return 3;
+        if (point == 2) return 0;
+        return 2;
+    }
+
+    static int polygon_prev(int point, int count, bool alternate) {
+        if (count == 3) return point == 0 ? 2 : point - 1;
+        if (alternate) {
+            if (point == 0) return 0;
+            if (point == 1) return 2;
+            if (point == 2) return 3;
+            return 1;
+        }
+        if (point == 0) return 2;
+        if (point == 1) return 0;
+        if (point == 2) return 3;
+        return 1;
+    }
+
+    static int polygon_attribute(const ShaderCommand& command, int point,
+                                 int field_id) {
+        if (field_id == 0) return polygon_x(command, point);
+        if (field_id == 1) return command.vertices[point].xyuv[2];
+        if (field_id == 2) return command.vertices[point].xyuv[3];
+        const uint32_t color = command.vertices[point].color;
+        if (field_id == 3) return int(color & 255u);
+        if (field_id == 4) return int((color >> 8) & 255u);
+        return int((color >> 16) & 255u);
+    }
+
+    static bool polygon_cull_point(const ShaderCommand& command, int a, int b) {
+        return std::abs(polygon_x(command, a) - polygon_x(command, b)) > 1023 ||
+               std::abs(polygon_y(command, a) - polygon_y(command, b)) > 1023;
+    }
+
+    static bool polygon_cull_triangle(const ShaderCommand& command, int first) {
+        const int a = first, b = first + 1, c = first + 2;
+        return polygon_cull_point(command, a, b) ||
+               polygon_cull_point(command, b, c) ||
+               polygon_cull_point(command, c, a);
+    }
+
+    static int polygon_edge_fixed(const ShaderCommand& command, int from, int to,
+                                  int scan_y, int field_id) {
+        const int y0 = polygon_y(command, from);
+        const int dy = polygon_y(command, to) - y0;
+        if (dy <= 0) return 0;
+        const int first = polygon_attribute(command, from, field_id);
+        const int last = polygon_attribute(command, to, field_id);
+        const int slope = ((last - first) * 65536) / dy;
+        return first * 65536 + slope * (scan_y - y0);
+    }
+
+    void append_batch_scanlines(ShaderCommand& command, int top, int bottom) {
+        command.batch_scanline[0] = static_cast<int32_t>(pending_batch_scanlines.size());
+        command.batch_scanline[1] = top;
+        command.batch_scanline[2] = bottom - top + 1;
+        if (command.header[0] != 0u) return;
+
+        int count = int(command.header[1]);
+        bool alternate = false;
+        int first_candidate = 0;
+        int left_top = 0;
+        if (count == 4) {
+            if (polygon_cull_triangle(command, 0)) {
+                if (polygon_cull_triangle(command, 1)) {
+                    count = 0;
+                } else {
+                    alternate = true;
+                    first_candidate = 1;
+                    left_top = 1;
+                }
+            } else if (polygon_cull_triangle(command, 1)) {
+                count = 3;
+            }
+        } else if (count != 3 || polygon_cull_triangle(command, 0)) {
+            count = 0;
+        }
+        if (count == 0) {
+            pending_batch_scanlines.resize(pending_batch_scanlines.size() +
+                static_cast<size_t>(command.batch_scanline[2]));
+            return;
+        }
+        for (int point = first_candidate; point < count; ++point) {
+            const int y = polygon_y(command, point);
+            const int top_y = polygon_y(command, left_top);
+            if (y < top_y || (y == top_y &&
+                              polygon_x(command, point) < polygon_x(command, left_top)))
+                left_top = point;
+        }
+
+        for (int scan_y = top; scan_y <= bottom; ++scan_y) {
+            BatchScanline row{};
+            int left_from = -1, left_to = -1, right_from = -1, right_to = -1;
+            int point = left_top;
+            for (int step = 0; step < count; ++step) {
+                const int next_point = polygon_prev(point, count, alternate);
+                if (polygon_y(command, point) <= scan_y &&
+                    scan_y < polygon_y(command, next_point)) {
+                    left_from = point;
+                    left_to = next_point;
+                    break;
+                }
+                point = next_point;
+            }
+            point = left_top;
+            for (int step = 0; step < count; ++step) {
+                const int next_point = polygon_next(point, count, alternate);
+                if (polygon_y(command, point) <= scan_y &&
+                    scan_y < polygon_y(command, next_point)) {
+                    right_from = point;
+                    right_to = next_point;
+                    break;
+                }
+                point = next_point;
+            }
+            if (left_from >= 0 && right_from >= 0) {
+                const int left_x = polygon_edge_fixed(command, left_from, left_to,
+                                                       scan_y, 0) >> 16;
+                const int right_x = polygon_edge_fixed(command, right_from, right_to,
+                                                        scan_y, 0) >> 16;
+                if (left_x != right_x) {
+                    const bool left_is_first = left_x < right_x;
+                    row.span[0] = std::min(left_x, right_x);
+                    row.span[1] = std::max(left_x, right_x);
+                    const int distance = row.span[1] - row.span[0];
+                    if (distance > 0) {
+                        row.span[2] = 1;
+                        for (int field_id = 1; field_id < 6; ++field_id) {
+                            const int left = polygon_edge_fixed(command, left_from,
+                                left_to, scan_y, field_id);
+                            const int right = polygon_edge_fixed(command, right_from,
+                                right_to, scan_y, field_id);
+                            const int start = left_is_first ? left : right;
+                            const int end = left_is_first ? right : left;
+                            const size_t attribute = static_cast<size_t>(field_id - 1);
+                            row.start[attribute] = start;
+                            row.step[attribute] = (end - start) / distance;
+                        }
+                    }
+                }
+            }
+            pending_batch_scanlines.push_back(row);
+        }
+    }
+
     bool queue_opaque_primitive(const ShaderCommand& command) {
         if (!batching_enabled) return false;
         const unsigned vertex_count = command.header[1];
@@ -820,6 +998,10 @@ struct GpuHardwareRenderer::Impl {
             return true;
         bool must_flush = !pending_batch_vertices.empty() &&
             pending_batch_draw_area != draw_area;
+        if (command.header[0] == 0u &&
+            pending_batch_scanlines.size() + static_cast<size_t>(bottom - top + 1) >
+                kMaxBatchScanlineRows)
+            must_flush = true;
         const bool reads_destination = (flags & (8u | 32u)) != 0;
         if (!pending_batch_vertices.empty() && reads_destination) {
             const auto& dirty = pending_batch_dirty_bounds;
@@ -841,7 +1023,9 @@ struct GpuHardwareRenderer::Impl {
         ++pending_batch_primitive_count;
         const uint32_t set_mask = (flags & 16u) ? 0x8000u : 0u;
         const uint32_t command_index = static_cast<uint32_t>(pending_batch_commands.size());
-        pending_batch_commands.push_back(command);
+        ShaderCommand batch_command = command;
+        append_batch_scanlines(batch_command, top, bottom);
+        pending_batch_commands.push_back(batch_command);
         const size_t first_vertex = pending_batch_vertices.size();
         const unsigned output_count = 6;
         if (flags & 2u)
@@ -928,6 +1112,11 @@ struct GpuHardwareRenderer::Impl {
                      static_cast<GLsizeiptr>(pending_batch_commands.size() * sizeof(ShaderCommand)),
                      pending_batch_commands.data(), GL_STREAM_DRAW);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, batch_command_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_scanline_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+                     static_cast<GLsizeiptr>(pending_batch_scanlines.size() * sizeof(BatchScanline)),
+                     pending_batch_scanlines.data(), GL_STREAM_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, batch_scanline_buffer);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         glDrawArrays(GL_TRIANGLES, 0,
                      static_cast<GLsizei>(pending_batch_vertices.size()));
@@ -943,6 +1132,7 @@ struct GpuHardwareRenderer::Impl {
         pending_batch_depth_count = 0;
         pending_batch_vertices.clear();
         pending_batch_commands.clear();
+        pending_batch_scanlines.clear();
         pending_batch_textures.clear();
         if (debug_gl && glGetError() != GL_NO_ERROR)
             throw std::runtime_error("PSX OpenGL batch rasterization failed");

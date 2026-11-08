@@ -342,3 +342,33 @@ the plugin, the software window reproducibly crashed in
 video driver. The presenter now sets that SDL hint before initialization on
 Linux unless the user overrides it, allowing SDL/compositor decorations where
 xdg-decoration is available.
+
+On 2026-11-08, profiling showed that the batch polygon fragment shader was
+repeating polygon edge selection, fixed-point slope calculation, and divisions
+for every covered pixel. The CPU now computes each polygon's scanline bounds
+and starting UV/RGB values and horizontal steps once, uploads those records in
+a second SSBO, and leaves per-pixel work to integer interpolation and shading
+on the GPU. The SSBO is flushed before its scanline data exceeds one million
+rows. This keeps the original GP0 order, fixed-point interpolation, texture
+cache, and VRAM barriers while removing repeated edge setup from the fragment
+shader.
+
+The optimized shader was checked against the software backend on SFEX2PA frame
+1074: both textured polygon commands traced (`0x2e` and `0x2c`) had zero
+differing VRAM pixels, and the complete 512×240 RGB capture had zero differing
+pixels. With the NVIDIA GTX 1650, one clean-host 600-frame headless run took
+14.53 s in `--gpu-hw` versus 15.31 s in software. A 300-frame direct-present
+window run took 8.51 s versus 9.27 s in software; guest cycle and instruction
+totals matched. These are single-run samples, not stable benchmark results,
+but they show the precomputed path avoiding the prior GPU batch slowdown on
+these workloads. A short Valgrind Callgrind run of the software configuration
+still attributes most simulated CPU work to the DSP16A and R3000A paths; it
+does not justify changing those CPU cores as part of the GPU work.
+
+A fresh 2026-11-08 run repeated the frame-1074 comparison on the Mesa Intel
+UHD 630, with `MAMERECOMP_PSX_GPU_GL_CHECK=1`, the software reference enabled,
+and per-command tracing. The process completed all 1,074 vblanks with no GL
+error or scanout difference reported; both textured polygon commands in the
+portrait scene again had zero differing VRAM pixels. This supplements the
+GTX 1650 comparison and catches driver-specific behavior on the integrated
+GPU.

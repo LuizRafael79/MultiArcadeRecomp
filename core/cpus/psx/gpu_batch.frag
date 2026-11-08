@@ -15,9 +15,20 @@ struct ShaderCommand {
     uvec4 texture;
     ShaderVertex vertices[4];
     ivec4 bounds;
+    ivec4 batch_scanline;
+};
+struct BatchScanline {
+    ivec4 start0;
+    ivec4 start1;
+    ivec4 step0;
+    ivec4 step1;
+    ivec4 span;
 };
 layout(std430, binding = 2) readonly buffer BatchCommands {
     ShaderCommand commands[];
+};
+layout(std430, binding = 3) readonly buffer BatchScanlines {
+    BatchScanline scanlines[];
 };
 
 layout(location = 0) out uint oColor;
@@ -54,135 +65,23 @@ uint blend555(uint back, uint front, uint mode) {
     return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
 }
 
-int polygon_next(int point, int count, bool alternate) {
-    if (count == 3) return point == 2 ? 0 : point + 1;
-    if (alternate) {
-        if (point == 0) return 1;
-        if (point == 1) return 3;
-        if (point == 2) return 0;
-        return 2;
-    }
-    if (point == 0) return 1;
-    if (point == 1) return 3;
-    if (point == 2) return 0;
-    return 2;
-}
-int polygon_prev(int point, int count, bool alternate) {
-    if (count == 3) return point == 0 ? 2 : point - 1;
-    if (alternate) {
-        if (point == 0) return 0;
-        if (point == 1) return 2;
-        if (point == 2) return 3;
-        return 1;
-    }
-    if (point == 0) return 2;
-    if (point == 1) return 0;
-    if (point == 2) return 3;
-    return 1;
-}
-int polygon_x(ShaderCommand command, int point) {
-    return command.vertices[point].xyuv.x;
-}
-int polygon_y(ShaderCommand command, int point) {
-    return command.vertices[point].xyuv.y;
-}
-int polygon_attribute(ShaderCommand command, int point, int field_id) {
-    if (field_id == 0) return polygon_x(command, point);
-    if (field_id == 1) return command.vertices[point].xyuv.z;
-    if (field_id == 2) return command.vertices[point].xyuv.w;
-    uint color = command.vertices[point].color;
-    if (field_id == 3) return int(color & 255u);
-    if (field_id == 4) return int((color >> 8) & 255u);
-    return int((color >> 16) & 255u);
-}
-bool polygon_cull_point(ShaderCommand command, int a, int b) {
-    return abs(polygon_x(command, a) - polygon_x(command, b)) > 1023 ||
-           abs(polygon_y(command, a) - polygon_y(command, b)) > 1023;
-}
-bool polygon_cull_triangle(ShaderCommand command, int first) {
-    int a = first, b = first + 1, c = first + 2;
-    return polygon_cull_point(command, a, b) || polygon_cull_point(command, b, c) ||
-           polygon_cull_point(command, c, a);
-}
-int polygon_edge_fixed(ShaderCommand command, int from, int to, int scan_y,
-                       int field_id) {
-    int y0 = polygon_y(command, from);
-    int dy = polygon_y(command, to) - y0;
-    if (dy <= 0) return 0;
-    int first = polygon_attribute(command, from, field_id);
-    int last = polygon_attribute(command, to, field_id);
-    int slope = ((last - first) * 65536) / dy;
-    return first * 65536 + slope * (scan_y - y0);
-}
 bool polygon_scanline_sample(ShaderCommand command, ivec2 pixel,
                              out ivec2 uv, out ivec3 color) {
-    int count = int(command.header.y);
-    bool alternate = false;
-    int first_candidate = 0;
-    int left_top = 0;
-    if (count == 4) {
-        if (polygon_cull_triangle(command, 0)) {
-            if (polygon_cull_triangle(command, 1)) return false;
-            alternate = true;
-            first_candidate = 1;
-            left_top = 1;
-        } else if (polygon_cull_triangle(command, 1)) {
-            count = 3;
-        }
-    } else if (count != 3 || polygon_cull_triangle(command, 0)) {
+    const int row_index = command.batch_scanline.x +
+                          (pixel.y - command.batch_scanline.y);
+    if (row_index < command.batch_scanline.x ||
+        row_index >= command.batch_scanline.x + command.batch_scanline.z)
         return false;
-    }
-    for (int point = first_candidate; point < count; ++point) {
-        int y = polygon_y(command, point);
-        int top_y = polygon_y(command, left_top);
-        if (y < top_y || (y == top_y && polygon_x(command, point) <
-                          polygon_x(command, left_top)))
-            left_top = point;
-    }
-    int left_from = -1, left_to = -1, right_from = -1, right_to = -1;
-    int point = left_top;
-    for (int step = 0; step < count; ++step) {
-        int next_point = polygon_prev(point, count, alternate);
-        if (polygon_y(command, point) <= pixel.y &&
-            pixel.y < polygon_y(command, next_point)) {
-            left_from = point;
-            left_to = next_point;
-            break;
-        }
-        point = next_point;
-    }
-    point = left_top;
-    for (int step = 0; step < count; ++step) {
-        int next_point = polygon_next(point, count, alternate);
-        if (polygon_y(command, point) <= pixel.y &&
-            pixel.y < polygon_y(command, next_point)) {
-            right_from = point;
-            right_to = next_point;
-            break;
-        }
-        point = next_point;
-    }
-    if (left_from < 0 || right_from < 0) return false;
-    int left_x = polygon_edge_fixed(command, left_from, left_to, pixel.y, 0) >> 16;
-    int right_x = polygon_edge_fixed(command, right_from, right_to, pixel.y, 0) >> 16;
-    if (left_x == right_x) return false;
-    int left_fixed[5], right_fixed[5];
-    for (int field_id = 1; field_id < 6; ++field_id) {
-        left_fixed[field_id - 1] = polygon_edge_fixed(
-            command, left_from, left_to, pixel.y, field_id);
-        right_fixed[field_id - 1] = polygon_edge_fixed(
-            command, right_from, right_to, pixel.y, field_id);
-    }
-    bool left_is_first = left_x < right_x;
-    int x_start = min(left_x, right_x);
-    int x_end = max(left_x, right_x);
-    int distance = x_end - x_start;
-    if (distance <= 0 || pixel.x < x_start || pixel.x >= x_end) return false;
+    const BatchScanline row = scanlines[row_index];
+    const int x_start = row.span.x;
+    const int x_end = row.span.y;
+    if (row.span.z == 0 || pixel.x < x_start || pixel.x >= x_end)
+        return false;
+    const int x_offset = pixel.x - x_start;
     for (int field_id = 0; field_id < 5; ++field_id) {
-        int start = left_is_first ? left_fixed[field_id] : right_fixed[field_id];
-        int end = left_is_first ? right_fixed[field_id] : left_fixed[field_id];
-        int delta = (end - start) / distance;
-        int value = (start + delta * (pixel.x - x_start)) >> 16;
+        const int start = field_id < 4 ? row.start0[field_id] : row.start1.x;
+        const int step = field_id < 4 ? row.step0[field_id] : row.step1.x;
+        const int value = (start + step * x_offset) >> 16;
         if (field_id == 0) uv.x = value;
         else if (field_id == 1) uv.y = value;
         else color[field_id - 2] = value;
