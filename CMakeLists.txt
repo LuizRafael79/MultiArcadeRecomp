@@ -75,6 +75,15 @@ add_executable(mamerecomp
 )
 set_property(TARGET mamerecomp PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
+# Shared PlayStation-derived GPU device. The command processor and VRAM are
+# independent from the R3000A core so Sony-derived boards can select a common
+# software or hardware raster backend.
+add_library(mamerecomp_psx_gpu STATIC
+    core/cpus/psx/gpu.cpp)
+target_include_directories(mamerecomp_psx_gpu PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
+set_property(TARGET mamerecomp_psx_gpu PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
 # Shared PlayStation-derived R3000A pipeline helpers. The board bus, COP2/GTE,
 # interpreter, and generated game modules are connected in later ZN stages.
 add_library(mamerecomp_psx_cpu STATIC
@@ -84,13 +93,13 @@ add_library(mamerecomp_psx_cpu STATIC
     core/cpus/psx/sio.cpp
     core/cpus/psx/spu.cpp
     core/cpus/psx/dma.cpp
-    core/cpus/psx/gpu.cpp
     core/cpus/psx/gte.cpp
     core/cpus/psx/mdec_mame_port.cpp
     core/cpus/psx/timers.cpp
     core/cpus/psx/machine_memory.cpp)
 target_include_directories(mamerecomp_psx_cpu PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
+target_link_libraries(mamerecomp_psx_cpu PUBLIC mamerecomp_psx_gpu)
 set_property(TARGET mamerecomp_psx_cpu PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 if(NOT CMAKE_CROSSCOMPILING AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # The R3000A core is host code, so use this host's ISA and scheduler when

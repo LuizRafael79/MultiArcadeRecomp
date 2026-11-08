@@ -2,6 +2,7 @@
 
 ## Foco atual (2026-11-07)
 
+- [ ] Extrair e implementar um renderer OpenGL de rasterização para a GPU PSX, seguindo a arquitetura de backend acelerado do DuckStation como referência. Preservar o rasterizador MAME/software como backend selecionável e oráculo visual; manter a GPU PSX num módulo comum, sem dependência de ZN-1, ZN-2 ou System 12. Contrato e etapas em [docs/PSX_GPU_BACKENDS.md](docs/PSX_GPU_BACKENDS.md).
 - [ ] Congelar DSP16A LLE/AOT no estado atual; não alterar esse caminho enquanto o trabalho estiver em Bloody Roar 2.
 - [ ] Bloody Roar 2 (`bldyror2`): abertura FMV corrigida após alinhar o DMA2 linked-list ao MAME: preservar o terminador `0xffffff` antes de alinhar o endereço, evitando despachar `0xfffffc` como cabeçalho GP0. Capturas após Raizing (frames 900 e 1200) agora mostram o FMV coerente. Falta integrar a receita AOT do jogo.
 - [ ] Depois de Bloody Roar 2, desacoplar Tekken 3 do runtime de placa ZN e continuar a correção do jogo sem misturar seus componentes específicos com ZN-1/ZN-2.
