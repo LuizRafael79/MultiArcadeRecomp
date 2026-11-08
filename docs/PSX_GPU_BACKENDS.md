@@ -46,6 +46,11 @@ the renderer itself has no ZN-specific types or board callbacks.
   GP1 scanout modes, texture/CLUT coherence, and DMA/GP0 transfers. They pass on
   Mesa Intel UHD 630 and the NVIDIA GTX 1650 with GL error checks enabled.
   llvmpipe and Mesa software rendering have also been used for runtime checks.
+- The parity test also exercises the native-window direct-present route: it
+  asserts that scanout returns no CPU RGB buffer and that the SDL OpenGL blit
+  and swap complete. This path passes with GL error checking on Intel UHD 630
+  and NVIDIA GTX 1650; exact scanout pixels are checked separately by the
+  readback parity cases.
 - GP0 drawing now follows DuckStation's interlaced 480i field rule: draws skip
   rows belonging to the active displayed field unless GP0(E1) enables drawing
   to that field. The active row parity includes GP1 display-area Y and the

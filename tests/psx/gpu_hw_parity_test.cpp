@@ -410,6 +410,22 @@ int main()
                       << gpu1_hardware_pair << std::dec << '\n';
             throw std::runtime_error("PSX GPU type-1 flipped texture parity failed");
         }
+
+        // Exercise the native-window path that the launcher selects for
+        // `--gpu-hw --window`: scanout stays on the GPU, the RGB readback is
+        // omitted, and the result is blitted to the SDL OpenGL backbuffer.
+        // The preceding scanout tests compare pixels exactly; here we verify
+        // the alternate no-readback path and that the native swap completes.
+        gpu1_hardware.write_data(0x600000ffu);
+        gpu1_hardware.write_data(0u);
+        gpu1_hardware.write_data((511u << 16) | 1023u);
+        gpu1_hardware.write_status(0x03000000u); // enable display
+        gpu1_hardware.set_hardware_scanout_direct(true);
+        const auto direct_frame = gpu1_hardware.framebuffer_rgb();
+        if (!direct_frame.direct_present || !direct_frame.rgb.empty())
+            throw std::runtime_error("PSX direct scanout unexpectedly read pixels back to the CPU");
+        if (!gpu1_hardware.present_hardware_frame())
+            throw std::runtime_error("PSX direct scanout did not present a frame");
         passed = true;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
