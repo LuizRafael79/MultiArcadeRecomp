@@ -390,3 +390,10 @@ with `--gpu-hw` and 13.23 s in software, with identical guest instruction and
 cycle totals. This change removes a copy but did not produce a measurable
 overall speedup in that CPU-dominated run. The frame-1074 portrait comparison
 after the change reported no scanout or textured-command pixel differences.
+
+`psx_gpu_hw_transfer_test` is built only when the OpenGL backend is available;
+it skips when the host cannot create an OpenGL 4.3 context. On the development
+host it passed on the Mesa UHD 630 and checks an odd-width A0 upload crossing
+both VRAM edges, a GP0 `0x80` copy from the uploaded texture, C0 readback, and a
+GPU fill/readback crossing X=1023 and Y=511. This directly exercises the
+upload and synchronization paths rather than relying only on a game capture.
