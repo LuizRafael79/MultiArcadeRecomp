@@ -426,7 +426,11 @@ case also draws a horizontally flipped raw 15bpp sprite from U=0 across the
 U=-0.5 at the second pixel and GLSL integer conversion truncated it to zero,
 repeating the first texel. Both the draw and batch fragment shaders now floor
 interpolated UVs before the 8-bit wrap; the test now matches the software
-pixels `[0x001f, 0x03e0]` exactly.
+pixels `[0x001f, 0x03e0]` exactly. A fresh SFEX2PA frame-1074 capture with
+coin at 300 and start at 950 was then rendered through both backends; `cmp`
+and SHA-256 confirmed the complete 512x240 PPMs are byte-identical, and guest
+instruction/cycle totals matched. This verifies the shader change against the
+real ZN-2 attract/character-select sequence as well as the synthetic wrap case.
 
 That parity test also compares the complete RGB output from software and
 OpenGL scanout after configuring GP1 modes/ranges independently on each device.
