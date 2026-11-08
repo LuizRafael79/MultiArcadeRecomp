@@ -257,8 +257,11 @@ top 136 rows; the Ryu portrait is missing/deformed. Batch-on and batch-off GPU
 captures have the same visible defect (their remaining difference is 244
 pixels near rows 134–135), so the fault is in the shared raster path, not the
 opaque batching or texture-page cache. A DuckStation-style native-resolution
-pixel-center convention was added to both triangle vertex shaders, with
-round-to-even UV conversion in both fragment shaders. The change builds and
-changes the capture, but the portrait remains incorrect; it is not recorded as
-a portrait fix. Further diagnosis must trace the GP0 work and VRAM source data
-for this scene before changing texture, clipping, or transfer semantics.
+pixel-center convention and round-to-even UV conversion were tested in both
+triangle paths. They changed the capture but did not restore the portrait, so
+those unverified sampling changes were reverted. A same-frame
+software-textured-polygon fallback probe also left the portrait missing, so
+the defect is not isolated to that path. The GP0 packet trace for this scene
+is available with `MAMERECOMP_PSX_GPU_COMPARE_TRACE_FRAME`; the next diagnosis
+needs to follow the relevant draw and its VRAM source data against the software
+reference.

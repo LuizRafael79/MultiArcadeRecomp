@@ -27,10 +27,7 @@ void main() {
                                                : gl_VertexID;
     ivec4 vertex = command.vertices[vertex_index].xyuv;
     uint color = command.vertices[vertex_index].color;
-    // Match DuckStation's native-resolution GPU_HW convention: shift the
-    // geometry to pixel centers so interpolated UVs at the first covered
-    // fragment retain the PSX's initial integer coordinate.
-    vec2 xy = vec2(vertex.xy) + vec2(0.5);
+    vec2 xy = vec2(vertex.xy);
     gl_Position = vec4((xy.x / 512.0) - 1.0,
                        (xy.y * 2.0 / float(uVramHeight)) - 1.0, 0.0, 1.0);
     vUV = vec2(vertex.zw);

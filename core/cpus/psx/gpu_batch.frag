@@ -44,8 +44,8 @@ void main() {
                 ((uint(clamp(vColor.b, 0.0, 255.0)) >> 3) << 10);
     }
     if (textured) {
-        const int u = int(roundEven(vUV.x)) & vWindowState.z;
-        const int v = int(roundEven(vUV.y)) & vWindowState.w;
+        const int u = int(vUV.x) & vWindowState.z;
+        const int v = int(vUV.y) & vWindowState.w;
         texel = texelFetch(uTextureCache,
                            ivec3(u, v, int(vTextureLayer)), 0).r;
         const int depth = vGpuType == 2u

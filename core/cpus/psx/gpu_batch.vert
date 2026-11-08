@@ -27,8 +27,7 @@ flat out ivec4 vWindowState;
 flat out uint vTextureLayer;
 
 void main() {
-    // Keep 1x GPU_HW interpolation aligned to PSX integer pixel/UV origins.
-    vec2 xy = vec2(aPosition) + vec2(0.5);
+    vec2 xy = vec2(aPosition);
     gl_Position = vec4((xy.x / 512.0) - 1.0,
                        (xy.y * 2.0 / float(uVramHeight)) - 1.0, aDepth, 1.0);
     vColor = vec3(aColor & 255u, (aColor >> 8) & 255u,
