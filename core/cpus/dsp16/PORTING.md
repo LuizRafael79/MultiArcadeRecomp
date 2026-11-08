@@ -893,3 +893,28 @@ measured elapsed time is 42.094 s for AOT and 34.408 s for interpreter-only.
 This excludes AOT-vs-interpreter semantics as the source of a difference in
 that replay, but the current per-opcode AOT dispatch regresses performance and
 does not replace the required MAME-vs-local aligned DSP/command/serial trace.
+
+### 2026-11-07: DSP16A AOT frequency profile
+
+`MAMERECOMP_QSOUND_DSP_AOT_MANIFEST` now writes `pc,opcode,executions`. The
+manifest still records only instructions that reached the architectural
+instruction dispatcher; it does not scan operand reads or claim complete
+opcode-set coverage. `tools/dsp16a/build_aot.py --min-executions N` can emit
+entries only for PCs whose observed execution count reaches `N`.
+
+A 1,200-frame SFEX2PA profile with isolated erased NVRAM and the same
+coin/start/button schedule executed 485,982,347 DSP instructions across 780
+internal-ROM PCs, using 234 unique opcodes. The 27 hottest PCs account for
+75.7% of execution; 205 PCs account for 93.4%. AOT coverage of 485,982,347
+instructions with zero fallback in that replay means the observed path was
+covered, not that all DSP16A opcodes have native implementations.
+
+The full 780-entry table took 26.4 s headless. A 205-entry table (minimum
+100,000 executions) took 27.0 s, while a 27-entry table (minimum 5,000,000)
+took 26.1 s; the all-interpreter replay took 21.1 s. These measurements do
+not show a useful speedup from pruning cold PCs. All variants produced the
+same guest/DSP counters and final DSP state; selective tables naturally moved
+the omitted instructions to the interpreter. The current AoT advantage is
+therefore not improved by a simple frequency cutoff. This headless benchmark
+isolates the CPU execution path and does not rule out additional scheduling or
+presentation costs in windowed gameplay.

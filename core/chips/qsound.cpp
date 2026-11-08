@@ -251,10 +251,11 @@ struct QSound::Impl {
         std::ofstream manifest(path, std::ios::out | std::ios::trunc);
         if (!manifest)
             return;
-        manifest << "# pc,opcode; ffff means the same internal PC executed with multiple opcodes\n";
+        manifest << "# pc,opcode,executions; ffff means the same internal PC executed with multiple opcodes\n";
         manifest << std::hex;
         for (const auto& entry : dsp.instruction_manifest())
-            manifest << entry.pc << ',' << entry.opcode << '\n';
+            manifest << entry.pc << ',' << entry.opcode << ','
+                     << std::dec << entry.executions << std::hex << '\n';
     }
 
     Dsp16ABus make_dsp_bus() {

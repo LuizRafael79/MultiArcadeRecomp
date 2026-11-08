@@ -98,9 +98,11 @@ void Dsp16A::enable_instruction_manifest(bool enabled)
     if (enabled) {
         manifest_seen_.assign(internal_program_words, 0);
         manifest_opcodes_.assign(internal_program_words, 0);
+        manifest_executions_.assign(internal_program_words, 0);
     } else {
         manifest_seen_.clear();
         manifest_opcodes_.clear();
+        manifest_executions_.clear();
     }
 }
 
@@ -109,9 +111,11 @@ std::vector<Dsp16AObservedInstruction> Dsp16A::instruction_manifest() const
     std::vector<Dsp16AObservedInstruction> result;
     for (std::size_t pc = 0; pc < manifest_seen_.size(); ++pc) {
         if (manifest_seen_[pc] == 1)
-            result.push_back({static_cast<std::uint16_t>(pc), manifest_opcodes_[pc]});
+            result.push_back({static_cast<std::uint16_t>(pc), manifest_opcodes_[pc],
+                              manifest_executions_[pc]});
         else if (manifest_seen_[pc] == 2)
-            result.push_back({static_cast<std::uint16_t>(pc), 0xffffU});
+            result.push_back({static_cast<std::uint16_t>(pc), 0xffffU,
+                              manifest_executions_[pc]});
     }
     return result;
 }
@@ -789,6 +793,7 @@ unsigned Dsp16A::dispatch_instruction(std::uint16_t op, bool from_cache)
             // marker instead of silently generating an unsafe PC-only entry.
             manifest_seen_[pc] = 2;
         }
+        ++manifest_executions_[pc];
     }
 
     if (instruction_pc_ < internal_program_words) {

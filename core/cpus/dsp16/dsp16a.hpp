@@ -30,6 +30,7 @@ struct Dsp16ACompiledEntry {
 struct Dsp16AObservedInstruction {
     std::uint16_t pc = 0;
     std::uint16_t opcode = 0;
+    std::uint64_t executions = 0;
 };
 
 struct Dsp16ABus {
@@ -245,6 +246,7 @@ private:
     bool manifest_enabled_ = false;
     std::vector<std::uint8_t> manifest_seen_;
     std::vector<std::uint16_t> manifest_opcodes_;
+    std::vector<std::uint64_t> manifest_executions_;
     bool scheduler_yield_requested_ = false;
     std::uint64_t ock_rising_edges_ = 0, do_transitions_ = 0;
     std::uint64_t ose_transitions_ = 0, old_transitions_ = 0, serial_word_loads_ = 0;
