@@ -322,12 +322,14 @@ this headless measurement. The earlier statements that textured polygons
 bypass batching and that the 1,074-frame result was slower describe the
 previous implementation and are superseded by this checkpoint.
 
-The same OpenGL path was smoke-tested on 2026-11-08 with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
-on ZN-1 `bldyror2` (120 vblanks, 87 visible captures) and Namco System 12
-`tekken3` (120 vblanks, one visible capture during early boot). Both selected
-the NVIDIA GTX 1650 renderer and completed without GL errors or reported
-software-image differences. These are backend-integration checks only; the
-System 12 sample ends during boot and does not validate gameplay rendering.
+The same OpenGL path was checked on 2026-11-08 with
+`MAMERECOMP_PSX_GPU_GL_CHECK=1` and per-frame software comparison. ZN-1
+`bldyror2` completed 600 vblanks with 552 visible captures at 512×480, and
+Namco System 12 `tekken3` completed 600 vblanks with 600 visible captures at
+640×240. Both used the NVIDIA GTX 1650 renderer; neither reported a GL error
+or a differing visible pixel. The ZN-1 run included coin/start inputs. These
+checks establish scanout parity for these captured runs, not full game
+correctness or 3D gameplay coverage.
 
 The direct-present window path completed 300 SFEX2PA frames in 10.91 s; the
 software rasterizer completed the same input sequence in 10.70 s after
