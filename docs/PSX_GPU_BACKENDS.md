@@ -411,3 +411,11 @@ with OpenGL and 4.91 ms with software across 57 packets; the complete run took
 4,019 ms and the DSP16A run accounted for 2,832 ms. This explains why reducing
 raster CPU work has little effect on total ZN-2 runtime in that test; it does
 not measure GPU execution latency or guarantee a gameplay frame rate.
+
+The earlier frame-900 QSound-logo and frame-1500 ARIKA-intro mismatches are
+also superseded: fresh Mesa UHD 630 runs with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
+and software comparison completed 900 and 1,500 vblanks respectively, with no
+GL error or RGB pixel difference reported at their final captures. Together
+with the frame-1074 portrait and frame-1560 gameplay checks, these cover the
+previously reported logo, intro, character-select, and fight scenes. They are
+specific SFEX2PA checkpoints, not proof of every GP0 family or every ZN title.
