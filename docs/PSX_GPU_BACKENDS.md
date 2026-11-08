@@ -551,5 +551,11 @@ second. The batch scanline edge walk had a different `next` table from the
 software GPU's surviving-quad order, so it could walk into the discarded
 vertex and stretch the textured region. Matching the software order restored
 exact VRAM parity for this case on the OpenGL test path (Mesa llvmpipe). This
-synthetic regression test isolates the geometry condition; the SFEX2PA portrait
-frame should still be recaptured on the host GPU to confirm the in-game result.
+synthetic regression test isolates the geometry condition. After commit
+`045e70d`, SFEX2PA frame 1074 was recaptured outside the sandbox on the NVIDIA
+GTX 1650, with fresh isolated NVRAM and coin/start events at frames 300/950.
+The 512x240 software and OpenGL PPMs are byte-identical (SHA-256
+`75a664abef6fb51831c87cae08b3ab72acabbae7e613363a7680b1342274d026`); both
+runs executed 448,800,791 guest instructions/cycles. The Ryu portrait is intact
+in the new capture. This verifies that selected frame on NVIDIA, not continuous
+full-game parity.
