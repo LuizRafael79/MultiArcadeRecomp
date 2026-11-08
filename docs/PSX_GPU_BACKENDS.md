@@ -49,8 +49,9 @@ the renderer itself has no ZN-specific types or board callbacks.
   to that field. The active row parity includes GP1 display-area Y and the
   current field bit. The rule is applied by the software path, OpenGL compute
   rasterizer, immediate draw shader, and batched fragment shader; the synthetic
-  parity test covers fills, rectangles, lines, polygons, the E1 override, an
-  odd GP1 display-area Y origin, and an emulated field transition at vblank.
+  parity test covers fills, rectangles, lines, polygons, a textured sprite,
+  the E1 override, an odd GP1 display-area Y origin, and an emulated field
+  transition at vblank.
 - Full-game checkpoints include byte-identical software/OpenGL SFEX2PA captures
   at frames 1074 and 1560 on NVIDIA; ZN-1 Bloody Roar 2 and System 12 Tekken 3
   also have matched checkpoints. These do not prove continuous parity for

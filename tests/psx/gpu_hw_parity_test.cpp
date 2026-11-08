@@ -192,6 +192,8 @@ int main()
         const std::vector<uint32_t> odd_origin_commands{
             0xe1000000u,
             0x020000ffu, 360u | (320u << 16), (4u << 16) | 4u,
+            0xe1000100u,
+            0x65000000u, 400u | (320u << 16), 0u, (4u << 16) | 4u,
         };
         send(software, odd_origin_commands);
         send(hardware, odd_origin_commands);
@@ -221,6 +223,8 @@ int main()
             expected[311u * kReadbackWidth + 336u] == 0 ||
             expected[320u * kReadbackWidth + 352u] != 0 ||
             expected[321u * kReadbackWidth + 352u] == 0 ||
+            expected[320u * kReadbackWidth + 400u] != 0 ||
+            expected[321u * kReadbackWidth + 400u] == 0 ||
             expected[330u * kReadbackWidth + 368u] == 0 ||
             expected[331u * kReadbackWidth + 368u] != 0) {
             std::cerr << "interlace pixels fill=" << std::hex
