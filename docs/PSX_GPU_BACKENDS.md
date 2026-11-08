@@ -885,3 +885,25 @@ PPMs were byte-identical (SHA-256
 `75a664abef6fb51831c87cae08b3ab72acabbae7e613363a7680b1342274d026`), and both
 runs executed 448,800,791 guest cycles. The Ryu portrait remains intact after
 the cache batching change.
+
+The cache key now clears the GPU-specific ABR bits from `tpage`; ABR remains
+in the draw command because it selects destination blending, but does not
+change the cached source texels. The parity fixture draws 16 source pages in
+all four ABR modes. On the Intel UHD 630, the full fixture now generates 30
+cache layers in 13 dispatches, records 48 cache hits, and performs no
+evictions; the same fixture before ABR normalization generated 78 layers in
+14 dispatches, had no hits, and evicted 8 entries. The complete GPU parity
+test passed on Intel UHD 630 and llvmpipe.
+
+A four-way 600-frame SFEX2PA profile then varied only `--gpu-hw` and
+`--dsp16a-no-aot`, with `--qsound-mode=true`, identical 250,726,699 guest
+cycles and 34,621 GP0 packets, and isolated temporary EEPROMs. In software,
+DSP16A execution took 10.62 s with AoT and 7.61 s interpreted; with GPU_HW it
+took 10.41 s and 7.70 s. GP0 host raster/dispatch time was 404/457 ms in the
+two software runs and 30.3/29.8 ms with GPU_HW. Total `run_until` was
+13.37/10.39 s in software and 12.79/10.10 s with GPU_HW. In this workload,
+DSP16A AoT is a measurable performance regression; GPU_HW reduces host work
+inside GP0 substantially, while total runtime remains dominated by QSound.
+These are one run per combination, not stable averages. All four runs had
+zero QSound PCM peak, so this profile is useful for performance attribution,
+not audio validation.

@@ -933,7 +933,12 @@ struct GpuHardwareRenderer::Impl {
     }
 
     TextureCacheKey make_texture_cache_key(const ShaderCommand& command) const {
-        return {command.texture[0], command.texture[2],
+        // ABR selects destination blending; it does not change the source
+        // texture indices/colors stored in a cache layer. Keep it in the draw
+        // command, but exclude it from the cached texture identity.
+        const uint32_t abr_mask = command.texture[2] == 2u ? 0x60u : 0x180u;
+        const uint32_t texture_page = command.texture[0] & ~abr_mask;
+        return {texture_page, command.texture[2],
                 command.offset_window[2], command.offset_window[3],
                 command.window_flip[0], command.window_flip[1]};
     }
