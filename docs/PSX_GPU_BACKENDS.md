@@ -273,3 +273,15 @@ to 29,300 pixels, but did not visibly restore the Ryu portrait. After that
 correction, the first new mismatches in the traced frame come from textured
 polygon commands (`GP0 0x2e`), which remain to be compared against MAME's
 scanline interpolation.
+
+On 2026-11-08, the missing/deformed character portrait was traced to the VRAM
+upload path rather than polygon sampling. `upload_rect()` passed packed 16-bit
+VRAM rows to `glTexSubImage2D()` while OpenGL's default `GL_UNPACK_ALIGNMENT`
+was 4 bytes. Odd-width transfer rows are only 2-byte aligned in the packed
+buffer, so each subsequent row could start two bytes off. Setting unpack
+alignment to 2 for these uploads fixes the character-select portrait. A
+matched SFEX2PA capture at frame 1074 on the NVIDIA GTX 1650 now shows the
+portrait intact; compared with the software frame, 1,842 of 122,880 RGB pixels
+differ, concentrated above the character grid. This visual capture validates
+the portrait fix but does not establish full VRAM parity; the remaining
+pixel-level difference needs separate analysis.

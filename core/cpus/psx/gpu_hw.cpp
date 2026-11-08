@@ -1398,6 +1398,12 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
     glBindTexture(GL_TEXTURE_2D, impl_->vram[impl_->current_vram]);
     const unsigned first_width = std::min(width, unsigned(kVramWidth) - (x & 1023u));
     const unsigned first_height = std::min(height, unsigned(impl_->vram_height) - (y % unsigned(impl_->vram_height)));
+    GLint previous_unpack_alignment = 4;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &previous_unpack_alignment);
+    // VRAM pixels are 16-bit words and transfer rectangles may have an odd
+    // pixel width. The default 4-byte row alignment would skip two bytes at
+    // the start of every second row in those uploads.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, int(width));
     for (GLuint texture : impl_->vram) {
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -1420,6 +1426,7 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
         }
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, previous_unpack_alignment);
     impl_->vram_textures_diverged = false;
     ++impl_->vram_write_generation;
     const int x0 = int(x & 1023u);
