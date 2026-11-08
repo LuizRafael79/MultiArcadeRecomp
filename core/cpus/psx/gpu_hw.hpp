@@ -25,6 +25,7 @@ struct GpuHwState {
     uint32_t gpu_type = 2;
     bool set_mask = false;
     bool check_mask = false;
+    bool dither_enable = false;
 };
 
 class GpuHardwareRenderer {

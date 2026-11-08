@@ -124,6 +124,7 @@ private:
     uint64_t transfer_readback_generation_ = 0;
     bool draw_mask_ = false;
     bool check_mask_ = false;
+    bool dither_enable_ = false;
 };
 
 } // namespace mamerecomp::psx

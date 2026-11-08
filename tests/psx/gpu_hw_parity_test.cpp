@@ -116,6 +116,12 @@ int main()
             0x34808080u, 150u | (100u << 16), 0u,
             0x0000ffffu, 158u | (100u << 16), 0x01000000u,
             0x00ff0080u, 150u | (108u << 16), 0u,
+            // E1 dithering on: a constant Gouraud triangle verifies both
+            // backend parity and a known 4x4-matrix quantization result.
+            0xe1000200u,
+            0x30808080u, 300u | (200u << 16), 0x00808080u,
+            308u | (200u << 16), 0x00808080u,
+            300u | (208u << 16),
             // Textured triangle with UVs and the CLUT encoded in the packet.
             0x25000000u, 100u | (100u << 16), 0x00040000u,
             108u | (100u << 16), 0u,
@@ -156,6 +162,9 @@ int main()
 
         const auto expected = read_vram(software);
         const auto actual = read_vram(hardware);
+        constexpr size_t dither_pixel = 202u * kReadbackWidth + 302u;
+        if (expected[dither_pixel] != 0x3defu)
+            throw std::runtime_error("PSX dithering fixture did not match its expected RGB555 value");
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {

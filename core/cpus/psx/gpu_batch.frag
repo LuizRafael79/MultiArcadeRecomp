@@ -65,6 +65,17 @@ uint blend555(uint back, uint front, uint mode) {
     return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
 }
 
+int dither_offset(ivec2 pixel) {
+    const int matrix[16] = int[16](
+        -4, 0, -3, 1, 2, -2, 3, -1,
+        -3, 1, -4, 0, 3, -1, 2, -2);
+    return matrix[(pixel.y & 3) * 4 + (pixel.x & 3)];
+}
+
+uint quantize_dithered(int value, int offset) {
+    return uint(clamp((value + offset) >> 3, 0, 31));
+}
+
 bool polygon_scanline_sample(ShaderCommand command, ivec2 pixel,
                              out ivec2 uv, out ivec3 color) {
     const int row_index = command.batch_scanline.x +
@@ -110,9 +121,10 @@ void main() {
     uint color = vFlatColor;
     uint texel = 0u;
     if (!textured && vGouraud != 0u) {
-        color = (uint(color_sample.r) >> 3) |
-                ((uint(color_sample.g) >> 3) << 5) |
-                ((uint(color_sample.b) >> 3) << 10);
+        const int offset = (vFlags & 64u) != 0u ? dither_offset(pixel) : 0;
+        color = quantize_dithered(color_sample.r, offset) |
+                (quantize_dithered(color_sample.g, offset) << 5) |
+                (quantize_dithered(color_sample.b, offset) << 10);
     }
     if (textured) {
         const int u = uv_sample.x & vWindowState.z;
@@ -131,10 +143,13 @@ void main() {
         if (raw_texture) {
             color = texel;
         } else {
-            uvec3 tex = uvec3(texel & 31u, (texel >> 5) & 31u,
-                              (texel >> 10) & 31u);
-            uvec3 shade = uvec3(color_sample);
-            uvec3 modulated = min(uvec3(31u), tex * shade / 128u);
+            const int offset = (vFlags & 64u) != 0u ? dither_offset(pixel) : 0;
+            const ivec3 tex = ivec3(int(texel & 31u), int((texel >> 5) & 31u),
+                                    int((texel >> 10) & 31u));
+            const uvec3 modulated = uvec3(
+                quantize_dithered((tex.r * color_sample.r) >> 4, offset),
+                quantize_dithered((tex.g * color_sample.g) >> 4, offset),
+                quantize_dithered((tex.b * color_sample.b) >> 4, offset));
             color = modulated.x | (modulated.y << 5) | (modulated.z << 10) |
                     (texel & 0x8000u);
         }

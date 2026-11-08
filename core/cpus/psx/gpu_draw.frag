@@ -73,6 +73,17 @@ uint blend555(uint back, uint front, uint mode) {
     return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
 }
 
+int dither_offset(ivec2 pixel) {
+    const int matrix[16] = int[16](
+        -4, 0, -3, 1, 2, -2, 3, -1,
+        -3, 1, -4, 0, 3, -1, 2, -2);
+    return matrix[(pixel.y & 3) * 4 + (pixel.x & 3)];
+}
+
+uint quantize_dithered(int value, int offset) {
+    return uint(clamp((value + offset) >> 3, 0, 31));
+}
+
 void main() {
     ivec2 pixel = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
     if (pixel.x < command.draw_area.x || pixel.y < command.draw_area.y ||
@@ -85,9 +96,11 @@ void main() {
     bool gouraud = (flags & 1u) != 0u;
     uint result = command.header.w;
     if (gouraud) {
-        result = (uint(clamp(vColor.r, 0.0, 255.0)) >> 3) |
-                 ((uint(clamp(vColor.g, 0.0, 255.0)) >> 3) << 5) |
-                 ((uint(clamp(vColor.b, 0.0, 255.0)) >> 3) << 10);
+        const ivec3 shade = ivec3(clamp(vColor, vec3(0.0), vec3(255.0)));
+        const int offset = (flags & 64u) != 0u ? dither_offset(pixel) : 0;
+        result = quantize_dithered(shade.r, offset) |
+                 (quantize_dithered(shade.g, offset) << 5) |
+                 (quantize_dithered(shade.b, offset) << 10);
     }
     uint texel = 0u;
     if (textured) {
@@ -107,8 +120,12 @@ void main() {
             // Gouraud textured primitives keep the interpolated 8-bit
             // command color for modulation. `result` above is its packed
             // RGB555 destination value and cannot be unpacked as RGB888.
-            uvec3 shade = uvec3(clamp(vColor, vec3(0.0), vec3(255.0)));
-            uvec3 modulated = min(uvec3(31u), tex * shade / 128u);
+            const ivec3 shade = ivec3(clamp(vColor, vec3(0.0), vec3(255.0)));
+            const int offset = (flags & 64u) != 0u ? dither_offset(pixel) : 0;
+            const uvec3 modulated = uvec3(
+                quantize_dithered((int(tex.r) * shade.r) >> 4, offset),
+                quantize_dithered((int(tex.g) * shade.g) >> 4, offset),
+                quantize_dithered((int(tex.b) * shade.b) >> 4, offset));
             result = modulated.x | (modulated.y << 5) | (modulated.z << 10) |
                      (texel & 0x8000u);
         }

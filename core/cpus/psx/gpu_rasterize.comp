@@ -79,6 +79,15 @@ uint blend555(uint back, uint front, uint mode) {
     else c = min(uvec3(31u), b + (f >> 2));
     return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
 }
+int dither_offset(ivec2 pixel) {
+    const int matrix[16] = int[16](
+        -4, 0, -3, 1, 2, -2, 3, -1,
+        -3, 1, -4, 0, 3, -1, 2, -2);
+    return matrix[(pixel.y & 3) * 4 + (pixel.x & 3)];
+}
+uint quantize_dithered(int value, int offset) {
+    return uint(clamp((value + offset) >> 3, 0, 31));
+}
 int floor_fixed16(int value) {
     return value >= 0 ? value / 65536 : -((-value + 65535) / 65536);
 }
@@ -250,16 +259,23 @@ void main() {
             floor_fixed16(position_fixed.y) != p.y)
             return;
         covered = true;
-        if ((command.header.z & 1u) != 0u) {
+        if ((command.header.z & 1u) != 0u ||
+            (command.header.z & 64u) != 0u) {
             ivec3 c0 = ivec3(a.color & 255u, (a.color >> 8) & 255u,
                              (a.color >> 16) & 255u);
             ivec3 c1 = ivec3(b.color & 255u, (b.color >> 8) & 255u,
                              (b.color >> 16) & 255u);
             ivec3 delta_color_fixed = ((c1 - c0) * 65536) / steps;
             ivec3 color_fixed = c0 * 65536 + step_index * delta_color_fixed;
-            result = uint(color_fixed.r >> 19) |
-                     (uint(color_fixed.g >> 19) << 5) |
-                     (uint(color_fixed.b >> 19) << 10);
+            ivec3 color = (command.header.z & 1u) != 0u
+                ? (color_fixed >> 16)
+                : ivec3(a.color & 255u, (a.color >> 8) & 255u,
+                        (a.color >> 16) & 255u);
+            const int offset = (command.header.z & 64u) != 0u
+                ? dither_offset(p) : 0;
+            result = quantize_dithered(color.r, offset) |
+                     (quantize_dithered(color.g, offset) << 5) |
+                     (quantize_dithered(color.b, offset) << 10);
         }
     } else if (kind == 0u) {
         covered = polygon_scanline_sample(p, polygon_uv, polygon_color);
@@ -291,6 +307,10 @@ void main() {
             p.x > command.draw_area.z || p.y > command.draw_area.w) return;
         int ia = tri[0], ib = tri[1], ic = tri[2];
         result = command.header.w;
+        ivec3 shade = kind == 0u ? polygon_color :
+            ivec3(command.vertices[0].color & 255u,
+                  (command.vertices[0].color >> 8) & 255u,
+                  (command.vertices[0].color >> 16) & 255u);
         if ((command.header.z & 1u) != 0u) {
             vec3 color = kind == 0u ? vec3(polygon_color) :
                 vec3(command.vertices[ia].color & 255u,
@@ -302,9 +322,12 @@ void main() {
                 vec3(command.vertices[ic].color & 255u,
                     (command.vertices[ic].color >> 8) & 255u,
                     (command.vertices[ic].color >> 16) & 255u) * weights.z;
-            result = (uint(clamp(color.r, 0.0, 255.0)) >> 3) |
-                ((uint(clamp(color.g, 0.0, 255.0)) >> 3) << 5) |
-                ((uint(clamp(color.b, 0.0, 255.0)) >> 3) << 10);
+            shade = ivec3(clamp(color, vec3(0.0), vec3(255.0)));
+            const int offset = (command.header.z & 64u) != 0u
+                ? dither_offset(p) : 0;
+            result = quantize_dithered(shade.r, offset) |
+                (quantize_dithered(shade.g, offset) << 5) |
+                (quantize_dithered(shade.b, offset) << 10);
         }
         if ((command.header.z & 2u) != 0u) {
             ivec2 uv = kind == 0u ? polygon_uv : ivec2(
@@ -314,11 +337,13 @@ void main() {
             uint texel = sample_texture(uv.x, uv.y);
             if (texel == 0u) return;
             if ((command.header.z & 4u) == 0u) {
-                uvec3 tex = uvec3(texel & 31u, (texel >> 5) & 31u, (texel >> 10) & 31u);
-                uvec3 shade = uvec3(result & 255u, (result >> 8) & 255u, (result >> 16) & 255u);
-                result = min(uvec3(31u), tex * shade / 128u).x |
-                         (min(uvec3(31u), tex * shade / 128u).y << 5) |
-                         (min(uvec3(31u), tex * shade / 128u).z << 10) |
+                ivec3 tex = ivec3(int(texel & 31u), int((texel >> 5) & 31u),
+                                  int((texel >> 10) & 31u));
+                const int offset = (command.header.z & 64u) != 0u
+                    ? dither_offset(p) : 0;
+                result = quantize_dithered((tex.r * shade.r) >> 4, offset) |
+                         (quantize_dithered((tex.g * shade.g) >> 4, offset) << 5) |
+                         (quantize_dithered((tex.b * shade.b) >> 4, offset) << 10) |
                          (texel & 0x8000u);
             } else result = texel;
             if ((command.header.z & 8u) != 0u && (texel & 0x8000u) != 0u)

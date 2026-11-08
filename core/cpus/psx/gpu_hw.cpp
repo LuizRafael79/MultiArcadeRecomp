@@ -1498,9 +1498,13 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
     ShaderCommand command{};
     command.header[0] = kind;
     command.header[1] = static_cast<uint32_t>(vertices.size());
+    const bool dither = state.dither_enable &&
+        (kind == 3u || (kind == 0u &&
+            (gouraud || (textured && !raw_texture))));
     command.header[2] = (gouraud ? 1u : 0u) | (textured ? 2u : 0u) |
                         (raw_texture ? 4u : 0u) | (semi_transparent ? 8u : 0u) |
-                        (state.set_mask ? 16u : 0u) | (state.check_mask ? 32u : 0u);
+                        (state.set_mask ? 16u : 0u) | (state.check_mask ? 32u : 0u) |
+                        (dither ? 64u : 0u);
     command.draw_area[0] = state.draw_x1;
     command.draw_area[1] = state.draw_y1;
     command.draw_area[2] = state.draw_x2;

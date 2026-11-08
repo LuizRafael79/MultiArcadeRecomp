@@ -16,6 +16,33 @@ constexpr uint64_t kRefreshScale = 1'000'000;
 constexpr uint64_t kRefreshNtsc240 = 59'826'098;
 constexpr uint64_t kRefreshNtsc480 = 59'940'052;
 constexpr uint64_t kRefreshPal = 50'000'000;
+constexpr int kDitherMatrix[4][4] = {
+    {-4, 0, -3, 1}, {2, -2, 3, -1},
+    {-3, 1, -4, 0}, {3, -1, 2, -2}};
+
+uint16_t quantize_rgb555(int red, int green, int blue, int x, int y,
+                         bool dither)
+{
+    const int offset = dither ? kDitherMatrix[y & 3][x & 3] : 0;
+    const auto quantize = [offset](int value) {
+        return std::clamp((value + offset) >> 3, 0, 31);
+    };
+    return uint16_t(quantize(red) | (quantize(green) << 5) |
+                    (quantize(blue) << 10));
+}
+
+uint16_t modulate_rgb555(uint16_t texel, int red, int green, int blue,
+                         int x, int y, bool dither)
+{
+    const int offset = dither ? kDitherMatrix[y & 3][x & 3] : 0;
+    const auto modulate = [offset](int tex, int shade) {
+        return std::clamp((((tex * shade) >> 4) + offset) >> 3, 0, 31);
+    };
+    return uint16_t(modulate(texel & 31, red) |
+                    (modulate((texel >> 5) & 31, green) << 5) |
+                    (modulate((texel >> 10) & 31, blue) << 10) |
+                    (texel & 0x8000));
+}
 
 uint64_t refresh_rate_scaled(uint32_t status)
 {
@@ -209,6 +236,7 @@ void Gpu::get_hardware_state(GpuHwState& state) const
     state.gpu_type = gpu_type_;
     state.set_mask = draw_mask_;
     state.check_mask = check_mask_;
+    state.dither_enable = dither_enable_;
 }
 
 size_t Gpu::wrap_vram_y(size_t y) const
@@ -420,13 +448,11 @@ void Gpu::draw_line(int x0, int y0, int x1, int y1, uint32_t color0,
             px <= std::min(1023, draw_area_x2_) &&
             py >= std::max(0, draw_area_y1_) &&
             py <= std::min(vram_height - 1, draw_area_y2_)) {
-            uint16_t out = gouraud
-                ? uint16_t(std::clamp<int64_t>(channel[0] >> 19, 0, 31) |
-                           (std::clamp<int64_t>(channel[1] >> 19, 0, 31) << 5) |
-                           (std::clamp<int64_t>(channel[2] >> 19, 0, 31) << 10))
-                : uint16_t(((color0 >> 3) & 31) |
-                           (((color0 >> 11) & 31) << 5) |
-                           (((color0 >> 19) & 31) << 10));
+            const int red = gouraud ? int(channel[0] >> 16) : int(color0 & 255u);
+            const int green = gouraud ? int(channel[1] >> 16) : int((color0 >> 8) & 255u);
+            const int blue = gouraud ? int(channel[2] >> 16) : int((color0 >> 16) & 255u);
+            uint16_t out = quantize_rgb555(red, green, blue, px, py,
+                                           dither_enable_);
             if (semi_transparent) out = blend_rgb555(get_pixel(px, py), out, abr);
             write_pixel(px, py, out);
         }
@@ -605,10 +631,9 @@ void Gpu::draw_gouraud_polygon(const int *x, const int *y,
                 const int skip = clipped_start - x_start;
                 for (unsigned c = 0; c < 3; ++c) start[c] += delta[c] * skip;
                 for (int px = clipped_start; px < clipped_end; ++px) {
-                    const uint16_t color15 = uint16_t(
-                        (std::clamp(int(start[0] >> 16) / 8, 0, 31)) |
-                        (std::clamp(int(start[1] >> 16) / 8, 0, 31) << 5) |
-                        (std::clamp(int(start[2] >> 16) / 8, 0, 31) << 10));
+                    const uint16_t color15 = quantize_rgb555(
+                        int(start[0] >> 16), int(start[1] >> 16),
+                        int(start[2] >> 16), px, py, dither_enable_);
                     const uint16_t out = semi_transparent
                         ? blend_rgb555(get_pixel(px, py), color15, abr) : color15;
                     write_pixel(px, py, out);
@@ -822,10 +847,8 @@ void Gpu::draw_textured_polygon(const int *x, const int *y, const int *u, const 
                             const int cr = gouraud ? int(start_c[0] >> 16) : int(color[0] & 255);
                             const int cg = gouraud ? int(start_c[1] >> 16) : int((color[0] >> 8) & 255);
                             const int cb = gouraud ? int(start_c[2] >> 16) : int((color[0] >> 16) & 255);
-                            out = uint16_t(std::clamp(cr * int(texel & 31) / 128, 0, 31) |
-                                (std::clamp(cg * int((texel >> 5) & 31) / 128, 0, 31) << 5) |
-                                (std::clamp(cb * int((texel >> 10) & 31) / 128, 0, 31) << 10) |
-                                (texel & 0x8000));
+                            out = modulate_rgb555(texel, cr, cg, cb, px, py,
+                                                  dither_enable_);
                         }
                         const size_t destination = (destination_row + size_t(px)) * 2;
                         bool destination_loaded = false;
@@ -942,6 +965,7 @@ void Gpu::execute_packet()
     }
     if (op == 0xe1) {
         decode_tpage(opword);
+        dither_enable_ = (opword & 0x0200u) != 0;
         texture_flip_x_ = (gpu_type_ == 1 || gpu_type_ == 2) && (opword & 0x1000) ? -1 : 1;
         texture_flip_y_ = (gpu_type_ == 1 || gpu_type_ == 2) && (opword & 0x2000) ? -1 : 1;
     } else if (op == 0xe6) {
@@ -1226,7 +1250,7 @@ void Gpu::write_status(uint32_t value)
         horizontal_start_ = 0x260; horizontal_end_ = 0xc60;
         vertical_start_ = 0x10; vertical_end_ = 0x100;
         texture_page_ = 0;
-        draw_mask_ = false; check_mask_ = false;
+        draw_mask_ = false; check_mask_ = false; dither_enable_ = false;
         texture_window_x_ = texture_window_y_ = 0;
         texture_window_mask_x_ = texture_window_mask_y_ = 255;
         draw_area_x1_ = draw_area_y1_ = 0;
