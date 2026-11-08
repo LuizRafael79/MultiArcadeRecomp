@@ -97,12 +97,18 @@ if(MAMERECOMP_ENABLE_PSX_GPU_OPENGL)
             ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.vert COPYONLY)
         configure_file(core/cpus/psx/gpu_draw.frag
             ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.frag COPYONLY)
+        configure_file(core/cpus/psx/gpu_batch.vert
+            ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_batch.vert COPYONLY)
+        configure_file(core/cpus/psx/gpu_batch.frag
+            ${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_batch.frag COPYONLY)
         target_compile_definitions(mamerecomp_psx_gpu PRIVATE
             MAMERECOMP_PSX_GPU_OPENGL=1
             MAMERECOMP_PSX_GPU_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_rasterize.comp"
             MAMERECOMP_PSX_GPU_SCANOUT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_scanout.comp"
             MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.vert"
-            MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.frag")
+            MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_draw.frag"
+            MAMERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_batch.vert"
+            MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/psx_gpu_batch.frag")
         message(STATUS "PSX GPU OpenGL hardware rasterizer enabled")
     else()
         target_sources(mamerecomp_psx_gpu PRIVATE core/cpus/psx/gpu_hw_stub.cpp)

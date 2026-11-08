@@ -174,13 +174,31 @@ presenter no longer uses it.
 
 The direct path completed a 457-frame SFEX2PA run on Wayland with the GTX 1650
 when `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` was set for diagnosis, and a
-900-frame run on X11. The default libdecor path also produced a Glycin
-segfault in a GTK background thread on this host, including with the software
-presenter. The project does not override SDL's decoration/backend choice.
-Runtime completion is smoke-tested, but visual parity of the direct blit after
-the scissor-state fix still needs a pixel-capture comparison.
+900-frame run on X11. The default libdecor path produced a Glycin segfault in a
+GTK background thread on this host, including with the software presenter.
+During direct-OpenGL debugging only, the PSX window disables libdecor and uses
+Wayland without client-side decoration; other SDL windows keep their normal
+decoration/backend choice. Runtime completion is smoke-tested, but visual
+parity of the direct blit after the scissor-state fix still needs a
+pixel-capture comparison.
 
-The next DuckStation-inspired steps remain: batch compatible primitives to
-reduce per-command submission and maintain explicit texture/CLUT cache
-coherence for VRAM writes. These must preserve PSX command ordering and force
-synchronization only where CPU-visible VRAM or scanout requires it.
+The first GP0 batching path now submits opaque, untextured flat/Gouraud triangles
+and quads, plus rectangles, through a streaming vertex buffer. A temporary
+depth attachment gives each primitive an increasing depth so overlapping
+commands retain PSX last-draw-wins ordering inside one GL submission. Flat
+colors remain in their native packed format; only Gouraud colors are converted
+from RGB888. Draw-area changes, textured/semitransparent/check-mask commands,
+CPU-visible VRAM operations, and scanout flush the queue. The path can be
+disabled with `MAMERECOMP_PSX_GPU_BATCHING=0`; `MAMERECOMP_PSX_GPU_BATCH_LIMIT`
+can cap primitives per submission, and `MAMERECOMP_PSX_GPU_BATCH_STATS=1`
+prints aggregate counts.
+
+Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through the start
+of gameplay with fresh NVRAM. The batch and non-batch frame captures were
+byte-identical (0 differing pixels). The scene submitted 35,715 primitives in
+1,996 draws (17.9 primitives per draw). One end-to-end timing was 57.6 seconds
+with batching and 57.8 seconds without; this is within run-to-run noise and is
+not evidence of an overall speedup. The next performance work is explicit
+texture/CLUT caching and batching textured primitives while preserving VRAM
+read-after-write visibility. These paths must force synchronization only where
+CPU-visible VRAM or scanout requires it.

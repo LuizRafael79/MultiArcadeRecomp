@@ -6,7 +6,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstring>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <stdexcept>
 #include <utility>
@@ -18,6 +21,7 @@ constexpr int kMinVramHeight = 512;
 constexpr int kMaxVramHeight = 1024;
 constexpr size_t kCommandRingSlots = 4096;
 constexpr size_t kCommandBatchSlots = 256;
+constexpr uint32_t kMaxBatchPrimitives = 65535;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -36,6 +40,15 @@ struct alignas(16) ShaderCommand {
     int32_t bounds[4]{};
 };
 static_assert(sizeof(ShaderCommand) % 16 == 0);
+
+struct BatchVertex {
+    int32_t position[2]{};
+    uint32_t color = 0;
+    float depth = 0.0f;
+    uint32_t set_mask = 0;
+    uint32_t gouraud = 0;
+};
+static_assert(sizeof(BatchVertex) == 24);
 
 GLuint compile_compute_program(const std::string& source, std::string& error) {
     const GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
@@ -149,6 +162,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint program = 0;
     GLuint scanout_program = 0;
     GLuint draw_program = 0;
+    GLuint batch_draw_program = 0;
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
     GLuint scanout_texture = 0;
@@ -161,7 +175,10 @@ struct GpuHardwareRenderer::Impl {
     unsigned scanout_cache_height = 0;
     std::vector<uint8_t> scanout_cache;
     GLuint framebuffer[2]{};
+    GLuint batch_depth[2]{};
     GLuint vertex_array = 0;
+    GLuint batch_vertex_array = 0;
+    GLuint batch_vertex_buffer = 0;
     GLuint command_buffer = 0;
     std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     size_t next_command_slot = 0;
@@ -169,31 +186,56 @@ struct GpuHardwareRenderer::Impl {
     GLint origin_location = -1;
     GLint vram_height_location = -1;
     GLint draw_vram_height_location = -1;
+    GLint batch_vram_height_location = -1;
     int vram_height = kMinVramHeight;
     unsigned scanout_width = 0;
     unsigned scanout_height = 0;
     unsigned current_vram = 0;
     bool vram_textures_diverged = false;
     std::array<int, 4> last_dirty_bounds{};
+    std::vector<BatchVertex> pending_batch_vertices;
+    uint64_t pending_batch_primitive_count = 0;
+    uint64_t submitted_batch_count = 0;
+    uint64_t submitted_batch_primitive_count = 0;
+    std::array<int, 4> pending_batch_draw_area{};
+    std::array<int, 4> pending_batch_dirty_bounds{};
     std::string renderer;
     std::string init_error;
     bool debug_gl = std::getenv("MAMERECOMP_PSX_GPU_GL_CHECK") != nullptr;
+    bool batching_enabled = [] {
+        const char* value = std::getenv("MAMERECOMP_PSX_GPU_BATCHING");
+        return !value || std::strcmp(value, "0") != 0;
+    }();
+    uint32_t batch_primitive_limit = [] {
+        const char* value = std::getenv("MAMERECOMP_PSX_GPU_BATCH_LIMIT");
+        if (!value || !*value) return kMaxBatchPrimitives;
+        char* end = nullptr;
+        const unsigned long parsed = std::strtoul(value, &end, 10);
+        if (end == value || *end != '\0' || parsed == 0 ||
+            parsed > kMaxBatchPrimitives)
+            return kMaxBatchPrimitives;
+        return static_cast<uint32_t>(parsed);
+    }();
 
     ~Impl() {
         make_current();
         if (program) glDeleteProgram(program);
         if (scanout_program) glDeleteProgram(scanout_program);
         if (draw_program) glDeleteProgram(draw_program);
+        if (batch_draw_program) glDeleteProgram(batch_draw_program);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
         if (scanout_texture) glDeleteTextures(1, &scanout_texture);
         if (scanout_framebuffer) glDeleteFramebuffers(1, &scanout_framebuffer);
+        if (batch_depth[0] || batch_depth[1]) glDeleteRenderbuffers(2, batch_depth);
         for (auto& readback : scanout_readbacks) {
             if (readback.fence) glDeleteSync(readback.fence);
             if (readback.buffer) glDeleteBuffers(1, &readback.buffer);
         }
         if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
+        if (batch_vertex_array) glDeleteVertexArrays(1, &batch_vertex_array);
+        if (batch_vertex_buffer) glDeleteBuffers(1, &batch_vertex_buffer);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
@@ -253,9 +295,14 @@ struct GpuHardwareRenderer::Impl {
             read_shader_source(MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
             read_shader_source(MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
         if (!draw_program) throw std::runtime_error(init_error);
+        batch_draw_program = compile_graphics_program(
+            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH),
+            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH), init_error);
+        if (!batch_draw_program) throw std::runtime_error(init_error);
         origin_location = glGetUniformLocation(program, "uDispatchOrigin");
         vram_height_location = glGetUniformLocation(program, "uVramHeight");
         draw_vram_height_location = glGetUniformLocation(draw_program, "uVramHeight");
+        batch_vram_height_location = glGetUniformLocation(batch_draw_program, "uVramHeight");
         glGenTextures(2, vram);
         const auto words = to_words(initial_vram);
         for (GLuint texture : vram) {
@@ -293,10 +340,16 @@ struct GpuHardwareRenderer::Impl {
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         glGenFramebuffers(2, framebuffer);
+        glGenRenderbuffers(2, batch_depth);
         for (unsigned i = 0; i < 2; ++i) {
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                                    GL_TEXTURE_2D, vram[i], 0);
+            glBindRenderbuffer(GL_RENDERBUFFER, batch_depth[i]);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+                                  kVramWidth, vram_height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                      GL_RENDERBUFFER, batch_depth[i]);
             glDrawBuffer(GL_COLOR_ATTACHMENT0);
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 throw std::runtime_error("PSX OpenGL R16UI framebuffer is incomplete");
@@ -304,6 +357,26 @@ struct GpuHardwareRenderer::Impl {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glGenVertexArrays(1, &vertex_array);
         glBindVertexArray(vertex_array);
+        glGenVertexArrays(1, &batch_vertex_array);
+        glBindVertexArray(batch_vertex_array);
+        glGenBuffers(1, &batch_vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, batch_vertex_buffer);
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribIPointer(0, 2, GL_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, position)));
+        glEnableVertexAttribArray(1);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, color)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(BatchVertex),
+                              reinterpret_cast<const void*>(offsetof(BatchVertex, depth)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, set_mask)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(BatchVertex),
+                               reinterpret_cast<const void*>(offsetof(BatchVertex, gouraud)));
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
         const size_t alignment = static_cast<size_t>(std::max(storage_alignment, 1));
@@ -326,6 +399,7 @@ struct GpuHardwareRenderer::Impl {
     }
 
     void upload_full(std::span<const uint8_t> bytes) {
+        flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const auto words = to_words(bytes);
         for (GLuint texture : vram) {
@@ -338,6 +412,7 @@ struct GpuHardwareRenderer::Impl {
     }
 
     void read_full(std::vector<uint8_t>& bytes) {
+        flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         std::vector<uint16_t> words(kVramWidth * vram_height);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
@@ -417,7 +492,101 @@ struct GpuHardwareRenderer::Impl {
         }
     }
 
+    bool queue_untextured_opaque(const ShaderCommand& command) {
+        if (!batching_enabled) return false;
+        const unsigned vertex_count = command.header[1];
+        const uint32_t flags = command.header[2];
+        if ((vertex_count != 3 && vertex_count != 4) ||
+            (flags & (2u | 8u | 32u)) != 0)
+            return false;
+
+        const int left = std::clamp(command.bounds[0], 0, kVramWidth - 1);
+        const int top = std::clamp(command.bounds[1], 0, vram_height - 1);
+        const int right = std::clamp(command.bounds[2], 0, kVramWidth - 1);
+        const int bottom = std::clamp(command.bounds[3], 0, vram_height - 1);
+        if (left > right || top > bottom) return true;
+
+        const std::array<int, 4> draw_area{
+            std::clamp(command.draw_area[0], 0, kVramWidth - 1),
+            std::clamp(command.draw_area[1], 0, vram_height - 1),
+            std::clamp(command.draw_area[2], 0, kVramWidth - 1),
+            std::clamp(command.draw_area[3], 0, vram_height - 1)};
+        if (draw_area[0] > draw_area[2] || draw_area[1] > draw_area[3])
+            return true;
+        bool must_flush = !pending_batch_vertices.empty() &&
+            pending_batch_draw_area != draw_area;
+        if (pending_batch_primitive_count >= batch_primitive_limit) must_flush = true;
+        if (must_flush) flush_draw_batch();
+        if (pending_batch_vertices.empty()) {
+            pending_batch_draw_area = draw_area;
+            pending_batch_dirty_bounds = {left, top, right, bottom};
+        } else {
+            pending_batch_dirty_bounds[0] = std::min(pending_batch_dirty_bounds[0], left);
+            pending_batch_dirty_bounds[1] = std::min(pending_batch_dirty_bounds[1], top);
+            pending_batch_dirty_bounds[2] = std::max(pending_batch_dirty_bounds[2], right);
+            pending_batch_dirty_bounds[3] = std::max(pending_batch_dirty_bounds[3], bottom);
+        }
+        ++pending_batch_primitive_count;
+        const float depth = static_cast<float>(pending_batch_primitive_count) /
+                            static_cast<float>(kMaxBatchPrimitives);
+        const uint32_t set_mask = (flags & 16u) ? 0x8000u : 0u;
+
+        const unsigned indices[6] = {0, 1, 2, 2, 1, 3};
+        const unsigned output_count = vertex_count == 4 ? 6 : 3;
+        for (unsigned i = 0; i < output_count; ++i) {
+            const auto& source = command.vertices[vertex_count == 4 ? indices[i] : i];
+            const uint32_t color = (flags & 1u) ? source.color : command.header[3];
+            pending_batch_vertices.push_back({
+                {source.xyuv[0], source.xyuv[1]}, color, depth, set_mask,
+                (flags & 1u) ? 1u : 0u});
+        }
+        return true;
+    }
+
+    void flush_draw_batch() {
+        if (pending_batch_vertices.empty()) return;
+        if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+
+        const unsigned destination_vram = prepare_destination();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer[destination_vram]);
+        glViewport(0, 0, kVramWidth, vram_height);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(pending_batch_draw_area[0], pending_batch_draw_area[1],
+                  pending_batch_draw_area[2] - pending_batch_draw_area[0] + 1,
+                  pending_batch_draw_area[3] - pending_batch_draw_area[1] + 1);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_GREATER);
+        glDepthMask(GL_TRUE);
+        constexpr GLfloat clear_depth = 0.0f;
+        glClearBufferfv(GL_DEPTH, 0, &clear_depth);
+        glDisable(GL_DITHER);
+        glUseProgram(batch_draw_program);
+        glUniform1i(batch_vram_height_location, vram_height);
+        glBindVertexArray(batch_vertex_array);
+        glBindBuffer(GL_ARRAY_BUFFER, batch_vertex_buffer);
+        glBufferData(GL_ARRAY_BUFFER,
+                     static_cast<GLsizeiptr>(pending_batch_vertices.size() * sizeof(BatchVertex)),
+                     pending_batch_vertices.data(), GL_STREAM_DRAW);
+        glDrawArrays(GL_TRIANGLES, 0,
+                     static_cast<GLsizei>(pending_batch_vertices.size()));
+        glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        finish_write(destination_vram, pending_batch_dirty_bounds[0],
+                     pending_batch_dirty_bounds[1], pending_batch_dirty_bounds[2],
+                     pending_batch_dirty_bounds[3]);
+        ++submitted_batch_count;
+        submitted_batch_primitive_count += pending_batch_primitive_count;
+        pending_batch_primitive_count = 0;
+        pending_batch_vertices.clear();
+        if (debug_gl && glGetError() != GL_NO_ERROR)
+            throw std::runtime_error("PSX OpenGL batch rasterization failed");
+    }
+
     void execute(ShaderCommand command, GLuint source_override = 0) {
+        flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
         const int min_y = std::clamp(command.bounds[1], 0, vram_height - 1);
@@ -453,6 +622,7 @@ struct GpuHardwareRenderer::Impl {
     }
 
     void execute_draw(ShaderCommand command) {
+        flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
         const int min_y = std::clamp(command.bounds[1], 0, vram_height - 1);
@@ -500,6 +670,7 @@ struct GpuHardwareRenderer::Impl {
                                      int destination_x, int destination_y,
                                      int copy_width, int copy_height,
                                      bool asynchronous, bool direct_present) {
+        flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         if (!width || !height || width > 640 || height > 512 || !source_vram_height)
             throw std::runtime_error("invalid PSX OpenGL scanout dimensions");
@@ -718,7 +889,16 @@ GpuHardwareRenderer::GpuHardwareRenderer(std::span<const uint8_t> initial_vram,
     }
     impl_->initialize(initial_vram);
 }
-GpuHardwareRenderer::~GpuHardwareRenderer() = default;
+GpuHardwareRenderer::~GpuHardwareRenderer() {
+    if (std::getenv("MAMERECOMP_PSX_GPU_BATCH_STATS")) {
+        std::cerr << "PSX GPU batch submissions=" << impl_->submitted_batch_count
+                  << " primitives=" << impl_->submitted_batch_primitive_count;
+        if (impl_->submitted_batch_count)
+            std::cerr << " average=" << (double(impl_->submitted_batch_primitive_count) /
+                                            double(impl_->submitted_batch_count));
+        std::cerr << '\n';
+    }
+}
 
 void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
         const GpuHwState& state, bool textured, bool gouraud, bool raw_texture,
@@ -726,6 +906,7 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
     auto command = make_command(0, vertices, state, gouraud, textured,
                                raw_texture, semi_transparent, clut);
     command.header[3] = vertices.empty() ? 0 : vertices.front().color;
+    if (impl_->queue_untextured_opaque(command)) return;
     impl_->execute_draw(command);
 }
 
@@ -763,6 +944,7 @@ void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
     auto command = make_command(1, vertices, state, false, false, false,
                                 semi_transparent, 0);
     command.header[3] = color;
+    if (impl_->queue_untextured_opaque(command)) return;
     impl_->execute_draw(command);
 }
 
@@ -796,6 +978,7 @@ void GpuHardwareRenderer::sync_from_cpu(std::span<const uint8_t> vram) { impl_->
 
 void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x,
         unsigned y, unsigned width, unsigned height) {
+    impl_->flush_draw_batch();
     if (!impl_->make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
     if (impl_->vram_textures_diverged) {
         const auto& dirty = impl_->last_dirty_bounds;
@@ -853,6 +1036,7 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
     sy = (sy % impl_->vram_height + impl_->vram_height) % impl_->vram_height;
     dy = (dy % impl_->vram_height + impl_->vram_height) % impl_->vram_height;
 
+    impl_->flush_draw_batch();
     if (!impl_->make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
 
     // Snapshot the complete source rectangle before writing any destination
