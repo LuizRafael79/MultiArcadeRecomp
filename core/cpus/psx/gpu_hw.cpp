@@ -30,6 +30,19 @@ constexpr size_t kMaxBatchScanlineRows = 1'000'000;
 constexpr uint32_t kTextureCacheLayers = 64;
 constexpr size_t kGpuTimingQuerySlots = 64;
 
+enum class GpuTimingKind : size_t {
+    BatchDraw,
+    ImmediateDraw,
+    RasterCompute,
+    TextureCache,
+    Scanout,
+    Count
+};
+
+constexpr size_t kGpuTimingKindCount = static_cast<size_t>(GpuTimingKind::Count);
+constexpr const char* kGpuTimingKindNames[kGpuTimingKindCount]{
+    "batch_draw", "immediate_draw", "raster_compute", "texture_cache", "scanout"};
+
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
     uint32_t color = 0;
@@ -252,13 +265,14 @@ struct GpuHardwareRenderer::Impl {
     std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     std::array<GLuint, kGpuTimingQuerySlots> batch_gpu_timing_queries{};
     std::array<bool, kGpuTimingQuerySlots> batch_gpu_timing_pending{};
-    std::array<uint64_t, kGpuTimingQuerySlots> batch_gpu_timing_primitives{};
+    std::array<GpuTimingKind, kGpuTimingQuerySlots> batch_gpu_timing_kinds{};
+    std::array<uint64_t, kGpuTimingQuerySlots> batch_gpu_timing_units{};
     size_t next_command_slot = 0;
     size_t next_batch_gpu_timing_query = 0;
-    uint64_t batch_gpu_timing_total_ns = 0;
-    uint64_t batch_gpu_timing_samples = 0;
-    uint64_t batch_gpu_timing_primitives_total = 0;
-    uint64_t batch_gpu_timing_dropped = 0;
+    std::array<uint64_t, kGpuTimingKindCount> gpu_timing_total_ns{};
+    std::array<uint64_t, kGpuTimingKindCount> gpu_timing_samples{};
+    std::array<uint64_t, kGpuTimingKindCount> gpu_timing_units{};
+    std::array<uint64_t, kGpuTimingKindCount> gpu_timing_dropped{};
     size_t command_stride = sizeof(ShaderCommand);
     GLint origin_location = -1;
     GLint vram_height_location = -1;
@@ -323,18 +337,22 @@ struct GpuHardwareRenderer::Impl {
             // query reads never serialize ordinary batch submission.
             glFinish();
             for (size_t slot = 0; slot < batch_gpu_timing_queries.size(); ++slot)
-                collect_batch_gpu_timing(slot, true);
-            std::cerr << "PSX OpenGL batch GPU timing samples="
-                      << batch_gpu_timing_samples << " primitives="
-                      << batch_gpu_timing_primitives_total << " total_ms="
-                      << (double(batch_gpu_timing_total_ns) / 1'000'000.0)
-                      << " average_batch_us=";
-            if (batch_gpu_timing_samples)
-                std::cerr << (double(batch_gpu_timing_total_ns) /
-                              double(batch_gpu_timing_samples) / 1'000.0);
-            else
-                std::cerr << 0.0;
-            std::cerr << " dropped=" << batch_gpu_timing_dropped << '\n';
+                collect_gpu_timing(slot, true);
+            for (size_t kind = 0; kind < kGpuTimingKindCount; ++kind) {
+                if (!gpu_timing_samples[kind] && !gpu_timing_dropped[kind]) continue;
+                std::cerr << "PSX OpenGL GPU timing kind=" << kGpuTimingKindNames[kind]
+                          << " samples=" << gpu_timing_samples[kind]
+                          << " units=" << gpu_timing_units[kind]
+                          << " total_ms="
+                          << (double(gpu_timing_total_ns[kind]) / 1'000'000.0)
+                          << " average_us=";
+                if (gpu_timing_samples[kind])
+                    std::cerr << (double(gpu_timing_total_ns[kind]) /
+                                  double(gpu_timing_samples[kind]) / 1'000.0);
+                else
+                    std::cerr << 0.0;
+                std::cerr << " dropped=" << gpu_timing_dropped[kind] << '\n';
+            }
         }
         if (program) glDeleteProgram(program);
         if (scanout_program) glDeleteProgram(scanout_program);
@@ -380,7 +398,7 @@ struct GpuHardwareRenderer::Impl {
         return SDL_GL_MakeCurrent(window, context);
     }
 
-    void collect_batch_gpu_timing(size_t slot, bool wait) {
+    void collect_gpu_timing(size_t slot, bool wait) {
         if (!batch_gpu_timing_pending[slot]) return;
         if (!wait) {
             GLint available = GL_FALSE;
@@ -391,32 +409,34 @@ struct GpuHardwareRenderer::Impl {
         GLuint64 elapsed_ns = 0;
         glGetQueryObjectui64v(batch_gpu_timing_queries[slot], GL_QUERY_RESULT,
                               &elapsed_ns);
-        batch_gpu_timing_total_ns += elapsed_ns;
-        batch_gpu_timing_primitives_total += batch_gpu_timing_primitives[slot];
-        ++batch_gpu_timing_samples;
+        const size_t kind = static_cast<size_t>(batch_gpu_timing_kinds[slot]);
+        gpu_timing_total_ns[kind] += elapsed_ns;
+        gpu_timing_units[kind] += batch_gpu_timing_units[slot];
+        ++gpu_timing_samples[kind];
         batch_gpu_timing_pending[slot] = false;
     }
 
-    size_t begin_batch_gpu_timing() {
+    size_t begin_gpu_timing(GpuTimingKind kind) {
         if (!gpu_timing_enabled) return kGpuTimingQuerySlots;
         for (size_t attempt = 0; attempt < batch_gpu_timing_queries.size(); ++attempt) {
             const size_t slot = (next_batch_gpu_timing_query + attempt) %
                                 batch_gpu_timing_queries.size();
-            collect_batch_gpu_timing(slot, false);
+            collect_gpu_timing(slot, false);
             if (batch_gpu_timing_pending[slot]) continue;
             glBeginQuery(GL_TIME_ELAPSED, batch_gpu_timing_queries[slot]);
+            batch_gpu_timing_kinds[slot] = kind;
             next_batch_gpu_timing_query = (slot + 1) % batch_gpu_timing_queries.size();
             return slot;
         }
-        ++batch_gpu_timing_dropped;
+        ++gpu_timing_dropped[static_cast<size_t>(kind)];
         return kGpuTimingQuerySlots;
     }
 
-    void end_batch_gpu_timing(size_t slot, uint64_t primitives) {
+    void end_gpu_timing(size_t slot, uint64_t units = 1) {
         if (slot >= batch_gpu_timing_queries.size()) return;
         glEndQuery(GL_TIME_ELAPSED);
         batch_gpu_timing_pending[slot] = true;
-        batch_gpu_timing_primitives[slot] = primitives;
+        batch_gpu_timing_units[slot] = units;
     }
 
     bool initialize(std::span<const uint8_t> initial_vram) {
@@ -875,7 +895,9 @@ struct GpuHardwareRenderer::Impl {
         glUniform4i(texture_cache_window_state_location,
                     key.window_x, key.window_y,
                     key.window_mask_x, key.window_mask_y);
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::TextureCache);
         glDispatchCompute(32, 32, 1);
+        end_gpu_timing(timing_query);
         entry.valid = true;
         ++texture_cache_generations;
         return layer;
@@ -1195,10 +1217,10 @@ struct GpuHardwareRenderer::Impl {
                      pending_batch_scanlines.data(), GL_STREAM_DRAW);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, batch_scanline_buffer);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-        const size_t timing_query = begin_batch_gpu_timing();
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::BatchDraw);
         glDrawArrays(GL_TRIANGLES, 0,
                      static_cast<GLsizei>(pending_batch_vertices.size()));
-        end_batch_gpu_timing(timing_query, pending_batch_primitive_count);
+        end_gpu_timing(timing_query, pending_batch_primitive_count);
         glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -1240,8 +1262,10 @@ struct GpuHardwareRenderer::Impl {
                            GL_READ_WRITE, GL_R16UI);
         glUniform2i(origin_location, min_x, min_y);
         glUniform1i(vram_height_location, vram_height);
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::RasterCompute);
         glDispatchCompute((max_x - min_x + 1 + 7) / 8,
                           (max_y - min_y + 1 + 7) / 8, 1);
+        end_gpu_timing(timing_query);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
         if (in_place) finish_in_place(min_x, min_y, max_x, max_y);
@@ -1283,7 +1307,9 @@ struct GpuHardwareRenderer::Impl {
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
         glBindVertexArray(vertex_array);
         glUniform1i(draw_vram_height_location, vram_height);
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::ImmediateDraw);
         glDrawArrays(GL_TRIANGLES, 0, command.header[1] == 4u ? 6 : 3);
+        end_gpu_timing(timing_query);
         glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -1329,7 +1355,9 @@ struct GpuHardwareRenderer::Impl {
         glUniform1i(glGetUniformLocation(scanout_program, "uRgb24"), rgb24 ? 1 : 0);
         glUniform1i(glGetUniformLocation(scanout_program, "uDisplayEnabled"),
                     display_enabled ? 1 : 0);
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::Scanout);
         glDispatchCompute((width + 7) / 8, (height + 7) / 8, 1);
+        end_gpu_timing(timing_query);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                         GL_TEXTURE_UPDATE_BARRIER_BIT |
                         GL_FRAMEBUFFER_BARRIER_BIT);

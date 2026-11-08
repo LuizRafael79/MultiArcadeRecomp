@@ -517,14 +517,18 @@ the portrait frame; it is still a selected-frame comparison, not a continuous
 full-title image-parity or performance result.
 
 An opt-in GPU timer-query probe is available with
-`MAMERECOMP_PSX_GPU_TIMING=1`. It times the GPU execution of opaque batch draw
-calls without waiting during normal batch submission; results are collected
-asynchronously and the probe drains outstanding queries at shutdown. On the
-GTX 1650, a 600-frame headless SFEX2PA boot/attract run recorded 348 batch
-draws covering 47,441 primitives, 29.21 ms total elapsed GPU draw time, no
-dropped queries, and 83.9 us average per batch. The run itself took 11.88 s
-and executed 250,726,699 guest instructions/cycles. This indicates batched
-draw execution is a small share of this workload; the number excludes compute
-dispatches (fills, lines, copies, cache generation, scanout), CPU-side command
-preparation, and presentation. Timing mode also calls `glFinish()` at shutdown,
-so its wall time is not a baseline performance measurement.
+`MAMERECOMP_PSX_GPU_TIMING=1`. It times batch draws, immediate draws, raster
+compute, texture-cache generation, and scanout dispatches without waiting
+during normal submission; results are collected asynchronously and outstanding
+queries are drained at shutdown. The first GTX 1650 profile measured only
+opaque batch draws. An extended 600-frame headless SFEX2PA boot/attract run
+recorded 348 batch draws / 47,441 primitives at 29.23 ms, 698 raster-compute
+dispatches at 69.51 ms, one texture-cache dispatch at 0.072 ms, and one scanout
+dispatch at 0.158 ms; no query was dropped. The run took 12.27 s and executed
+250,726,699 guest instructions/cycles. These categories total about 99 ms
+(0.8% of this run's wall time), indicating the measured GPU operations are not
+the dominant cost for this workload. This excludes CPU-side command
+preparation, GL upload/transfer work, and SDL/compositor presentation; timer
+mode also calls `glFinish()` at shutdown, so its wall time is not a baseline
+performance measurement. The extended probe passed the parity and DMA tests
+on both the GTX 1650 and Mesa Intel UHD 630.
