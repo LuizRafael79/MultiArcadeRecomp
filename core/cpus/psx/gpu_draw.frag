@@ -91,7 +91,7 @@ void main() {
     }
     uint texel = 0u;
     if (textured) {
-        texel = sample_texture(int(vUV.x), int(vUV.y));
+        texel = sample_texture(int(roundEven(vUV.x)), int(roundEven(vUV.y)));
         if (texel == 0u) discard;
         if (raw_texture) {
             result = texel;
