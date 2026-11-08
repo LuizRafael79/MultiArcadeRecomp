@@ -25,11 +25,10 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
     if ((window_width == 0) != (window_height == 0))
         throw std::runtime_error("SDL window dimensions require both width and height");
 #if defined(__linux__)
-    // During PSX direct-OpenGL bring-up, avoid the host's crashing Wayland
-    // libdecor/Glycin path. Keep this scoped to the undecorated native-GL
-    // debug window; other SDL presenters retain their normal decorations.
-    if (native_opengl_window_ &&
-        !SDL_GetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR))
+    // Avoid loading the host's crashing GTK/Glycin libdecor plugin. On
+    // compositors with xdg-decoration support SDL can still request the
+    // compositor's normal server-side frame; this does not select X11.
+    if (!SDL_GetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR))
         SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR, "0");
 #endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS))

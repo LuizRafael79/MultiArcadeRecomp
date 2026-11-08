@@ -328,3 +328,15 @@ on ZN-1 `bldyror2` (120 vblanks, 87 visible captures) and Namco System 12
 the NVIDIA GTX 1650 renderer and completed without GL errors or reported
 software-image differences. These are backend-integration checks only; the
 System 12 sample ends during boot and does not validate gameplay rendering.
+
+The direct-present window path completed 300 SFEX2PA frames in 10.91 s; the
+software rasterizer completed the same input sequence in 10.70 s after
+disabling SDL's Wayland libdecor plugin. Both runs had identical guest cycle
+and instruction totals. This does not show a performance gain from GPU
+rasterization in the measured attract/early-game workload. Before disabling
+the plugin, the software window reproducibly crashed in
+`libdecor-gtk.so`/`libglycin-2.so` while creating the Wayland frame; setting
+`SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0` made it complete without changing the
+video driver. The presenter now sets that SDL hint before initialization on
+Linux unless the user overrides it, allowing SDL/compositor decorations where
+xdg-decoration is available.
