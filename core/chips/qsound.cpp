@@ -193,6 +193,8 @@ struct QSound::Impl {
     explicit Impl(QSoundConfig cfg)
         : config(cfg), active_mode(cfg.mode == QSoundMode::Mixed ? QSoundMode::Lle : cfg.mode),
           dsp(make_dsp_bus()) {
+        trace_qsound = std::getenv("MAMERECOMP_QSOUND_TRACE") != nullptr;
+        trace_word = std::getenv("MAMERECOMP_QSOUND_WORD_TRACE") != nullptr;
         force_alternating_channel = std::getenv(
             "MAMERECOMP_QSOUND_FORCE_ALTERNATING_CHANNEL") != nullptr;
         dsp_trace_full = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE_FULL") != nullptr;
@@ -291,7 +293,7 @@ struct QSound::Impl {
                     << static_cast<std::uint64_t>(state.a[1]) << ','
                     << dsp.last_sdx_value() << std::dec << '\n';
             }
-            if (std::getenv("MAMERECOMP_QSOUND_TRACE") && pio_read_count <= 512)
+            if (trace_qsound && pio_read_count <= 512)
                 std::cerr << "QSound DSP PIO read #" << pio_read_count
                           << " cycle=" << std::dec << dsp.cycles()
                           << " PC=0x" << std::hex << dsp.pc()
@@ -307,7 +309,7 @@ struct QSound::Impl {
         };
         bus.pio_write = [this](std::uint16_t selector, std::uint16_t value) {
             ++pio_write_count;
-            if (std::getenv("MAMERECOMP_QSOUND_TRACE") && pio_write_count <= 512)
+            if (trace_qsound && pio_write_count <= 512)
                 std::cerr << "QSound DSP PIO write #" << pio_write_count
                           << " PC=0x" << std::hex << dsp.pc()
                           << " PSEL=" << selector << " value=0x" << value << std::dec << '\n';
@@ -433,7 +435,7 @@ struct QSound::Impl {
                 const auto magnitude = static_cast<std::uint16_t>(shift_register & 0x8000U
                     ? 0U - shift_register : shift_register);
                 if (shift_register) ++nonzero_serial_word_count;
-                if (std::getenv("MAMERECOMP_QSOUND_WORD_TRACE")) {
+                if (trace_word) {
                     static std::uint64_t traced = 0;
                     static bool trace_started = false;
                     static const std::uint64_t after_cycles = [] {
@@ -535,6 +537,7 @@ struct QSound::Impl {
     std::uint8_t shift_remaining = 0, channel = 0;
     std::uint8_t next_alternating_channel = 0;
     bool force_alternating_channel = false;
+    bool trace_qsound = false, trace_word = false;
     bool ock = true, old_load = true, ready_edge = false;
     std::deque<std::array<std::int16_t, 2>> pcm_frames;
     std::deque<std::array<std::int16_t, 2>> hle_frames;
