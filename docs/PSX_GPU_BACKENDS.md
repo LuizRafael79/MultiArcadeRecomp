@@ -605,6 +605,17 @@ frame updates. The means (7.22 s GPU_HW, 7.26 s software) are effectively
 equal at this sample size, so direct GPU presentation introduces no observed
 total-runtime penalty but does not demonstrate a material speedup here.
 
+A second matched native-window check used forced QSound HLE and two 300-frame
+SFEX2PA runs per backend on the GTX 1650, with identical NVRAM restored before
+each run. Guest instructions/cycles and frame updates matched. GPU_HW wall time
+was 5.532/5.526 s; software rasterization plus SDL presentation was
+5.350/5.434 s. The GPU_HW mean was about 2.5% higher, while instrumented
+`run_until` was 2.002 s versus 2.067 s; GP0 CPU raster/dispatch averaged
+33.6 ms versus 43.4 ms. Since these windowed runs are paced by presentation,
+the near-equal wall times do not measure uncapped throughput. This confirms no
+large direct-present regression in this sample, but does not establish a
+whole-game speedup.
+
 A separate headless A/B used forced QSound HLE and two 600-frame SFEX2PA runs
 per backend on the GTX 1650, restoring the same NVRAM and logs before each run.
 Each run processed 56,734 GP0 packets and 250,726,699 guest instructions/cycles.
