@@ -184,6 +184,29 @@ int main()
         send(software, interlaced_commands);
         send(hardware, interlaced_commands);
 
+        // Active-line parity is display-start Y plus the display field. With
+        // an odd display origin, the same field bit therefore skips even
+        // VRAM rows. One emulated frame switches to the next field.
+        software.write_status(0x05000400u);
+        hardware.write_status(0x05000400u);
+        const std::vector<uint32_t> odd_origin_commands{
+            0xe1000000u,
+            0x020000ffu, 360u | (320u << 16), (4u << 16) | 4u,
+        };
+        send(software, odd_origin_commands);
+        send(hardware, odd_origin_commands);
+        const unsigned field_before = (software.read_status() >> 13) & 1u;
+        software.advance_screen_timing(2'000'000u, 100'000'000u);
+        hardware.advance_screen_timing(2'000'000u, 100'000'000u);
+        const unsigned field_after = (software.read_status() >> 13) & 1u;
+        if (field_after == field_before)
+            throw std::runtime_error("PSX interlaced field did not advance at vblank");
+        const std::vector<uint32_t> next_field_commands{
+            0x0200ff00u, 380u | (330u << 16), (4u << 16) | 4u,
+        };
+        send(software, next_field_commands);
+        send(hardware, next_field_commands);
+
         const auto expected = read_vram(software);
         const auto actual = read_vram(hardware);
         if (expected[300u * kReadbackWidth + 288u] == 0 ||
@@ -195,7 +218,11 @@ int main()
             expected[300u * kReadbackWidth + 340u] == 0 ||
             expected[301u * kReadbackWidth + 340u] != 0 ||
             expected[310u * kReadbackWidth + 336u] == 0 ||
-            expected[311u * kReadbackWidth + 336u] == 0) {
+            expected[311u * kReadbackWidth + 336u] == 0 ||
+            expected[320u * kReadbackWidth + 352u] != 0 ||
+            expected[321u * kReadbackWidth + 352u] == 0 ||
+            expected[330u * kReadbackWidth + 368u] == 0 ||
+            expected[331u * kReadbackWidth + 368u] != 0) {
             std::cerr << "interlace pixels fill=" << std::hex
                       << expected[300u * kReadbackWidth + 288u] << '/'
                       << expected[301u * kReadbackWidth + 288u] << " rect="
