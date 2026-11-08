@@ -1093,16 +1093,20 @@ void Gpu::execute_packet()
         uint32_t dx = packet_[2] & 0x3ff, dy = (packet_[2] >> 16) & 0x3ff;
         uint32_t w = packet_[3] & 0x3ff, h = (packet_[3] >> 16) & 0x3ff;
         if (!w) w = 1024; if (!h) h = 512;
-        if (hardware_renderer_ && !hardware_vram_shadow_valid_) {
-            hardware_renderer_->sync_to_cpu(vram_);
-            hardware_vram_shadow_valid_ = true;
-        }
-        std::vector<uint16_t> tmp(size_t(w) * h);
-        for (uint32_t y = 0; y < h; ++y) for (uint32_t x = 0; x < w; ++x) tmp[size_t(y)*w+x] = get_pixel(sx+x, sy+y);
-        for (uint32_t y = 0; y < h; ++y) for (uint32_t x = 0; x < w; ++x) write_pixel(dx+x, dy+y, tmp[size_t(y)*w+x]);
         if (hardware_renderer_) {
-            hardware_renderer_->sync_from_cpu(vram_);
-            hardware_vram_shadow_valid_ = true;
+            GpuHwState state;
+            get_hardware_state(state);
+            hardware_renderer_->copy_rect(int(sx), int(sy), int(dx), int(dy),
+                                          int(w), int(h), state);
+            hardware_vram_shadow_valid_ = false;
+        } else {
+            std::vector<uint16_t> tmp(size_t(w) * h);
+            for (uint32_t y = 0; y < h; ++y)
+                for (uint32_t x = 0; x < w; ++x)
+                    tmp[size_t(y) * w + x] = get_pixel(int(sx + x), int(sy + y));
+            for (uint32_t y = 0; y < h; ++y)
+                for (uint32_t x = 0; x < w; ++x)
+                    write_pixel(int(dx + x), int(dy + y), tmp[size_t(y) * w + x]);
         }
     } else if (op == 0xa0 || op == 0xc0) {
         // CPU-to-VRAM transfers update the host mirror a word at a time. Merge

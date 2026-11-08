@@ -43,7 +43,8 @@ the renderer itself has no ZN-specific types or board callbacks.
 4. Synchronize only at observable boundaries: CPU/DMA reads of VRAM, CPU/DMA
    writes that overlap pending GPU work, scanout capture, and state save/load.
    Insert the required OpenGL memory barriers between ordered commands; avoid
-   reading the whole VRAM back after every primitive.
+   reading the whole VRAM back after every primitive. GP0 `0x80` VRAM copies
+   now snapshot and copy through GPU textures/compute dispatches.
 5. Expose an explicit backend choice (`software` or `opengl`). If OpenGL is
    unavailable, report that clearly when requested; automatic mode may fall
    back to software. Keep headless deterministic capture on the software path
@@ -63,8 +64,8 @@ mapping was verified on the Intel UHD 630: a test rectangle requested at
 `(10,20)` is read back at `(10,20)..(19,29)`. The FBO Y mapping and rectangle
 quad vertex order must stay consistent with the PSX VRAM convention and the
 GP0 strip order (`TL, TR, BL, BR`). CPU-visible VRAM and scanout still trigger
-readback, and GP0 `0x80` currently synchronizes through the CPU implementation;
-the backend is not yet fully GPU-resident for scanout and transfers.
+readback; the backend is not yet fully GPU-resident for scanout and CPU/DMA
+transfers.
 
 ## Raster coverage order
 
@@ -75,8 +76,8 @@ Implement and compare each GP0 family against the retained software path:
    including CLUT, texture page/window, transparency, and texture STP.
 3. Gouraud interpolation, dithering, draw-area clipping/offset, mask test/set,
    and the four semi-transparency equations.
-4. Lines, VRAM copy, and transfer interaction. Transfers remain device
-   operations, but must order against pending GPU draws.
+4. Lines, VRAM copy, and transfer interaction. GP0 `0x80` is GPU-resident;
+   CPU/DMA transfers still need to order against pending GPU draws.
 5. Display scanout and interlace modes, preserving GP1 display start/ranges and
    the physical aspect ratio selected by the board/presenter.
 
@@ -124,3 +125,7 @@ the red/green color corruption is gone. Pixel-level parity with the software
 path is still incomplete (the matched frame differs in 37,590 pixels, mostly
 small rasterization/color-edge differences), so broader GPU validation remains
 open.
+
+GP0 `0x80` was verified on the Intel UHD 630 with wrapped, overlapping, and
+mask-tested copy probes against a CPU snapshot reference. An end-to-end GP0
+`0x80` followed by GP0 `0xc0` readback also matched all copied words.

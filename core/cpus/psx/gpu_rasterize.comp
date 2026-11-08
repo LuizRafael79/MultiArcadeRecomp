@@ -90,7 +90,7 @@ void main() {
     bool covered = false;
     vec3 weights = vec3(0.0);
     int tri[3];
-    if (kind == 2u) {
+    if (kind == 2u || kind == 4u) {
         covered = true;
     } else if (kind == 3u) {
         Vertex a = command.vertices[0];
@@ -116,6 +116,11 @@ void main() {
     if (kind == 2u) {
         uint destination = imageLoad(uDestination, p).r;
         if ((command.header.z & 32u) != 0u && (destination & 0x8000u) != 0u) return;
+    } else if (kind == 4u) {
+        int sx = command.vertices[0].xyuv.x + (p.x - command.bounds.x);
+        int sy = command.vertices[0].xyuv.y + (p.y - command.bounds.y);
+        sx &= 1023;
+        result = texelFetch(uSource, ivec2(sx, sy), 0).r;
     } else if (kind == 3u) {
         if (p.x < command.draw_area.x || p.y < command.draw_area.y ||
             p.x > command.draw_area.z || p.y > command.draw_area.w) return;

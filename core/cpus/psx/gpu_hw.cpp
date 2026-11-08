@@ -137,6 +137,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint program = 0;
     GLuint draw_program = 0;
     GLuint vram[2]{};
+    GLuint copy_scratch = 0;
     GLuint framebuffer[2]{};
     GLuint vertex_array = 0;
     GLuint command_buffer = 0;
@@ -155,6 +156,7 @@ struct GpuHardwareRenderer::Impl {
         if (program) glDeleteProgram(program);
         if (draw_program) glDeleteProgram(draw_program);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
+        if (copy_scratch) glDeleteTextures(1, &copy_scratch);
         if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
         if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
@@ -212,6 +214,12 @@ struct GpuHardwareRenderer::Impl {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, vram_height, 0,
                          GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
         }
+        glGenTextures(1, &copy_scratch);
+        glBindTexture(GL_TEXTURE_2D, copy_scratch);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, kMaxVramHeight, 0,
+                     GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
         glGenFramebuffers(2, framebuffer);
         for (unsigned i = 0; i < 2; ++i) {
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer[i]);
@@ -288,7 +296,7 @@ struct GpuHardwareRenderer::Impl {
         last_dirty_bounds = {min_x, min_y, max_x, max_y};
     }
 
-    void execute(ShaderCommand command) {
+    void execute(ShaderCommand command, GLuint source_override = 0) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
         const int min_y = std::clamp(command.bounds[1], 0, vram_height - 1);
@@ -305,7 +313,7 @@ struct GpuHardwareRenderer::Impl {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(command), &command);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, command_buffer);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
+        glBindTexture(GL_TEXTURE_2D, source_override ? source_override : vram[current_vram]);
         glBindImageTexture(0, vram[destination_vram], 0, GL_FALSE, 0,
                            GL_READ_WRITE, GL_R16UI);
         glUniform2i(origin_location, min_x, min_y);
@@ -541,27 +549,68 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
 
 void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
         int height, const GpuHwState& state) {
-    std::vector<uint8_t> shadow;
-    sync_to_cpu(shadow);
-    std::vector<uint16_t> temp(size_t(width) * height);
-    for (int y = 0; y < height; ++y)
-        for (int x = 0; x < width; ++x) {
-            const size_t at = (size_t((sy + y) % impl_->vram_height) * kVramWidth + size_t((sx + x) & 1023)) * 2;
-            temp[size_t(y) * width + x] = uint16_t(shadow[at] | (uint16_t(shadow[at + 1]) << 8));
+    if (width <= 0 || height <= 0) return;
+    sx &= 1023;
+    const int destination_x = dx & 1023;
+    sy = (sy % impl_->vram_height + impl_->vram_height) % impl_->vram_height;
+    dy = (dy % impl_->vram_height + impl_->vram_height) % impl_->vram_height;
+
+    if (!impl_->make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+
+    // Snapshot the complete source rectangle before writing any destination
+    // pixels. This preserves overlap semantics even when either rectangle
+    // wraps at the VRAM edge and the copy needs several dispatches.
+    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
+    int source_row = 0;
+    while (source_row < height) {
+        const int source_y = (sy + source_row) % impl_->vram_height;
+        const int source_height = std::min(height - source_row,
+                                           impl_->vram_height - source_y);
+        int source_column = 0;
+        while (source_column < width) {
+            const int source_x = (sx + source_column) & 1023;
+            const int source_width = std::min(width - source_column,
+                                              kVramWidth - source_x);
+            glCopyImageSubData(impl_->vram[impl_->current_vram], GL_TEXTURE_2D, 0,
+                               source_x, source_y, 0,
+                               impl_->copy_scratch, GL_TEXTURE_2D, 0,
+                               source_column, source_row, 0,
+                               source_width, source_height, 1);
+            source_column += source_width;
         }
-    for (int y = 0; y < height; ++y)
-        for (int x = 0; x < width; ++x) {
-            const int px = (dx + x + state.offset_x) & 1023;
-            const int py = (dy + y + state.offset_y) % impl_->vram_height;
-            if (px < state.draw_x1 || px > state.draw_x2 || py < state.draw_y1 || py > state.draw_y2) continue;
-            const size_t at = (size_t(py) * kVramWidth + size_t(px)) * 2;
-            const uint16_t old = uint16_t(shadow[at] | (uint16_t(shadow[at + 1]) << 8));
-            if (state.check_mask && (old & 0x8000)) continue;
-            const uint16_t value = uint16_t(temp[size_t(y) * width + x] | (state.set_mask ? 0x8000 : 0));
-            shadow[at] = uint8_t(value);
-            shadow[at + 1] = uint8_t(value >> 8);
+        source_row += source_height;
+    }
+    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+
+    // GP0(80h) is a VRAM-to-VRAM transfer, so keep both the source snapshot
+    // and the destination writes on the device. Split at VRAM boundaries;
+    // ping-ponging the integer VRAM images makes overlapping copies safe.
+    int row = 0;
+    while (row < height) {
+        const int chunk_height = std::min(height - row, impl_->vram_height - dy);
+        int row_destination_x = destination_x;
+        int column = 0;
+        while (column < width) {
+            const int chunk_width = std::min(width - column,
+                                             kVramWidth - row_destination_x);
+            ShaderCommand command{};
+            command.header[0] = 4;
+            command.header[2] = (state.set_mask ? 16u : 0u) |
+                                (state.check_mask ? 32u : 0u);
+            command.bounds[0] = row_destination_x;
+            command.bounds[1] = dy;
+            command.bounds[2] = row_destination_x + chunk_width - 1;
+            command.bounds[3] = dy + chunk_height - 1;
+            command.vertices[0].xyuv[0] = column;
+            command.vertices[0].xyuv[1] = row;
+            impl_->execute(command, impl_->copy_scratch);
+            column += chunk_width;
+            row_destination_x = 0;
         }
-    sync_from_cpu(shadow);
+        row += chunk_height;
+        dy = 0;
+    }
 }
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }
