@@ -24,8 +24,10 @@ the renderer itself has no ZN-specific types or board callbacks.
   unavailable. ZN-1, ZN-2, and Namco System 12 use this same PSX implementation.
 - OpenGL keeps two integer `R16UI` VRAM textures plus the CPU-visible mirror.
   Polygon and rectangle commands are batched in GP0 order through vertex and
-  command/scanline SSBOs; fills, lines, texture-cache generation, VRAM copies,
-  and scanout use compute shaders. The 64-layer cache stores indexed texture
+  command/scanline SSBOs; simple lines also join this ordered geometry batch,
+  with the fragment shader checking exact fixed-point DDA coverage. Fills,
+  variable-length polylines, texture-cache generation, VRAM copies, and scanout
+  use compute shaders. The 64-layer cache stores indexed texture
   pages while CLUT colors are sampled from current VRAM. Fixed-point scanline
   interpolation is used for polygons to match the software reference.
 - Batches flush at ordering boundaries, including destination read/write
@@ -761,3 +763,38 @@ fix, all ten captures from the same 1,620-frame run were byte-identical to the
 software reference on Intel UHD 630; frame 450 also matched on the NVIDIA GTX
 1650. Guest instruction/cycle counts matched in every paired run. A synthetic
 nonzero-E5 GP0(02) case and the complete PSX GPU test group pass on both GPUs.
+
+Variable-length GP0 polylines now submit their complete vertex list in one
+compute dispatch instead of dispatching once per segment. Each segment's
+pixels are processed in parallel, with an image barrier between segments to
+preserve GP0 order at crossings for blending and mask checks. The parity test
+covers flat and Gouraud polylines plus a semitransparent crossing whose center
+pixel receives both ordered blends. The updated parity test passed on Intel
+UHD 630 and NVIDIA GTX 1650 outside the sandbox. This verifies the tested line
+cases, not every polyline edge/interlace combination or a whole-game speedup.
+
+Ordinary two-vertex GP0 lines now enter the general ordered geometry batch as
+screen-aligned bounding quads. The fragment shader evaluates the fixed-point
+DDA at each candidate pixel, retaining exact line coverage while sharing batch
+submissions with polygons and rectangles. Semi-transparent overlap and mask
+check/set cases have explicit parity fixtures. The PSX GPU parity suite passes
+on llvmpipe, Intel UHD 630, and NVIDIA GTX 1650 after this routing change. A
+ROM-based profile on SFEX2PA measured the current total renderer path; the
+results are recorded below. Variable-length polylines remain on the dedicated
+compute dispatch path to preserve ordered blending across crossings.
+
+With the line-batch path enabled, two paired 600-frame SFEX2PA profiles used
+the ROM at `/home/luiz/git/mame/roms/sfex2pa.zip`, QSound HLE, fresh temporary
+NVRAM images, and no frame capture. Both backends ran exactly 52,742 GP0
+packets and 250,726,699 guest instructions/cycles. Mean CPU time attributed to
+GP0 packet raster/dispatch was 114.03 ms in software and 18.69 ms with GPU_HW
+(83.6% lower). Mean total `run_until` was 2.240 s in software and 2.147 s with
+GPU_HW (4.2% lower in these two samples); more repetitions are needed before
+treating that total-time change as stable. GPU_HW submitted 47,790 primitives
+in 349 batches and recorded one texture-cache generation with 47,397 hits.
+The 1,074-frame SFEX2PA gameplay capture was byte-identical between software
+and GPU_HW (SHA-256
+`75a664abef6fb51831c87cae08b3ab72acabbae7e613363a7680b1342274d026`); both
+runs reported the same guest instruction/cycle count. These results validate
+this title and scene on Intel UHD 630, not continuous parity or performance on
+all Sony-derived boards.

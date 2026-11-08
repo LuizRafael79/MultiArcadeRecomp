@@ -1050,29 +1050,31 @@ void Gpu::execute_packet()
             draw_textured_polygon(x, y, u, v, colors, vertices, clut, tpage,
                                   (op & 1) != 0, gouraud, (op & 2) != 0);
         }
-    } else if ((op & 0xf8) == 0x48) {
-        if (packet_.size() >= 3) {
-            uint32_t previous = packet_[1];
-            for (size_t i = 2; i < packet_.size(); ++i) {
-                const uint32_t next = packet_[i];
-                draw_line(coord_x(previous), coord_y(previous), coord_x(next), coord_y(next),
-                          opword, opword, false, (op & 2) != 0);
-                previous = next;
+    } else if (is_gp0_polyline(op)) {
+        const bool gouraud = (op & 0xf8) == 0x58;
+        std::vector<GpuHwVertex> vertices;
+        if (gouraud) {
+            if (packet_.size() >= 4) {
+                vertices.push_back({coord_x(packet_[1]), coord_y(packet_[1]),
+                                    0, 0, opword});
+                for (size_t i = 2; i + 1 < packet_.size(); i += 2)
+                    vertices.push_back({coord_x(packet_[i + 1]),
+                                        coord_y(packet_[i + 1]), 0, 0,
+                                        packet_[i]});
             }
         }
-    } else if ((op & 0xf8) == 0x58) {
-        if (packet_.size() >= 4) {
-            uint32_t previous_position = packet_[1];
-            uint32_t previous_color = opword;
-            for (size_t i = 2; i + 1 < packet_.size(); i += 2) {
-                const uint32_t next_color = packet_[i];
-                const uint32_t next_position = packet_[i + 1];
-                draw_line(coord_x(previous_position), coord_y(previous_position),
-                          coord_x(next_position), coord_y(next_position),
-                          previous_color, next_color, true, (op & 2) != 0);
-                previous_color = next_color;
-                previous_position = next_position;
-            }
+        if (vertices.size() >= 2 && hardware_renderer_) {
+            GpuHwState state;
+            get_hardware_state(state);
+            hardware_renderer_->draw_polyline(vertices, state, gouraud,
+                                               (op & 2) != 0);
+            hardware_vram_shadow_valid_ = false;
+        } else {
+            for (size_t i = 0; i + 1 < vertices.size(); ++i)
+                draw_line(vertices[i].x, vertices[i].y,
+                          vertices[i + 1].x, vertices[i + 1].y,
+                          vertices[i].color, vertices[i + 1].color,
+                          gouraud, (op & 2) != 0);
         }
     } else if ((op & 0xfc) == 0x40) {
         const uint32_t p0 = packet_[1], p1 = packet_[2];
@@ -1140,6 +1142,11 @@ void Gpu::execute_packet()
                 }
               }
             }
+        } else if (packet_.size() >= 3) {
+            vertices.reserve(packet_.size() - 1);
+            for (size_t i = 1; i < packet_.size(); ++i)
+                vertices.push_back({coord_x(packet_[i]), coord_y(packet_[i]),
+                                    0, 0, opword});
         }
     } else if (op == 0x80) {
         uint32_t sx = packet_[1] & 0x3ff, sy = (packet_[1] >> 16) & 0x3ff;

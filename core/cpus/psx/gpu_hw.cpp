@@ -96,6 +96,13 @@ struct BatchVertex {
 };
 static_assert(sizeof(BatchVertex) == 72);
 
+struct alignas(16) PolylineVertex {
+    int32_t position[2]{};
+    uint32_t color = 0;
+    uint32_t padding = 0;
+};
+static_assert(sizeof(PolylineVertex) == 16);
+
 struct TextureCacheKey {
     uint32_t texture_page = 0;
     uint32_t gpu_type = 0;
@@ -253,6 +260,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint batch_draw_program = 0;
     GLuint batch_scanline_setup_program = 0;
     GLuint texture_cache_program = 0;
+    GLuint polyline_program = 0;
     GLuint texture_cache_texture = 0;
     GLuint vram[2]{};
     GLuint copy_scratch = 0;
@@ -273,6 +281,7 @@ struct GpuHardwareRenderer::Impl {
     GLuint batch_command_buffer = 0;
     GLuint batch_scanline_buffer = 0;
     GLuint batch_scanline_job_buffer = 0;
+    GLuint polyline_buffer = 0;
     GLuint command_buffer = 0;
     std::array<GLsync, kCommandRingSlots / kCommandBatchSlots> command_batch_fences{};
     std::array<GLuint, kGpuTimingQuerySlots> batch_gpu_timing_queries{};
@@ -305,6 +314,14 @@ struct GpuHardwareRenderer::Impl {
     GLint texture_cache_gpu_type_location = -1;
     GLint texture_cache_window_state_location = -1;
     GLint batch_texture_cache_location = -1;
+    GLint polyline_vertex_count_location = -1;
+    GLint polyline_draw_area_location = -1;
+    GLint polyline_draw_offset_location = -1;
+    GLint polyline_vram_height_location = -1;
+    GLint polyline_flags_location = -1;
+    GLint polyline_abr_location = -1;
+    GLint polyline_interlaced_location = -1;
+    GLint polyline_active_line_lsb_location = -1;
     int vram_height = kMinVramHeight;
     unsigned scanout_width = 0;
     unsigned scanout_height = 0;
@@ -383,6 +400,7 @@ struct GpuHardwareRenderer::Impl {
         if (batch_draw_program) glDeleteProgram(batch_draw_program);
         if (batch_scanline_setup_program) glDeleteProgram(batch_scanline_setup_program);
         if (texture_cache_program) glDeleteProgram(texture_cache_program);
+        if (polyline_program) glDeleteProgram(polyline_program);
         if (texture_cache_texture) glDeleteTextures(1, &texture_cache_texture);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
         if (copy_scratch) glDeleteTextures(1, &copy_scratch);
@@ -400,6 +418,7 @@ struct GpuHardwareRenderer::Impl {
         if (batch_command_buffer) glDeleteBuffers(1, &batch_command_buffer);
         if (batch_scanline_buffer) glDeleteBuffers(1, &batch_scanline_buffer);
         if (batch_scanline_job_buffer) glDeleteBuffers(1, &batch_scanline_job_buffer);
+        if (polyline_buffer) glDeleteBuffers(1, &polyline_buffer);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         for (GLsync fence : command_batch_fences)
             if (fence) glDeleteSync(fence);
@@ -513,6 +532,9 @@ struct GpuHardwareRenderer::Impl {
         texture_cache_program = compile_compute_program(
             read_shader_source(MAMERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
         if (!texture_cache_program) throw std::runtime_error(init_error);
+        polyline_program = compile_compute_program(
+            read_shader_source(MAMERECOMP_PSX_GPU_POLYLINE_SHADER_PATH), init_error);
+        if (!polyline_program) throw std::runtime_error(init_error);
         origin_location = glGetUniformLocation(program, "uDispatchOrigin");
         vram_height_location = glGetUniformLocation(program, "uVramHeight");
         draw_vram_height_location = glGetUniformLocation(draw_program, "uVramHeight");
@@ -529,6 +551,14 @@ struct GpuHardwareRenderer::Impl {
         scanout_display_enabled_location = glGetUniformLocation(scanout_program, "uDisplayEnabled");
         batch_texture_cache_location = glGetUniformLocation(batch_draw_program, "uTextureCache");
         batch_source_location = glGetUniformLocation(batch_draw_program, "uVram");
+        polyline_vertex_count_location = glGetUniformLocation(polyline_program, "uVertexCount");
+        polyline_draw_area_location = glGetUniformLocation(polyline_program, "uDrawArea");
+        polyline_draw_offset_location = glGetUniformLocation(polyline_program, "uDrawOffset");
+        polyline_vram_height_location = glGetUniformLocation(polyline_program, "uVramHeight");
+        polyline_flags_location = glGetUniformLocation(polyline_program, "uFlags");
+        polyline_abr_location = glGetUniformLocation(polyline_program, "uAbr");
+        polyline_interlaced_location = glGetUniformLocation(polyline_program, "uInterlaced");
+        polyline_active_line_lsb_location = glGetUniformLocation(polyline_program, "uActiveLineLsb");
         texture_cache_vram_height_location = glGetUniformLocation(texture_cache_program, "uVramHeight");
         texture_cache_texture_page_location = glGetUniformLocation(texture_cache_program, "uTexturePage");
         texture_cache_gpu_type_location = glGetUniformLocation(texture_cache_program, "uGpuType");
@@ -650,6 +680,9 @@ struct GpuHardwareRenderer::Impl {
         glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
         glGenBuffers(1, &batch_scanline_job_buffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, batch_scanline_job_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+        glGenBuffers(1, &polyline_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, polyline_buffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
         GLint storage_alignment = 1;
         glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_alignment);
@@ -957,10 +990,10 @@ struct GpuHardwareRenderer::Impl {
     void append_batch_polygon_job(ShaderCommand& command,
                                   uint32_t command_index,
                                   int top, int bottom) {
+        if (command.header[0] != 0u) return;
         command.batch_scanline[0] = static_cast<int32_t>(pending_batch_scanline_count);
         command.batch_scanline[1] = top;
         command.batch_scanline[2] = bottom - top + 1;
-        if (command.header[0] != 0u) return;
         pending_batch_polygon_jobs.push_back({static_cast<int32_t>(command_index), {0, 0, 0}});
         pending_batch_scanline_count += static_cast<size_t>(command.batch_scanline[2]);
         pending_batch_max_scanline_rows = std::max(
@@ -1195,6 +1228,82 @@ struct GpuHardwareRenderer::Impl {
         }
     }
 
+    void execute_polyline(std::span<const GpuHwVertex> vertices,
+                          const GpuHwState& state, bool gouraud,
+                          bool semi_transparent) {
+        flush_draw_batch();
+        if (vertices.size() < 2) return;
+        if (!make_current())
+            throw std::runtime_error("could not activate PSX OpenGL context");
+
+        int min_x = kVramWidth - 1, min_y = vram_height - 1;
+        int max_x = 0, max_y = 0;
+        std::array<PolylineVertex, 2> inline_upload{};
+        std::vector<PolylineVertex> overflow_upload;
+        std::span<const PolylineVertex> upload;
+        if (vertices.size() <= inline_upload.size()) {
+            upload = std::span<PolylineVertex>(inline_upload.data(), vertices.size());
+        } else {
+            overflow_upload.reserve(vertices.size());
+        }
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            const auto& vertex = vertices[i];
+            const int x = vertex.x + state.offset_x;
+            const int y = vertex.y + state.offset_y;
+            min_x = std::min(min_x, x);
+            min_y = std::min(min_y, y);
+            max_x = std::max(max_x, x);
+            max_y = std::max(max_y, y);
+            const PolylineVertex uploaded{{vertex.x, vertex.y}, vertex.color, 0};
+            if (vertices.size() <= inline_upload.size())
+                inline_upload[i] = uploaded;
+            else
+                overflow_upload.push_back(uploaded);
+        }
+        if (vertices.size() > inline_upload.size()) upload = overflow_upload;
+        min_x = std::clamp(min_x, 0, kVramWidth - 1);
+        min_y = std::clamp(min_y, 0, vram_height - 1);
+        max_x = std::clamp(max_x, 0, kVramWidth - 1);
+        max_y = std::clamp(max_y, 0, vram_height - 1);
+        if (min_x > max_x || min_y > max_y) return;
+
+        glUseProgram(polyline_program);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, polyline_buffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+                     static_cast<GLsizeiptr>(upload.size() * sizeof(PolylineVertex)),
+                     upload.data(), GL_STREAM_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, polyline_buffer);
+        glBindImageTexture(0, vram[current_vram], 0, GL_FALSE, 0,
+                           GL_READ_WRITE, GL_R16UI);
+        glUniform1i(polyline_vertex_count_location,
+                    static_cast<GLint>(vertices.size()));
+        glUniform4i(polyline_draw_area_location, state.draw_x1, state.draw_y1,
+                    state.draw_x2, state.draw_y2);
+        glUniform2i(polyline_draw_offset_location, state.offset_x, state.offset_y);
+        glUniform1i(polyline_vram_height_location, vram_height);
+        const uint32_t flags = (gouraud ? 1u : 0u) |
+            (state.check_mask ? 2u : 0u) | (state.dither_enable ? 4u : 0u) |
+            (semi_transparent ? 8u : 0u) | (state.set_mask ? 16u : 0u);
+        glUniform1ui(polyline_flags_location, flags);
+        glUniform1ui(polyline_abr_location, state.gpu_type == 2u
+            ? ((state.texture_page >> 5) & 3u)
+            : ((state.texture_page >> 7) & 3u));
+        glUniform1i(polyline_interlaced_location,
+                    state.interlaced_rendering ? 1 : 0);
+        glUniform1ui(polyline_active_line_lsb_location,
+                     state.active_line_lsb & 1u);
+        const size_t timing_query = begin_gpu_timing(GpuTimingKind::RasterCompute);
+        glDispatchCompute(1, 1, 1);
+        end_gpu_timing(timing_query, vertices.size() - 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                        GL_TEXTURE_FETCH_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT |
+                        GL_FRAMEBUFFER_BARRIER_BIT);
+        finish_in_place(min_x, min_y, max_x, max_y);
+        if (debug_gl && glGetError() != GL_NO_ERROR)
+            throw std::runtime_error("PSX OpenGL polyline rasterization failed");
+    }
+
     void execute_draw(ShaderCommand command) {
         flush_draw_batch();
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
@@ -1414,7 +1523,7 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
     command.header[0] = kind;
     command.header[1] = static_cast<uint32_t>(vertices.size());
     const bool dither = state.dither_enable &&
-        (kind == 3u || (kind == 0u &&
+        (kind == 3u || kind == 5u || (kind == 0u &&
             (gouraud || (textured && !raw_texture))));
     command.header[2] = (gouraud ? 1u : 0u) | (textured ? 2u : 0u) |
                         (raw_texture ? 4u : 0u) | (semi_transparent ? 8u : 0u) |
@@ -1548,12 +1657,38 @@ void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
 
 void GpuHardwareRenderer::draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
         const GpuHwState& state, bool gouraud, bool semi_transparent) {
-    const std::array<GpuHwVertex, 2> vertices{a, b};
-    auto command = make_command(3, vertices, state, gouraud, false, false,
+    const int left = std::min(a.x, b.x);
+    const int top = std::min(a.y, b.y);
+    const int right = std::max(a.x, b.x);
+    const int bottom = std::max(a.y, b.y);
+    const std::array<GpuHwVertex, 4> bounds{{
+        {left, top, 0, 0, a.color}, {right + 1, top, 0, 0, a.color},
+        {left, bottom + 1, 0, 0, b.color},
+        {right + 1, bottom + 1, 0, 0, b.color}}};
+    auto command = make_command(5, bounds, state, gouraud, false, false,
                                 semi_transparent, 0);
+    command.bounds[0] = left + state.offset_x;
+    command.bounds[1] = top + state.offset_y;
+    command.bounds[2] = right + state.offset_x;
+    command.bounds[3] = bottom + state.offset_y;
+    command.batch_scanline[0] = a.x + state.offset_x;
+    command.batch_scanline[1] = a.y + state.offset_y;
+    command.batch_scanline[2] = b.x + state.offset_x;
+    command.batch_scanline[3] = b.y + state.offset_y;
+    command.vertices[0].color = a.color;
+    command.vertices[1].color = b.color;
     command.header[3] = uint32_t(((a.color >> 3) & 31u) |
         (((a.color >> 11) & 31u) << 5) | (((a.color >> 19) & 31u) << 10));
-    impl_->execute(command);
+    if (!impl_->queue_opaque_primitive(command)) {
+        const std::array<GpuHwVertex, 2> line{a, b};
+        impl_->execute_polyline(line, state, gouraud, semi_transparent);
+    }
+}
+
+void GpuHardwareRenderer::draw_polyline(
+        std::span<const GpuHwVertex> vertices, const GpuHwState& state,
+        bool gouraud, bool semi_transparent) {
+    impl_->execute_polyline(vertices, state, gouraud, semi_transparent);
 }
 
 void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height,

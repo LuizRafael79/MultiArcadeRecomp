@@ -101,6 +101,22 @@ int main()
             0x580000ffu, 480u | (430u << 16), 0x0000ff00u,
             496u | (430u << 16), 0x00ff0000u,
             496u | (446u << 16), 0x50005000u,
+            // Two non-adjacent segments cross the same pixel. Their
+            // semitransparent blends must execute in GP0 order on the GPU.
+            0x6000f800u, 510u | (310u << 16), (1u << 16) | 1u,
+            0xe1000000u,
+            0x4a0000f8u, 500u | (300u << 16), 520u | (320u << 16),
+            500u | (320u << 16), 520u | (300u << 16), 0x50005000u,
+            0xe1000000u,
+            // A queued semitransparent line must blend against a prior VRAM
+            // pixel, and a later mask-checked line must observe its set bit.
+            0x6000f800u, 510u | (330u << 16), (1u << 16) | 1u,
+            0x420000f8u, 500u | (330u << 16), 520u | (330u << 16),
+            0xe6000001u,
+            0x400000f8u, 500u | (340u << 16), 520u | (340u << 16),
+            0xe6000003u,
+            0x4000f800u, 500u | (340u << 16), 520u | (340u << 16),
+            0xe6000000u,
             // Seed a 4bpp page and CLUT, then exercise indexed texture lookup.
             0xa0000000u, 0u, (1u << 16) | 4u, 0x4321u, 0u,
             0xa0000000u, 64u, (1u << 16) | 16u,
@@ -299,6 +315,16 @@ int main()
             expected[430u * kReadbackWidth + 496u] != 0x03e0u ||
             expected[445u * kReadbackWidth + 496u] == 0u)
             throw std::runtime_error("PSX GP0 polyline packet fixture failed");
+        if (expected[310u * kReadbackWidth + 510u] != 0x00f7u) {
+            std::cerr << "PSX overlapping polyline pixel expected 0x00f7 got 0x"
+                      << std::hex << expected[310u * kReadbackWidth + 510u]
+                      << " hardware 0x" << actual[310u * kReadbackWidth + 510u]
+                      << std::dec << '\n';
+            throw std::runtime_error("PSX overlapping semitransparent polyline fixture failed");
+        }
+        if (expected[330u * kReadbackWidth + 510u] != 0x01efu ||
+            expected[340u * kReadbackWidth + 510u] != 0x801fu)
+            throw std::runtime_error("PSX batched line blend/mask fixture failed");
         size_t mismatch_count = 0;
         size_t first_mismatch = expected.size();
         for (size_t i = 0; i < expected.size(); ++i) {

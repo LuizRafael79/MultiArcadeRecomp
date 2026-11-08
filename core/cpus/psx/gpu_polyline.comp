@@ -1,0 +1,95 @@
+#version 430 core
+
+layout(local_size_x = 64) in;
+layout(r16ui, binding = 0) coherent uniform uimage2D uVram;
+
+struct PolylineVertex {
+    ivec2 position;
+    uint color;
+    uint padding;
+};
+layout(std430, binding = 0) readonly buffer PolylineVertices {
+    PolylineVertex vertices[];
+};
+
+uniform int uVertexCount;
+uniform ivec4 uDrawArea;
+uniform ivec2 uDrawOffset;
+uniform int uVramHeight;
+uniform uint uFlags;
+uniform uint uAbr;
+uniform int uInterlaced;
+uniform uint uActiveLineLsb;
+
+int dither_offset(ivec2 pixel) {
+    const int matrix[16] = int[16](
+        -4, 0, -3, 1, 2, -2, 3, -1,
+        -3, 1, -4, 0, 3, -1, 2, -2);
+    return matrix[(pixel.y & 3) * 4 + (pixel.x & 3)];
+}
+
+uint quantize_dithered(int value, int offset) {
+    return uint(clamp((value + offset) >> 3, 0, 31));
+}
+
+uint blend555(uint back, uint front, uint mode) {
+    uvec3 b = uvec3(back & 31u, (back >> 5) & 31u, (back >> 10) & 31u);
+    uvec3 f = uvec3(front & 31u, (front >> 5) & 31u, (front >> 10) & 31u);
+    uvec3 c;
+    if (mode == 0u) c = (b + f) >> 1;
+    else if (mode == 1u) c = min(uvec3(31u), b + f);
+    else if (mode == 2u) c = uvec3(max(ivec3(b) - ivec3(f), ivec3(0)));
+    else c = min(uvec3(31u), b + (f >> 2));
+    return c.x | (c.y << 5) | (c.z << 10) | (front & 0x8000u);
+}
+
+void main() {
+    // One workgroup owns the whole polyline. Lanes rasterize the points of a
+    // segment in parallel; the image barrier before the next segment keeps
+    // shared/crossing pixels in GP0 order for blending and mask checks.
+    const int lane = int(gl_LocalInvocationID.x);
+    for (int segment = 0; segment + 1 < uVertexCount; ++segment) {
+        const PolylineVertex a = vertices[segment];
+        const PolylineVertex b = vertices[segment + 1];
+        const ivec2 delta = b.position - a.position;
+        const int steps = max(1, max(abs(delta.x), abs(delta.y)));
+        const ivec2 delta_fixed = (delta * 65536) / steps;
+        const ivec2 origin_fixed = a.position * 65536;
+        const ivec3 color_a = ivec3(a.color & 255u, (a.color >> 8) & 255u,
+                                    (a.color >> 16) & 255u);
+        const ivec3 color_b = ivec3(b.color & 255u, (b.color >> 8) & 255u,
+                                    (b.color >> 16) & 255u);
+        const ivec3 color_delta_fixed = ((color_b - color_a) * 65536) / steps;
+
+        for (int step = lane; step < steps; step += 64) {
+            const ivec2 source_fixed = origin_fixed + step * delta_fixed;
+            const ivec2 pixel = (source_fixed >> 16) + uDrawOffset;
+            if (pixel.x < max(0, uDrawArea.x) ||
+                pixel.x > min(1023, uDrawArea.z) ||
+                pixel.y < max(0, uDrawArea.y) ||
+                pixel.y > min(uVramHeight - 1, uDrawArea.w))
+                continue;
+            if (uInterlaced != 0 &&
+                (uint(pixel.y) & 1u) == uActiveLineLsb)
+                continue;
+
+            const uint old = imageLoad(uVram, pixel).r;
+            if ((uFlags & 2u) != 0u && (old & 0x8000u) != 0u)
+                continue;
+            const ivec3 color = (uFlags & 1u) != 0u
+                ? (color_a * 65536 + step * color_delta_fixed) >> 16
+                : color_a;
+            const int offset = (uFlags & 4u) != 0u ? dither_offset(pixel) : 0;
+            uint result = quantize_dithered(color.r, offset) |
+                          (quantize_dithered(color.g, offset) << 5) |
+                          (quantize_dithered(color.b, offset) << 10);
+            if ((uFlags & 8u) != 0u)
+                result = blend555(old, result, uAbr);
+            if ((uFlags & 16u) != 0u)
+                result |= 0x8000u;
+            imageStore(uVram, pixel, uvec4(result, 0u, 0u, 0u));
+        }
+        memoryBarrierImage();
+        barrier();
+    }
+}

@@ -49,6 +49,9 @@ public:
     void draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
                    const GpuHwState& state, bool gouraud,
                    bool semi_transparent);
+    void draw_polyline(std::span<const GpuHwVertex> vertices,
+                       const GpuHwState& state, bool gouraud,
+                       bool semi_transparent);
     void draw_textured_rect(int x, int y, int width, int height,
                             int u, int v, uint32_t color, uint32_t clut,
                             const GpuHwState& state, bool raw_texture,

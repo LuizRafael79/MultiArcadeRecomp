@@ -100,9 +100,39 @@ bool polygon_scanline_sample(ShaderCommand command, ivec2 pixel,
     return true;
 }
 
+bool line_sample(ShaderCommand command, ivec2 pixel, out ivec3 color) {
+    const ivec2 a = command.batch_scanline.xy;
+    const ivec2 b = command.batch_scanline.zw;
+    const ivec2 delta = b - a;
+    const int steps = max(1, max(abs(delta.x), abs(delta.y)));
+    int step_index;
+    if (abs(delta.x) >= abs(delta.y) && delta.x != 0)
+        step_index = delta.x > 0 ? pixel.x - a.x : a.x - pixel.x;
+    else if (delta.y != 0)
+        step_index = delta.y > 0 ? pixel.y - a.y : a.y - pixel.y;
+    else
+        step_index = 0;
+    if (step_index < 0 || step_index >= steps) return false;
+
+    const ivec2 delta_fixed = (delta * 65536) / steps;
+    const ivec2 position_fixed = a * 65536 + step_index * delta_fixed;
+    if (any(notEqual(position_fixed >> 16, pixel))) return false;
+
+    const uint color_a = command.vertices[0].color;
+    const uint color_b = command.vertices[1].color;
+    const ivec3 first = ivec3(color_a & 255u, (color_a >> 8) & 255u,
+                              (color_a >> 16) & 255u);
+    const ivec3 last = ivec3(color_b & 255u, (color_b >> 8) & 255u,
+                             (color_b >> 16) & 255u);
+    const ivec3 delta_color_fixed = ((last - first) * 65536) / steps;
+    color = (first * 65536 + step_index * delta_color_fixed) >> 16;
+    return true;
+}
+
 void main() {
     const ShaderCommand command = commands[vCommandIndex];
     const bool polygon = command.header.x == 0u;
+    const bool line = command.header.x == 5u;
     const ivec2 pixel = ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y));
     if (pixel.x < command.draw_area.x || pixel.y < command.draw_area.y ||
         pixel.x > command.draw_area.z || pixel.y > command.draw_area.w)
@@ -115,6 +145,7 @@ void main() {
     // preceding UV so the later PSX 8-bit wrap selects texel 255.
     ivec2 uv_sample = ivec2(floor(vUV));
     ivec3 color_sample = ivec3(clamp(vColor, vec3(0.0), vec3(255.0)));
+    if (line && !line_sample(command, pixel, color_sample)) discard;
     if (polygon) {
         if (pixel.x < command.bounds.x || pixel.y < command.bounds.y ||
             pixel.x > command.bounds.z || pixel.y > command.bounds.w)
@@ -126,7 +157,8 @@ void main() {
     const bool raw_texture = (vFlags & 4u) != 0u;
     uint color = vFlatColor;
     uint texel = 0u;
-    if (!textured && vGouraud != 0u) {
+    if (!textured && (vGouraud != 0u ||
+                      (line && (vFlags & 64u) != 0u))) {
         const int offset = (vFlags & 64u) != 0u ? dither_offset(pixel) : 0;
         color = quantize_dithered(color_sample.r, offset) |
                 (quantize_dithered(color_sample.g, offset) << 5) |
