@@ -402,7 +402,9 @@ host it passed on the Mesa UHD 630 through the real MachineMemory DMA channel
 `0x80` copy through linked-list RAM-to-GPU DMA, then reads the pixels through
 block GPU-to-RAM DMA and GP0 C0. It also checks a GPU fill followed by DMA C0
 readback across X=1023 and Y=511. This exercises the upload, copy, readback,
-and DMA synchronization paths rather than relying only on a game capture. The
+and DMA synchronization paths rather than relying only on a game capture. A
+second sequence interleaves A0, separate draws, two 0x80 copies, and C0 to
+verify that disjoint VRAM regions survive successive ping-pong writes. The
 test also draws an indexed texel to populate the texture-page cache, changes
 that source texel using a later A0 DMA upload, and draws again with the same
 cache key. C0 readback observes the new CLUT color, verifying that CPU writes

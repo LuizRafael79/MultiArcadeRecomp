@@ -156,6 +156,31 @@ int main()
                 std::vector<uint16_t>(uploaded.begin(), uploaded.end())))
             throw std::runtime_error("DMA A0/80/C0 wrapped transfer check failed");
 
+        // Preserve unrelated VRAM regions through several ping-pong writes:
+        // A0 upload, batched draw, GP0 copy, another draw, and a second copy.
+        dma_ram_to_gpu(memory, bus, 0x3000,
+            {0xa0000000u, (200u << 16) | 80u, (1u << 16) | 1u, 0x1357u});
+        dma_ram_to_gpu(memory, bus, 0x3100,
+            {0x600000ffu, (200u << 16) | 100u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x3200,
+            {0x80000000u, (200u << 16) | 80u,
+             (200u << 16) | 200u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x3300,
+            {0x6000ff00u, (200u << 16) | 300u, (1u << 16) | 1u});
+        dma_ram_to_gpu(memory, bus, 0x3400,
+            {0x80000000u, (200u << 16) | 200u,
+             (200u << 16) | 400u, (1u << 16) | 1u});
+        std::vector<uint16_t> ping_pong_expected(321, 0);
+        ping_pong_expected[0] = 0x1357u;
+        ping_pong_expected[20] = 0x001fu;
+        ping_pong_expected[120] = 0x1357u;
+        ping_pong_expected[220] = 0x03e0u;
+        ping_pong_expected[320] = 0x1357u;
+        const auto ping_pong = dma_gpu_to_ram(memory, bus, 0x3500, 0x4000,
+                                               80, 200, 321, 1);
+        if (!check_packed_pixels(ping_pong, ping_pong_expected))
+            throw std::runtime_error("disjoint VRAM regions diverged across ping-pong writes");
+
         // A GPU fill crosses X=1023 and Y=511. A second C0 DMA must observe
         // the pending GPU write after synchronizing the wrapped rectangle.
         dma_ram_to_gpu(memory, bus, 0x700,
