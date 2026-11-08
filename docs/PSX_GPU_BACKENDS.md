@@ -210,12 +210,16 @@ with VRAM read-after-write barriers enabled. One no-error-polling timing was
 improvement, but should be repeated before it is treated as a stable benchmark.
 The CLUT-independent cache produced the same 1,800-frame capture byte-for-byte
 as the previous direct-VRAM sampling path (zero differing pixels). It generated
-7,442 layers, recorded 458,077 hits, 7,433 invalidations, and no evictions;
+7,437 layers, recorded 458,082 hits, 7,428 invalidations, and no evictions;
 compared with the earlier CLUT-inclusive cache, generations fell from 31,822
 and evictions from 24,563. A single matched 1,800-frame run took 44.1 seconds
 on the GTX 1650 with the cache and 47.6 seconds on the software renderer; this
-is an initial measurement, not a stable benchmark. A separate 600-frame run
+is an initial measurement, not a stable benchmark. After changing GP0 `A0` to
+upload only its destination rectangle, a repeat GPU run took 45.0 seconds and
+remained byte-identical to the prior GPU capture. A separate 600-frame run
 with `MAMERECOMP_PSX_GPU_GL_CHECK=1` completed without OpenGL errors. Remaining
 work includes reducing invalidations, batching semitransparent/check-mask
 commands, and broader GP0/VRAM parity coverage. CPU-visible VRAM operations and
-scanout remain explicit synchronization points.
+scanout remain explicit synchronization points. GP0 `A0` reads back the full
+VRAM first only when stale host data must be consulted for check-mask behavior;
+the 1,800-frame capture remained unchanged after this transfer-path change.

@@ -1346,9 +1346,19 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     impl_->vram_textures_diverged = false;
-    impl_->invalidate_texture_cache_all();
-    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
-                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    const int x0 = int(x & 1023u);
+    const int y0 = int(y % unsigned(impl_->vram_height));
+    impl_->invalidate_texture_cache_region(x0, y0,
+        x0 + int(first_width) - 1, y0 + int(first_height) - 1);
+    if (first_width < width)
+        impl_->invalidate_texture_cache_region(0, y0,
+            int(width - first_width) - 1, y0 + int(first_height) - 1);
+    if (first_height < height)
+        impl_->invalidate_texture_cache_region(x0, 0,
+            x0 + int(first_width) - 1, int(height - first_height) - 1);
+    if (first_width < width && first_height < height)
+        impl_->invalidate_texture_cache_region(0, 0,
+            int(width - first_width) - 1, int(height - first_height) - 1);
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

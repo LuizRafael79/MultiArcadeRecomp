@@ -868,8 +868,8 @@ void Gpu::gp0(uint32_t value)
         if (transfer_pos_ >= total) {
             transfer_to_vram_ = false;
             if (hardware_renderer_) {
-                hardware_renderer_->sync_from_cpu(vram_);
-                hardware_vram_shadow_valid_ = true;
+                hardware_renderer_->upload_rect(vram_, transfer_x_, transfer_y_,
+                                                transfer_w_, transfer_h_);
             }
         }
         return;
@@ -1115,10 +1115,12 @@ void Gpu::execute_packet()
                     write_pixel(int(dx + x), int(dy + y), tmp[size_t(y) * w + x]);
         }
     } else if (op == 0xa0 || op == 0xc0) {
-        // CPU-to-VRAM transfers update the host mirror a word at a time. Merge
-        // prior GPU draws first so the full upload at transfer completion does
-        // not overwrite pixels that existed only in device VRAM.
-        if (op == 0xa0 && hardware_renderer_ && !hardware_vram_shadow_valid_) {
+        // CPU-to-VRAM transfers update the host mirror a word at a time. A
+        // fresh destination read is only needed when check-mask may preserve
+        // pixels written by the GPU. The completed transfer is uploaded as a
+        // rectangle, so unrelated device-only VRAM never needs a full readback.
+        if (op == 0xa0 && hardware_renderer_ && check_mask_ &&
+            !hardware_vram_shadow_valid_) {
             hardware_renderer_->sync_to_cpu(vram_);
             hardware_vram_shadow_valid_ = true;
         }
