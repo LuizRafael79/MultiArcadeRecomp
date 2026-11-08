@@ -532,3 +532,15 @@ preparation, GL upload/transfer work, and SDL/compositor presentation; timer
 mode also calls `glFinish()` at shutdown, so its wall time is not a baseline
 performance measurement. The extended probe passed the parity and DMA tests
 on both the GTX 1650 and Mesa Intel UHD 630.
+
+Three paired 600-frame SFEX2PA runtime profiles on the GTX 1650 recorded the
+same 52,742 GP0 packets and 250,726,699 guest instructions/cycles. Software
+GP0 packet processing took 89.3–91.6 ms; the OpenGL path took 52.7–70.1 ms
+(two of those runs also had GPU timer queries enabled). This indicates a
+reduction in CPU time spent processing GP0 packets, but only tens of
+milliseconds across 600 frames. `run_until` was 11.46–11.67 s with OpenGL and
+11.59–12.10 s with software, with overlapping run-to-run variation. The
+DSP16A LLE accounted for 9.33–9.52 s and 9.44–9.87 s respectively, so the
+available data does not establish an overall runtime speedup attributable to
+the renderer. These profiles use instrumentation and are diagnostic, not
+baseline benchmarks.
