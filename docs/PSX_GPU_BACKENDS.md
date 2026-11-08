@@ -515,3 +515,16 @@ both runs reported 651,889,417 guest instructions/cycles and 1,560 frame
 updates. This checks the 3D fight scene on the discrete driver in addition to
 the portrait frame; it is still a selected-frame comparison, not a continuous
 full-title image-parity or performance result.
+
+An opt-in GPU timer-query probe is available with
+`MAMERECOMP_PSX_GPU_TIMING=1`. It times the GPU execution of opaque batch draw
+calls without waiting during normal batch submission; results are collected
+asynchronously and the probe drains outstanding queries at shutdown. On the
+GTX 1650, a 600-frame headless SFEX2PA boot/attract run recorded 348 batch
+draws covering 47,441 primitives, 29.21 ms total elapsed GPU draw time, no
+dropped queries, and 83.9 us average per batch. The run itself took 11.88 s
+and executed 250,726,699 guest instructions/cycles. This indicates batched
+draw execution is a small share of this workload; the number excludes compute
+dispatches (fills, lines, copies, cache generation, scanout), CPU-side command
+preparation, and presentation. Timing mode also calls `glFinish()` at shutdown,
+so its wall time is not a baseline performance measurement.
