@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <chrono>
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
@@ -46,6 +47,22 @@ constexpr size_t kGpuTimingKindCount = static_cast<size_t>(GpuTimingKind::Count)
 constexpr const char* kGpuTimingKindNames[kGpuTimingKindCount]{
     "batch_draw", "scanline_setup", "immediate_draw", "raster_compute",
     "fill_compute", "copy_compute", "texture_cache", "scanout"};
+
+enum class HostTimingKind : size_t {
+    DrawSubmit,
+    BatchFlush,
+    Scanout,
+    Present,
+    Readback,
+    Upload,
+    Copy,
+    Count
+};
+
+constexpr size_t kHostTimingKindCount = static_cast<size_t>(HostTimingKind::Count);
+constexpr const char* kHostTimingKindNames[kHostTimingKindCount]{
+    "draw_submit", "batch_flush", "scanout", "present", "readback",
+    "upload", "copy"};
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -241,6 +258,28 @@ std::vector<uint16_t> to_words(std::span<const uint8_t> bytes) {
 } // namespace
 
 struct GpuHardwareRenderer::Impl {
+    struct HostCpuTimer {
+        Impl* owner = nullptr;
+        HostTimingKind kind = HostTimingKind::DrawSubmit;
+        std::chrono::steady_clock::time_point start{};
+
+        HostCpuTimer(Impl& impl, HostTimingKind timing_kind)
+            : owner(&impl), kind(timing_kind),
+              start(impl.host_cpu_timing_enabled
+                  ? std::chrono::steady_clock::now()
+                  : std::chrono::steady_clock::time_point{}) {}
+        HostCpuTimer(const HostCpuTimer&) = delete;
+        HostCpuTimer& operator=(const HostCpuTimer&) = delete;
+        ~HostCpuTimer() {
+            if (!owner || !owner->host_cpu_timing_enabled) return;
+            const size_t index = static_cast<size_t>(kind);
+            owner->host_cpu_timing_ns[index] += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - start).count());
+            ++owner->host_cpu_timing_calls[index];
+        }
+    };
+
     struct ScanoutReadback {
         GLuint buffer = 0;
         GLsync fence = nullptr;
@@ -294,6 +333,10 @@ struct GpuHardwareRenderer::Impl {
     std::array<uint64_t, kGpuTimingKindCount> gpu_timing_samples{};
     std::array<uint64_t, kGpuTimingKindCount> gpu_timing_units{};
     std::array<uint64_t, kGpuTimingKindCount> gpu_timing_dropped{};
+    const bool host_cpu_timing_enabled =
+        std::getenv("MAMERECOMP_PSX_GPU_CPU_PROFILE") != nullptr;
+    std::array<uint64_t, kHostTimingKindCount> host_cpu_timing_ns{};
+    std::array<uint64_t, kHostTimingKindCount> host_cpu_timing_calls{};
     size_t command_stride = sizeof(ShaderCommand);
     GLint origin_location = -1;
     GLint vram_height_location = -1;
@@ -353,6 +396,10 @@ struct GpuHardwareRenderer::Impl {
     bool debug_gl = std::getenv("MAMERECOMP_PSX_GPU_GL_CHECK") != nullptr;
     bool batching_enabled = [] {
         const char* value = std::getenv("MAMERECOMP_PSX_GPU_BATCHING");
+        return !value || std::strcmp(value, "0") != 0;
+    }();
+    bool texture_cache_enabled = [] {
+        const char* value = std::getenv("MAMERECOMP_PSX_GPU_TEXTURE_CACHE");
         return !value || std::strcmp(value, "0") != 0;
     }();
     bool gpu_timing_enabled = [] {
@@ -522,16 +569,26 @@ struct GpuHardwareRenderer::Impl {
             read_shader_source(MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
             read_shader_source(MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
         if (!draw_program) throw std::runtime_error(init_error);
+        std::string batch_fragment_source =
+            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH);
+        if (!texture_cache_enabled) {
+            const size_t version_end = batch_fragment_source.find('\n');
+            batch_fragment_source.insert(version_end == std::string::npos
+                    ? batch_fragment_source.size() : version_end + 1,
+                "#define MAMERECOMP_PSX_NO_TEXTURE_CACHE\n");
+        }
         batch_draw_program = compile_graphics_program(
             read_shader_source(MAMERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH),
-            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH), init_error);
+            batch_fragment_source, init_error);
         if (!batch_draw_program) throw std::runtime_error(init_error);
         batch_scanline_setup_program = compile_compute_program(
             read_shader_source(MAMERECOMP_PSX_GPU_BATCH_SCANLINE_SHADER_PATH), init_error);
         if (!batch_scanline_setup_program) throw std::runtime_error(init_error);
-        texture_cache_program = compile_compute_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
-        if (!texture_cache_program) throw std::runtime_error(init_error);
+        if (texture_cache_enabled) {
+            texture_cache_program = compile_compute_program(
+                read_shader_source(MAMERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
+            if (!texture_cache_program) throw std::runtime_error(init_error);
+        }
         polyline_program = compile_compute_program(
             read_shader_source(MAMERECOMP_PSX_GPU_POLYLINE_SHADER_PATH), init_error);
         if (!polyline_program) throw std::runtime_error(init_error);
@@ -559,10 +616,12 @@ struct GpuHardwareRenderer::Impl {
         polyline_abr_location = glGetUniformLocation(polyline_program, "uAbr");
         polyline_interlaced_location = glGetUniformLocation(polyline_program, "uInterlaced");
         polyline_active_line_lsb_location = glGetUniformLocation(polyline_program, "uActiveLineLsb");
-        texture_cache_vram_height_location = glGetUniformLocation(texture_cache_program, "uVramHeight");
-        texture_cache_texture_page_location = glGetUniformLocation(texture_cache_program, "uTexturePage");
-        texture_cache_gpu_type_location = glGetUniformLocation(texture_cache_program, "uGpuType");
-        texture_cache_window_state_location = glGetUniformLocation(texture_cache_program, "uWindowState");
+        if (texture_cache_enabled) {
+            texture_cache_vram_height_location = glGetUniformLocation(texture_cache_program, "uVramHeight");
+            texture_cache_texture_page_location = glGetUniformLocation(texture_cache_program, "uTexturePage");
+            texture_cache_gpu_type_location = glGetUniformLocation(texture_cache_program, "uGpuType");
+            texture_cache_window_state_location = glGetUniformLocation(texture_cache_program, "uWindowState");
+        }
         glGenTextures(2, vram);
         const auto words = to_words(initial_vram);
         for (GLuint texture : vram) {
@@ -574,14 +633,16 @@ struct GpuHardwareRenderer::Impl {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, vram_height, 0,
                          GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
         }
-        glGenTextures(1, &texture_cache_texture);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R16UI, 256, 256,
-                       static_cast<GLsizei>(kTextureCacheLayers));
+        if (texture_cache_enabled) {
+            glGenTextures(1, &texture_cache_texture);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R16UI, 256, 256,
+                           static_cast<GLsizei>(kTextureCacheLayers));
+        }
         glGenTextures(1, &copy_scratch);
         glBindTexture(GL_TEXTURE_2D, copy_scratch);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -702,8 +763,10 @@ struct GpuHardwareRenderer::Impl {
         glUseProgram(batch_draw_program);
         glUniform1i(batch_texture_cache_location, 1);
         glUniform1i(batch_source_location, 0);
-        glUseProgram(texture_cache_program);
-        glUniform1i(glGetUniformLocation(texture_cache_program, "uSource"), 0);
+        if (texture_cache_enabled) {
+            glUseProgram(texture_cache_program);
+            glUniform1i(glGetUniformLocation(texture_cache_program, "uSource"), 0);
+        }
         glBindVertexArray(0);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL resource creation failed");
@@ -978,7 +1041,7 @@ struct GpuHardwareRenderer::Impl {
     }
 
     void prepare_batch_texture_cache() {
-        if (pending_batch_textures.empty()) return;
+        if (!texture_cache_enabled || pending_batch_textures.empty()) return;
         for (const auto& pending : pending_batch_textures) {
             const uint32_t layer = ensure_texture_cache_layer(pending.key);
             for (uint32_t i = 0; i < pending.vertex_count; ++i)
@@ -1054,7 +1117,7 @@ struct GpuHardwareRenderer::Impl {
         pending_batch_commands.push_back(batch_command);
         const size_t first_vertex = pending_batch_vertices.size();
         const unsigned output_count = 6;
-        if (flags & 2u)
+        if ((flags & 2u) && texture_cache_enabled)
             pending_batch_textures.push_back({first_vertex,
                 make_texture_cache_key(command), output_count});
         // Polygons use a screen-aligned bounding quad. The fragment shader
@@ -1104,6 +1167,7 @@ struct GpuHardwareRenderer::Impl {
 
     void flush_draw_batch() {
         if (pending_batch_vertices.empty()) return;
+        HostCpuTimer host_timer(*this, HostTimingKind::BatchFlush);
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
 
         const unsigned destination_vram = prepare_destination();
@@ -1126,8 +1190,10 @@ struct GpuHardwareRenderer::Impl {
         glUniform1i(batch_vram_height_location, vram_height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
+        if (texture_cache_enabled) {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, texture_cache_texture);
+        }
         glBindVertexArray(batch_vertex_array);
         glBindBuffer(GL_ARRAY_BUFFER, batch_vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER,
@@ -1580,6 +1646,17 @@ GpuHardwareRenderer::GpuHardwareRenderer(std::span<const uint8_t> initial_vram,
     impl_->initialize(initial_vram);
 }
 GpuHardwareRenderer::~GpuHardwareRenderer() {
+    if (impl_->host_cpu_timing_enabled) {
+        std::cout.flush();
+        std::cerr << "PSX GPU host CPU profile";
+        for (size_t i = 0; i < kHostTimingKindCount; ++i) {
+            if (!impl_->host_cpu_timing_calls[i]) continue;
+            std::cerr << ' ' << kHostTimingKindNames[i] << '='
+                      << (double(impl_->host_cpu_timing_ns[i]) / 1'000'000.0)
+                      << "ms/" << impl_->host_cpu_timing_calls[i];
+        }
+        std::cerr << '\n';
+    }
     if (std::getenv("MAMERECOMP_PSX_GPU_BATCH_STATS")) {
         std::cerr << "PSX GPU batch submissions=" << impl_->submitted_batch_count
                   << " primitives=" << impl_->submitted_batch_primitive_count;
@@ -1596,6 +1673,7 @@ GpuHardwareRenderer::~GpuHardwareRenderer() {
 void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
         const GpuHwState& state, bool textured, bool gouraud, bool raw_texture,
         bool semi_transparent, uint32_t clut) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     auto command = make_command(0, vertices, state, gouraud, textured,
                                raw_texture, semi_transparent, clut);
     command.header[3] = vertices.empty() ? 0 : vertices.front().color;
@@ -1605,6 +1683,7 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
 
 void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_t color,
                                     const GpuHwState& state) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     width = std::clamp(width, 0, kVramWidth);
     height = std::clamp(height, 0, impl_->vram_height);
     if (!width || !height) return;
@@ -1645,6 +1724,7 @@ void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_
 
 void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
         uint32_t color, const GpuHwState& state, bool semi_transparent) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     const std::array<GpuHwVertex, 4> vertices{{
         {x, y, 0, 0, color}, {x + width, y, 0, 0, color},
         {x, y + height, 0, 0, color}, {x + width, y + height, 0, 0, color}}};
@@ -1657,6 +1737,7 @@ void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
 
 void GpuHardwareRenderer::draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
         const GpuHwState& state, bool gouraud, bool semi_transparent) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     const int left = std::min(a.x, b.x);
     const int top = std::min(a.y, b.y);
     const int right = std::max(a.x, b.x);
@@ -1688,12 +1769,14 @@ void GpuHardwareRenderer::draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
 void GpuHardwareRenderer::draw_polyline(
         std::span<const GpuHwVertex> vertices, const GpuHwState& state,
         bool gouraud, bool semi_transparent) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     impl_->execute_polyline(vertices, state, gouraud, semi_transparent);
 }
 
 void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height,
         int u, int v, uint32_t color, uint32_t clut, const GpuHwState& state,
         bool raw_texture, bool semi_transparent) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::DrawSubmit);
     // With integer-positioned edges, OpenGL evaluates the first fragment at
     // x/y + 0.5. A flipped UV decreases from the edge coordinate, so integer
     // truncation would select u-1/v-1 on the first pixel. DuckStation's
@@ -1715,9 +1798,13 @@ void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height
     impl_->execute_draw(command);
 }
 
-void GpuHardwareRenderer::sync_to_cpu(std::vector<uint8_t>& vram) { impl_->read_full(vram); }
+void GpuHardwareRenderer::sync_to_cpu(std::vector<uint8_t>& vram) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Readback);
+    impl_->read_full(vram);
+}
 void GpuHardwareRenderer::sync_rect_to_cpu(std::vector<uint8_t>& bytes,
         unsigned x, unsigned y, unsigned width, unsigned height) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Readback);
     impl_->flush_draw_batch();
     if (!width || !height) return;
     if (!impl_->make_current())
@@ -1774,10 +1861,14 @@ uint64_t GpuHardwareRenderer::vram_write_generation() {
     impl_->flush_draw_batch();
     return impl_->vram_write_generation;
 }
-void GpuHardwareRenderer::sync_from_cpu(std::span<const uint8_t> vram) { impl_->upload_full(vram); }
+void GpuHardwareRenderer::sync_from_cpu(std::span<const uint8_t> vram) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Upload);
+    impl_->upload_full(vram);
+}
 
 void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x,
         unsigned y, unsigned width, unsigned height) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Upload);
     impl_->flush_draw_batch();
     if (!impl_->make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
     if (impl_->vram_textures_diverged) {
@@ -1854,6 +1945,7 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
 
 void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
         int height, const GpuHwState& state) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Copy);
     if (width <= 0 || height <= 0) return;
     sx &= 1023;
     const int destination_x = dx & 1023;
@@ -1960,13 +2052,17 @@ std::vector<uint8_t> GpuHardwareRenderer::scanout_rgb(
     unsigned display_start_x, unsigned display_start_y, unsigned vram_height,
     int source_x, int source_y, int destination_x, int destination_y,
     int copy_width, int copy_height, bool asynchronous, bool direct_present) {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Scanout);
     return impl_->scanout_rgb(width, height, display_enabled, rgb24,
                               display_start_x, display_start_y, vram_height,
                               source_x, source_y, destination_x, destination_y,
                               copy_width, copy_height, asynchronous, direct_present);
 }
 
-bool GpuHardwareRenderer::present_scanout() { return impl_->present_scanout(); }
+bool GpuHardwareRenderer::present_scanout() {
+    Impl::HostCpuTimer host_timer(*impl_, HostTimingKind::Present);
+    return impl_->present_scanout();
+}
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }
 

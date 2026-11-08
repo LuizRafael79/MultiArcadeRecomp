@@ -33,7 +33,9 @@ layout(std430, binding = 4) readonly buffer BatchScanlines {
 
 layout(location = 0) out uint oColor;
 layout(binding = 0) uniform usampler2D uVram;
+#ifndef MAMERECOMP_PSX_NO_TEXTURE_CACHE
 layout(binding = 1) uniform usampler2DArray uTextureCache;
+#endif
 uniform int uVramHeight;
 in vec3 vColor;
 in vec2 vUV;
@@ -52,6 +54,35 @@ uint vram_word(int x, int y) {
     int pixel_mask = (uVramHeight * 1024) - 1;
     int index = int(uint(y * 1024 + x) & uint(pixel_mask));
     return texelFetch(uVram, ivec2(index & 1023, index >> 10), 0).r;
+}
+
+uint sample_texture_direct(int u, int v) {
+    const uint tpage = vTexturePage;
+    const uint gpu_type = vGpuType;
+    const int depth = gpu_type == 2u ? int((tpage >> 7) & 3u)
+                                     : int((tpage >> 9) & 3u);
+    if (depth == 3) return 0u;
+    const int ppw = depth == 0 ? 4 : depth == 1 ? 2 : 1;
+    const int page_x = int(tpage & 15u) * 64;
+    const int page_y = gpu_type == 2u
+        ? int(((tpage & 0x10u) << 4) | ((tpage & 0x800u) >> 2))
+        : int(tpage & 0x60u) << 3;
+    const int base_x = page_x + vWindowState.x / ppw;
+    const int base_y = page_y + vWindowState.y;
+    if (depth == 2) return vram_word(base_x + u, base_y + v);
+
+    int tex_x = u / ppw;
+    int tex_y = v;
+    if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 0) {
+        tex_x = ((u >> 2) & ~0x3c) + ((v << 2) & 0x3c);
+        tex_y = (v & ~0xf) + ((u >> 4) & 0xf);
+    } else if (gpu_type != 2u && (tpage & 0x2000u) != 0u && depth == 1) {
+        tex_x = ((u >> 1) & ~0x78) + ((u << 2) & 0x40) + ((v << 3) & 0x38);
+        tex_y = (v & ~0x7) + ((u >> 5) & 0x7);
+    }
+    const uint packed_word = vram_word(base_x + tex_x, base_y + tex_y);
+    return depth == 0 ? ((packed_word >> uint((u & 3) * 4)) & 15u)
+                      : ((packed_word >> uint((u & 1) * 8)) & 255u);
 }
 
 uint blend555(uint back, uint front, uint mode) {
@@ -167,8 +198,12 @@ void main() {
     if (textured) {
         const int u = uv_sample.x & vWindowState.z;
         const int v = uv_sample.y & vWindowState.w;
+#ifdef MAMERECOMP_PSX_NO_TEXTURE_CACHE
+        texel = sample_texture_direct(u, v);
+#else
         texel = texelFetch(uTextureCache,
                            ivec3(u, v, int(vTextureLayer)), 0).r;
+#endif
         const int depth = vGpuType == 2u
             ? int((vTexturePage >> 7) & 3u)
             : int((vTexturePage >> 9) & 3u);

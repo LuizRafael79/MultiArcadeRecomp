@@ -815,6 +815,42 @@ paths executed 250,726,699 R3000A cycles and 62,681,653 H8 cycles. This is the
 JAMMA initialization scene, not 3D gameplay, so it confirms shared-backend
 parity at this checkpoint only.
 
+The batch shader now has an opt-in direct-from-VRAM texture path for A/B
+diagnosis: `MAMERECOMP_PSX_GPU_TEXTURE_CACHE=0` skips page-cache generation and
+fetches indexed texels from the resident VRAM texture. The default remains the
+64-layer cache. Cache and direct paths produced byte-identical 512×480
+Bloody Roar 2 frame-1900 fight captures and byte-identical SFEX2PA frame-1074
+captures (the latter retains SHA-256
+`75a664abef6fb51831c87cae08b3ab72acabbae7e613363a7680b1342274d026`). The
+direct mode therefore preserves the tested texture and CLUT behavior on these
+ZN-1/ZN-2 scenes.
+
+Two paired 2,000-frame Bloody Roar 2 headless profiles on the GTX 1650 showed
+the tradeoff. With the page cache, `run_until` took 5.271/5.233 s; direct
+sampling took 5.345/5.442 s. The direct path reduced CPU time measured inside
+GP0 by about 11%, and the asynchronous GPU timer totals for batch draw,
+scanline setup, and texture generation were about 34% lower. The overall
+runtime was nevertheless 1.4% and 4.0% slower in the two direct-path samples,
+so direct sampling is diagnostic and does not replace the default cache. In
+the cached runs, 6,064 texture generations, 346,367 cache hits, 6,052
+invalidations, and zero evictions show that writes overlapping texture pages
+drive most regeneration; simply enlarging the cache would not address it.
+
+Opt-in host-side renderer timings are available with
+`MAMERECOMP_PSX_GPU_CPU_PROFILE=1`; they report draw submission, batch flush,
+scanout, present, readback, upload, and copy calls. `MAMERECOMP_PSX_GPU_TIMING=1`
+reports asynchronous device times, and `MAMERECOMP_PSX_GPU_BATCH_STATS=1`
+reports cache/batch counters. These categories overlap: draw submission can
+force a batch flush, and present includes the window swap interval. A
+2,000-frame ZN-1 direct-present profile measured 0.881 s in draw submission,
+1.329 s in batch flush, 0.579 s in scanout compute, and 20.766 s in 2,000
+present calls. The present figure is pacing/wait time, not rasterizer CPU
+time. Matching software and GPU_HW runs had identical GP0/CPU/GTE counts;
+measured GP0 host time fell from 5.453 s to 0.952 s (82.5%), while total
+`run_until` fell from 13.352 s to 12.958 s (2.9%) in this single pair. More
+repeated in-game direct-present pairs are needed before treating that total
+runtime difference as stable.
+
 A new three-pair SFEX2PA headless profile on the GTX 1650 used 600 frames,
 forced QSound HLE, and a freshly zeroed temporary EEPROM before each run. All
 six runs executed 250,726,699 guest instructions/cycles and processed 56,659
