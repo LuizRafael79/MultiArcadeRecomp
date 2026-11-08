@@ -35,6 +35,8 @@ enum class GpuTimingKind : size_t {
     ScanlineSetup,
     ImmediateDraw,
     RasterCompute,
+    FillCompute,
+    CopyCompute,
     TextureCache,
     Scanout,
     Count
@@ -43,7 +45,7 @@ enum class GpuTimingKind : size_t {
 constexpr size_t kGpuTimingKindCount = static_cast<size_t>(GpuTimingKind::Count);
 constexpr const char* kGpuTimingKindNames[kGpuTimingKindCount]{
     "batch_draw", "scanline_setup", "immediate_draw", "raster_compute",
-    "texture_cache", "scanout"};
+    "fill_compute", "copy_compute", "texture_cache", "scanout"};
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -984,8 +986,7 @@ struct GpuHardwareRenderer::Impl {
             std::clamp(command.draw_area[3], 0, vram_height - 1)};
         if (draw_area[0] > draw_area[2] || draw_area[1] > draw_area[3])
             return true;
-        bool must_flush = !pending_batch_vertices.empty() &&
-            pending_batch_draw_area != draw_area;
+        bool must_flush = false;
         if (command.header[0] == 0u &&
             pending_batch_scanline_count + static_cast<size_t>(bottom - top + 1) >
                 kMaxBatchScanlineRows)
@@ -1003,6 +1004,10 @@ struct GpuHardwareRenderer::Impl {
             pending_batch_draw_area = draw_area;
             pending_batch_dirty_bounds = {left, top, right, bottom};
         } else {
+            pending_batch_draw_area[0] = std::min(pending_batch_draw_area[0], draw_area[0]);
+            pending_batch_draw_area[1] = std::min(pending_batch_draw_area[1], draw_area[1]);
+            pending_batch_draw_area[2] = std::max(pending_batch_draw_area[2], draw_area[2]);
+            pending_batch_draw_area[3] = std::max(pending_batch_draw_area[3], draw_area[3]);
             pending_batch_dirty_bounds[0] = std::min(pending_batch_dirty_bounds[0], left);
             pending_batch_dirty_bounds[1] = std::min(pending_batch_dirty_bounds[1], top);
             pending_batch_dirty_bounds[2] = std::max(pending_batch_dirty_bounds[2], right);
@@ -1171,7 +1176,11 @@ struct GpuHardwareRenderer::Impl {
                            GL_READ_WRITE, GL_R16UI);
         glUniform2i(origin_location, min_x, min_y);
         glUniform1i(vram_height_location, vram_height);
-        const size_t timing_query = begin_gpu_timing(GpuTimingKind::RasterCompute);
+        const GpuTimingKind timing_kind = command.header[0] == 2u
+            ? GpuTimingKind::FillCompute
+            : command.header[0] == 4u ? GpuTimingKind::CopyCompute
+                                      : GpuTimingKind::RasterCompute;
+        const size_t timing_query = begin_gpu_timing(timing_kind);
         glDispatchCompute((max_x - min_x + 1 + 7) / 8,
                           (max_y - min_y + 1 + 7) / 8, 1);
         end_gpu_timing(timing_query);
@@ -1496,17 +1505,23 @@ void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_
     const int first_height = std::min(height, impl_->vram_height - wrapped_y);
     const auto submit = [&](int left, int top, int w, int h) {
         if (w <= 0 || h <= 0) return;
-        ShaderCommand command{};
-        command.header[0] = 2;
+        GpuHwState fill_state = state;
+        fill_state.draw_x1 = left;
+        fill_state.draw_y1 = top;
+        fill_state.draw_x2 = left + w - 1;
+        fill_state.draw_y2 = top + h - 1;
+        fill_state.set_mask = false;
+        fill_state.check_mask = false;
+        const std::array<GpuHwVertex, 4> vertices{{
+            {left, top, 0, 0, color}, {left + w, top, 0, 0, color},
+            {left, top + h, 0, 0, color},
+            {left + w, top + h, 0, 0, color}}};
+        ShaderCommand command = make_command(1, vertices, fill_state,
+            false, false, false, false, 0);
         command.header[2] = state.interlaced_rendering ? 128u : 0u;
         command.header[3] = color;
-        command.bounds[0] = left;
-        command.bounds[1] = top;
-        command.bounds[2] = left + w - 1;
-        command.bounds[3] = top + h - 1;
-        command.texture[2] = 2;
-        command.texture[3] = (state.active_line_lsb & 1u) << 8;
-        impl_->execute(command);
+        if (!impl_->queue_opaque_primitive(command))
+            impl_->execute_draw(command);
     };
     submit(wrapped_x, wrapped_y, first_width, first_height);
     submit(0, wrapped_y, width - first_width, first_height);

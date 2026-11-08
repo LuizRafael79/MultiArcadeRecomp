@@ -685,3 +685,23 @@ single matched CPU profile measured `run_until` at 2.009 s with GPU_HW and
 claiming an overall speedup. The frame-1074 SFEX2PA software/OpenGL captures
 remained byte-identical after the change, and the complete PSX GPU CTest group
 passed with GL checks on both Intel UHD 630 and GTX 1650.
+
+The next profile showed the remaining 379 raster-compute dispatches were GP0
+fills. They now enter the ordered rectangle batch instead of dispatching a
+compute shader or issuing an individual framebuffer clear. Each fill carries
+its own VRAM rectangle as its clip area; the fragment shader enforces each
+command's clip, and the batch scissor is the union of queued clip areas. This
+lets fill commands share batches without broadening their visible writes. The
+GTX 1650 600-frame profile reported 379 batch submissions for 51,362
+primitives, 86.2 ms in batch draws, and 0.230 ms in scanline setup; no fill or
+general raster-compute dispatch remained. One paired runtime profile measured
+`run_until` at 1.998 s on GPU_HW and 2.118 s in software, with identical guest
+instruction/cycle counts; treat the total-time difference as indicative until
+more repeated pairs are collected.
+
+After the fill batching and per-command clip change, the SFEX2PA frame-1074
+capture on the GTX 1650 and the BLDYROR2 frame-900 capture on Intel were again
+byte-identical between software and GPU_HW. The three PSX GPU CTests also pass
+on both hardware devices. These checks cover selected ZN-1/ZN-2 frames and the
+draw-area batching case; they do not establish full-game parity on every
+DuckStation GPU_HW feature.
