@@ -496,3 +496,13 @@ covered GPU types 0, 1, and 2 plus scanout modes, while transfer coverage
 exercised odd-width CPU uploads, GP0 copies, DMA readback, and texture-cache
 coherence. This confirms those paths on a second vendor's driver; it does not
 replace a full-game NVIDIA capture or broader hardware validation.
+
+A paired SFEX2PA frame-1074 capture was then run on the GTX 1650 with the same
+ROM, coin/start events, and independent fresh temporary NVRAM files. The
+OpenGL and software PPM outputs had the same SHA-256
+(`70e72d25918fd97b896e3c03c0b371810dfc2dcc49c895e42c2d24c74bccbb0c`) and
+`cmp` reported byte-for-byte identity, including the Ryu portrait. Both runs
+reported 448,800,791 guest instructions/cycles and 1,074 frame updates. This
+confirms the portrait fix and this real ZN-2 scene on NVIDIA; it remains a
+single-frame gameplay validation, not a performance benchmark or full-title
+parity proof.
