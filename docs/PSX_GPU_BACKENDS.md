@@ -379,3 +379,14 @@ vblanks with `MAMERECOMP_PSX_GPU_GL_CHECK=1` and the software reference
 enabled. They completed at 512×480 and 640×240 respectively, with no GL error
 or differing scanout reported. These are boot/scanout checks and do not claim
 full gameplay parity for either title.
+
+The CPU-to-VRAM upload path now passes the existing little-endian VRAM mirror
+directly to `glTexSubImage2D()` with a 1024-pixel row length, splitting only at
+the VRAM X/Y wrap boundaries. This removes the per-transfer pixel-by-pixel
+repack allocation and preserves the odd-width row alignment fix; GL unpack
+state is restored after each upload and big-endian hosts request component
+byte swapping. A matched 600-frame SFEX2PA run on the Mesa UHD 630 took 13.43 s
+with `--gpu-hw` and 13.23 s in software, with identical guest instruction and
+cycle totals. This change removes a copy but did not produce a measurable
+overall speedup in that CPU-dominated run. The frame-1074 portrait comparison
+after the change reported no scanout or textured-command pixel differences.

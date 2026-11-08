@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
@@ -1612,57 +1613,62 @@ void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x
                            dirty[2] - dirty[0] + 1, dirty[3] - dirty[1] + 1, 1);
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
-    std::vector<uint16_t> packed(size_t(width) * height);
-    for (unsigned row = 0; row < height; ++row)
-        for (unsigned col = 0; col < width; ++col) {
-            const size_t at = (size_t((y + row) % unsigned(impl_->vram_height)) * kVramWidth +
-                               ((x + col) & 1023u)) * 2;
-            packed[size_t(row) * width + col] = uint16_t(bytes[at] | (uint16_t(bytes[at + 1]) << 8));
-        }
     glBindTexture(GL_TEXTURE_2D, impl_->vram[impl_->current_vram]);
-    const unsigned first_width = std::min(width, unsigned(kVramWidth) - (x & 1023u));
-    const unsigned first_height = std::min(height, unsigned(impl_->vram_height) - (y % unsigned(impl_->vram_height)));
+    const unsigned upload_x0 = x & 1023u;
+    const unsigned upload_y0 = y % unsigned(impl_->vram_height);
+    const unsigned first_width = std::min(width,
+        unsigned(kVramWidth) - upload_x0);
+    const unsigned first_height = std::min(height,
+        unsigned(impl_->vram_height) - upload_y0);
     GLint previous_unpack_alignment = 4;
+    GLint previous_unpack_row_length = 0;
+    GLint previous_unpack_swap_bytes = GL_FALSE;
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &previous_unpack_alignment);
-    // VRAM pixels are 16-bit words and transfer rectangles may have an odd
-    // pixel width. The default 4-byte row alignment would skip two bytes at
-    // the start of every second row in those uploads.
+    glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previous_unpack_row_length);
+    glGetIntegerv(GL_UNPACK_SWAP_BYTES, &previous_unpack_swap_bytes);
+    // Read directly from the little-endian CPU mirror with its 1024-word row
+    // stride, avoiding a temporary repack for every CPU-to-VRAM transfer.
+    // GL_UNSIGNED_SHORT follows host byte order, so swap only on big-endian
+    // systems. Two-byte alignment remains correct for odd-width rectangles.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, int(width));
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, kVramWidth);
+    glPixelStorei(GL_UNPACK_SWAP_BYTES,
+                  std::endian::native == std::endian::big ? GL_TRUE : GL_FALSE);
+    const auto* first_row = bytes.data() + size_t(upload_y0) * kVramWidth * 2;
     for (GLuint texture : impl_->vram) {
         glBindTexture(GL_TEXTURE_2D, texture);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, int(x & 1023u), int(y % unsigned(impl_->vram_height)),
+        glTexSubImage2D(GL_TEXTURE_2D, 0, int(upload_x0), int(upload_y0),
                         int(first_width), int(first_height), GL_RED_INTEGER,
-                        GL_UNSIGNED_SHORT, packed.data());
+                        GL_UNSIGNED_SHORT, first_row + size_t(upload_x0) * 2);
         if (first_width < width)
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, int(y % unsigned(impl_->vram_height)),
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, int(upload_y0),
                             int(width - first_width), int(first_height), GL_RED_INTEGER,
-                            GL_UNSIGNED_SHORT, packed.data() + first_width);
+                            GL_UNSIGNED_SHORT, first_row);
         if (first_height < height) {
-            const auto* next_rows = packed.data() + size_t(first_height) * width;
             glTexSubImage2D(GL_TEXTURE_2D, 0, int(x & 1023u), 0, int(first_width),
                             int(height - first_height), GL_RED_INTEGER,
-                            GL_UNSIGNED_SHORT, next_rows);
+                            GL_UNSIGNED_SHORT, bytes.data() + size_t(upload_x0) * 2);
             if (first_width < width)
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, int(width - first_width),
                                 int(height - first_height), GL_RED_INTEGER,
-                                GL_UNSIGNED_SHORT, next_rows + first_width);
+                                GL_UNSIGNED_SHORT, bytes.data());
         }
     }
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, previous_unpack_swap_bytes);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, previous_unpack_row_length);
     glPixelStorei(GL_UNPACK_ALIGNMENT, previous_unpack_alignment);
     impl_->vram_textures_diverged = false;
     ++impl_->vram_write_generation;
-    const int x0 = int(x & 1023u);
-    const int y0 = int(y % unsigned(impl_->vram_height));
-    impl_->invalidate_texture_cache_region(x0, y0,
-        x0 + int(first_width) - 1, y0 + int(first_height) - 1);
+    const int cache_x0 = int(upload_x0);
+    const int cache_y0 = int(upload_y0);
+    impl_->invalidate_texture_cache_region(cache_x0, cache_y0,
+        cache_x0 + int(first_width) - 1, cache_y0 + int(first_height) - 1);
     if (first_width < width)
-        impl_->invalidate_texture_cache_region(0, y0,
-            int(width - first_width) - 1, y0 + int(first_height) - 1);
+        impl_->invalidate_texture_cache_region(0, cache_y0,
+            int(width - first_width) - 1, cache_y0 + int(first_height) - 1);
     if (first_height < height)
-        impl_->invalidate_texture_cache_region(x0, 0,
-            x0 + int(first_width) - 1, int(height - first_height) - 1);
+        impl_->invalidate_texture_cache_region(cache_x0, 0,
+            cache_x0 + int(first_width) - 1, int(height - first_height) - 1);
     if (first_width < width && first_height < height)
         impl_->invalidate_texture_cache_region(0, 0,
             int(width - first_width) - 1, int(height - first_height) - 1);
