@@ -33,10 +33,11 @@ continues to provide its bus mapping, clock, IRQ wiring, and display connection.
 2. Move draw operations behind a backend interface owned by the independent
    PSX GPU module. The software implementation remains the default/reference
    backend and continues to operate on the existing VRAM storage.
-3. Add an optional OpenGL implementation in that same module. It owns a device
-   VRAM image and submits drawing in GP0 order. The emulated PSX VRAM remains
-   1024x512 16-bit; host output resolution and window aspect do not change the
-   emulated drawing surface.
+3. Add an optional OpenGL implementation in that same module. It owns device
+   VRAM images and submits drawing in GP0 order. The texture dimensions follow
+   the VRAM allocation supplied by the PSX-derived machine (1024 pixels wide;
+   512 or 1024 rows in the current ZN configurations); host output resolution
+   and window aspect do not change the emulated drawing surface.
 4. Synchronize only at observable boundaries: CPU/DMA reads of VRAM, CPU/DMA
    writes that overlap pending GPU work, scanout capture, and state save/load.
    Insert the required OpenGL memory barriers between ordered commands; avoid
@@ -47,16 +48,21 @@ continues to provide its bus mapping, clock, IRQ wiring, and display connection.
    unless an OpenGL context is explicitly available.
 
 The CLI switch is `--gpu-hw`; omitting it selects the software rasterizer.
-When the build includes SDL3 and OpenGL, this switch currently creates a hidden
-OpenGL 4.3 context and dispatches GP0 work through
-`core/cpus/psx/gpu_rasterize.comp`. A build without those dependencies reports
-an error if `--gpu-hw` is requested. The shader keeps emulated VRAM as a
-1024x512 `R16UI` image and handles the currently connected fill, flat/Gouraud
-polygon, line, solid rectangle, and textured rectangle/polygon paths. VRAM
-readback still occurs when the CPU-visible VRAM or scanout is requested, and
-GP0 `0x80` currently synchronizes through the CPU implementation. Thus this is
-an active hardware raster backend, but not yet a fully GPU-resident scanout or
-transfer path.
+When the build includes SDL3 and OpenGL, `--gpu-hw` creates an OpenGL 4.3
+context. GP0 flat/Gouraud polygons and solid/textured rectangles are rasterized
+by the OpenGL triangle pipeline in `gpu_draw.vert` and `gpu_draw.frag`; fills
+and lines use the OpenGL compute shader in `gpu_rasterize.comp`. Both paths
+write the same integer VRAM textures in GP0 order. The software rasterizer
+remains the default when the flag is omitted. A build without SDL3/OpenGL
+reports an error if `--gpu-hw` is requested.
+
+OpenGL VRAM is dynamically sized from the machine's allocation. Coordinate
+mapping was verified on the Intel UHD 630: a test rectangle requested at
+`(10,20)` is read back at `(10,20)..(19,29)`. The FBO Y mapping and rectangle
+quad vertex order must stay consistent with the PSX VRAM convention and the
+GP0 strip order (`TL, TR, BL, BR`). CPU-visible VRAM and scanout still trigger
+readback, and GP0 `0x80` currently synchronizes through the CPU implementation;
+the backend is not yet fully GPU-resident for scanout and transfers.
 
 ## Raster coverage order
 
@@ -94,10 +100,15 @@ is `core/cpus/psx/gpu_rasterize.comp`.
 
 ## Current validation status
 
-The OpenGL path has been built and exercised on llvmpipe. SFEX2PA's 900-frame
-logo capture is recognizable, but its RGB output still differs from the
-software path; the current image comparison is not a parity pass. Hardware
-tests on a physical GPU and final 16-bit VRAM comparisons for all GP0 families
-remain pending. In particular, textured semi-transparency and wrapped fill
-rectangles have explicit shader handling, but still need a deterministic
-command-stream comparison against the software implementation.
+The path builds and has been exercised on the host's Mesa Intel UHD 630
+hardware renderer (not llvmpipe). A matched 1,800-frame SFEX2PA sequence was
+compared against the default software path with fresh temporary NVRAM. Frames
+300, 600, 1200, and 1800 were pixel-identical. The QSound logo at frame 900
+still differs in 7,805 pixels, and the ARIKA intro at frame 1500 differs in
+3,067 pixels; the large triangle artifacts are gone, but these texture/edge
+differences remain under investigation. A single rectangle probe verified
+FBO coordinates after fixing the Y orientation. This is not yet parity across
+all GP0 families: final 16-bit VRAM comparisons, Gouraud cases, semi-
+transparency, wrapped fills, line edge rules, and GP0 transfer interactions
+still need coverage. Hardware remains selected explicitly with `--gpu-hw`;
+the no-flag software path remains the comparison baseline.

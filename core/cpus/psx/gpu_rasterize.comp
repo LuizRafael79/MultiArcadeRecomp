@@ -21,6 +21,7 @@ struct Command {
 };
 layout(std430, binding = 0) readonly buffer CommandBuffer { Command command; };
 uniform ivec2 uDispatchOrigin;
+uniform int uVramHeight;
 
 float edge(ivec2 a, ivec2 b, vec2 p) {
     return (p.x - float(a.x)) * float(b.y - a.y) -
@@ -33,7 +34,8 @@ bool triangle_weights(ivec2 a, ivec2 b, ivec2 c, vec2 p, out vec3 w) {
     return all(greaterThanEqual(w, vec3(-0.0001)));
 }
 uint vram_word(int x, int y) {
-    int index = (y * 1024 + x) & 0x7ffff;
+    int pixel_mask = (uVramHeight * 1024) - 1;
+    int index = int(uint(y * 1024 + x) & uint(pixel_mask));
     return texelFetch(uSource, ivec2(index & 1023, index >> 10), 0).r;
 }
 uint sample_texture(int u, int v) {
@@ -81,7 +83,7 @@ void main() {
     ivec2 p = uDispatchOrigin + ivec2(gl_GlobalInvocationID.xy);
     if (p.x < command.bounds.x || p.y < command.bounds.y ||
         p.x > command.bounds.z || p.y > command.bounds.w ||
-        p.x < 0 || p.y < 0 || p.x >= 1024 || p.y >= 512) return;
+        p.x < 0 || p.y < 0 || p.x >= 1024 || p.y >= uVramHeight) return;
     uint kind = command.header.x;
     vec2 center = vec2(p) + vec2(0.5);
     uint result = command.header.w;

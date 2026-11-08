@@ -1105,6 +1105,13 @@ void Gpu::execute_packet()
             hardware_vram_shadow_valid_ = true;
         }
     } else if (op == 0xa0 || op == 0xc0) {
+        // CPU-to-VRAM transfers update the host mirror a word at a time. Merge
+        // prior GPU draws first so the full upload at transfer completion does
+        // not overwrite pixels that existed only in device VRAM.
+        if (op == 0xa0 && hardware_renderer_ && !hardware_vram_shadow_valid_) {
+            hardware_renderer_->sync_to_cpu(vram_);
+            hardware_vram_shadow_valid_ = true;
+        }
         transfer_x_ = packet_[1] & 0x3ff; transfer_y_ = (packet_[1] >> 16) & 0x3ff;
         transfer_w_ = packet_[2] & 0x3ff; transfer_h_ = (packet_[2] >> 16) & 0x3ff;
         if (!transfer_w_) transfer_w_ = 1024; if (!transfer_h_) transfer_h_ = 512;

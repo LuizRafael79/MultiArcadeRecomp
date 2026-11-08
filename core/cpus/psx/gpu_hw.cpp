@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -15,7 +14,8 @@
 namespace mamerecomp::psx {
 namespace {
 constexpr int kVramWidth = 1024;
-constexpr int kVramHeight = 512;
+constexpr int kMinVramHeight = 512;
+constexpr int kMaxVramHeight = 1024;
 
 struct alignas(16) ShaderVertex {
     int32_t xyuv[4]{};
@@ -69,16 +69,56 @@ GLuint compile_compute_program(const std::string& source, std::string& error) {
     return program;
 }
 
-std::string read_shader_source() {
-#ifndef MAMERECOMP_PSX_GPU_SHADER_PATH
-    throw std::runtime_error("PSX OpenGL raster shader path was not configured");
-#else
-    std::ifstream input(MAMERECOMP_PSX_GPU_SHADER_PATH, std::ios::binary);
+GLuint compile_graphics_program(const std::string& vertex_source,
+                                const std::string& fragment_source,
+                                std::string& error) {
+    const auto compile_stage = [&](GLenum type, const std::string& source) -> GLuint {
+        const GLuint shader = glCreateShader(type);
+        const char* data = source.c_str();
+        glShaderSource(shader, 1, &data, nullptr);
+        glCompileShader(shader);
+        GLint compiled = GL_FALSE;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+        if (compiled == GL_TRUE) return shader;
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        std::string log(static_cast<std::size_t>(std::max(length, 1)), '\0');
+        glGetShaderInfoLog(shader, length, nullptr, log.data());
+        glDeleteShader(shader);
+        error = "PSX OpenGL draw shader compilation failed: " + log;
+        return 0;
+    };
+    const GLuint vertex = compile_stage(GL_VERTEX_SHADER, vertex_source);
+    if (!vertex) return 0;
+    const GLuint fragment = compile_stage(GL_FRAGMENT_SHADER, fragment_source);
+    if (!fragment) {
+        glDeleteShader(vertex);
+        return 0;
+    }
+    const GLuint program = glCreateProgram();
+    glAttachShader(program, vertex);
+    glAttachShader(program, fragment);
+    glLinkProgram(program);
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+    GLint linked = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (linked == GL_TRUE) return program;
+    GLint length = 0;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+    std::string log(static_cast<std::size_t>(std::max(length, 1)), '\0');
+    glGetProgramInfoLog(program, length, nullptr, log.data());
+    glDeleteProgram(program);
+    error = "PSX OpenGL draw program link failed: " + log;
+    return 0;
+}
+
+std::string read_shader_source(const char* path) {
+    std::ifstream input(path, std::ios::binary);
     if (!input) throw std::runtime_error("could not open PSX raster shader: "
-                                         MAMERECOMP_PSX_GPU_SHADER_PATH);
+                                         + std::string(path));
     return std::string(std::istreambuf_iterator<char>(input),
                        std::istreambuf_iterator<char>());
-#endif
 }
 
 std::vector<uint16_t> to_words(std::span<const uint8_t> bytes) {
@@ -95,17 +135,28 @@ struct GpuHardwareRenderer::Impl {
     SDL_GLContext context = nullptr;
     bool owns_video = false;
     GLuint program = 0;
+    GLuint draw_program = 0;
     GLuint vram[2]{};
+    GLuint framebuffer[2]{};
+    GLuint vertex_array = 0;
     GLuint command_buffer = 0;
     GLint origin_location = -1;
+    GLint vram_height_location = -1;
+    GLint draw_vram_height_location = -1;
+    int vram_height = kMinVramHeight;
     unsigned current_vram = 0;
+    bool vram_textures_diverged = false;
+    std::array<int, 4> last_dirty_bounds{};
     std::string renderer;
     std::string init_error;
 
     ~Impl() {
         make_current();
         if (program) glDeleteProgram(program);
+        if (draw_program) glDeleteProgram(draw_program);
         if (vram[0] || vram[1]) glDeleteTextures(2, vram);
+        if (framebuffer[0] || framebuffer[1]) glDeleteFramebuffers(2, framebuffer);
+        if (vertex_array) glDeleteVertexArrays(1, &vertex_array);
         if (command_buffer) glDeleteBuffers(1, &command_buffer);
         if (context) SDL_GL_DestroyContext(context);
         if (window) SDL_DestroyWindow(window);
@@ -118,16 +169,14 @@ struct GpuHardwareRenderer::Impl {
 
     bool initialize(std::span<const uint8_t> initial_vram) {
         if (program) return make_current();
+        vram_height = std::clamp<int>(
+            static_cast<int>(initial_vram.size() / (kVramWidth * sizeof(uint16_t))),
+            kMinVramHeight, kMaxVramHeight);
         if (!(SDL_WasInit(SDL_INIT_VIDEO) & SDL_INIT_VIDEO)) {
             if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
                 throw std::runtime_error(std::string("SDL video init for PSX GPU failed: ") + SDL_GetError());
             owns_video = true;
         }
-#if defined(__linux__)
-        if (std::getenv("WAYLAND_DISPLAY") && std::getenv("DISPLAY") &&
-            !std::getenv("SDL_VIDEODRIVER"))
-            setenv("SDL_VIDEODRIVER", "x11", 0);
-#endif
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -141,11 +190,17 @@ struct GpuHardwareRenderer::Impl {
         glGetIntegerv(GL_MAJOR_VERSION, &major);
         glGetIntegerv(GL_MINOR_VERSION, &minor);
         if (major < 4 || (major == 4 && minor < 3))
-            throw std::runtime_error("PSX hardware rasterizer requires OpenGL 4.3 compute shaders");
+            throw std::runtime_error("PSX hardware rasterizer requires OpenGL 4.3");
         if (const auto* name = glGetString(GL_RENDERER)) renderer = reinterpret_cast<const char*>(name);
-        program = compile_compute_program(read_shader_source(), init_error);
+        program = compile_compute_program(read_shader_source(MAMERECOMP_PSX_GPU_SHADER_PATH), init_error);
         if (!program) throw std::runtime_error(init_error);
+        draw_program = compile_graphics_program(
+            read_shader_source(MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
+            read_shader_source(MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
+        if (!draw_program) throw std::runtime_error(init_error);
         origin_location = glGetUniformLocation(program, "uDispatchOrigin");
+        vram_height_location = glGetUniformLocation(program, "uVramHeight");
+        draw_vram_height_location = glGetUniformLocation(draw_program, "uVramHeight");
         glGenTextures(2, vram);
         const auto words = to_words(initial_vram);
         for (GLuint texture : vram) {
@@ -154,14 +209,29 @@ struct GpuHardwareRenderer::Impl {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, kVramHeight, 0,
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, kVramWidth, vram_height, 0,
                          GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
         }
+        glGenFramebuffers(2, framebuffer);
+        for (unsigned i = 0; i < 2; ++i) {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                   GL_TEXTURE_2D, vram[i], 0);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                throw std::runtime_error("PSX OpenGL R16UI framebuffer is incomplete");
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glGenVertexArrays(1, &vertex_array);
+        glBindVertexArray(vertex_array);
         glGenBuffers(1, &command_buffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ShaderCommand), nullptr, GL_STREAM_DRAW);
         glUseProgram(program);
         glUniform1i(glGetUniformLocation(program, "uSource"), 1);
+        glUseProgram(draw_program);
+        glUniform1i(glGetUniformLocation(draw_program, "uSource"), 0);
+        glBindVertexArray(0);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL resource creation failed");
         return true;
@@ -172,40 +242,64 @@ struct GpuHardwareRenderer::Impl {
         const auto words = to_words(bytes);
         for (GLuint texture : vram) {
             glBindTexture(GL_TEXTURE_2D, texture);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kVramWidth, kVramHeight,
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kVramWidth, vram_height,
                             GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
         }
         current_vram = 0;
+        vram_textures_diverged = false;
     }
 
     void read_full(std::vector<uint8_t>& bytes) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
-        std::vector<uint16_t> words(kVramWidth * kVramHeight);
+        std::vector<uint16_t> words(kVramWidth * vram_height);
         glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, words.data());
-        bytes.resize(words.size() * 2);
+        bytes.resize(std::max(bytes.size(), words.size() * sizeof(uint16_t)));
         for (size_t i = 0; i < words.size(); ++i) {
             bytes[i * 2] = uint8_t(words[i]);
             bytes[i * 2 + 1] = uint8_t(words[i] >> 8);
         }
     }
 
+    unsigned prepare_destination() {
+        const unsigned destination_vram = current_vram ^ 1u;
+        if (vram_textures_diverged) {
+            glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT |
+                            GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                            GL_FRAMEBUFFER_BARRIER_BIT);
+            const int copy_width = last_dirty_bounds[2] - last_dirty_bounds[0] + 1;
+            const int copy_height = last_dirty_bounds[3] - last_dirty_bounds[1] + 1;
+            glCopyImageSubData(vram[current_vram], GL_TEXTURE_2D, 0,
+                               last_dirty_bounds[0], last_dirty_bounds[1], 0,
+                               vram[destination_vram], GL_TEXTURE_2D, 0,
+                               last_dirty_bounds[0], last_dirty_bounds[1], 0,
+                               copy_width, copy_height, 1);
+        }
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT |
+                        GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                        GL_FRAMEBUFFER_BARRIER_BIT);
+        return destination_vram;
+    }
+
+    void finish_write(unsigned destination_vram, int min_x, int min_y,
+                      int max_x, int max_y) {
+        current_vram = destination_vram;
+        vram_textures_diverged = true;
+        last_dirty_bounds = {min_x, min_y, max_x, max_y};
+    }
+
     void execute(ShaderCommand command) {
         if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
         const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
-        const int min_y = std::clamp(command.bounds[1], 0, kVramHeight - 1);
+        const int min_y = std::clamp(command.bounds[1], 0, vram_height - 1);
         const int max_x = std::clamp(command.bounds[2], 0, kVramWidth - 1);
-        const int max_y = std::clamp(command.bounds[3], 0, kVramHeight - 1);
+        const int max_y = std::clamp(command.bounds[3], 0, vram_height - 1);
         if (min_x > max_x || min_y > max_y) return;
         command.bounds[0] = min_x;
         command.bounds[1] = min_y;
         command.bounds[2] = max_x;
         command.bounds[3] = max_y;
-        const unsigned destination_vram = current_vram ^ 1u;
-        glCopyImageSubData(vram[current_vram], GL_TEXTURE_2D, 0, 0, 0, 0,
-                           vram[destination_vram], GL_TEXTURE_2D, 0, 0, 0, 0,
-                           kVramWidth, kVramHeight, 1);
-        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        const unsigned destination_vram = prepare_destination();
         glUseProgram(program);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(command), &command);
@@ -215,13 +309,54 @@ struct GpuHardwareRenderer::Impl {
         glBindImageTexture(0, vram[destination_vram], 0, GL_FALSE, 0,
                            GL_READ_WRITE, GL_R16UI);
         glUniform2i(origin_location, min_x, min_y);
+        glUniform1i(vram_height_location, vram_height);
         glDispatchCompute((max_x - min_x + 1 + 7) / 8,
                           (max_y - min_y + 1 + 7) / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
-                        GL_TEXTURE_UPDATE_BARRIER_BIT);
-        current_vram = destination_vram;
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
+        finish_write(destination_vram, min_x, min_y, max_x, max_y);
         const GLenum error = glGetError();
         if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL raster dispatch failed");
+    }
+
+    void execute_draw(ShaderCommand command) {
+        if (!make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+        const int min_x = std::clamp(command.bounds[0], 0, kVramWidth - 1);
+        const int min_y = std::clamp(command.bounds[1], 0, vram_height - 1);
+        const int max_x = std::clamp(command.bounds[2], 0, kVramWidth - 1);
+        const int max_y = std::clamp(command.bounds[3], 0, vram_height - 1);
+        if (min_x > max_x || min_y > max_y) return;
+        const int clip_left = std::clamp(command.draw_area[0], 0, kVramWidth - 1);
+        const int clip_top = std::clamp(command.draw_area[1], 0, vram_height - 1);
+        const int clip_right = std::clamp(command.draw_area[2], 0, kVramWidth - 1);
+        const int clip_bottom = std::clamp(command.draw_area[3], 0, vram_height - 1);
+        if (clip_left > clip_right || clip_top > clip_bottom) return;
+
+        const unsigned destination_vram = prepare_destination();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer[destination_vram]);
+        glViewport(0, 0, kVramWidth, vram_height);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(clip_left, clip_top,
+                  clip_right - clip_left + 1, clip_bottom - clip_top + 1);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_DITHER);
+        glUseProgram(draw_program);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, command_buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(command), &command);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, command_buffer);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, vram[current_vram]);
+        glBindVertexArray(vertex_array);
+        glUniform1i(draw_vram_height_location, vram_height);
+        glDrawArrays(GL_TRIANGLES, 0, command.header[1] == 4u ? 6 : 3);
+        glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        finish_write(destination_vram, min_x, min_y, max_x, max_y);
+        const GLenum error = glGetError();
+        if (error != GL_NO_ERROR) throw std::runtime_error("PSX OpenGL triangle raster failed");
     }
 };
 
@@ -253,7 +388,7 @@ ShaderCommand make_command(uint32_t kind, std::span<const GpuHwVertex> vertices,
     command.texture[2] = state.gpu_type;
     command.texture[3] = state.gpu_type == 2
         ? ((state.texture_page >> 5) & 3u) : ((state.texture_page >> 7) & 3u);
-    int min_x = kVramWidth - 1, min_y = kVramHeight - 1, max_x = 0, max_y = 0;
+    int min_x = kVramWidth - 1, min_y = kMaxVramHeight - 1, max_x = 0, max_y = 0;
     for (size_t i = 0; i < vertices.size() && i < 4; ++i) {
         auto& out = command.vertices[i];
         out.xyuv[0] = vertices[i].x + state.offset_x;
@@ -285,17 +420,17 @@ void GpuHardwareRenderer::draw_polygon(std::span<const GpuHwVertex> vertices,
     auto command = make_command(0, vertices, state, gouraud, textured,
                                raw_texture, semi_transparent, clut);
     command.header[3] = vertices.empty() ? 0 : vertices.front().color;
-    impl_->execute(command);
+    impl_->execute_draw(command);
 }
 
 void GpuHardwareRenderer::fill_rect(int x, int y, int width, int height, uint16_t color) {
     width = std::clamp(width, 0, kVramWidth);
-    height = std::clamp(height, 0, kVramHeight);
+    height = std::clamp(height, 0, impl_->vram_height);
     if (!width || !height) return;
     const int wrapped_x = (x % kVramWidth + kVramWidth) % kVramWidth;
-    const int wrapped_y = (y % kVramHeight + kVramHeight) % kVramHeight;
+    const int wrapped_y = (y % impl_->vram_height + impl_->vram_height) % impl_->vram_height;
     const int first_width = std::min(width, kVramWidth - wrapped_x);
-    const int first_height = std::min(height, kVramHeight - wrapped_y);
+    const int first_height = std::min(height, impl_->vram_height - wrapped_y);
     const auto submit = [&](int left, int top, int w, int h) {
         if (w <= 0 || h <= 0) return;
         ShaderCommand command{};
@@ -318,11 +453,11 @@ void GpuHardwareRenderer::draw_rect(int x, int y, int width, int height,
         uint32_t color, const GpuHwState& state, bool semi_transparent) {
     const std::array<GpuHwVertex, 4> vertices{{
         {x, y, 0, 0, color}, {x + width, y, 0, 0, color},
-        {x + width, y + height, 0, 0, color}, {x, y + height, 0, 0, color}}};
+        {x, y + height, 0, 0, color}, {x + width, y + height, 0, 0, color}}};
     auto command = make_command(1, vertices, state, false, false, false,
                                 semi_transparent, 0);
     command.header[3] = color;
-    impl_->execute(command);
+    impl_->execute_draw(command);
 }
 
 void GpuHardwareRenderer::draw_line(const GpuHwVertex& a, const GpuHwVertex& b,
@@ -341,12 +476,13 @@ void GpuHardwareRenderer::draw_textured_rect(int x, int y, int width, int height
     const std::array<GpuHwVertex, 4> vertices{{
         {x, y, u, v, color},
         {x + width, y, u + width * state.flip_x, v, color},
-        {x + width, y + height, u + width * state.flip_x, v + height * state.flip_y, color},
-        {x, y + height, u, v + height * state.flip_y, color}}};
+        {x, y + height, u, v + height * state.flip_y, color},
+        {x + width, y + height, u + width * state.flip_x,
+         v + height * state.flip_y, color}}};
     auto command = make_command(1, vertices, state, false, true, raw_texture,
                                 semi_transparent, clut);
     command.header[3] = color;
-    impl_->execute(command);
+    impl_->execute_draw(command);
 }
 
 void GpuHardwareRenderer::sync_to_cpu(std::vector<uint8_t>& vram) { impl_->read_full(vram); }
@@ -355,15 +491,50 @@ void GpuHardwareRenderer::sync_from_cpu(std::span<const uint8_t> vram) { impl_->
 void GpuHardwareRenderer::upload_rect(std::span<const uint8_t> bytes, unsigned x,
         unsigned y, unsigned width, unsigned height) {
     if (!impl_->make_current()) throw std::runtime_error("could not activate PSX OpenGL context");
+    if (impl_->vram_textures_diverged) {
+        const auto& dirty = impl_->last_dirty_bounds;
+        glCopyImageSubData(impl_->vram[impl_->current_vram], GL_TEXTURE_2D, 0,
+                           dirty[0], dirty[1], 0,
+                           impl_->vram[impl_->current_vram ^ 1u], GL_TEXTURE_2D, 0,
+                           dirty[0], dirty[1], 0,
+                           dirty[2] - dirty[0] + 1, dirty[3] - dirty[1] + 1, 1);
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
     std::vector<uint16_t> packed(size_t(width) * height);
     for (unsigned row = 0; row < height; ++row)
         for (unsigned col = 0; col < width; ++col) {
-            const size_t at = (size_t(y + row) * kVramWidth + x + col) * 2;
+            const size_t at = (size_t((y + row) % unsigned(impl_->vram_height)) * kVramWidth +
+                               ((x + col) & 1023u)) * 2;
             packed[size_t(row) * width + col] = uint16_t(bytes[at] | (uint16_t(bytes[at + 1]) << 8));
         }
     glBindTexture(GL_TEXTURE_2D, impl_->vram[impl_->current_vram]);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, int(x), int(y), int(width), int(height),
-                    GL_RED_INTEGER, GL_UNSIGNED_SHORT, packed.data());
+    const unsigned first_width = std::min(width, unsigned(kVramWidth) - (x & 1023u));
+    const unsigned first_height = std::min(height, unsigned(impl_->vram_height) - (y % unsigned(impl_->vram_height)));
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, int(width));
+    for (GLuint texture : impl_->vram) {
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, int(x & 1023u), int(y % unsigned(impl_->vram_height)),
+                        int(first_width), int(first_height), GL_RED_INTEGER,
+                        GL_UNSIGNED_SHORT, packed.data());
+        if (first_width < width)
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, int(y % unsigned(impl_->vram_height)),
+                            int(width - first_width), int(first_height), GL_RED_INTEGER,
+                            GL_UNSIGNED_SHORT, packed.data() + first_width);
+        if (first_height < height) {
+            const auto* next_rows = packed.data() + size_t(first_height) * width;
+            glTexSubImage2D(GL_TEXTURE_2D, 0, int(x & 1023u), 0, int(first_width),
+                            int(height - first_height), GL_RED_INTEGER,
+                            GL_UNSIGNED_SHORT, next_rows);
+            if (first_width < width)
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, int(width - first_width),
+                                int(height - first_height), GL_RED_INTEGER,
+                                GL_UNSIGNED_SHORT, next_rows + first_width);
+        }
+    }
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    impl_->vram_textures_diverged = false;
+    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -375,13 +546,13 @@ void GpuHardwareRenderer::copy_rect(int sx, int sy, int dx, int dy, int width,
     std::vector<uint16_t> temp(size_t(width) * height);
     for (int y = 0; y < height; ++y)
         for (int x = 0; x < width; ++x) {
-            const size_t at = (size_t((sy + y) & 511) * kVramWidth + size_t((sx + x) & 1023)) * 2;
+            const size_t at = (size_t((sy + y) % impl_->vram_height) * kVramWidth + size_t((sx + x) & 1023)) * 2;
             temp[size_t(y) * width + x] = uint16_t(shadow[at] | (uint16_t(shadow[at + 1]) << 8));
         }
     for (int y = 0; y < height; ++y)
         for (int x = 0; x < width; ++x) {
             const int px = (dx + x + state.offset_x) & 1023;
-            const int py = (dy + y + state.offset_y) & 511;
+            const int py = (dy + y + state.offset_y) % impl_->vram_height;
             if (px < state.draw_x1 || px > state.draw_x2 || py < state.draw_y1 || py > state.draw_y2) continue;
             const size_t at = (size_t(py) * kVramWidth + size_t(px)) * 2;
             const uint16_t old = uint16_t(shadow[at] | (uint16_t(shadow[at + 1]) << 8));
