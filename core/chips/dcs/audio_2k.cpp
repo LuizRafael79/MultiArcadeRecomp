@@ -56,9 +56,11 @@ bool DcsAudio2K::program_word_was_written(std::uint16_t address) const noexcept 
 std::vector<std::pair<std::uint16_t, std::uint32_t>>
 DcsAudio2K::program_overlay() const {
     auto words = m_boot_program_history;
-    for (std::uint16_t address = 0; address < m_program_written.size(); ++address) {
-        if (m_program_written[address])
-            words.emplace_back(address, read_program(address));
+    for (std::size_t address = 0; address < m_program_written.size(); ++address) {
+        if (m_program_written[address]) {
+            const auto address16 = static_cast<std::uint16_t>(address);
+            words.emplace_back(address16, read_program(address16));
+        }
     }
     std::sort(words.begin(), words.end());
     words.erase(std::unique(words.begin(), words.end()), words.end());
