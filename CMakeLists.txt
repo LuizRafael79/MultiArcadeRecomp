@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MameRecomp LANGUAGES C CXX)
+project(MultiArcadeRecomp LANGUAGES C CXX)
 include(CTest)
 
 # The emulator's runtime/video loops need optimization in ordinary single-config

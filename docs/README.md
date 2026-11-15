@@ -1,8 +1,8 @@
-# Documentation index
+# Documentation Index
 
-This directory holds project notes, system descriptions, hardware integration
-status, provenance, and all license texts. Documentation is kept separate from
-implementation sources.
+This directory contains project notes, system descriptions, hardware
+integration status, provenance, and license texts. Documentation is kept
+separate from implementation sources.
 
 ## System documentation
 

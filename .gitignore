@@ -1,8 +1,39 @@
+# Build trees and generated output
 /build/
+/build-*/
+/cmake-build-*/
 /artifacts/
+/generated/
+/out/
+
+# ROM and emulator output
+*.chd
+*.rom
+*.bin
+*.nv
+*.nvram
+*.sav
+*.state
+*.ppm
+*.wav
+*.pcm
+*.log
+
+# Local captures and analysis data
+*.tsv
+*.csv
+*.trace
+*.dump
+
+# Python tooling
 __pycache__/
 *.py[cod]
-*.ppm
-*.bin
-*.log
+.venv/
+venv/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
 
