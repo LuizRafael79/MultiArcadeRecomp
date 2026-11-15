@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace mamerecomp::tms320c31 {
+namespace multiarcaderecomp::tms320c31 {
 namespace util {
 constexpr std::int32_t sext(std::uint32_t value, int bits) noexcept {
     const std::uint32_t mask = (std::uint32_t{1} << bits) - 1;
@@ -39,7 +39,7 @@ enum : int {
 };
 struct DebugMachine { void debug_break() noexcept {} };
 void trace_step(char backend, std::uint32_t pc, std::uint32_t opcode) noexcept {
-    static const bool enabled = std::getenv("MAMERECOMP_C31_TRACE_EXEC") != nullptr;
+    static const bool enabled = std::getenv("MULTIARCADERECOMP_C31_TRACE_EXEC") != nullptr;
     static std::uint64_t count = 0;
     if (!enabled || count >= 20000) return;
     std::fprintf(stderr, "[C31 step] %c PC=%06x OPCODE=%08x\n", backend, pc, opcode);
@@ -150,7 +150,7 @@ std::uint32_t Interpreter::ROPCODE(std::uint32_t address) noexcept {
                 m_next_instruction_uncovered = false;
             }
         }
-        static const bool collect_hot = std::getenv("MAMERECOMP_C31_HOT_SITES") != nullptr;
+        static const bool collect_hot = std::getenv("MULTIARCADERECOMP_C31_HOT_SITES") != nullptr;
         if (collect_hot) {
             struct DebugHotSite { std::uint32_t pc{}, opcode{}; std::uint64_t count{}; };
             static std::array<DebugHotSite, 1u << 16> debug_sites{};
@@ -220,7 +220,7 @@ bool Interpreter::read_code_word(std::uint32_t address,
 bool Interpreter::aot_begin(std::uint32_t expected_pc,
                             std::uint32_t expected_opcode) noexcept {
     const auto reject = [this, expected_pc, expected_opcode](const char* reason) {
-        static const bool debug = std::getenv("MAMERECOMP_C31_AOT_REJECTS") != nullptr;
+        static const bool debug = std::getenv("MULTIARCADERECOMP_C31_AOT_REJECTS") != nullptr;
         static unsigned count = 0;
         if (debug && expected_pc >= 0x658d && expected_pc <= 0x6590 && count++ < 32) {
             std::uint32_t live{};
@@ -390,7 +390,7 @@ Exit Interpreter::run(std::uint64_t cycle_budget) noexcept {
         // Optional bring-up trace for board ports.  Keep it disabled unless
         // explicitly requested because this CPU can execute hundreds of
         // millions of instructions during one run.
-        static const bool trace_loop = std::getenv("MAMERECOMP_C31_TRACE_LOOP") != nullptr;
+        static const bool trace_loop = std::getenv("MULTIARCADERECOMP_C31_TRACE_LOOP") != nullptr;
         static std::uint64_t trace_loop_count = 0;
         if (trace_loop &&
             ((m_s.last_pc >= 0x00004ae6 && m_s.last_pc <= 0x00004b10) ||
@@ -462,4 +462,4 @@ Exit Interpreter::run(std::uint64_t cycle_budget) noexcept {
 #undef offs_t
 #undef tms320c3x_device
 
-} // namespace mamerecomp::tms320c31
+} // namespace multiarcaderecomp::tms320c31

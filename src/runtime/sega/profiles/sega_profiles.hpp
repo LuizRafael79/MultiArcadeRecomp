@@ -10,7 +10,7 @@
 #include <variant>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 struct RomLoad16Byte {
     std::string_view filename;
@@ -100,4 +100,4 @@ std::vector<std::uint8_t> load_fd1094_key_roms(const GameProfile& profile, const
 std::vector<std::uint8_t> load_pld_roms(const GameProfile& profile, const std::filesystem::path& zip_path);
 const char* board_family_name(SegaBoardFamily family);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

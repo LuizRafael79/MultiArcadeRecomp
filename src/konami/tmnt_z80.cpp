@@ -3,12 +3,12 @@
 #include "z80.h"
 #include "native_z80.h"
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 namespace {
-class TmntSoundBus final : public mamerecomp::z80::Z80Bus {
+class TmntSoundBus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     explicit TmntSoundBus(TmntBoard& board) : board_(board) {}
-    void bind(mamerecomp::z80::Z80& cpu) { cpu_ = &cpu; }
+    void bind(multiarcaderecomp::z80::Z80& cpu) { cpu_ = &cpu; }
     uint8_t Read(uint16_t address) override
     {
         if (cpu_) board_.advance_sound_to_cycles(cpu_->BusCallbackCycles());
@@ -23,13 +23,13 @@ public:
     { board_.advance_sound_to_cycles(cycles); }
 private:
     TmntBoard& board_;
-    mamerecomp::z80::Z80* cpu_ = nullptr;
+    multiarcaderecomp::z80::Z80* cpu_ = nullptr;
 };
 }
 
 TmntSoundCpu::TmntSoundCpu(TmntBoard& board)
     : board_(board), bus_(std::make_unique<TmntSoundBus>(board)),
-      cpu_(std::make_unique<mamerecomp::z80::Z80>(*bus_))
+      cpu_(std::make_unique<multiarcaderecomp::z80::Z80>(*bus_))
 {
     static_cast<TmntSoundBus*>(bus_.get())->bind(*cpu_);
     reset();
@@ -44,9 +44,9 @@ void TmntSoundCpu::run(uint64_t cycles)
 {
     const bool irq_pending = board_.sound_irq_pending();
     cpu_->SetInterruptLine(irq_pending);
-    const auto mode = mamerecomp::z80::HasZ80Code()
-        ? mamerecomp::z80::Z80::Mode::Native
-        : mamerecomp::z80::Z80::Mode::Interpreter;
+    const auto mode = multiarcaderecomp::z80::HasZ80Code()
+        ? multiarcaderecomp::z80::Z80::Mode::Native
+        : multiarcaderecomp::z80::Z80::Mode::Interpreter;
     cpu_->Run(cpu_->cycles + cycles, mode);
     board_.advance_sound_to_cycles(cpu_->cycles);
     // TakeInterrupt() clears the held line when the Z80 accepts it. Looking
@@ -67,4 +67,4 @@ uint64_t TmntSoundCpu::cycles() const { return cpu_->cycles; }
 uint64_t TmntSoundCpu::aot_instructions() const { return cpu_->nativeInstructions; }
 uint64_t TmntSoundCpu::fallback_instructions() const { return cpu_->interpreted; }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

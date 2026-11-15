@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <limits>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 constexpr std::uint32_t kSrT = 1u << 0;
 constexpr std::uint32_t kSrS = 1u << 1;
@@ -116,7 +116,7 @@ void load_sr(Sh4Context& ctx, std::uint32_t value) {
     constexpr std::uint32_t writable = kSrT | kSrS | kSrImask | kSrQ | kSrM |
                                        kSrFd | kSrBl | kSrRb | kSrMd;
     value &= writable;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_IRQ")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_IRQ")) {
         static unsigned trace_events = 0;
         if (trace_events++ < 64)
             std::fprintf(stderr, "SH-4 SR load pc=%08x old=%08x new=%08x\n",
@@ -146,7 +146,7 @@ void host_rte(Sh4Context& ctx) {
     // The generated RTE path executes its delay slot before arriving here.
     // SSR/SPC are restored only after that slot, as required by SH-4.
     const auto return_pc = ctx.spc;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_IRQ")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_IRQ")) {
         static unsigned trace_events = 0;
         if (trace_events++ < 32)
             std::fprintf(stderr, "SH-4 RTE pc=%08x sr=%08x -> pc=%08x sr=%08x\n",
@@ -168,7 +168,7 @@ void host_raise_exception(Sh4Context& ctx, std::uint32_t event,
     constexpr std::uint32_t kSrRb = 1u << 29;
     constexpr std::uint32_t kSrMd = 1u << 30;
     if (ctx.sr & kSrBl) {
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
             ++trace_events;
             std::fprintf(stderr,
                          "SH-4 nested/fatal exception event=%03x fault-pc=%08x vector=%08x tra=%08x sr=%08x first-spc=%08x vbr=%08x current-pc=%08x\n",
@@ -190,7 +190,7 @@ void host_raise_exception(Sh4Context& ctx, std::uint32_t event,
     ctx.delay_slot = false;
     ctx.exception_code = event;
     ctx.interrupt_taken = true;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS") && trace_events < 128) {
         ++trace_events;
         std::fprintf(stderr,
                      "SH-4 exception event=%03x fault-pc=%08x vector=%08x tra=%08x sr=%08x ssr=%08x spc=%08x vbr=%08x -> pc=%08x\n",
@@ -395,7 +395,7 @@ void host_pref(Sh4Context& ctx, std::uint32_t address) {
 }
 
 void host_trapa(Sh4Context& ctx, std::uint32_t immediate) {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_TRAPA")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TRAPA")) {
         static std::uint64_t trace_count = 0;
         ++trace_count;
         std::fprintf(stderr,
@@ -420,4 +420,4 @@ void host_trapa(Sh4Context& ctx, std::uint32_t immediate) {
                          (immediate & 0xffu) << 2u);
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace {
-void gp0(mamerecomp::psx::Gpu &gpu, uint32_t value)
+void gp0(multiarcaderecomp::psx::Gpu &gpu, uint32_t value)
 {
     gpu.write_data(value);
 }
@@ -21,7 +21,7 @@ uint16_t pixel(const std::vector<uint8_t> &vram, unsigned x, unsigned y)
 int main()
 {
     std::vector<uint8_t> vram(1024 * 512 * 2);
-    mamerecomp::psx::Gpu gpu(vram);
+    multiarcaderecomp::psx::Gpu gpu(vram);
 
     // Upload a 2x2 raw 15bpp texture at the top left of VRAM.
     gp0(gpu, 0xa0000000);

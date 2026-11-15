@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 constexpr std::uint32_t kMainClock = 10'000'000;
 constexpr std::uint32_t kZ80Clock = 8'000'000;
@@ -197,4 +197,4 @@ void System18Sound::YmInterface::ymfm_update_irq(bool asserted) {
     m_owner.m_cpu.SetInterruptLine(asserted);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

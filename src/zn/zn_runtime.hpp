@@ -12,7 +12,7 @@
 #include "native_z80.h"
 #include "../../core/runtime/machine_io.hpp"
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 // Composition layer for a BIOS-driven ZN board. It currently runs interpreter
 // fallback only when no generated entry table is supplied; no display/audio
@@ -21,14 +21,14 @@ class ZnMachineRuntime {
 public:
     ZnMachineRuntime(std::string_view set, const std::filesystem::path &zip,
                      const PsxAotEntry *entries = nullptr, size_t entry_count = 0,
-                     const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr,
-                     mamerecomp::chips::QSoundMode qsound_mode = mamerecomp::chips::QSoundMode::Lle,
+                     const multiarcaderecomp::z80::Z80Code *zn2_z80_code = nullptr,
+                     multiarcaderecomp::chips::QSoundMode qsound_mode = multiarcaderecomp::chips::QSoundMode::Lle,
                      std::span<const std::uint16_t> qsound_firmware = {},
-                     std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
-                     mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
+                     std::span<const multiarcaderecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
+                     multiarcaderecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
     PsxAotExit step();
     void run_until(uint64_t target_cycle);
-    void set_input_state(const mamerecomp::runtime::ArcadeInput &input);
+    void set_input_state(const multiarcaderecomp::runtime::ArcadeInput &input);
     bool load_nvram(std::span<const uint8_t> image) {
         if (zn2_) return zn2_->load_nvram(image);
         if (zn1_) return zn1_->load_nvram(image);
@@ -39,17 +39,17 @@ public:
         if (zn1_) return zn1_->nvram();
         return {};
     }
-    const std::optional<mamerecomp::psx::GpuFrame> &last_vblank_frame() const {
+    const std::optional<multiarcaderecomp::psx::GpuFrame> &last_vblank_frame() const {
         return memory_->gpu().last_vblank_frame();
     }
-    mamerecomp::psx::GpuFrame framebuffer_rgb() const {
+    multiarcaderecomp::psx::GpuFrame framebuffer_rgb() const {
         return memory_->gpu().framebuffer_rgb();
     }
     PsxCpuState &cpu() { return cpu_; }
     const PsxCpuState &cpu() const { return cpu_; }
-    mamerecomp::psx::MachineMemory &memory() { return *memory_; }
+    multiarcaderecomp::psx::MachineMemory &memory() { return *memory_; }
     std::vector<int16_t> take_spu_audio() { return memory_->take_spu_audio(); }
-    const mamerecomp::psx::RunCounters &counters() const { return counters_; }
+    const multiarcaderecomp::psx::RunCounters &counters() const { return counters_; }
     uint64_t profile_run_until_ns() const { return profile_run_until_ns_; }
     uint64_t profile_zn2_sound_ns() const {
         return zn2_sound_ ? zn2_sound_->profile_runtime_ns() : 0;
@@ -130,8 +130,8 @@ public:
     uint32_t zn2_qsound_sample_rate() const {
         return zn2_sound_ ? zn2_sound_->audio_sample_rate() : 0;
     }
-    mamerecomp::chips::QSoundMode zn2_qsound_mode() const {
-        return zn2_sound_ ? zn2_sound_->qsound_mode() : mamerecomp::chips::QSoundMode::Hle;
+    multiarcaderecomp::chips::QSoundMode zn2_qsound_mode() const {
+        return zn2_sound_ ? zn2_sound_->qsound_mode() : multiarcaderecomp::chips::QSoundMode::Hle;
     }
     uint64_t zn2_qsound_dsp_cycles() const {
         return zn2_sound_ ? zn2_sound_->qsound_dsp_cycles() : 0;
@@ -247,10 +247,10 @@ public:
 private:
     static void sync_zn2_sound_command(void *opaque, uint64_t main_cycles);
     RomRegions roms_;
-    std::unique_ptr<mamerecomp::psx::MachineMemory> memory_;
+    std::unique_ptr<multiarcaderecomp::psx::MachineMemory> memory_;
     std::unique_ptr<CapcomZn2Board> zn2_;
     std::unique_ptr<RaizingZn1Board> zn1_;
-    std::unique_ptr<mamerecomp::namco::system12::System12Runtime> system12_runtime_;
+    std::unique_ptr<multiarcaderecomp::namco::system12::System12Runtime> system12_runtime_;
     std::unique_ptr<Zn2SoundCpu> zn2_sound_;
     std::unique_ptr<Zn1SoundCpu> zn1_sound_;
     uint64_t zn2_sound_main_cycles_ = 0;
@@ -263,8 +263,8 @@ private:
     uint64_t profile_run_until_ns_ = 0;
     const PsxAotEntry *entries_ = nullptr;
     size_t entry_count_ = 0;
-    mamerecomp::psx::RunCounters counters_{};
+    multiarcaderecomp::psx::RunCounters counters_{};
     void sync_secondary_processors();
 };
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

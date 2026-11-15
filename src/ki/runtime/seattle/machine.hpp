@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::ki::seattle {
+namespace multiarcaderecomp::ki::seattle {
 
 inline constexpr int frame_width = 320;
 inline constexpr int frame_height = 240;
@@ -16,4 +16,4 @@ void set_inputs(std::uint32_t p1, std::uint32_t p2,
 std::uint64_t frame_number() noexcept;
 void copy_rgb(std::span<std::uint8_t> output) noexcept;
 
-} // namespace mamerecomp::ki::seattle
+} // namespace multiarcaderecomp::ki::seattle

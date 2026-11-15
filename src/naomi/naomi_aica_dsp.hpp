@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Naomi AICA's microcoded 128-step DSP interpreter, adapted from Flycast's
 // core/hw/aica/dsp_interp.cpp and dsp.cpp. Voice generation/mixing feeds MIXS
@@ -43,4 +43,4 @@ private:
     bool m_program_dirty = true;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

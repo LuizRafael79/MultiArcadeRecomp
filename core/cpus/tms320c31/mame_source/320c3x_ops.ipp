@@ -87,7 +87,7 @@ void tms320c3x_device::unimplemented(uint32_t op)
 
 inline void tms320c3x_device::execute_one()
 {
-	// MameRecomp hook: delayed branches execute their three delay slots
+	// MultiArcadeRecomp hook: delayed branches execute their three delay slots
 	// synchronously inside this routine. Let the C31 AOT table translate one
 	// guarded slot at a time; unsupported or changed code remains interpreted.
 	if (m_delayed && try_aot_delay_slot())

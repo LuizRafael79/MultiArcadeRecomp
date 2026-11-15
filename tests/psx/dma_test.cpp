@@ -6,7 +6,7 @@
 
 int main()
 {
-    mamerecomp::psx::MachineMemory memory(mamerecomp::psx::kZn2MemoryConfig);
+    multiarcaderecomp::psx::MachineMemory memory(multiarcaderecomp::psx::kZn2MemoryConfig);
     const PsxBus bus = memory.make_bus();
     auto write = [&](uint32_t address, uint32_t value) {
         assert(bus.write(bus.opaque, address, 4, value, 0));
@@ -74,7 +74,7 @@ int main()
     write(0x1f801810, 0x00010002);
     assert(read(0x1f801810) == 0x001f001f);
 
-    mamerecomp::psx::MachineMemory gpu_dma_memory(mamerecomp::psx::kZn2MemoryConfig);
+    multiarcaderecomp::psx::MachineMemory gpu_dma_memory(multiarcaderecomp::psx::kZn2MemoryConfig);
     const PsxBus gpu_bus = gpu_dma_memory.make_bus();
     auto gpu_write = [&](uint32_t address, uint32_t value) {
         assert(gpu_bus.write(gpu_bus.opaque, address, 4, value, 0));

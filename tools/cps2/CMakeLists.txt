@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(mamerecomp_cps2_module LANGUAGES C CXX)
+project(multiarcaderecomp_cps2_module LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,8 +17,8 @@ endif()
 if(NOT EXISTS "${CPS2RECOMP_WORK_DIR}/gen/game_info.h")
     message(FATAL_ERROR "CPS2Recomp game metadata is missing; run the CPS2Recomp build first")
 endif()
-if(NOT EXISTS "${CPS2RECOMP_WORK_DIR}/mamerecomp_runtime/recomp.cpp" OR
-   NOT EXISTS "${CPS2RECOMP_WORK_DIR}/mamerecomp_runtime/recomp_z80.cpp")
+if(NOT EXISTS "${CPS2RECOMP_WORK_DIR}/multiarcaderecomp_runtime/recomp.cpp" OR
+   NOT EXISTS "${CPS2RECOMP_WORK_DIR}/multiarcaderecomp_runtime/recomp_z80.cpp")
     message(FATAL_ERROR "CPS2 execution coverage instrumentation is missing")
 endif()
 
@@ -61,7 +61,7 @@ if(NOT GAME_SOURCES)
     list(APPEND GAME_SOURCES "${CPS2RECOMP_SOURCE_DIR}/runtime/no_game.cpp")
 endif()
 
-configure_file(mamerecomp_cps2_game.h.in mamerecomp_cps2_game.h @ONLY)
+configure_file(multiarcaderecomp_cps2_game.h.in multiarcaderecomp_cps2_game.h @ONLY)
 
 set(MACHINE_SOURCES
     "${CPS2RECOMP_SOURCE_DIR}/video/video.cpp"
@@ -76,8 +76,8 @@ set(MACHINE_SOURCES
     "${CPS2RECOMP_SOURCE_DIR}/machine/romset.cpp"
     "${CPS2RECOMP_SOURCE_DIR}/machine/cps2crypt.cpp"
     "${CPS2RECOMP_SOURCE_DIR}/machine/kabuki.cpp"
-    "${CPS2RECOMP_WORK_DIR}/mamerecomp_runtime/recomp.cpp"
-    "${CPS2RECOMP_WORK_DIR}/mamerecomp_runtime/recomp_z80.cpp")
+    "${CPS2RECOMP_WORK_DIR}/multiarcaderecomp_runtime/recomp.cpp"
+    "${CPS2RECOMP_WORK_DIR}/multiarcaderecomp_runtime/recomp_z80.cpp")
 
 set(PORT_SOURCES
     "${CPS2RECOMP_SOURCE_DIR}/port/main.cpp"
@@ -117,7 +117,7 @@ set_source_files_properties("${CPS2RECOMP_SOURCE_DIR}/port/main.cpp"
 set_source_files_properties("${CPS2RECOMP_SOURCE_DIR}/port/decoders.cpp"
     PROPERTIES COMPILE_OPTIONS "-w")
 
-set(MODULE_TARGET "mamerecomp_cps2_${CPS2RECOMP_GAME}")
+set(MODULE_TARGET "multiarcaderecomp_cps2_${CPS2RECOMP_GAME}")
 add_library(${MODULE_TARGET} SHARED
     ${PORT_SOURCES} ${MACHINE_SOURCES} ${GEN_SOURCES} ${GEN_Z80_SOURCES}
     module_entry.cpp)
@@ -138,6 +138,6 @@ target_compile_options(${MODULE_TARGET} PRIVATE
     -Wall -Wextra -Wno-unused-parameter -Wno-unused-label -Wno-unused-variable -Wno-parentheses-equality -fsigned-char)
 target_compile_definitions(${MODULE_TARGET} PRIVATE RECOMP_VERSION="${RECOMP_VERSION}")
 set_target_properties(${MODULE_TARGET} PROPERTIES
-    OUTPUT_NAME "mamerecomp_cps2_${CPS2RECOMP_GAME}"
+    OUTPUT_NAME "multiarcaderecomp_cps2_${CPS2RECOMP_GAME}"
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)

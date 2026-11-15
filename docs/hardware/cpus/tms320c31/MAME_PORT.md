@@ -35,7 +35,7 @@ and image layout, but do not replace the per-instruction encoding descriptions.
 The current interpreter's instruction handlers and indirect-addressing
 routines are adapted from MAME's TMS320C3x core. `mame_source/` retains the
 upstream files unchanged as a comparison/reference; the adapter binds the C31
-register state and 24-bit word-addressed bus to MameRecomp callbacks. The AOT
+register state and 24-bit word-addressed bus to MultiArcadeRecomp callbacks. The AOT
 translator is being separated from those handlers, with the TI guide as its
 ISA reference.
 
@@ -181,7 +181,7 @@ The current state is:
   translated words, and 14,041 generated blocks. These are image-word counts;
   data can decode as opcodes, so they say nothing by themselves about distinct
   instructions, reachable code, runtime execution, or coverage.
-- The Release target `mamerecomp_vunit_trace` compiled successfully after this
+- The Release target `multiarcaderecomp_vunit_trace` compiled successfully after this
   checkpoint. No instruction-by-instruction equivalence run or gameplay
   performance gain has been established for the new direct emitter.
 - The TI references used for this work are archived in
@@ -209,19 +209,19 @@ this avoids compiling the full generated table as one enormous C++ unit while
 preserving direct lookup for the reset image.
 
 Enable generation by configuring with
-`-DMAMERECOMP_CRUSNUSA_C31_ROM_IMAGE=/path/to/main.bin`. The generated source
+`-DMULTIARCADERECOMP_CRUSNUSA_C31_ROM_IMAGE=/path/to/main.bin`. The generated source
 is written into the selected CMake build directory. Leave the setting empty
 to build the same CPU with interpreter-only dispatch. Captured stable RAM code
-can be added with `-DMAMERECOMP_CRUSNUSA_C31_OVERLAY=/path/to/overlay.txt`;
+can be added with `-DMULTIARCADERECOMP_CRUSNUSA_C31_OVERLAY=/path/to/overlay.txt`;
 every overlay word is checked on first use and again after a write to its PC. Use
-`MAMERECOMP_C31_HOT_SITES=1` during a run to capture hot PC/opcode pairs, then
+`MULTIARCADERECOMP_C31_HOT_SITES=1` during a run to capture hot PC/opcode pairs, then
 `tools/tms320c31/capture_overlay.py run1.log run2.log --output overlay.txt` to
 union repeated captures. The tool rejects addresses whose opcode differs
 within or between runs, leaving those PCs on the interpreter path. Runtime
 totals separate native/AOT from interpreted instructions.
 
 The V-Unit runner can also generate an initial ADSP-2105 table from the DCS
-region with `-DMAMERECOMP_CRUSNUSA_DCS_ROM_IMAGE=/path/to/dcs.bin`. It mirrors
+region with `-DMULTIARCADERECOMP_CRUSNUSA_DCS_ROM_IMAGE=/path/to/dcs.bin`. It mirrors
 the DCS 2K bank-zero boot transfer and feeds its packed 24-bit words into the
 shared `tools/adsp2105/recomp.py` generator. Dynamic program writes and banked
 code without a matching AOT entry retain the ADSP interpreter fallback.

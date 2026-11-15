@@ -18,11 +18,11 @@ void m68k_set_rte_instr_callback(void (*callback)(void));
 namespace {
 
 bool s_initialized = false;
-MameRecompM68kOpcodeRead16Fn s_opcode_reader = nullptr;
+MultiArcadeRecompM68kOpcodeRead16Fn s_opcode_reader = nullptr;
 void* s_opcode_reader_context = nullptr;
-MameRecompM68kCmpildFn s_fd1094_cmpild = nullptr;
-MameRecompM68kRteFn s_fd1094_rte = nullptr;
-MameRecompM68kIrqAckFn s_fd1094_irq_ack = nullptr;
+MultiArcadeRecompM68kCmpildFn s_fd1094_cmpild = nullptr;
+MultiArcadeRecompM68kRteFn s_fd1094_rte = nullptr;
+MultiArcadeRecompM68kIrqAckFn s_fd1094_irq_ack = nullptr;
 void* s_fd1094_context = nullptr;
 const uint32_t* s_aot_entry_pcs = nullptr;
 size_t s_aot_entry_count = 0;
@@ -89,7 +89,7 @@ void fallback_instruction_hook(unsigned int pc) {
     ng_cycles = s_fallback_start_cycles + m68k_cycles_run();
     const bool invalidated = s_aot_state_valid && !*s_aot_state_valid;
     const bool event_due = ng_cycles >= ng_next_event;
-    const bool bus_faulted = mamerecomp_m68k_bus_fault().access != M68K_BUS_ACCESS_NONE;
+    const bool bus_faulted = multiarcaderecomp_m68k_bus_fault().access != M68K_BUS_ACCESS_NONE;
     if (invalidated || event_due || bus_faulted || is_aot_entry(pc)) {
         m68k_end_timeslice();
         return;
@@ -144,22 +144,22 @@ void m68k_write_memory_32_pd(unsigned int address, unsigned int value) {
     ng_w16(address, static_cast<uint16_t>(value >> 16));
 }
 
-__attribute__((visibility("default"))) void mamerecomp_m68k_musashi_set_opcode_reader(
-    MameRecompM68kOpcodeRead16Fn reader, void* context) {
+__attribute__((visibility("default"))) void multiarcaderecomp_m68k_musashi_set_opcode_reader(
+    MultiArcadeRecompM68kOpcodeRead16Fn reader, void* context) {
     s_opcode_reader = reader;
     s_opcode_reader_context = context;
 }
 
-__attribute__((visibility("default"))) void mamerecomp_m68k_musashi_set_extension_callbacks(
-    MameRecompM68kCmpildFn cmpild, MameRecompM68kRteFn rte,
-    MameRecompM68kIrqAckFn irq_ack, void* context) {
+__attribute__((visibility("default"))) void multiarcaderecomp_m68k_musashi_set_extension_callbacks(
+    MultiArcadeRecompM68kCmpildFn cmpild, MultiArcadeRecompM68kRteFn rte,
+    MultiArcadeRecompM68kIrqAckFn irq_ack, void* context) {
     s_fd1094_cmpild = cmpild;
     s_fd1094_rte = rte;
     s_fd1094_irq_ack = irq_ack;
     s_fd1094_context = context;
 }
 
-__attribute__((visibility("default"))) int mamerecomp_m68k_musashi_step(void) {
+__attribute__((visibility("default"))) int multiarcaderecomp_m68k_musashi_step(void) {
     initialize_musashi();
     if (!CPU.stopped) mus_clear_stopped();
     copy_to_musashi();
@@ -169,7 +169,7 @@ __attribute__((visibility("default"))) int mamerecomp_m68k_musashi_step(void) {
     return consumed_cycles;
 }
 
-__attribute__((visibility("default"))) int mamerecomp_m68k_musashi_run_until(
+__attribute__((visibility("default"))) int multiarcaderecomp_m68k_musashi_run_until(
     const uint32_t* aot_entry_pcs, size_t aot_entry_count,
     const bool* aot_state_valid, uint64_t* instruction_count) {
     initialize_musashi();
@@ -178,7 +178,7 @@ __attribute__((visibility("default"))) int mamerecomp_m68k_musashi_run_until(
     s_aot_state_valid = aot_state_valid;
     s_fallback_start_cycles = ng_cycles;
     s_fallback_instruction_count = 0;
-    mamerecomp_m68k_bus_clear_fault();
+    multiarcaderecomp_m68k_bus_clear_fault();
     if (!CPU.stopped) mus_clear_stopped();
     copy_to_musashi();
     const int64_t cycles_to_event = std::max<int64_t>(1, ng_next_event - ng_cycles);
@@ -195,7 +195,7 @@ __attribute__((visibility("default"))) int mamerecomp_m68k_musashi_run_until(
     return consumed_cycles;
 }
 
-__attribute__((visibility("default"))) void mamerecomp_m68k_musashi_describe(
+__attribute__((visibility("default"))) void multiarcaderecomp_m68k_musashi_describe(
     uint32_t pc, uint16_t* opcode, char* disassembly, size_t capacity) {
     if (opcode) *opcode = static_cast<uint16_t>(ng_r16(pc));
     if (!disassembly || capacity == 0) return;

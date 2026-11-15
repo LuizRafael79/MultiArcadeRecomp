@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 // Game-specific sound command handling is implemented by the selected game
 // module. The host only exposes neutral playback operations.
@@ -20,4 +20,4 @@ struct GameAudioApi {
     bool (*on_sound_command)(std::uint8_t command, const GameAudioHostApi* host);
 };
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

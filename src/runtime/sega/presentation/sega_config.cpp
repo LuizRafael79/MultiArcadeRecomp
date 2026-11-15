@@ -6,7 +6,7 @@
 #include <fstream>
 #include <string>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 bool parse_bool(const std::string& value, bool fallback) {
@@ -32,16 +32,16 @@ std::filesystem::path sega_settings_path(const char* profile_id) {
 #ifdef _WIN32
     if (const char* appdata = std::getenv("APPDATA")) root = appdata;
     else root = std::filesystem::current_path();
-    return root / "MameRecomp" / (std::string(profile_id) + ".ini");
+    return root / "MultiArcadeRecomp" / (std::string(profile_id) + ".ini");
 #elif defined(__APPLE__)
     if (const char* home = std::getenv("HOME")) root = std::filesystem::path(home) / "Library" / "Application Support";
     else root = std::filesystem::current_path();
-    return root / "MameRecomp" / (std::string(profile_id) + ".ini");
+    return root / "MultiArcadeRecomp" / (std::string(profile_id) + ".ini");
 #else
     if (const char* xdg = std::getenv("XDG_CONFIG_HOME")) root = xdg;
     else if (const char* home = std::getenv("HOME")) root = std::filesystem::path(home) / ".config";
     else root = std::filesystem::current_path();
-    return root / "mamerecomp" / (std::string(profile_id) + ".ini");
+    return root / "multiarcaderecomp" / (std::string(profile_id) + ".ini");
 #endif
 }
 
@@ -86,7 +86,7 @@ bool save_sega_settings(const std::filesystem::path& path, const SegaSharedSetti
         if (error) *error = "could not open settings file for writing: " + path.string();
         return false;
     }
-    output << "# MameRecomp per-game settings. Values are semantic menu choices.\n"
+    output << "# MultiArcadeRecomp per-game settings. Values are semantic menu choices.\n"
            << "video_backend=" << (settings.video_backend == SegaVideoBackend::OpenGL ? "opengl" : "software") << '\n'
            << "display_mode=" << (settings.display_mode == SegaDisplayMode::Windowed ? "windowed"
                : settings.display_mode == SegaDisplayMode::FullscreenExclusive ? "exclusive" : "borderless") << '\n'
@@ -101,4 +101,4 @@ bool save_sega_settings(const std::filesystem::path& path, const SegaSharedSetti
     return true;
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

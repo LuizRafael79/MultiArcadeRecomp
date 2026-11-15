@@ -1,7 +1,7 @@
 neogeorecomp
 Copyright (c) 2026 sp00nznet. MIT License (see LICENSE).
 
-This MIT notice covers the NeoGeoRecomp-origin portions only. The MameRecomp
+This MIT notice covers the NeoGeoRecomp-origin portions only. The MultiArcadeRecomp
 Neo Geo runtime also contains MAME-derived portions under BSD-3-Clause; see
 core/third_party/neogeo-runtime/NOTICE-MAME.md and
 docs/license/mame-neogeo/BSD-3-Clause. Those portions are not relicensed under

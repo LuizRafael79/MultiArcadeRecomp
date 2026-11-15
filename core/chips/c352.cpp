@@ -1,11 +1,11 @@
 // license:BSD-3-Clause
 // Adapted from MAME src/devices/sound/c352.cpp by R. Belmont, superctr, cync,
-// and Hoot contributors. Standalone interface for MameRecomp.
+// and Hoot contributors. Standalone interface for MultiArcadeRecomp.
 #include "c352.hpp"
 
 #include <algorithm>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 namespace {
 constexpr uint16_t BUSY = 0x8000;
 constexpr uint16_t KEYON = 0x4000;
@@ -165,4 +165,4 @@ unsigned C352::active_voices() const
     return count;
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

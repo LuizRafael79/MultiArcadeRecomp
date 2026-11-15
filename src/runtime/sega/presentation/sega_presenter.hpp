@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 struct SegaLiveInputs {
     std::uint8_t service = 0xff, p1 = 0xff, p2 = 0xff;
@@ -26,7 +26,7 @@ struct SegaPresenterTiming {
 class SegaPresenter {
 public:
     explicit SegaPresenter(std::string title,
-        std::vector<mamerecomp::sega::GameInputBinding> input_bindings = {}, bool frame_limit_enabled = true,
+        std::vector<multiarcaderecomp::sega::GameInputBinding> input_bindings = {}, bool frame_limit_enabled = true,
         bool profile_enabled = false, std::uint32_t refresh_num = 60, std::uint32_t refresh_den = 1);
     ~SegaPresenter();
     SegaPresenter(const SegaPresenter&) = delete;
@@ -38,10 +38,10 @@ public:
     SegaPresenterTiming timing() const;
     bool show_configuration_menu(SegaSharedSettings& settings,
         const std::filesystem::path& settings_path, const std::string& game_title,
-        const mamerecomp::sega::GameSettingsApi* game_api = nullptr, void* game_state = nullptr);
+        const multiarcaderecomp::sega::GameSettingsApi* game_api = nullptr, void* game_state = nullptr);
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -9,7 +9,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 std::vector<std::uint8_t> sega_frame_rgb(const SegaVideoFrame& frame,
     std::span<const std::uint8_t> palette_ram);
@@ -30,4 +30,4 @@ private:
 void write_sega_frame_ppm(const SegaVideoFrame& frame,
     std::span<const std::uint8_t> palette_ram, const std::filesystem::path& path);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

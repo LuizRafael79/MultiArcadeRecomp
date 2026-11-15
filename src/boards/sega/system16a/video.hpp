@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 using System16AFrame = SegaVideoFrame;
 using System16AVideoBackend = SegaVideoBackend;
@@ -33,4 +33,4 @@ System16AFrame render_system16a_tilemaps_opengl(std::span<const std::uint8_t> de
     std::span<const std::uint8_t> tile_ram, std::span<const std::uint8_t> text_ram,
     System16ARenderOptions options, System16AVideoProfile* profile = nullptr);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

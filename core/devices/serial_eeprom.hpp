@@ -4,7 +4,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::devices {
+namespace multiarcaderecomp::devices {
 
 // Serial EEPROM protocols used by arcade boards. The host owns pin mapping;
 // this device owns the serial command state and storage behavior.
@@ -44,4 +44,4 @@ private:
     bool locked_ = true;
 };
 
-} // namespace mamerecomp::devices
+} // namespace multiarcaderecomp::devices

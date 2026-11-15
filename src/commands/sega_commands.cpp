@@ -6,19 +6,19 @@
 
 #include <iostream>
 
-namespace mamerecomp::app::sega {
+namespace multiarcaderecomp::app::sega {
 
 void configure_module_directory(const std::filesystem::path& directory) {
-    mamerecomp::sega::set_module_directory(directory);
+    multiarcaderecomp::sega::set_module_directory(directory);
 }
 
 int list_games() {
-    mamerecomp::sega::print_game_profiles();
+    multiarcaderecomp::sega::print_game_profiles();
     return 0;
 }
 
 int retired_run_full() {
-    std::cerr << "run-full is retired; use `mamerecomp run --machine=sega --board=<system16a|system16b|system18> --game=<profile>` instead.\n";
+    std::cerr << "run-full is retired; use `multiarcaderecomp run --machine=sega --board=<system16a|system16b|system18> --game=<profile>` instead.\n";
     return 2;
 }
 
@@ -28,7 +28,7 @@ bool handles_utility_command(std::string_view command) {
 }
 
 int run_utility_command(int argc, char** argv) {
-    return mamerecomp::sega::run_rom_command(argc, argv);
+    return multiarcaderecomp::sega::run_rom_command(argc, argv);
 }
 
-} // namespace mamerecomp::app::sega
+} // namespace multiarcaderecomp::app::sega

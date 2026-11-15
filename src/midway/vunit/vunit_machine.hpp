@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 
 struct RuntimeReport {
     std::uint64_t main_cycles{};
@@ -39,8 +39,8 @@ public:
     const Video& video() const noexcept { return m_video; }
     tms320c31::State& cpu() noexcept { return m_cpu_state; }
     const tms320c31::State& cpu() const noexcept { return m_cpu_state; }
-    mamerecomp::dcs::DcsAudio2K& dcs() noexcept { return m_dcs; }
-    const mamerecomp::dcs::DcsAudio2K& dcs() const noexcept { return m_dcs; }
+    multiarcaderecomp::dcs::DcsAudio2K& dcs() noexcept { return m_dcs; }
+    const multiarcaderecomp::dcs::DcsAudio2K& dcs() const noexcept { return m_dcs; }
     std::vector<std::int16_t> take_audio_samples() noexcept;
     std::vector<std::uint8_t> framebuffer_rgb() const;
     RuntimeReport report() const noexcept;
@@ -69,8 +69,8 @@ private:
     std::array<std::uint32_t, 0x80> m_tms_control{};
     std::array<std::uint16_t, 4> m_adc_inputs{0x80, 0x80, 0x80, 0x80};
     Video m_video;
-    mamerecomp::chips::ADC0844 m_adc;
-    mamerecomp::dcs::DcsAudio2K m_dcs;
+    multiarcaderecomp::chips::ADC0844 m_adc;
+    multiarcaderecomp::dcs::DcsAudio2K m_dcs;
     tms320c31::State m_cpu_state{};
     tms320c31::Interpreter m_cpu;
     std::uint16_t m_input0{0xffff};
@@ -103,4 +103,4 @@ private:
     bool m_adsp_interpreter_only{};
 };
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

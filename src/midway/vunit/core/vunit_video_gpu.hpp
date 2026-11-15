@@ -6,7 +6,7 @@
 #include <span>
 #include <string>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 
 class VUnitGpuRenderer final {
 public:
@@ -38,4 +38,4 @@ private:
     Impl* m_impl{};
 };
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

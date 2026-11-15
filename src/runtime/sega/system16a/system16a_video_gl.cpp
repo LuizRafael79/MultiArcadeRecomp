@@ -15,14 +15,14 @@
 #include <vector>
 
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 using Clock = std::chrono::steady_clock;
 
 std::string read_shader_source() {
-    std::ifstream input(MAMERECOMP_SYSTEM16A_SHADER_PATH, std::ios::binary);
-    if (!input) throw std::runtime_error("could not open System 16A compute shader: " MAMERECOMP_SYSTEM16A_SHADER_PATH);
+    std::ifstream input(MULTIARCADERECOMP_SYSTEM16A_SHADER_PATH, std::ios::binary);
+    if (!input) throw std::runtime_error("could not open System 16A compute shader: " MULTIARCADERECOMP_SYSTEM16A_SHADER_PATH);
     return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
 }
 
@@ -159,7 +159,7 @@ private:
         require_sdl(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4), "OpenGL major version setup failed");
         require_sdl(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3), "OpenGL minor version setup failed");
         require_sdl(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE), "OpenGL profile setup failed");
-        window_ = SDL_CreateWindow("MameRecomp OpenGL tilemap backend", 64, 64, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
+        window_ = SDL_CreateWindow("MultiArcadeRecomp OpenGL tilemap backend", 64, 64, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
         if (!window_) throw std::runtime_error(std::string("OpenGL window creation failed: ") + SDL_GetError());
         context_ = SDL_GL_CreateContext(window_);
         if (!context_) throw std::runtime_error(std::string("OpenGL context creation failed: ") + SDL_GetError());
@@ -257,4 +257,4 @@ System16AFrame render_system16a_tilemaps_opengl(std::span<const std::uint8_t> de
     return OpenGLTilemapRenderer::instance().render(decoded_tiles, tile_ram, text_ram, options, profile);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

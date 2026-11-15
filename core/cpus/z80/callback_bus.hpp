@@ -5,7 +5,7 @@
 #include <functional>
 #include <utility>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 class CallbackBus final : public Z80Bus {
 public:
@@ -38,4 +38,4 @@ private:
     BoundaryFn m_boundary;
 };
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80

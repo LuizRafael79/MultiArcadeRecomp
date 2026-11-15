@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 constexpr std::uint32_t kSoundClockHz = 4'000'000;
@@ -287,4 +287,4 @@ void System16ASound::ymfm_external_write(ymfm::access_class type, std::uint32_t 
     }
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

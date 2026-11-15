@@ -55,7 +55,7 @@ the normal ROM root, and `--mame` to name a non-default MAME executable.
 
 ## Current status and limits
 
-- KI1 is connected to `mamerecomp build/run`. The Seattle prototype loads the
+- KI1 is connected to `multiarcaderecomp build/run`. The Seattle prototype loads the
   parent ZIP and CHD, decodes the MIPS images from U98 offline, starts the shared
   R4600 AOT backend, drives a frame scheduler/video scanout, maps keyboard
   input, opens persistent NVRAM and connects the DCS/ADSP sample path.
@@ -89,9 +89,9 @@ Run KI1 with a live window (build first if the dispatcher reports stale
 artifacts):
 
 ```sh
-build/mamerecomp build --machine=ki --board=seattle --game=ki1 \
+build/multiarcaderecomp build --machine=ki --board=seattle --game=ki1 \
   --rom-dir ~/git/mame/roms --jobs 4
-build/mamerecomp run --machine=ki --board=seattle --game=ki1 \
+build/multiarcaderecomp run --machine=ki --board=seattle --game=ki1 \
   --rom-dir ~/git/mame/roms --window
 ```
 

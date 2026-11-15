@@ -2,7 +2,7 @@
 // Copyright holders: pSXAuthor, R. Belmont. MAME source license: BSD-3-Clause.
 #pragma once
 #include <array>
-namespace mamerecomp::psx::spu_rates {
+namespace multiarcaderecomp::psx::spu_rates {
 // Durations in seconds; zero entries match MAME rate-table entries with no rate.
 inline constexpr std::array<double, 108> linear_rate_seconds{{
     5e-05, 6e-05, 7e-05, 9e-05, 0.0001, 0.00012,
@@ -82,4 +82,4 @@ inline constexpr std::array<double, 27> exp_release_rate_seconds{{
     27, 55, 109, 219, 438, 876,
     1752, 3504, 7008,
 }};
-} // namespace mamerecomp::psx::spu_rates
+} // namespace multiarcaderecomp::psx::spu_rates

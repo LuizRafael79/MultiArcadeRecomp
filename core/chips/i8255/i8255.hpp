@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Intel 8255 PPI state and the mode-2 port-A handshake used by System 16A.
 // Board code supplies address decoding and wires the port outputs to devices.
@@ -34,4 +34,4 @@ private:
     bool m_port_a_mode2 = false;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

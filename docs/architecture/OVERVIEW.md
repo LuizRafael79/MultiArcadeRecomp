@@ -63,25 +63,25 @@ their own hardware behavior and are linked or loaded as dependencies; boards
 provide their clocks and wire their signals. ROM images remain external build
 and runtime inputs and are never embedded in a shared library.
 
-Recommended Linux names are `mamerecomp_<board>_runtime.so` and
-`mamerecomp_<board>_<game>.so`. A separate `*_board.so` is optional
+Recommended Linux names are `multiarcaderecomp_<board>_runtime.so` and
+`multiarcaderecomp_<board>_<game>.so`. A separate `*_board.so` is optional
 when a board descriptor genuinely needs an independent ABI or lifetime; do not
 split one board across redundant libraries just to satisfy a filename pattern.
 Sega currently builds one loadable runtime per board, for example
-`mamerecomp_system16a_runtime.so`, and one generated module per selected game,
-for example `mamerecomp_system16a_shinobi.so`. The game module contains its
+`multiarcaderecomp_system16a_runtime.so`, and one generated module per selected game,
+for example `multiarcaderecomp_system16a_shinobi.so`. The game module contains its
 translation table and adapter, with optional versioned settings/audio hooks;
 the board runtime exports a versioned factory
 and remains loaded for the full lifetime of the board session. The build
 command selects one runtime target and one game target, so changing or adding a
 game does not require rebuilding unrelated board/game modules. For example,
-`cmake --build <build-dir> --target mamerecomp_sega_runtime_system16a` builds
+`cmake --build <build-dir> --target multiarcaderecomp_sega_runtime_system16a` builds
 the System16A runtime and its required dependencies without building the
 System16B or System18 runtimes. Extend this same per-board/per-game contract
 to the other system families.
 
 Sega presentation and shared video/audio preferences live in the independent
-`mamerecomp_sega_presentation` target under `src/runtime/sega/presentation/`.
+`multiarcaderecomp_sega_presentation` target under `src/runtime/sega/presentation/`.
 They are linked by the host runner, not by a board runtime. The System 16 core
 is not linked into the runtime dispatch path; generic 68000 debugging lives in
 `src/runtime/sega/debugger/` and is linked by the host runner. System 18 does
@@ -91,9 +91,9 @@ host.
 Namco System 12 is the first non-Sega board extraction: COH700 bus mapping,
 ROM banking, DMA ROM source selection, H8 I/O, and C352 wiring live in
 `src/boards/namco/system12/system12_board.*` and the
-`mamerecomp_namco_system12_board` target. H8/3002 execution and board-side
+`multiarcaderecomp_namco_system12_board` target. H8/3002 execution and board-side
 cycle scheduling live in `src/runtime/namco/system12/system12_runtime.*` and
-`mamerecomp_namco_system12_runtime`. The shared PSX-derived machine and the
+`multiarcaderecomp_namco_system12_runtime`. The shared PSX-derived machine and the
 Tekken 3 runner/profile still reside in the ZN path; move them into Namco
 runtime/game packages before considering the extraction complete.
 
@@ -126,7 +126,7 @@ game. Do not put individual games' DIP meanings or menu choices into the main
 application or a CPU/chip module.
 
 The Linux game-module settings ABI is version 1, exported as
-`mamerecomp_game_settings_api`. It provides a game-tab renderer, per-game state
+`multiarcaderecomp_game_settings_api`. It provides a game-tab renderer, per-game state
 creation/destruction, input-binding data, and board-input/DIP values. The host
 owns the ImGui context and draws generic controls from the binding data; the
 selected game `.so` owns the control labels, key-to-port mapping, option

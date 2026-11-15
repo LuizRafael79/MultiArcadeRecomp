@@ -4,7 +4,7 @@
 #include <span>
 #include <string>
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 class TmntBoard;
 
 class TmntPresenter {
@@ -22,4 +22,4 @@ private:
     struct Impl;
     Impl* impl_ = nullptr;
 };
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

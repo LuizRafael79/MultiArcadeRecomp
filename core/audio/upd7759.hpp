@@ -5,7 +5,7 @@
 #include <span>
 #include <utility>
 
-namespace mamerecomp::audio {
+namespace multiarcaderecomp::audio {
 
 // Clocked uPD7759 sample player. Supports the standalone ROM mode used by
 // Konami TMNT and the FIFO/slave mode used by System 16B sound boards.
@@ -47,4 +47,4 @@ private:
     bool drq_ = false, first_valid_header_ = false;
 };
 
-} // namespace mamerecomp::audio
+} // namespace multiarcaderecomp::audio

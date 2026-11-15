@@ -16,7 +16,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 struct InputEvent {
     std::uint64_t first_frame;
@@ -42,25 +42,25 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
     std::uint64_t cpu_trace_start, std::uint64_t cpu_trace_end,
     const std::function<int(const std::vector<std::string>&)>& launch_child);
 
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
-int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
+int run_game(const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     std::uint64_t cycle_budget, const std::optional<std::filesystem::path>& frame_out,
     const std::optional<std::uint64_t>& frame_out_vblank,
     const std::optional<std::filesystem::path>& video_state_out,
     const std::optional<std::filesystem::path>& runtime_entry_out,
     const std::optional<std::filesystem::path>& nvram_in, bool mame_nvram_in, bool video_profile_enabled,
     bool aot_profile_enabled, bool frame_limit_enabled,
-    mamerecomp::SegaVideoBackend video_backend, bool compare_cpu_video,
+    multiarcaderecomp::SegaVideoBackend video_backend, bool compare_cpu_video,
     const std::vector<InputEvent>& input_events,
     std::optional<std::uint8_t> dsw1_override, std::optional<std::uint8_t> dsw2_override, bool debugger_enabled,
     const std::optional<std::filesystem::path>& cpu_trace_out,
     std::uint64_t cpu_trace_start, std::uint64_t cpu_trace_end, bool window_enabled, bool audio_enabled,
     bool audio_stereo_spread, std::uint8_t audio_volume,
-    mamerecomp::SegaDisplayMode display_mode, std::uint8_t window_scale,
+    multiarcaderecomp::SegaDisplayMode display_mode, std::uint8_t window_scale,
     std::uint8_t ym2151_muted_channels, bool ym2151_suppress_slot0_channel2,
     bool ym2151_suppress_slot3_channel5, bool ym2151_suppress_slot4_channel6,
     bool ym2151_suppress_slot5_channel7, bool arranged_bgm,
-    const std::vector<mamerecomp::sega::GameInputBinding>& game_input_bindings = {});
+    const std::vector<multiarcaderecomp::sega::GameInputBinding>& game_input_bindings = {});
 #endif
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

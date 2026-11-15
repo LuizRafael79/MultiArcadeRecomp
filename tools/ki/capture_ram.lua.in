@@ -27,6 +27,6 @@ emu.register_frame_done(function()
     captured = true
     dump(ram0_path, 0x00000000, 0x0007ffff)
     dump(ram2_path, 0x08000000, 0x087fffff)
-    print(string.format("MameRecomp KI RAM snapshot captured at frame %d", frames))
+    print(string.format("MultiArcadeRecomp KI RAM snapshot captured at frame %d", frames))
     machine:exit()
-end, "MameRecomp KI RAM capture")
+end, "MultiArcadeRecomp KI RAM capture")

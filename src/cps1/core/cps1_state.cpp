@@ -1,6 +1,6 @@
 #include "cps1_state.hpp"
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 std::array<uint8_t, 0x400000> g_program{};
 std::array<uint8_t, 0x10000> g_workram{};
@@ -24,4 +24,4 @@ bool g_irq1_pending = false;
 bool g_trace_vblank = false;
 uint64_t g_vblank_count = 0;
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

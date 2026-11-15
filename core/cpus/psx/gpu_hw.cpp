@@ -19,7 +19,7 @@
 #include <unordered_set>
 #include <utility>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 constexpr int kVramWidth = 1024;
 constexpr int kMinVramHeight = 512;
@@ -345,7 +345,7 @@ struct GpuHardwareRenderer::Impl {
     std::array<uint64_t, kGpuTimingKindCount> gpu_timing_units{};
     std::array<uint64_t, kGpuTimingKindCount> gpu_timing_dropped{};
     const bool host_cpu_timing_enabled =
-        std::getenv("MAMERECOMP_PSX_GPU_CPU_PROFILE") != nullptr;
+        std::getenv("MULTIARCADERECOMP_PSX_GPU_CPU_PROFILE") != nullptr;
     std::array<uint64_t, kHostTimingKindCount> host_cpu_timing_ns{};
     std::array<uint64_t, kHostTimingKindCount> host_cpu_timing_calls{};
     size_t command_stride = sizeof(ShaderCommand);
@@ -404,21 +404,21 @@ struct GpuHardwareRenderer::Impl {
     std::array<int, 4> pending_batch_dirty_bounds{};
     std::string renderer;
     std::string init_error;
-    bool debug_gl = std::getenv("MAMERECOMP_PSX_GPU_GL_CHECK") != nullptr;
+    bool debug_gl = std::getenv("MULTIARCADERECOMP_PSX_GPU_GL_CHECK") != nullptr;
     bool batching_enabled = [] {
-        const char* value = std::getenv("MAMERECOMP_PSX_GPU_BATCHING");
+        const char* value = std::getenv("MULTIARCADERECOMP_PSX_GPU_BATCHING");
         return !value || std::strcmp(value, "0") != 0;
     }();
     bool texture_cache_enabled = [] {
-        const char* value = std::getenv("MAMERECOMP_PSX_GPU_TEXTURE_CACHE");
+        const char* value = std::getenv("MULTIARCADERECOMP_PSX_GPU_TEXTURE_CACHE");
         return !value || std::strcmp(value, "0") != 0;
     }();
     bool gpu_timing_enabled = [] {
-        const char* value = std::getenv("MAMERECOMP_PSX_GPU_TIMING");
+        const char* value = std::getenv("MULTIARCADERECOMP_PSX_GPU_TIMING");
         return value && std::strcmp(value, "0") != 0;
     }();
     uint32_t batch_primitive_limit = [] {
-        const char* value = std::getenv("MAMERECOMP_PSX_GPU_BATCH_LIMIT");
+        const char* value = std::getenv("MULTIARCADERECOMP_PSX_GPU_BATCH_LIMIT");
         if (!value || !*value) return kMaxBatchPrimitives;
         char* end = nullptr;
         const unsigned long parsed = std::strtoul(value, &end, 10);
@@ -557,7 +557,7 @@ struct GpuHardwareRenderer::Impl {
                 !SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) ||
                 !SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE))
                 throw std::runtime_error(std::string("PSX OpenGL context attributes failed: ") + SDL_GetError());
-            window = SDL_CreateWindow("MameRecomp PSX GPU", 32, 32,
+            window = SDL_CreateWindow("MultiArcadeRecomp PSX GPU", 32, 32,
                                       SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
             if (!window) throw std::runtime_error(std::string("hidden PSX OpenGL window failed: ") + SDL_GetError());
             owns_window = true;
@@ -572,37 +572,37 @@ struct GpuHardwareRenderer::Impl {
         if (major < 4 || (major == 4 && minor < 3))
             throw std::runtime_error("PSX hardware rasterizer requires OpenGL 4.3");
         if (const auto* name = glGetString(GL_RENDERER)) renderer = reinterpret_cast<const char*>(name);
-        program = compile_compute_program(read_shader_source(MAMERECOMP_PSX_GPU_SHADER_PATH), init_error);
+        program = compile_compute_program(read_shader_source(MULTIARCADERECOMP_PSX_GPU_SHADER_PATH), init_error);
         if (!program) throw std::runtime_error(init_error);
         scanout_program = compile_compute_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_SCANOUT_SHADER_PATH), init_error);
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_SCANOUT_SHADER_PATH), init_error);
         if (!scanout_program) throw std::runtime_error(init_error);
         draw_program = compile_graphics_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
-            read_shader_source(MAMERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_VERTEX_SHADER_PATH),
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_FRAGMENT_SHADER_PATH), init_error);
         if (!draw_program) throw std::runtime_error(init_error);
         std::string batch_fragment_source =
-            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH);
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_BATCH_FRAGMENT_SHADER_PATH);
         if (!texture_cache_enabled) {
             const size_t version_end = batch_fragment_source.find('\n');
             batch_fragment_source.insert(version_end == std::string::npos
                     ? batch_fragment_source.size() : version_end + 1,
-                "#define MAMERECOMP_PSX_NO_TEXTURE_CACHE\n");
+                "#define MULTIARCADERECOMP_PSX_NO_TEXTURE_CACHE\n");
         }
         batch_draw_program = compile_graphics_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH),
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_BATCH_VERTEX_SHADER_PATH),
             batch_fragment_source, init_error);
         if (!batch_draw_program) throw std::runtime_error(init_error);
         batch_scanline_setup_program = compile_compute_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_BATCH_SCANLINE_SHADER_PATH), init_error);
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_BATCH_SCANLINE_SHADER_PATH), init_error);
         if (!batch_scanline_setup_program) throw std::runtime_error(init_error);
         if (texture_cache_enabled) {
             texture_cache_program = compile_compute_program(
-                read_shader_source(MAMERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
+                read_shader_source(MULTIARCADERECOMP_PSX_GPU_TEXTURE_CACHE_SHADER_PATH), init_error);
             if (!texture_cache_program) throw std::runtime_error(init_error);
         }
         polyline_program = compile_compute_program(
-            read_shader_source(MAMERECOMP_PSX_GPU_POLYLINE_SHADER_PATH), init_error);
+            read_shader_source(MULTIARCADERECOMP_PSX_GPU_POLYLINE_SHADER_PATH), init_error);
         if (!polyline_program) throw std::runtime_error(init_error);
         origin_location = glGetUniformLocation(program, "uDispatchOrigin");
         vram_height_location = glGetUniformLocation(program, "uVramHeight");
@@ -1728,7 +1728,7 @@ GpuHardwareRenderer::~GpuHardwareRenderer() {
         }
         std::cerr << '\n';
     }
-    if (std::getenv("MAMERECOMP_PSX_GPU_BATCH_STATS")) {
+    if (std::getenv("MULTIARCADERECOMP_PSX_GPU_BATCH_STATS")) {
         std::cerr << "PSX GPU batch submissions=" << impl_->submitted_batch_count
                   << " primitives=" << impl_->submitted_batch_primitive_count;
         if (impl_->submitted_batch_count)
@@ -2140,4 +2140,4 @@ bool GpuHardwareRenderer::present_scanout() {
 
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { return impl_->renderer; }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

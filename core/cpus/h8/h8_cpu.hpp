@@ -6,7 +6,7 @@
 #include <functional>
 #include <stdexcept>
 
-namespace mamerecomp::h8 {
+namespace multiarcaderecomp::h8 {
 using u8=uint8_t; using u16=uint16_t; using u32=uint32_t;
 using u64=uint64_t; using s8=int8_t; using s16=int16_t; using s32=int32_t;
 constexpr u8 F_I=0x80, F_UI=0x40, F_H=0x20, F_U=0x10, F_N=0x08,
@@ -804,4 +804,4 @@ private:
     void state_irq_full();
     void state_irq_partial();
 };
-} // namespace mamerecomp::h8
+} // namespace multiarcaderecomp::h8

@@ -67,7 +67,7 @@ def main() -> None:
         '// Generated from an observed DSP16A execution manifest. Do not edit.',
         '#include "dsp16a.hpp"',
         '',
-        'namespace mamerecomp::dsp16 {',
+        'namespace multiarcaderecomp::dsp16 {',
     ]
     for opcode in sorted({opcode for _, opcode, _ in entries}):
         lines.append(
@@ -84,11 +84,11 @@ def main() -> None:
     )
     lines.extend([
         '};',
-        'extern "C" const Dsp16ACompiledEntry* mamerecomp_dsp16a_aot_entries(std::size_t* count) {',
+        'extern "C" const Dsp16ACompiledEntry* multiarcaderecomp_dsp16a_aot_entries(std::size_t* count) {',
         '    *count = sizeof(entries) / sizeof(entries[0]);',
         '    return entries;',
         '}',
-        '} // namespace mamerecomp::dsp16',
+        '} // namespace multiarcaderecomp::dsp16',
         '',
     ])
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -15,9 +15,9 @@
 #include "ymfm_opm.h"
 #include <neogeorecomp/neogeo.h>
 
-namespace mamerecomp::z80 { class Z80; class Z80Bus; }
+namespace multiarcaderecomp::z80 { class Z80; class Z80Bus; }
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 
 struct TmntRomSet {
     std::unordered_map<std::string, std::vector<uint8_t>> regions;
@@ -159,8 +159,8 @@ public:
     uint64_t fallback_instructions() const;
 private:
     TmntBoard& board_;
-    std::unique_ptr<mamerecomp::z80::Z80Bus> bus_;
-    std::unique_ptr<mamerecomp::z80::Z80> cpu_;
+    std::unique_ptr<multiarcaderecomp::z80::Z80Bus> bus_;
+    std::unique_ptr<multiarcaderecomp::z80::Z80> cpu_;
 };
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

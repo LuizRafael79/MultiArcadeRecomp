@@ -24,7 +24,7 @@ uint8_t* ng_wmap[256]{};
 int ng_protection_active = 0;
 }
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
 uint64_t g_reads = 0;
 uint64_t g_writes = 0;
@@ -44,7 +44,7 @@ uint16_t bus_read16(uint32_t address) {
     }
     if (address >= 0x800000 && address <= 0x800006) {
         const std::uint16_t value = read_player_inputs();
-        if (std::getenv("MAMERECOMP_CPS1_TRACE_INPUT")) {
+        if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_INPUT")) {
             static std::uint16_t previous = 0xffff;
             if (value != previous) {
                 std::cerr << "[cps1-input] 68000 IN1 read=$" << std::hex << value << std::dec << '\n';
@@ -56,7 +56,7 @@ uint16_t bus_read16(uint32_t address) {
     if (address >= 0x800018 && address <= 0x80001e) {
         const unsigned offset = (address - 0x800018) >> 1;
         const std::uint16_t value = static_cast<std::uint16_t>((read_system_dip(offset) << 8) | 0xff);
-        if (offset == 0 && std::getenv("MAMERECOMP_CPS1_TRACE_INPUT")) {
+        if (offset == 0 && std::getenv("MULTIARCADERECOMP_CPS1_TRACE_INPUT")) {
             static std::uint16_t previous = 0xffff;
             if (value != previous) {
                 std::cerr << "[cps1-input] 68000 IN0 read=$" << std::hex << value << std::dec << '\n';
@@ -153,7 +153,7 @@ void bus_write16(uint32_t address, uint16_t value) {
     }
     if (address >= 0xff0000 && address <= 0xfffffe) {
         const size_t offset = address - 0xff0000;
-        if (address == 0xff804e && std::getenv("MAMERECOMP_CPS1_TRACE_LAYER_CONTROL"))
+        if (address == 0xff804e && std::getenv("MULTIARCADERECOMP_CPS1_TRACE_LAYER_CONTROL"))
             std::cerr << "[cps1] layer-state cycle=" << ng_cycles << " PC=$" << std::hex
                       << g_current_guest_pc << " workram=$" << value << std::dec << '\n';
         g_workram[offset] = static_cast<uint8_t>(value >> 8);
@@ -162,7 +162,7 @@ void bus_write16(uint32_t address, uint16_t value) {
 }
 
 void initialize_bus(std::span<const uint8_t> image) {
-    mame_recomp_m68k_set_exception_bus(ng_r16_slow, ng_w16_slow);
+    multiarcade_recomp_m68k_set_exception_bus(ng_r16_slow, ng_w16_slow);
     g_program_size = image.size();
     g_program.fill(0xff);
     std::copy_n(image.begin(), std::min(image.size(), g_program.size()), g_program.begin());
@@ -173,7 +173,7 @@ void initialize_bus(std::span<const uint8_t> image) {
         ng_wmap[page] = g_gfxram_is_executable ? nullptr : g_gfxram.data() + offset;
     }
     ng_rmap[0xff] = g_workram.data();
-    ng_wmap[0xff] = std::getenv("MAMERECOMP_CPS1_TRACE_LAYER_CONTROL")
+    ng_wmap[0xff] = std::getenv("MULTIARCADERECOMP_CPS1_TRACE_LAYER_CONTROL")
         ? nullptr : g_workram.data();
     cpsa_reset();
     cpsb_reset();
@@ -183,9 +183,9 @@ void initialize_bus(std::span<const uint8_t> image) {
 uint64_t bus_reads() { return g_reads; }
 uint64_t bus_writes() { return g_writes; }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail
 
-using namespace mamerecomp::cps1::detail;
+using namespace multiarcaderecomp::cps1::detail;
 
 extern "C" {
 uint8_t ng_r8_slow(uint32_t address) {

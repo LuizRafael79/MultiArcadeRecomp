@@ -10,7 +10,7 @@
 #include <iterator>
 #include <limits>
 
-namespace mamerecomp::dcs {
+namespace multiarcaderecomp::dcs {
 namespace {
 constexpr std::uint16_t kInputEmpty = 0x0800;
 constexpr std::uint16_t kOutputEmpty = 0x0400;
@@ -39,17 +39,17 @@ DcsAudio2K::DcsAudio2K(std::span<const std::uint8_t> sound_region)
     boot();
 }
 
-mamerecomp::adsp2105::State& DcsAudio2K::cpu() noexcept { return m_cpu; }
-const mamerecomp::adsp2105::State& DcsAudio2K::cpu() const noexcept { return m_cpu; }
+multiarcaderecomp::adsp2105::State& DcsAudio2K::cpu() noexcept { return m_cpu; }
+const multiarcaderecomp::adsp2105::State& DcsAudio2K::cpu() const noexcept { return m_cpu; }
 
-mamerecomp::adsp2105::Bus DcsAudio2K::cpu_bus() noexcept {
+multiarcaderecomp::adsp2105::Bus DcsAudio2K::cpu_bus() noexcept {
     return {this, program_read, program_write, data_read, data_write,
             io_read, io_write, sport_tx, sport_rx, nullptr, mutable_program,
             false, true};
 }
 
 bool DcsAudio2K::program_word_was_written(std::uint16_t address) const noexcept {
-    address &= mamerecomp::adsp2105::pc_mask;
+    address &= multiarcaderecomp::adsp2105::pc_mask;
     return address < m_program_written.size() && m_program_written[address];
 }
 
@@ -136,13 +136,13 @@ void DcsAudio2K::set_reset(bool released) noexcept {
     m_reset_asserted = false;
 }
 
-mamerecomp::adsp2105::BlockExit DcsAudio2K::run_until(
+multiarcaderecomp::adsp2105::BlockExit DcsAudio2K::run_until(
         std::uint64_t cycle_limit, bool interpreter_only,
         bool recompiler_only) noexcept {
     if (m_reset_asserted || m_cpu_stalled)
-        return mamerecomp::adsp2105::BlockExit::Idle;
+        return multiarcaderecomp::adsp2105::BlockExit::Idle;
     auto bus = cpu_bus();
-    auto result = mamerecomp::adsp2105::BlockExit::Budget;
+    auto result = multiarcaderecomp::adsp2105::BlockExit::Budget;
     while (m_cpu.cycles < cycle_limit) {
         const auto slice_start = m_cpu.cycles;
         const auto activation_generation = m_dma_activation_generation;
@@ -160,21 +160,21 @@ mamerecomp::adsp2105::BlockExit DcsAudio2K::run_until(
         result = interpreter_only
             ? [&] {
                 while (m_cpu.cycles < slice_limit) {
-                    (void)mamerecomp::adsp2105::service_interrupt(m_cpu);
+                    (void)multiarcaderecomp::adsp2105::service_interrupt(m_cpu);
                     if (m_cpu.halted || m_cpu.idle) {
-                        mamerecomp::adsp2105::advance_clock(
+                        multiarcaderecomp::adsp2105::advance_clock(
                             m_cpu, bus, slice_limit - m_cpu.cycles);
-                        return mamerecomp::adsp2105::BlockExit::Idle;
+                        return multiarcaderecomp::adsp2105::BlockExit::Idle;
                     }
-                    const auto step = mamerecomp::adsp2105::interpreter_step(
-                        m_cpu, bus, slice_limit, MAMERECOMP_UNCOVERED_ENTRY);
-                    if (step != mamerecomp::adsp2105::BlockExit::Dispatch)
+                    const auto step = multiarcaderecomp::adsp2105::interpreter_step(
+                        m_cpu, bus, slice_limit, MULTIARCADERECOMP_UNCOVERED_ENTRY);
+                    if (step != multiarcaderecomp::adsp2105::BlockExit::Dispatch)
                         return step;
                 }
-                return mamerecomp::adsp2105::BlockExit::Budget;
+                return multiarcaderecomp::adsp2105::BlockExit::Budget;
             }()
-            : mamerecomp::adsp2105::run_until(
-                  m_cpu, bus, slice_limit, MAMERECOMP_UNCOVERED_ENTRY,
+            : multiarcaderecomp::adsp2105::run_until(
+                  m_cpu, bus, slice_limit, MULTIARCADERECOMP_UNCOVERED_ENTRY,
                   !recompiler_only);
 
         if (m_dma_active) {
@@ -199,21 +199,21 @@ mamerecomp::adsp2105::BlockExit DcsAudio2K::run_until(
             }
         }
 
-        if (result != mamerecomp::adsp2105::BlockExit::Budget)
+        if (result != multiarcaderecomp::adsp2105::BlockExit::Budget)
             break;
         if (m_cpu.cycles == slice_start)
             break;
     }
-    if (result == mamerecomp::adsp2105::BlockExit::NeedsInterpreter ||
-        result == mamerecomp::adsp2105::BlockExit::BusFault) {
-        m_stopped_pc = m_cpu.pc & mamerecomp::adsp2105::pc_mask;
+    if (result == multiarcaderecomp::adsp2105::BlockExit::NeedsInterpreter ||
+        result == multiarcaderecomp::adsp2105::BlockExit::BusFault) {
+        m_stopped_pc = m_cpu.pc & multiarcaderecomp::adsp2105::pc_mask;
         m_stopped_opcode = bus.read_program24
             ? bus.read_program24(bus.opaque, m_stopped_pc) &
-                mamerecomp::adsp2105::opcode_mask
+                multiarcaderecomp::adsp2105::opcode_mask
             : 0;
         m_stop_reason = static_cast<std::uint8_t>(result);
     }
-    if (result == mamerecomp::adsp2105::BlockExit::NeedsInterpreter)
+    if (result == multiarcaderecomp::adsp2105::BlockExit::NeedsInterpreter)
         m_cpu_stalled = true;
     return result;
 }
@@ -262,7 +262,7 @@ void DcsAudio2K::advance_cycles(std::uint64_t cycles) noexcept {
         }
         // MAME updates I through set_state_int(), which refreshes the DAG
         // base as well as the visible index register.
-        mamerecomp::adsp2105::dag_write_i(m_cpu, m_dma_ireg,
+        multiarcaderecomp::adsp2105::dag_write_i(m_cpu, m_dma_ireg,
             static_cast<std::uint16_t>(address));
     }
 }
@@ -422,7 +422,7 @@ void DcsAudio2K::sport_tx(void* opaque, unsigned port, std::uint32_t value) noex
     // MAME's sound_tx_callback writes the aligned address directly to Ireg.
     // Applying DAG post-modify here advances/wraps the pointer a second time
     // and can make the SPORT reader start from the wrong part of local RAM.
-    mamerecomp::adsp2105::dag_write_i(self.m_cpu, self.m_dma_ireg, source);
+    multiarcaderecomp::adsp2105::dag_write_i(self.m_cpu, self.m_dma_ireg, source);
     // MAME's DCS SPORT callback keeps the aligned start address as the
     // autobuffer origin. The ADSP DAG base is a separate circular-address
     // register and is not the DAC buffer base.
@@ -447,7 +447,7 @@ bool DcsAudio2K::mutable_program(void* opaque, std::uint16_t address) noexcept {
 }
 
 std::uint32_t DcsAudio2K::read_program(std::uint16_t address) const noexcept {
-    address &= mamerecomp::adsp2105::pc_mask;
+    address &= multiarcaderecomp::adsp2105::pc_mask;
     if (address < m_internal_program.size()) return m_internal_program[address];
     if (address >= 0x0800 && address < 0x2000)
         return m_external_program[address - 0x0800];
@@ -455,13 +455,13 @@ std::uint32_t DcsAudio2K::read_program(std::uint16_t address) const noexcept {
 }
 
 void DcsAudio2K::write_program(std::uint16_t address, std::uint32_t value) noexcept {
-    address &= mamerecomp::adsp2105::pc_mask;
+    address &= multiarcaderecomp::adsp2105::pc_mask;
     value &= 0x00ffffff;
-    if (address == 0x014b && std::getenv("MAMERECOMP_ADSP_TRACE_PROGRAM_WRITE")) {
+    if (address == 0x014b && std::getenv("MULTIARCADERECOMP_ADSP_TRACE_PROGRAM_WRITE")) {
         static std::uint32_t trace_lines = 0;
         if (trace_lines < 256) {
             ++trace_lines;
-            const auto source_pc = m_cpu.previous_pc & mamerecomp::adsp2105::pc_mask;
+            const auto source_pc = m_cpu.previous_pc & multiarcaderecomp::adsp2105::pc_mask;
             const auto source_opcode = read_program(source_pc);
             const auto& c = m_cpu.core;
             std::fprintf(stderr,
@@ -505,7 +505,7 @@ void DcsAudio2K::write_program(std::uint16_t address, std::uint32_t value) noexc
 }
 
 std::uint16_t DcsAudio2K::read_data(std::uint16_t address) noexcept {
-    address &= mamerecomp::adsp2105::pc_mask;
+    address &= multiarcaderecomp::adsp2105::pc_mask;
     // MAME maps 0x0000-0x07ff with mirror mask 0x1800. All four windows
     // 0x0000, 0x0800, 0x1000 and 0x1800 therefore alias the same 2 Kiword
     // shared data/program RAM. The ROM bank begins only at 0x2000.
@@ -554,7 +554,7 @@ std::uint16_t DcsAudio2K::read_data(std::uint16_t address) noexcept {
 }
 
 void DcsAudio2K::write_data(std::uint16_t address, std::uint16_t value) noexcept {
-    address &= mamerecomp::adsp2105::pc_mask;
+    address &= multiarcaderecomp::adsp2105::pc_mask;
     if (address < kRomBase) {
         const auto offset = address & 0x07ff;
         m_external_program[offset] = (m_external_program[offset] & 0x000000ffu) |
@@ -569,7 +569,7 @@ void DcsAudio2K::write_data(std::uint16_t address, std::uint16_t value) noexcept
         const auto distance = static_cast<std::uint16_t>(
             (offset - (m_dma_base & 0x07ff)) & 0x07ff);
         if (m_dma_active && distance < m_dma_length) {
-            if (std::getenv("MAMERECOMP_ADSP_TRACE_SAMPLE_WRITES")) {
+            if (std::getenv("MULTIARCADERECOMP_ADSP_TRACE_SAMPLE_WRITES")) {
                 static std::uint32_t trace_lines = 0;
                 if (trace_lines < 128) {
                     ++trace_lines;
@@ -730,4 +730,4 @@ void DcsAudio2K::acknowledge_input() noexcept {
 }
 void DcsAudio2K::acknowledge_output() noexcept { m_output_full = false; }
 
-} // namespace mamerecomp::dcs
+} // namespace multiarcaderecomp::dcs

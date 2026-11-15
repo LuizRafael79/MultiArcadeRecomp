@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp::neogeo {
+namespace multiarcaderecomp::neogeo {
 
 struct RomRegionInfo {
     std::string name;
@@ -36,4 +36,4 @@ void extract_kof98_inputs(const std::filesystem::path& game_zip,
                           const std::filesystem::path& bios_directory,
                           const std::filesystem::path& system_rom_zip = {});
 
-} // namespace mamerecomp::neogeo
+} // namespace multiarcaderecomp::neogeo

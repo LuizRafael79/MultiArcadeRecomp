@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::m6809 {
+namespace multiarcaderecomp::m6809 {
 
 // MC6809 and MC6809E share the same programmer-visible instruction set.
 // The E variant differs in its external bus/clock signals, which belong to
@@ -205,4 +205,4 @@ inline std::uint8_t aot_unary(State& state, unsigned operation,
     return result;
 }
 
-} // namespace mamerecomp::m6809
+} // namespace multiarcaderecomp::m6809

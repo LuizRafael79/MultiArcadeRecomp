@@ -10,7 +10,7 @@
 
 static unsigned s_protection_state;
 
-void mamerecomp_kof98_decrypt(uint8_t *program, size_t size) {
+void multiarcaderecomp_kof98_decrypt(uint8_t *program, size_t size) {
     if (!program || size < 0x600000) return;
     uint8_t *dst = (uint8_t *)malloc(0x200000);
     if (!dst) return;
@@ -45,9 +45,9 @@ void mamerecomp_kof98_decrypt(uint8_t *program, size_t size) {
     free(dst);
 }
 
-void mamerecomp_kof98_prot_reset(void) { s_protection_state=0; }
+void multiarcaderecomp_kof98_prot_reset(void) { s_protection_state=0; }
 
-uint16_t mamerecomp_kof98_prot_read(void *context, uint32_t offset) {
+uint16_t multiarcaderecomp_kof98_prot_read(void *context, uint32_t offset) {
     const uint8_t *program=(const uint8_t *)context;
     if (s_protection_state==1) return offset ? 0x00fd : 0x00c2;
     if (s_protection_state==2) return offset ? 0x4f2d : 0x4e45;
@@ -56,13 +56,13 @@ uint16_t mamerecomp_kof98_prot_read(void *context, uint32_t offset) {
     return (uint16_t)((program[a]<<8)|program[a+1]);
 }
 
-void mamerecomp_kof98_prot_write(void *context, uint32_t address, uint16_t data) {
+void multiarcaderecomp_kof98_prot_write(void *context, uint32_t address, uint16_t data) {
     (void)context; (void)address;
     if (data==0x0090) s_protection_state=1;
     else if (data==0x00f0) s_protection_state=2;
 }
 
-const ng_game_t mamerecomp_kof98_game = {
+const ng_game_t multiarcaderecomp_kof98_game = {
     .name="kof98", .title="The King of Fighters '98 (MVS)",
     .prom_size=0x600000,
     .prom={
@@ -76,7 +76,7 @@ const ng_game_t mamerecomp_kof98_game = {
     },
     .srom="242-s1.s1", .m1="242-m1.m1",
     .vrom={"242-v1.v1","242-v2.v2","242-v3.v3","242-v4.v4"},
-    .prom_transform=mamerecomp_kof98_decrypt,
-    .protection_read=mamerecomp_kof98_prot_read,
-    .protection_write=mamerecomp_kof98_prot_write,
+    .prom_transform=multiarcaderecomp_kof98_decrypt,
+    .protection_read=multiarcaderecomp_kof98_prot_read,
+    .protection_write=multiarcaderecomp_kof98_prot_write,
 };

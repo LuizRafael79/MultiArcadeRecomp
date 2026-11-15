@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 // A 315-5195 mapper region can fan out into multiple board windows. Keep this
 // separate from the simplified single-window System 16B wiring table.
@@ -32,4 +32,4 @@ struct System18MapperWindow {
 std::span<const System18MapperWindow> system18_shdancer_mapper_windows();
 std::span<const System18MapperWindow> system18_mapper_windows(System18RomBoard board);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

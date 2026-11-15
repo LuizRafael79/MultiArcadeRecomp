@@ -3,11 +3,11 @@
 #include "adsp2105.hpp"
 #include "core/cpus/interpreter_trace.h"
 
-namespace mamerecomp::adsp2105 {
+namespace multiarcaderecomp::adsp2105 {
 
 BlockExit interpreter_step(State& state, Bus& bus,
                            std::uint64_t stop_cycle,
-                           MamerecompFallbackReason reason) noexcept;
+                           MultiArcadeRecompFallbackReason reason) noexcept;
 
 // Fast native path for the ADSP's common DO-UNTIL counter loop whose body is
 // exactly one NOP. Returns NeedsInterpreter unless the complete loop shape is
@@ -21,4 +21,4 @@ bool native_shift(State& state, std::uint32_t opcode,
 bool native_execute_instruction(State& state, Bus& bus,
                                 std::uint32_t opcode) noexcept;
 
-} // namespace mamerecomp::adsp2105
+} // namespace multiarcaderecomp::adsp2105

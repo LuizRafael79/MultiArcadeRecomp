@@ -5,12 +5,12 @@
 
 #include <memory>
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 namespace {
-class TokiSoundBus final : public mamerecomp::z80::Z80Bus {
+class TokiSoundBus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     explicit TokiSoundBus(TokiBoard& board) : board_(board) {}
-    void bind(mamerecomp::z80::Z80& cpu) { cpu_ = &cpu; }
+    void bind(multiarcaderecomp::z80::Z80& cpu) { cpu_ = &cpu; }
     uint8_t Read(uint16_t address) override { return board_.sound_read(address, false); }
     uint8_t ReadOpcode(uint16_t address) override { return board_.sound_read(address, true); }
     uint8_t InterruptAcknowledge() override { return board_.sound_irq_vector(); }
@@ -21,14 +21,14 @@ public:
     }
 private:
     TokiBoard& board_;
-    mamerecomp::z80::Z80* cpu_ = nullptr;
+    multiarcaderecomp::z80::Z80* cpu_ = nullptr;
 };
 }
 
 class TokiSoundCpu::Impl {
 public:
     explicit Impl(TokiBoard& board)
-        : board(board), bus(std::make_unique<TokiSoundBus>(board)), cpu(std::make_unique<mamerecomp::z80::Z80>(*bus))
+        : board(board), bus(std::make_unique<TokiSoundBus>(board)), cpu(std::make_unique<multiarcaderecomp::z80::Z80>(*bus))
     {
         bus->bind(*cpu);
         reset();
@@ -37,14 +37,14 @@ public:
     void run_until(uint64_t timestamp) {
         if (timestamp <= cpu->cycles) return;
         cpu->SetInterruptLine(board.sound_irq_pending());
-        const auto mode = mamerecomp::z80::HasZ80Code()
-            ? mamerecomp::z80::Z80::Mode::Native
-            : mamerecomp::z80::Z80::Mode::Interpreter;
+        const auto mode = multiarcaderecomp::z80::HasZ80Code()
+            ? multiarcaderecomp::z80::Z80::Mode::Native
+            : multiarcaderecomp::z80::Z80::Mode::Interpreter;
         cpu->Run(timestamp, mode);
     }
     TokiBoard& board;
     std::unique_ptr<TokiSoundBus> bus;
-    std::unique_ptr<mamerecomp::z80::Z80> cpu;
+    std::unique_ptr<multiarcaderecomp::z80::Z80> cpu;
 };
 
 TokiSoundCpu::TokiSoundCpu(TokiBoard& board) : impl_(new Impl(board)) {}
@@ -57,4 +57,4 @@ uint64_t TokiSoundCpu::instructions() const { return impl_->cpu->interpreted; }
 uint64_t TokiSoundCpu::aot_instructions() const { return impl_->cpu->nativeInstructions; }
 uint64_t TokiSoundCpu::fallback_instructions() const { return impl_->cpu->interpreted; }
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

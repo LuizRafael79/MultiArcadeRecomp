@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 struct Z80Entry {
     uint16_t address;
@@ -65,7 +65,7 @@ namespace z80check {
 uint64_t Z80BlocksChecked();
 #endif
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80
 
 #define ZBLOCK(label, address)                                                                                         \
     label:                                                                                                             \
@@ -89,7 +89,7 @@ uint64_t Z80BlocksChecked();
 #define ZCALL(fn, address, label, back)                                                                                \
     do {                                                                                                               \
         c.pc = address;                                                                                                \
-        if (c.depth >= mamerecomp::z80::z80native::kMaxDepth) {                                                             \
+        if (c.depth >= multiarcaderecomp::z80::z80native::kMaxDepth) {                                                             \
             return;                                                                                                    \
         }                                                                                                              \
         c.depth++;                                                                                                     \

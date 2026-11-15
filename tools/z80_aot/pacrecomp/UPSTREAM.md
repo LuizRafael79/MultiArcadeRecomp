@@ -9,7 +9,7 @@ The files in this directory are copied from the MIT-licensed
 
 The original MIT license and copyright notice are preserved in `LICENSE`.
 These files are used as a locally built code-generation reference while the
-MameRecomp Z80 emitter is adapted to the project's runtime ABI. Pacrecomp's
+MultiArcadeRecomp Z80 emitter is adapted to the project's runtime ABI. Pacrecomp's
 Pac-Man CPU, memory map, I/O, and dispatcher runtime are not included here and
 must not be treated as the KOF98 runtime.
 

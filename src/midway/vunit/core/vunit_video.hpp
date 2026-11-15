@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 
 class VUnitGpuRenderer;
 
@@ -86,11 +86,11 @@ private:
     std::vector<GpuCommand> m_gpu_commands;
     std::uint8_t m_gpu_dirty_pages{};
     float m_scanline_strength{};
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     std::unique_ptr<VUnitGpuRenderer> m_gpu_renderer;
 #endif
     bool m_video_changed{true};
     bool m_scanline_irq_enabled{};
 };
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

@@ -1,3 +1,3 @@
-add_library(mamerecomp_cpu_upd7751 STATIC upd7751.cpp)
-target_include_directories(mamerecomp_cpu_upd7751 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(mamerecomp_cpu_upd7751 PUBLIC mamerecomp_mcs48)
+add_library(multiarcaderecomp_cpu_upd7751 STATIC upd7751.cpp)
+target_include_directories(multiarcaderecomp_cpu_upd7751 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(multiarcaderecomp_cpu_upd7751 PUBLIC multiarcaderecomp_mcs48)

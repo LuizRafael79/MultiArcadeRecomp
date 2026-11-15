@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <span>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // HLE for Sega 837-13551 JVS I/O board and the Naomi 315-6149 JVS/Maple bridge.
 // Board identity is verified directly from the user's 315-6215 firmware ROM.
@@ -465,4 +465,4 @@ private:
 
 inline NaomiJvs13551& g_naomiJvs13551() { static NaomiJvs13551 b; return b; }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

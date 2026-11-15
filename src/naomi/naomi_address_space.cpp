@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 constexpr std::uint32_t kPhysicalMask = 0x1fffffffu;
 constexpr std::uint32_t kSramStart = 0x00200000;
@@ -72,7 +72,7 @@ bool isNaomiMmioWindow(std::uint32_t physical) {
 
 void traceUnmappedMmio(char operation, std::uint32_t address, std::uint32_t physical,
                        unsigned width, std::uint32_t value) {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") &&
         physical >= kSoundRegsStart && physical < kSoundRegsStart + 0x8000u &&
         g_aica_mmio_trace_events < 128) {
         ++g_aica_mmio_trace_events;
@@ -80,7 +80,7 @@ void traceUnmappedMmio(char operation, std::uint32_t address, std::uint32_t phys
                      "Naomi unmapped AICA MMIO %c guest=%08x physical=%08x width=%u value=%08x\n",
                      operation, address, physical, width, value);
     }
-    if (!std::getenv("MAMERECOMP_NAOMI_TRACE_UNMAPPED_MMIO") ||
+    if (!std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_UNMAPPED_MMIO") ||
         !isNaomiMmioWindow(physical) || g_unmapped_mmio_trace_events >= 128)
         return;
     ++g_unmapped_mmio_trace_events;
@@ -118,12 +118,12 @@ NaomiAddressSpace::NaomiAddressSpace(NaomiDeviceBus devices)
                std::uint32_t writer_pc) {
             writeAicaArm(address, width, value, writer_pc);
         });
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA"))
         m_sound_ram_dirty_pages.assign(m_sound_ram.size() / 0x1000u, 0);
 }
 
 NaomiAddressSpace::~NaomiAddressSpace() {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA"))
         std::fprintf(stderr,
                      "Naomi G1 DMA summary commands=%llu bytes=%llu active=%u source=%08x destination=%08x length=%08x completed=%08x\n",
                      static_cast<unsigned long long>(m_g1_dma_commands),
@@ -131,7 +131,7 @@ NaomiAddressSpace::~NaomiAddressSpace() {
                      m_g1_dma_active ? 1u : 0u, m_dma_offset,
                      m_g1_dma_destination, m_g1_dma_length,
                      m_g1_dma_completed);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA")) {
         const auto arm_regs = arm7::register_snapshot();
         std::fprintf(stderr,
                      "AICA ARM summary enabled=%u instructions=%llu pc=%08x undefined=%llu mailbox_writes=%llu sample_ticks=%llu SCIEB=%04x SCIPD=%04x e68k_out=%u L=%u regs={r0:%08x,r1:%08x,r2:%08x,r3:%08x,sp:%08x,lr:%08x,cpsr:%08x}\n",
@@ -154,7 +154,7 @@ NaomiAddressSpace::~NaomiAddressSpace() {
                      readAicaArm(0xb0u, 4), readAicaArm(0xb4u, 4));
     }
     arm7::unbind_memory();
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES"))
         std::fprintf(stderr,
                      "SH-4 AOT table write summary braf_writes=%u callback_writes=%u callback_nonzero_writes=%u\n",
                      g_braf_table_write_count, g_callback_table_write_count,
@@ -188,7 +188,7 @@ NaomiAddressSpace::~NaomiAddressSpace() {
                      static_cast<unsigned long long>(m_sound_ram_trace_write_bytes),
                      static_cast<unsigned long long>(dirty_pages));
     }
-    if (const char* dump_path = std::getenv("MAMERECOMP_NAOMI_DUMP_AICA_RAM")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_AICA_RAM")) {
         std::ofstream dump(dump_path, std::ios::binary | std::ios::trunc);
         if (!dump) {
             std::fprintf(stderr, "AICA RAM dump failed path=%s\n", dump_path);
@@ -284,7 +284,7 @@ std::uint16_t NaomiAddressSpace::readM2Port(std::uint32_t offset) {
         const auto address = m_rom_pio_offset;
         const auto value = readM2RomWord(address);
         if (m_rom_pio_autoincrement) m_rom_pio_offset += 2;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") && g_m2_trace_events++ < 4096)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1") && g_m2_trace_events++ < 4096)
             std::fprintf(stderr, "Naomi M2 PIO R offset=%08x -> %04x%s\n",
                          address, value, (address & 0x40000000u) ? " encrypted-mode" : "");
         return value;
@@ -331,7 +331,7 @@ void NaomiAddressSpace::writeM2Port(std::uint32_t offset, std::uint16_t value) {
     case 0x14: m_dma_count = value; break;
     default: break;
     }
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") && g_m2_trace_events++ < 4096)
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1") && g_m2_trace_events++ < 4096)
         std::fprintf(stderr, "Naomi M2 G1 W reg=%02x value=%04x rom=%08x dma=%08x\n",
                      offset, value, m_rom_pio_offset, m_dma_offset);
 }
@@ -341,7 +341,7 @@ void NaomiAddressSpace::startG1Dma(std::uint32_t writer_pc) {
         return;
     const auto direction = m_g1_registers[0x0cu / 4u] & 1u;
     if (direction == 0) {
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA"))
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA"))
             std::fprintf(stderr,
                          "Naomi G1 DMA unsupported direction=cart-write pc=%08x destination=%08x length=%08x\n",
                          writer_pc, m_g1_registers[0x04u / 4u],
@@ -363,7 +363,7 @@ void NaomiAddressSpace::startG1Dma(std::uint32_t writer_pc) {
         return;
     }
     ++m_g1_dma_commands;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA") &&
         g_g1_dma_trace_events < 128) {
         ++g_g1_dma_trace_events;
         std::fprintf(stderr,
@@ -382,7 +382,7 @@ void NaomiAddressSpace::finishG1Dma(bool aborted) {
     m_g1_registers[0xf8u / 4u] = m_g1_dma_completed;
     if (!aborted && m_g1_dma_irq)
         m_g1_dma_irq(14); // Holly GD-ROM/ROM-board DMA complete.
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA") &&
         g_g1_dma_trace_events < 128) {
         ++g_g1_dma_trace_events;
         std::fprintf(stderr,
@@ -517,7 +517,7 @@ std::uint32_t NaomiAddressSpace::readAicaArm(std::uint32_t address, unsigned wid
     if (offset == 0x2d00u) value = m_aica_arm_interrupt_level;
     else if (offset == 0x2d04u) value = m_aica_arm_interrupt_mode;
     else value = readAicaRegister(offset, width);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") &&
         m_aica_arm_register_trace_events < 128) {
         ++m_aica_arm_register_trace_events;
         std::fprintf(stderr,
@@ -549,7 +549,7 @@ void NaomiAddressSpace::writeAicaArm(std::uint32_t address, unsigned width,
         }
         if (offset < 0x60u && offset + bytes > 0x5cu) {
             ++m_aica_arm_mailbox_writes;
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") &&
                 m_aica_arm_mailbox_log_events < 32) {
                 ++m_aica_arm_mailbox_log_events;
                 const auto mailbox = readAicaArm(0x5cu, 4);
@@ -560,7 +560,7 @@ void NaomiAddressSpace::writeAicaArm(std::uint32_t address, unsigned width,
             }
         }
         if (offset < 0xb8u && offset + bytes > 0xb0u &&
-            std::getenv("MAMERECOMP_NAOMI_TRACE_AICA")) {
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA")) {
             static std::uint32_t shared_word_trace_events = 0;
             if (shared_word_trace_events < 64) {
                 ++shared_word_trace_events;
@@ -605,7 +605,7 @@ void NaomiAddressSpace::writeAicaRegister(std::uint32_t offset, unsigned width,
         }
         return;
     }
-    if (from_arm && std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") &&
+    if (from_arm && std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") &&
         m_aica_arm_register_trace_events < 128) {
         ++m_aica_arm_register_trace_events;
         std::fprintf(stderr,
@@ -789,7 +789,7 @@ void NaomiAddressSpace::updateAicaArmInterrupts() {
         }
     }
     arm7::set_fiq_line(m_aica_e68k_interrupt_out);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") && m_aica_irq_trace_events < 64) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") && m_aica_irq_trace_events < 64) {
         ++m_aica_irq_trace_events;
         std::fprintf(stderr,
                      "AICA ARM IRQ SCIEB=%03x SCIPD=%03x active=%03x pending=%u e68k_out=%u level=%u\n",
@@ -812,7 +812,7 @@ void NaomiAddressSpace::updateAicaSh4Interrupts() {
 
 void NaomiAddressSpace::aicaSampleStep() {
     ++m_aica_sample_ticks;
-    if (m_aica_arm_enabled && std::getenv("MAMERECOMP_NAOMI_TRACE_ARM7_PROGRESS") &&
+    if (m_aica_arm_enabled && std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_ARM7_PROGRESS") &&
         (m_aica_sample_ticks % 4096u) == 0) {
         const auto arm_regs = arm7::register_snapshot();
         std::fprintf(stderr,
@@ -908,7 +908,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         const auto shift = (physical & 3u) * 8u;
         value >>= shift;
         if (width < 4) value &= (1u << (width * 8u)) - 1u;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA") &&
             (reg == 0x005f7404u || reg == 0x005f7408u || reg == 0x005f740cu ||
              reg == 0x005f7414u || reg == 0x005f7418u) &&
             g_g1_dma_trace_events < 128) {
@@ -925,7 +925,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         const auto shifted = value >> shift;
         return width < 4 ? shifted & ((1u << (width * 8u)) - 1u) : shifted;
     }
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1") &&
         (physical >= 0x005f7000u && physical < 0x005f7500u) &&
         g_g1_trace_events++ < 128)
         std::fprintf(stderr, "Naomi G1 R [%08x] physical=%08x width=%u\n",
@@ -966,7 +966,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         const auto shift = (physical & 3u) * 8u;
         value >>= shift;
         if (width < 4) value &= (1u << (width * 8u)) - 1u;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
             std::fprintf(stderr, "SH-4 BSC R [%08x] -> %08x (%u)\n",
                          address, value, width);
         return value;
@@ -986,7 +986,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         else if (offset == 36) value = m_tmu_tcnt[2];
         else if (offset == 40) value = m_tmu_tcr[2];
         if (width < 4) value &= (1u << (width * 8u)) - 1u;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
             std::fprintf(stderr, "SH-4 TMU R [%08x] -> %08x (%u)\n", address, value, width);
         return value;
     }
@@ -995,7 +995,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         auto value = static_cast<std::uint32_t>(m_scif2_status) >> shift;
         if (width < 4) value &= (1u << (width * 8u)) - 1u;
         m_scif2_status_last_read = m_scif2_status;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
             std::fprintf(stderr, "SH-4 SCIF2 SCFSR2 R [%08x] -> %04x\n",
                          address, m_scif2_status);
         return value;
@@ -1021,11 +1021,11 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
         if (decoded == kSh4Prr) return 0;
         const auto value = offset < m_sh4_internal_regs.size() ? m_sh4_internal_regs[offset] : 0;
         if ((physical & 0x1fff0000u) == 0x1fd80000u &&
-            std::getenv("MAMERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
             std::fprintf(stderr, "SH-4 TMU R [%08x] decoded=%08x -> %08x (%u)\n",
                          address, physical, value, width);
         if (physical >= 0x1f800000u && physical < 0x1f800054u &&
-            std::getenv("MAMERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
             std::fprintf(stderr, "SH-4 BSC R [%08x] -> %08x (%u)\n",
                          address, value, width);
         return value;
@@ -1067,7 +1067,7 @@ std::uint32_t NaomiAddressSpace::read(std::uint32_t address, unsigned width) {
 void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32_t value,
                               std::uint32_t writer_pc) {
     const auto physical = physicalAddress(address);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE") &&
         physical >= kMainRamStart + 0x20000u &&
         physical < kMainRamStart + 0x24000u &&
         g_boot_ram_provenance_events++ < 256) {
@@ -1089,7 +1089,7 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             const bool was_enabled = m_aica_arm_enabled;
             m_aica_arm_enabled = (m_aica_arm_reset & 1u) == 0;
             arm7::set_enabled(m_aica_arm_enabled);
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_AICA"))
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA"))
                 std::fprintf(stderr,
                              "AICA ARMRST write pc=%08x guest=%08x value=%08x ARMRST=%02x VREG=%02x arm_enabled=%u transition=%u sample_ticks=%llu arm_instructions=%llu\n",
                              writer_pc, address, value, m_aica_arm_reset, m_aica_vreg,
@@ -1108,7 +1108,7 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         return;
     }
     static const bool trace_aot_tables =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES") != nullptr;
     const bool touches_braf_table =
         physical < 0x0c035fb0u && physical + width > 0x0c035f84u;
     const bool touches_callback_table =
@@ -1141,7 +1141,7 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
     }
 
     static const bool trace_video_setup =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_VIDEO_SETUP") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_VIDEO_SETUP") != nullptr;
     const bool qacr_write = physical == 0x1f000038u || physical == 0x1f00003cu;
     const bool dmac2_write = physical >= 0x1fa00020u && physical <= 0x1fa0002cu;
     const bool holly_c2_write = physical >= 0x005f6800u && physical <= 0x005f6808u;
@@ -1200,7 +1200,7 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             if (reg == 0x005f7408u) stored &= 0x01ffffffu; // SB_GDLEN
             if (reg == 0x005f740cu || reg == 0x005f7414u || reg == 0x005f7418u)
                 stored &= 1u;
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1_DMA") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA") &&
                 g_g1_dma_trace_events < 128) {
                 const bool start_edge = reg == 0x005f7418u && !(old & 1u) &&
                                         (stored & 1u) &&
@@ -1258,12 +1258,12 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         if (reg == 0x005f7818u) startAicaG2Dma();
         return;
     }
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_G1") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_G1") &&
         (physical >= 0x005f7000u && physical < 0x005f7500u) &&
         g_g1_trace_events++ < 128)
         std::fprintf(stderr, "Naomi G1 W [%08x] physical=%08x <- %08x width=%u\n",
                      address, physical, value, width);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT") &&
         ((physical >= 0x0c000000 && physical < 0x0c000300) ||
          (physical >= 0x1f000000 && physical < 0x20000000))) {
         std::fprintf(stderr, "Naomi boot W [%08x] <- %08x (%u)\n",
@@ -1301,14 +1301,14 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             m_main_board_serial_id.writeSCL((pins & 0x04u) != 0);
             m_main_board_serial_id.writeSDA((pins & 0x08u) != 0);
         }
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
             std::fprintf(stderr, "SH-4 BSC W [%08x] <- %08x (%u)\n",
                          address, value, width);
         return;
     }
     if (physical >= kSh4TmuStart && physical < kSh4TmuEnd) {
         const auto offset = physical - kSh4TmuStart;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
             std::fprintf(stderr, "SH-4 TMU W [%08x] <- %08x (%u)\n", address, value, width);
         if (offset == 0) m_tmu_tocr = static_cast<std::uint8_t>(value & 1u);
         else if (offset == 4) {
@@ -1339,7 +1339,7 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
         // The transmit FIFO is empty and its trigger level is met, so TDFE
         // remains asserted just as in Flycast's SCIF reset/empty-FIFO model.
         m_scif2_status |= 0x0020u;
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SCIF") && g_scif2_trace_events++ < 32)
             std::fprintf(stderr, "SH-4 SCIF2 SCFSR2 W [%08x] <- %04x, now %04x\n",
                          address, written, m_scif2_status);
         return;
@@ -1359,11 +1359,11 @@ void NaomiAddressSpace::write(std::uint32_t address, unsigned width, std::uint32
             ? kSh4InternalStart + 0x08u
             : kSh4InternalStart | (physical & 0xffffu);
         if ((physical & 0x1fff0000u) == 0x1fd80000u &&
-            std::getenv("MAMERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TMU") && g_tmu_trace_events++ < 128)
             std::fprintf(stderr, "SH-4 TMU W [%08x] decoded=%08x <- %08x (%u)\n",
                          address, physical, value, width);
         if (physical >= 0x1f800000u && physical < 0x1f800054u &&
-            std::getenv("MAMERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BSC") && g_bsc_trace_events++ < 64)
             std::fprintf(stderr, "SH-4 BSC W [%08x] <- %08x (%u)\n",
                          address, value, width);
         if (decoded != kSh4Expevt && decoded != kSh4CpuVersion && decoded != kSh4Prr) {
@@ -1551,4 +1551,4 @@ void NaomiAddressSpace::advanceSh4Cycles(std::uint32_t cycles) {
     }
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

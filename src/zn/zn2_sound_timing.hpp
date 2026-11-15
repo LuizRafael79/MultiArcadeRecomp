@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 constexpr std::uint64_t qsound_target_frames(std::uint64_t z80_cycles)
 {
@@ -14,4 +14,4 @@ constexpr std::uint64_t qsound_target_frames(std::uint64_t z80_cycles)
         (z80_clock_hz * dsp_clocks_per_frame));
 }
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

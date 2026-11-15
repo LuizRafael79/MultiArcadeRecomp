@@ -5,7 +5,7 @@
 #include <functional>
 #include <utility>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 // Three PSX root counters. CPU-clock operation and target/overflow IRQs are
 // implemented; external video clocks and sync-to-blank behavior are approximated.
@@ -33,4 +33,4 @@ private:
     uint64_t next_event_cycle_ = 1;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

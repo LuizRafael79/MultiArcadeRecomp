@@ -8,7 +8,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 
 class SoundCommandInterface {
 public:
@@ -17,7 +17,7 @@ public:
     virtual void reset_write(bool asserted) noexcept = 0;
 };
 
-using SoundHostInterface = mamerecomp::dcs::HostInterface;
+using SoundHostInterface = multiarcaderecomp::dcs::HostInterface;
 
 class ProtectionInterface {
 public:
@@ -102,7 +102,7 @@ public:
           std::span<const std::uint8_t> graphics_rom,
           bool large_graphics_rom = false);
 
-    mamerecomp::tms34010::Bus cpu_bus() noexcept;
+    multiarcaderecomp::tms34010::Bus cpu_bus() noexcept;
 
     std::uint16_t read16(std::uint32_t bit_address) noexcept;
     void write16(std::uint32_t bit_address, std::uint16_t value) noexcept;
@@ -118,7 +118,7 @@ public:
     std::array<std::uint64_t, 4> input_read_counts() const noexcept;
     std::array<std::uint32_t, 4> input_last_read_pc() const noexcept;
     void note_cpu_pc(std::uint32_t pc, std::uint64_t cycles = 0) noexcept;
-    void note_cpu_state(mamerecomp::tms34010::State& state) noexcept;
+    void note_cpu_state(multiarcaderecomp::tms34010::State& state) noexcept;
     std::uint64_t take_pre_advanced_cycles() noexcept;
     bool load_cmos(std::span<const std::uint8_t> data) noexcept;
     std::span<const std::uint8_t> cmos() const noexcept;
@@ -216,7 +216,7 @@ private:
     std::uint32_t m_debug_cpu_pc{};
     std::uint64_t m_debug_cpu_cycles{};
     std::array<std::uint32_t, 30> m_debug_cpu_registers{};
-    mamerecomp::tms34010::State* m_active_cpu_state{};
+    multiarcaderecomp::tms34010::State* m_active_cpu_state{};
     std::uint64_t m_pre_advanced_cycles{};
     std::uint16_t m_control{};
     std::uint8_t m_video_bank{};
@@ -248,4 +248,4 @@ private:
     std::uint64_t m_current_frame_colored_pixels{};
 };
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

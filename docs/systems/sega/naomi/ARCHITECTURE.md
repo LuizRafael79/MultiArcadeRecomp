@@ -61,7 +61,7 @@ The Naomi module must have a distinct SH-4 code ABI and runtime from the
 68000/System 16-family modules. Its first implementation stages are:
 
 1. Keep Naomi game profiles and cartridge-board metadata in
-   `mamerecomp_naomi.so`; validate ROM filenames, lengths, CRCs, region gaps,
+   `multiarcaderecomp_naomi.so`; validate ROM filenames, lengths, CRCs, region gaps,
    and clone/parent merging against the MAME ROM declarations.
 2. Connect the staged Initial-D SH-4 decoder/emitter to the new
    `naomi_sh4_context.*` ABI and a static dispatch build step. The context now
@@ -85,7 +85,7 @@ instruction-in-function visits (40,884 distinct guest PCs) across 1,479
 function entries. The generated function bodies total about 5.54 million
 characters of C++ before includes/registration, with no reachable opcode left
 unknown to the decoder/code generator in this image. The generated translation
-unit is 5,682,234 bytes; it compiles and links into `mamerecomp_naomi.so`.
+unit is 5,682,234 bytes; it compiles and links into `multiarcaderecomp_naomi.so`.
 The module exports set-specific registration and a
 bounded SH-4 probe. An earlier run appeared to reach `0xac021092`, but
 that was a false idle-loop result: when a translated indirect target was
@@ -114,7 +114,7 @@ instruction visits total. With them registered, a 10-million-instruction run
 reaches `0xac021092` and consumes the full budget with no unresolved target,
 confirming the self-branch is the real post-initialization wait loop. At that
 point SPG is at scanline 260 and Holly has `ISTNRM=0x18`, but IML2/4/6 are zero
-and no IRQ is accepted. An optional `MAMERECOMP_NAOMI_TRACE_SYSCTRL=1` bus trace
+and no IRQ is accepted. An optional `MULTIARCADERECOMP_NAOMI_TRACE_SYSCTRL=1` bus trace
 showed that this REIOS boot path reads only `SB_SBREV` at `0x005f689c` and does
 not write any Holly interrupt masks. The read-only revision register now returns
 the MAME/Flycast reset value `0x0b`; this did not move execution beyond the
@@ -193,7 +193,7 @@ the existing JVS bridge stays provisional and outside the boot path.
 
 ## Current real-BIOS boot experiment
 
-`tools/naomi/build_mvsc2u_aot.py` now analyzes the complete local Naomi BIOS image at reset vector `0xa0000000`, plus the computed helper at `0xa0000080`, and emits C++ for those reachable instructions. `mamerecomp_naomi.so` registers that AOT alongside the MvC2 and copied BIOS service entries. `run-naomi-sh4` initializes SH-4 state and PC at the real BIOS reset vector; it no longer calls Flycast REIOS or seeds the game's entry registers. The EXPEVT reset value is 0 per MAME `sh4_base_device::device_reset()`, avoiding the BIOS's error branch that appeared when we used the SH-4 manual's power-on-held value.
+`tools/naomi/build_mvsc2u_aot.py` now analyzes the complete local Naomi BIOS image at reset vector `0xa0000000`, plus the computed helper at `0xa0000080`, and emits C++ for those reachable instructions. `multiarcaderecomp_naomi.so` registers that AOT alongside the MvC2 and copied BIOS service entries. `run-naomi-sh4` initializes SH-4 state and PC at the real BIOS reset vector; it no longer calls Flycast REIOS or seeds the game's entry registers. The EXPEVT reset value is 0 per MAME `sh4_base_device::device_reset()`, avoiding the BIOS's error branch that appeared when we used the SH-4 manual's power-on-held value.
 
 An initial validation executed 136 translated instructions and reported `0x8c0001a2`, but that result came from translating the source ROM slice as if it were the copied code. The trace shows the BIOS copies 16 halfwords from `0xa00000e0` to `0x8c0000e0` using a pre-decrementing destination, reversing their order. The AOT generator now translates the resulting RAM bytes instead. The prior hypothesis that the full BIOS is shadowed into RAM was experimental and has been removed. Re-run the real BIOS path and follow its actual PC/memory effects before making further mapping assumptions.
 
@@ -202,7 +202,7 @@ The `JMP @Rn` fix is validated on the BIOS reset path: before the fix, the reset
 
 ### Boot progress (2026-10-30)
 
-The reset probe zero-initialized `Sh4Context` in `mamerecomp_naomi_sh4_probe_start()`
+The reset probe zero-initialized `Sh4Context` in `multiarcaderecomp_naomi_sh4_probe_start()`
 after installing its callbacks. That silently removed both the SH-4 cycle sink
 and `PREF` store-queue handler. `Sh4Probe::wireCpu()` now restores the bus,
 cycle sink, and store-queue path after every context reset. The cycle sink
@@ -231,7 +231,7 @@ The SH-4 context-save callback reached through `0xac001afe` uses `STC.L SR/GBR/V
 has VBlank status `0x18` while its interrupt masks remain zero. No serial board-ID access at `0x5f7078/7c` or M2 PIO read occurs before this loop. Flycast implements Naomi's X76F100 board ID in `core/hw/naomi/naomi.cpp` using `core/hw/flashrom/x76f100.cpp`; MAME's first board-ID transaction occurs from game PC `0x0c03ef76`, so this EEPROM remains a later dependency, not the cause of the current BIOS loop. Compare the event/timer path against Flycast and MAME; do not seed the event flag. The M2 ROM image is now
 attached to the address space, with the `0002c840` key and PIO/crypt registers,
 but the BIOS has not yet read `0x5f7008`; G1 DMA and the board serial-ID EEPROM
-are still incomplete. Bounded `MAMERECOMP_NAOMI_TRACE_G1`, `_TMU`, `_BOOT_STATE`,
+are still incomplete. Bounded `MULTIARCADERECOMP_NAOMI_TRACE_G1`, `_TMU`, `_BOOT_STATE`,
 `_CALLBACKS`, and `_BOOT_LOOP` diagnostics capture the paths without unbounded
 logs.
 

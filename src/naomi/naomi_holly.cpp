@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 namespace {
 constexpr std::array<unsigned, 3> kLevels{2, 4, 6};
@@ -110,7 +110,7 @@ std::uint32_t HollyInterrupts::readRegister(std::uint32_t address) const {
         for (std::size_t group = 0; group < kMaskAddress[level].size(); ++group)
             if (address == kMaskAddress[level][group]) value = m_masks[level][group];
     if (address == kHollySbRevision) value = kHollySbRevisionValue;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SYSCTRL"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SYSCTRL"))
         std::fprintf(stderr, "Naomi sysctrl R [%08x] -> %08x\n", original_address, value);
     return value;
 }
@@ -118,7 +118,7 @@ std::uint32_t HollyInterrupts::readRegister(std::uint32_t address) const {
 void HollyInterrupts::writeRegister(std::uint32_t address, std::uint32_t value) {
     const auto original_address = address;
     address &= ~3u;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SYSCTRL"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SYSCTRL"))
         std::fprintf(stderr, "Naomi sysctrl W [%08x] <- %08x\n", original_address, value);
     for (std::size_t group = 0; group < kStatusAddress.size(); ++group) {
         if (address != kStatusAddress[group]) continue;
@@ -252,7 +252,7 @@ bool MapleDma::runTable() {
             if (m_endpoint) response = m_endpoint(bus, request);
             if (response.empty()) response.push_back(0xffffffffu);
             const auto maple_frame = request.empty() ? 0u : request[0];
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_MAPLE") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_MAPLE") &&
                 g_maple_trace_requests < 64) {
                 ++g_maple_trace_requests;
                 std::fprintf(stderr,
@@ -266,7 +266,7 @@ bool MapleDma::runTable() {
                              request.size() > 4 ? request[4] : 0u,
                              response.size(), response.empty() ? 0u : response[0]);
             }
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_MAPLE") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_MAPLE") &&
                 g_maple_firmware_upload_finished &&
                 g_maple_post_firmware_trace_requests < 64) {
                 ++g_maple_post_firmware_trace_requests;
@@ -281,7 +281,7 @@ bool MapleDma::runTable() {
                              request.size() > 4 ? request[4] : 0u,
                              response.size(), response.empty() ? 0u : response[0]);
             }
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_MAPLE") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_MAPLE") &&
                 (maple_frame & 0xffu) == 0x80u && request.size() > 1 &&
                 ((request[1] >> 8) & 0xffu) == 0xffu) {
                 g_maple_firmware_upload_finished = true;
@@ -405,7 +405,7 @@ void HollyC2Dma::start() {
     else m_destination = destination;
     m_cycles_until_irq = std::max(1u, length / 4u);
 
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_VIDEO_SETUP"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_VIDEO_SETUP"))
         std::fprintf(stderr,
                      "Naomi C2 DMA start src=%08x dst=%08x len=%08x SAR2=%08x DMATCR2=%08x CHCR2=%08x unit=%u copied=%u irq_cycles=%u\n",
                      source, destination, length, source_reg, count_reg, chcr,
@@ -417,7 +417,7 @@ void HollyC2Dma::complete() {
     m_length = 0;
     m_start = 0;
     m_cycles_until_irq = 0;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_VIDEO_SETUP"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_VIDEO_SETUP"))
         std::fprintf(stderr, "Naomi C2 DMA complete dst=%08x ISTNRM.bit=%u\n",
                      m_destination, kC2DmaInterrupt);
     if (m_bus.raise_normal_irq) m_bus.raise_normal_irq(kC2DmaInterrupt);
@@ -429,4 +429,4 @@ void HollyC2Dma::advanceCycles(std::uint32_t cycles) {
     else m_cycles_until_irq -= cycles;
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

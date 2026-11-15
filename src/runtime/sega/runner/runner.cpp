@@ -12,12 +12,12 @@
 #include "cpus/m68000/runtime/musashi_fallback.h"
 #include "cpus/m68000/runtime/recomp_bus.h"
 #include "native_z80.h"
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
-extern "C" void mamerecomp_debug_write_adapter(std::uint32_t, std::uint8_t, std::uint32_t);
-extern "C" void mamerecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::uint32_t);
+extern "C" void multiarcaderecomp_debug_write_adapter(std::uint32_t, std::uint8_t, std::uint32_t);
+extern "C" void multiarcaderecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::uint32_t);
 #endif
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include <SDL3/SDL.h>
 #endif
 #include <algorithm>
@@ -42,7 +42,7 @@ extern "C" void mamerecomp_debug_read_adapter(std::uint32_t, std::uint8_t, std::
 #include <thread>
 #include <vector>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 std::uint32_t read_be32(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
     if (offset + 3 >= bytes.size()) throw std::runtime_error("reset vectors are truncated");
@@ -65,40 +65,40 @@ std::vector<std::uint8_t> read_binary_file(const std::filesystem::path& path) {
 }
 }
 
-int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+int run_game(const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     std::uint64_t cycle_budget, const std::optional<std::filesystem::path>& frame_out,
     const std::optional<std::uint64_t>& frame_out_vblank,
     const std::optional<std::filesystem::path>& video_state_out,
     const std::optional<std::filesystem::path>& runtime_entry_out,
     const std::optional<std::filesystem::path>& nvram_in, bool mame_nvram_in, bool video_profile_enabled,
     bool aot_profile_enabled, bool frame_limit_enabled,
-    mamerecomp::SegaVideoBackend video_backend, bool compare_cpu_video,
+    multiarcaderecomp::SegaVideoBackend video_backend, bool compare_cpu_video,
     const std::vector<InputEvent>& input_events,
     std::optional<std::uint8_t> dsw1_override, std::optional<std::uint8_t> dsw2_override, bool debugger_enabled,
     const std::optional<std::filesystem::path>& cpu_trace_out,
     std::uint64_t cpu_trace_start, std::uint64_t cpu_trace_end, bool window_enabled, bool audio_enabled,
-    bool audio_stereo_spread, std::uint8_t audio_volume, mamerecomp::SegaDisplayMode display_mode,
+    bool audio_stereo_spread, std::uint8_t audio_volume, multiarcaderecomp::SegaDisplayMode display_mode,
     std::uint8_t window_scale, std::uint8_t ym2151_muted_channels,
     bool ym2151_suppress_slot0_channel2,
     bool ym2151_suppress_slot3_channel5,
     bool ym2151_suppress_slot4_channel6,
     bool ym2151_suppress_slot5_channel7,
     bool arranged_bgm,
-    const std::vector<mamerecomp::sega::GameInputBinding>& game_input_bindings) {
+    const std::vector<multiarcaderecomp::sega::GameInputBinding>& game_input_bindings) {
     bool aot_state_valid = true;
     std::unique_ptr<GeneratedBoardModule> board_module;
-    const auto* registration = find_board(mamerecomp::board_family(profile));
+    const auto* registration = find_board(multiarcaderecomp::board_family(profile));
     if (!registration) throw std::runtime_error("Sega profile has no registered board runtime");
     board_module = std::make_unique<GeneratedBoardModule>(*registration, profile.id.data());
     if (arranged_bgm && !board_module->has_game_audio_api())
         throw std::runtime_error("--arranged-bgm requires a game module with a sound-command API");
-    mamerecomp::z80::SetZ80Code(board_module ? board_module->z80_code() : nullptr);
-    mamerecomp::z80::z80native::SetHostCycleProvider([] { return ng_cycles; });
-    std::unique_ptr<mamerecomp::SegaPresenter> presenter;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+    multiarcaderecomp::z80::SetZ80Code(board_module ? board_module->z80_code() : nullptr);
+    multiarcaderecomp::z80::z80native::SetHostCycleProvider([] { return ng_cycles; });
+    std::unique_ptr<multiarcaderecomp::SegaPresenter> presenter;
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     if (window_enabled) {
-        presenter = std::make_unique<mamerecomp::SegaPresenter>(
-            std::string(profile.title) + " - MameRecomp", game_input_bindings, frame_limit_enabled, video_profile_enabled,
+        presenter = std::make_unique<multiarcaderecomp::SegaPresenter>(
+            std::string(profile.title) + " - MultiArcadeRecomp", game_input_bindings, frame_limit_enabled, video_profile_enabled,
             registration->refresh_rate_num, registration->refresh_rate_den);
         if (!presenter->configure_display(display_mode, window_scale))
             throw std::runtime_error(std::string("SDL display configuration failed: ") + SDL_GetError());
@@ -106,19 +106,19 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
 #else
     if (window_enabled) throw std::runtime_error("--window requires SDL3 development files; reconfigure with SDL3 installed");
 #endif
-    mamerecomp::SegaVideoSignals video_signals;
-    mamerecomp::SegaInputState input_state;
-    std::unique_ptr<mamerecomp::SegaAudioOutput> audio_output;
-    mamerecomp::SegaAudioSink audio_sink;
+    multiarcaderecomp::SegaVideoSignals video_signals;
+    multiarcaderecomp::SegaInputState input_state;
+    std::unique_ptr<multiarcaderecomp::SegaAudioOutput> audio_output;
+    multiarcaderecomp::SegaAudioSink audio_sink;
     if (audio_enabled && window_enabled) {
-        audio_output = std::make_unique<mamerecomp::SegaAudioOutput>();
+        audio_output = std::make_unique<multiarcaderecomp::SegaAudioOutput>();
         if (arranged_bgm)
             audio_output->load_external_tracks("/home/luiz/Documentos/GoldenAxeArranged");
         audio_sink = [output = audio_output.get()](std::span<const std::int16_t> samples, std::uint32_t rate) {
             output->submit(samples, rate);
         };
     }
-    mamerecomp::sega::BoardRuntimeContext runtime_context{
+    multiarcaderecomp::sega::BoardRuntimeContext runtime_context{
         profile, zip_path, {}, {}, {}, video_signals, input_state,
         audio_enabled, window_enabled, audio_stereo_spread, audio_volume,
         dsw1_override, dsw2_override,
@@ -130,19 +130,19 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         std::move(audio_sink),
         [output = audio_output.get(), &board_module, arranged_bgm](std::uint8_t command) {
             if (!arranged_bgm) return false;
-            const mamerecomp::sega::GameAudioHostApi host{
+            const multiarcaderecomp::sega::GameAudioHostApi host{
                 output,
                 [](void* context, const char* track) {
-                    return context && static_cast<mamerecomp::SegaAudioOutput*>(context)->play_track(track);
+                    return context && static_cast<multiarcaderecomp::SegaAudioOutput*>(context)->play_track(track);
                 },
                 [](void* context, const char* track) {
-                    return context && static_cast<mamerecomp::SegaAudioOutput*>(context)->play_one_shot(track);
+                    return context && static_cast<multiarcaderecomp::SegaAudioOutput*>(context)->play_one_shot(track);
                 },
                 [](void* context) {
-                    if (context) static_cast<mamerecomp::SegaAudioOutput*>(context)->stop_track();
+                    if (context) static_cast<multiarcaderecomp::SegaAudioOutput*>(context)->stop_track();
                 },
                 [](void* context, float gain) {
-                    if (context) static_cast<mamerecomp::SegaAudioOutput*>(context)->set_track_gain(gain);
+                    if (context) static_cast<multiarcaderecomp::SegaAudioOutput*>(context)->set_track_gain(gain);
                 }};
             return board_module->on_sound_command(command, &host);
         },
@@ -151,7 +151,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         ym2151_suppress_slot5_channel7
     };
 
-    const auto maincpu = mamerecomp::load_maincpu_roms(profile, zip_path);
+    const auto maincpu = multiarcaderecomp::load_maincpu_roms(profile, zip_path);
     std::set<std::uint32_t> runtime_entry_candidates;
     if (runtime_entry_out) {
         std::ifstream input(*runtime_entry_out);
@@ -175,14 +175,14 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         }
     }
     const auto graphics_load_start = std::chrono::steady_clock::now();
-    const auto graphics = mamerecomp::load_graphics_roms(profile, zip_path);
+    const auto graphics = multiarcaderecomp::load_graphics_roms(profile, zip_path);
     const auto graphics_load_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - graphics_load_start).count();
 
     runtime_context.maincpu_rom = maincpu;
     runtime_context.tile_rom = graphics.tiles;
     runtime_context.sprite_rom = graphics.sprites;
-    auto board_runtime = mamerecomp::sega::make_board_runtime(runtime_context);
+    auto board_runtime = multiarcaderecomp::sega::make_board_runtime(runtime_context);
     const bool stateful_opcode_transform = board_runtime.stateful_opcode_transform;
     const auto reset_vector_word = [&](std::uint32_t address) {
         const auto encrypted = static_cast<std::uint16_t>((maincpu[address] << 8) | maincpu[address + 1]);
@@ -216,15 +216,15 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     }
     const M68kBusCallbacks maincpu_bus{
         &bus,
-        &mamerecomp::sega_bus_read8_callback,
-        &mamerecomp::sega_bus_read16_callback,
-        &mamerecomp::sega_bus_write8_callback,
-        &mamerecomp::sega_bus_write16_callback,
+        &multiarcaderecomp::sega_bus_read8_callback,
+        &multiarcaderecomp::sega_bus_read16_callback,
+        &multiarcaderecomp::sega_bus_write8_callback,
+        &multiarcaderecomp::sega_bus_write16_callback,
     };
-    mamerecomp_m68k_bus_bind(&maincpu_bus);
+    multiarcaderecomp_m68k_bus_bind(&maincpu_bus);
     const bool debug_hooks_enabled = debugger_enabled || cpu_trace_out.has_value();
-    mamerecomp_m68k_bus_set_read_observer(debug_hooks_enabled ? mamerecomp_debug_read_adapter : nullptr);
-    mamerecomp_m68k_bus_set_write_observer(debug_hooks_enabled ? mamerecomp_debug_write_adapter : nullptr);
+    multiarcaderecomp_m68k_bus_set_read_observer(debug_hooks_enabled ? multiarcaderecomp_debug_read_adapter : nullptr);
+    multiarcaderecomp_m68k_bus_set_write_observer(debug_hooks_enabled ? multiarcaderecomp_debug_write_adapter : nullptr);
     ng_cpu = {};
     ng_cpu.a[7] = initial_sp;
     ng_cpu.pc = initial_pc;
@@ -239,7 +239,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     std::uint64_t next_vblank = 0;
     std::uint64_t next_sound_sync = sound_active() ? sound_sync_period : std::numeric_limits<std::uint64_t>::max();
     std::uint64_t elapsed_vblanks = 0;
-    mamerecomp::configure_m68k_debugger(debugger_enabled, &bus, &elapsed_vblanks,
+    multiarcaderecomp::configure_m68k_debugger(debugger_enabled, &bus, &elapsed_vblanks,
         cpu_trace_out ? &*cpu_trace_out : nullptr, cpu_trace_start, cpu_trace_end);
     std::uint64_t accepted_vblanks = 0;
     std::uint64_t accepted_mapper_irqs = 0;
@@ -255,8 +255,8 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     bool maincpu_reset_seen = false;
     bool window_open = true;
     auto& board_video_renderer = board_runtime.video;
-    const auto render_current_frame = [&](std::vector<mamerecomp::SegaVideoFrame>* stages = nullptr,
-        mamerecomp::SegaVideoProfile* profile = nullptr) -> mamerecomp::SegaVideoFrame {
+    const auto render_current_frame = [&](std::vector<multiarcaderecomp::SegaVideoFrame>* stages = nullptr,
+        multiarcaderecomp::SegaVideoProfile* profile = nullptr) -> multiarcaderecomp::SegaVideoFrame {
         const auto start = std::chrono::steady_clock::now();
         auto frame = board_video_renderer->render(stages, profile);
         if (profile) {
@@ -285,9 +285,9 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     } live_video_stats;
     auto last_vblank_wall_time = std::chrono::steady_clock::time_point{};
     auto last_simulation_start = std::chrono::steady_clock::time_point{};
-    const auto compare_frame_with_cpu = [&](const mamerecomp::SegaVideoFrame& frame, std::string_view context) {
-        if (!compare_cpu_video || video_backend != mamerecomp::SegaVideoBackend::OpenGL) return;
-        mamerecomp::SegaVideoFrame cpu_frame = board_video_renderer->render_cpu_reference();
+    const auto compare_frame_with_cpu = [&](const multiarcaderecomp::SegaVideoFrame& frame, std::string_view context) {
+        if (!compare_cpu_video || video_backend != multiarcaderecomp::SegaVideoBackend::OpenGL) return;
+        multiarcaderecomp::SegaVideoFrame cpu_frame = board_video_renderer->render_cpu_reference();
         std::uint64_t index_differences = 0;
         std::uint64_t priority_differences = 0;
         std::uint64_t shadow_differences = 0;
@@ -335,10 +335,10 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             && elapsed_vblanks == *frame_out_vblank;
         if (presenter || capture_this_frame) {
             if (debugger_enabled && capture_this_frame) {
-                mamerecomp::report_m68k_debug_snapshot(elapsed_vblanks, ng_cycles);
+                multiarcaderecomp::report_m68k_debug_snapshot(elapsed_vblanks, ng_cycles);
                 board_runtime.report_debug_snapshot(std::cout);
             }
-            mamerecomp::SegaVideoProfile live_frame_profile;
+            multiarcaderecomp::SegaVideoProfile live_frame_profile;
             const auto frame = render_current_frame(nullptr,
                 (presenter && video_profile_enabled) ? &live_frame_profile : nullptr);
             if (presenter && video_profile_enabled) {
@@ -349,7 +349,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
                 live_video_stats.render_max_steady_ns = std::max(live_video_stats.render_max_steady_ns, steady_render_ns);
                 live_video_stats.gpu_setup_ns += live_frame_profile.gpu_setup_ns;
             }
-            if (compare_cpu_video && video_backend == mamerecomp::SegaVideoBackend::OpenGL) {
+            if (compare_cpu_video && video_backend == multiarcaderecomp::SegaVideoBackend::OpenGL) {
                 compare_frame_with_cpu(frame, "at physical vblank " + std::to_string(elapsed_vblanks));
             }
             if (presenter) {
@@ -366,7 +366,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             if (presenter && video_profile_enabled)
                 last_simulation_start = std::chrono::steady_clock::now();
             if (capture_this_frame) {
-                mamerecomp::write_sega_frame_ppm(frame, bus.memory("paletteram"), *frame_out);
+                multiarcaderecomp::write_sega_frame_ppm(frame, bus.memory("paletteram"), *frame_out);
                 vblank_frame_written = true;
                 std::cout << "Wrote video snapshot at physical vblank " << std::dec << elapsed_vblanks
                           << " to " << *frame_out << '\n';
@@ -402,7 +402,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         input_state.service = 0xff;
         input_state.p1 = 0xff;
         input_state.p2 = 0xff;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (presenter) {
             const auto live = presenter->live_inputs();
             input_state.service &= live.service;
@@ -476,7 +476,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         const auto* active_entries = aot_state_valid ? entries : nullptr;
         const auto active_entry_count = aot_state_valid ? entry_count : 0;
         const auto result = m68k_recomp_dispatch_once(active_entries, active_entry_count);
-        if (mamerecomp::m68k_debugger_quit_requested()) break;
+        if (multiarcaderecomp::m68k_debugger_quit_requested()) break;
         if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
             if (!fallback_miss_segment && (result.pc & 1U) == 0 && result.pc < maincpu.size())
                 runtime_entry_candidates.insert(result.pc);
@@ -484,7 +484,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             if (!musashi_fallback_announced) {
                 std::uint16_t opcode = 0;
                 char disassembly[128]{};
-                mamerecomp_m68k_musashi_describe(result.pc, &opcode, disassembly, sizeof(disassembly));
+                multiarcaderecomp_m68k_musashi_describe(result.pc, &opcode, disassembly, sizeof(disassembly));
                 std::cerr << "68000 Musashi fallback engaged at pc=0x" << std::hex << result.pc
                           << " opcode=0x" << std::setw(4) << std::setfill('0') << opcode
                           << std::dec << " instruction=\"" << disassembly << "\"\n";
@@ -493,7 +493,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             const auto fallback_start_cycles = ng_cycles;
             std::uint64_t fallback_instructions = 0;
             const bool* active_state_valid = aot_state_valid ? &aot_state_valid : nullptr;
-            const int consumed_cycles = mamerecomp_m68k_musashi_run_until(
+            const int consumed_cycles = multiarcaderecomp_m68k_musashi_run_until(
                 active_entries ? aot_entry_pcs.data() : nullptr,
                 active_entries ? aot_entry_pcs.size() : 0,
                 active_state_valid, &fallback_instructions);
@@ -507,7 +507,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             ng_cycles = fallback_start_cycles + consumed_cycles;
             ng_icount += fallback_instructions;
             musashi_fallback_instructions += fallback_instructions;
-            const M68kBusFault fallback_fault = mamerecomp_m68k_bus_fault();
+            const M68kBusFault fallback_fault = multiarcaderecomp_m68k_bus_fault();
             if (fallback_fault.access != M68K_BUS_ACCESS_NONE) {
                 std::cerr << "68000 Musashi fallback bus fault access="
                           << static_cast<unsigned>(fallback_fault.access)
@@ -566,9 +566,9 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     if (runtime_entry_out) {
         const auto fallback_log = runtime_entry_out->parent_path() / "z80_fallbacks.txt";
         const auto fallback_path = fallback_log.string();
-        mamerecomp::z80::z80native::PersistFallbackLog(fallback_path.c_str());
+        multiarcaderecomp::z80::z80native::PersistFallbackLog(fallback_path.c_str());
     }
-    if (aot_profile_enabled) mamerecomp::z80::z80native::ReportInterpreterProfile();
+    if (aot_profile_enabled) multiarcaderecomp::z80::z80native::ReportInterpreterProfile();
     if (!sound_active()) {
         std::cout << "Z80 execution coverage: AOT instructions=0 fallback instructions=0"
                   << " (sound CPU was not instantiated; audio is disabled)\n";
@@ -589,24 +589,24 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
         std::cout << "A" << i << "=0x" << std::setw(8) << ng_cpu.a[i] << (i == 6 ? '\n' : ' ');
     }
     std::cout << std::setfill(' ');
-    std::vector<mamerecomp::SegaVideoFrame> video_stages;
+    std::vector<multiarcaderecomp::SegaVideoFrame> video_stages;
     std::uint64_t ppm_write_ns = 0;
     if ((frame_out && !frame_out_vblank) || video_state_out || video_profile_enabled) {
-        mamerecomp::SegaVideoProfile render_profile;
+        multiarcaderecomp::SegaVideoProfile render_profile;
         const auto frame = render_current_frame(video_state_out ? &video_stages : nullptr,
             video_profile_enabled ? &render_profile : nullptr);
-        if (compare_cpu_video && video_backend == mamerecomp::SegaVideoBackend::OpenGL) {
+        if (compare_cpu_video && video_backend == multiarcaderecomp::SegaVideoBackend::OpenGL) {
             compare_frame_with_cpu(frame, "at final cycle-budget state");
         }
         if (frame_out && !frame_out_vblank) {
             const auto ppm_start = std::chrono::steady_clock::now();
-            mamerecomp::write_sega_frame_ppm(frame, bus.memory("paletteram"), *frame_out);
+            multiarcaderecomp::write_sega_frame_ppm(frame, bus.memory("paletteram"), *frame_out);
             ppm_write_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - ppm_start).count();
             std::cout << "Wrote indexed framebuffer (PPM) to " << *frame_out
                       << "; sprite rendering and palette shadow/highlight are enabled.\n";
             const char* backend_name = board_runtime.video_backend_description.empty()
-                ? (video_backend == mamerecomp::SegaVideoBackend::OpenGL
+                ? (video_backend == multiarcaderecomp::SegaVideoBackend::OpenGL
                     ? "OpenGL tilemap/text + CPU sprites" : "software CPU")
                 : board_runtime.video_backend_description.c_str();
             std::cout << "Video backend: " << backend_name << '\n';
@@ -639,11 +639,11 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
                       << "  run loop elapsed (including presentation and pacing): " << ms(cpu_run_ns) << " ms for "
                       << ng_cycles << " guest cycles and " << accepted_vblanks << " accepted IRQ4s\n"
                       << "  framebuffer composition: " << ms(render_profile.render_ns) << " ms ("
-                      << mamerecomp::SegaVideoFrame::width << 'x' << mamerecomp::SegaVideoFrame::height
+                      << multiarcaderecomp::SegaVideoFrame::width << 'x' << multiarcaderecomp::SegaVideoFrame::height
                       << ", " << frame_pixels << " pixels)\n";
             if (!board_runtime.supports_video_profile) {
                 std::cout << "    per-stage video counters are not available for this board\n";
-            } else if (video_backend == mamerecomp::SegaVideoBackend::OpenGL) {
+            } else if (video_backend == multiarcaderecomp::SegaVideoBackend::OpenGL) {
                 std::cout << "    OpenGL setup/upload/dispatch+readback: " << ms(render_profile.gpu_setup_ns) << "/"
                           << ms(render_profile.gpu_upload_ns) << "/" << ms(render_profile.gpu_dispatch_readback_ns) << " ms\n"
                           << "    compute invocations: " << (video_signals.display_enable ? frame_pixels : 0)
@@ -735,7 +735,7 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
             static constexpr const char* stage_names[] = {"background", "foreground", "text", "sprites"};
             for (std::size_t i = 0; i < video_stages.size(); ++i) {
                 const auto stage_path = *video_state_out / (std::string("stage_") + stage_names[i] + ".ppm");
-                mamerecomp::write_sega_frame_ppm(video_stages[i], bus.memory("paletteram"), stage_path);
+                multiarcaderecomp::write_sega_frame_ppm(video_stages[i], bus.memory("paletteram"), stage_path);
             }
             std::cout << "Wrote " << video_stages.size() << " intermediate composition stages to "
                       << *video_state_out << '\n';
@@ -793,4 +793,4 @@ int run_game(const mamerecomp::GameProfile& profile, const std::filesystem::path
     return 0;
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

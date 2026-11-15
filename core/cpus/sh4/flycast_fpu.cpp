@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace mamerecomp::cpus::sh4::flycast::fpu {
+namespace multiarcaderecomp::cpus::sh4::flycast::fpu {
 namespace {
 
 constexpr std::array<std::uint32_t, 0x8000> kSinCoefficients = {
@@ -25,7 +25,7 @@ float flycast_sine(std::uint32_t index) {
     return std::bit_cast<float>(bits);
 }
 
-auto& active_float_bank(mamerecomp::naomi::Sh4Context& context) {
+auto& active_float_bank(multiarcaderecomp::naomi::Sh4Context& context) {
     return context.fpu_bank_x ? context.xf : context.frf;
 }
 
@@ -39,7 +39,7 @@ double flush_denormal(double value, bool enabled) {
         ? std::copysign(0.0, value) : value;
 }
 
-double read_double(mamerecomp::naomi::Sh4Context& context, unsigned index) {
+double read_double(multiarcaderecomp::naomi::Sh4Context& context, unsigned index) {
     auto& bank = active_float_bank(context);
     index &= 14u;
     const std::uint64_t high = std::bit_cast<std::uint32_t>(bank[index]);
@@ -47,7 +47,7 @@ double read_double(mamerecomp::naomi::Sh4Context& context, unsigned index) {
     return std::bit_cast<double>((high << 32) | low);
 }
 
-void write_double(mamerecomp::naomi::Sh4Context& context, unsigned index,
+void write_double(multiarcaderecomp::naomi::Sh4Context& context, unsigned index,
                   double value) {
     auto& bank = active_float_bank(context);
     index &= 14u;
@@ -57,7 +57,7 @@ void write_double(mamerecomp::naomi::Sh4Context& context, unsigned index,
 }
 
 template <typename FloatOperation, typename DoubleOperation>
-void binary_float(mamerecomp::naomi::Sh4Context& context, unsigned n,
+void binary_float(multiarcaderecomp::naomi::Sh4Context& context, unsigned n,
                   unsigned m, FloatOperation float_operation,
                   DoubleOperation double_operation) {
     const bool flush = (context.fpscr & (1u << 18)) != 0;
@@ -76,27 +76,27 @@ void binary_float(mamerecomp::naomi::Sh4Context& context, unsigned n,
 
 } // namespace
 
-void fadd(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fadd(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     binary_float(context, n, m, [](float a, float b) { return a + b; },
                   [](double a, double b) { return a + b; });
 }
 
-void fsub(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fsub(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     binary_float(context, n, m, [](float a, float b) { return a - b; },
                   [](double a, double b) { return a - b; });
 }
 
-void fmul(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fmul(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     binary_float(context, n, m, [](float a, float b) { return a * b; },
                   [](double a, double b) { return a * b; });
 }
 
-void fdiv(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fdiv(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     binary_float(context, n, m, [](float a, float b) { return a / b; },
                   [](double a, double b) { return a / b; });
 }
 
-void fcmp_eq(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fcmp_eq(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     const bool flush = (context.fpscr & (1u << 18)) != 0;
     if (context.fpscr_pr) {
         context.t = flush_denormal(read_double(context, n), flush) ==
@@ -109,7 +109,7 @@ void fcmp_eq(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     }
 }
 
-void fcmp_gt(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fcmp_gt(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     const bool flush = (context.fpscr & (1u << 18)) != 0;
     if (context.fpscr_pr) {
         context.t = flush_denormal(read_double(context, n), flush) >
@@ -122,7 +122,7 @@ void fcmp_gt(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     }
 }
 
-void fneg(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void fneg(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     auto& fr = active_float_bank(context);
     const unsigned index = n & 15u;
     auto bits = std::bit_cast<std::uint32_t>(fr[index]);
@@ -130,7 +130,7 @@ void fneg(mamerecomp::naomi::Sh4Context& context, unsigned n) {
     fr[index] = std::bit_cast<float>(bits);
 }
 
-void fabs(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void fabs(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     auto& fr = active_float_bank(context);
     const unsigned index = context.fpscr_pr ? (n & 14u) : (n & 15u);
     auto bits = std::bit_cast<std::uint32_t>(fr[index]);
@@ -138,7 +138,7 @@ void fabs(mamerecomp::naomi::Sh4Context& context, unsigned n) {
     fr[index] = std::bit_cast<float>(bits);
 }
 
-void fsqrt(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void fsqrt(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     const bool flush = (context.fpscr & (1u << 18)) != 0;
     if (context.fpscr_pr) {
         const auto input = flush_denormal(read_double(context, n), flush);
@@ -151,7 +151,7 @@ void fsqrt(mamerecomp::naomi::Sh4Context& context, unsigned n) {
     }
 }
 
-void fmac(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
+void fmac(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     if (context.fpscr_pr) return; // Flycast marks the DR form unimplemented.
     auto& fr = active_float_bank(context);
     const bool flush = (context.fpscr & (1u << 18)) != 0;
@@ -161,7 +161,7 @@ void fmac(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m) {
     fr[n & 15u] = flush_denormal(std::fma(a, b, c), flush);
 }
 
-void load_fpscr(mamerecomp::naomi::Sh4Context& context, std::uint32_t value) {
+void load_fpscr(multiarcaderecomp::naomi::Sh4Context& context, std::uint32_t value) {
     // Flycast's Sh4Context::UpdateFPSCR clears the cause field when FPSCR is
     // loaded or one of the FR/SZ mode bits is changed.
     context.fpscr = (value & 0x003fffffu) & ~0x0003f000u;
@@ -169,15 +169,15 @@ void load_fpscr(mamerecomp::naomi::Sh4Context& context, std::uint32_t value) {
     context.fpu_bank_x = (context.fpscr & (1u << 21)) != 0;
 }
 
-void toggle_fr(mamerecomp::naomi::Sh4Context& context) {
+void toggle_fr(multiarcaderecomp::naomi::Sh4Context& context) {
     load_fpscr(context, context.fpscr ^ (1u << 21));
 }
 
-void toggle_sz(mamerecomp::naomi::Sh4Context& context) {
+void toggle_sz(multiarcaderecomp::naomi::Sh4Context& context) {
     load_fpscr(context, context.fpscr ^ (1u << 20));
 }
 
-void fipr(mamerecomp::naomi::Sh4Context& context, unsigned m, unsigned n) {
+void fipr(multiarcaderecomp::naomi::Sh4Context& context, unsigned m, unsigned n) {
     if (context.fpscr_pr) return; // Flycast does not implement PR=1 FIPR.
     auto& fr = active_float_bank(context);
     const bool flush = (context.fpscr & (1u << 18)) != 0;
@@ -194,7 +194,7 @@ void fipr(mamerecomp::naomi::Sh4Context& context, unsigned m, unsigned n) {
     fr[nb + 3] = flush_denormal(static_cast<float>(result), flush);
 }
 
-void ftrv(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void ftrv(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     if (context.fpscr_pr) return; // Flycast does not implement PR=1 FTRV.
     auto& fr = active_float_bank(context);
     const bool flush = (context.fpscr & (1u << 18)) != 0;
@@ -218,7 +218,7 @@ void ftrv(mamerecomp::naomi::Sh4Context& context, unsigned n) {
         fr[base + i] = flush_denormal(static_cast<float>(result[i]), flush);
 }
 
-void fsrra(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void fsrra(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     if (context.fpscr_pr) return; // Flycast does not implement PR=1 FSRRA.
     const bool flush = (context.fpscr & (1u << 18)) != 0;
     auto& fr = active_float_bank(context);
@@ -226,7 +226,7 @@ void fsrra(mamerecomp::naomi::Sh4Context& context, unsigned n) {
     fr[n & 15u] = flush_denormal(1.0f / std::sqrt(input), flush);
 }
 
-void fsca(mamerecomp::naomi::Sh4Context& context, unsigned n) {
+void fsca(multiarcaderecomp::naomi::Sh4Context& context, unsigned n) {
     if (context.fpscr_pr) return; // Flycast does not implement PR=1 FSCA.
     auto& fr = active_float_bank(context);
     const auto base = n & 14u;
@@ -235,4 +235,4 @@ void fsca(mamerecomp::naomi::Sh4Context& context, unsigned n) {
     fr[base + 1] = flycast_sine(index + 0x4000u);
 }
 
-} // namespace mamerecomp::cpus::sh4::flycast::fpu
+} // namespace multiarcaderecomp::cpus::sh4::flycast::fpu

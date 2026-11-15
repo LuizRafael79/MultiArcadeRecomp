@@ -3,12 +3,12 @@
 #include "z80.h"
 #include "native_z80.h"
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 namespace {
-class SoundBus final : public mamerecomp::z80::Z80Bus {
+class SoundBus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     explicit SoundBus(Tmnt2Board& board) : board_(board) {}
-    void bind(mamerecomp::z80::Z80& cpu) { cpu_ = &cpu; }
+    void bind(multiarcaderecomp::z80::Z80& cpu) { cpu_ = &cpu; }
     uint8_t Read(uint16_t address) override {
         if (cpu_) board_.advance_sound_to_cycles(cpu_->BusCallbackCycles());
         return board_.sound_read(address);
@@ -28,14 +28,14 @@ public:
     }
 private:
     Tmnt2Board& board_;
-    mamerecomp::z80::Z80* cpu_ = nullptr;
+    multiarcaderecomp::z80::Z80* cpu_ = nullptr;
     uint64_t nmi_serviced_ = 0;
 };
 }
 
 Tmnt2SoundCpu::Tmnt2SoundCpu(Tmnt2Board& board)
     : board_(board), bus_(std::make_unique<SoundBus>(board)),
-      cpu_(std::make_unique<mamerecomp::z80::Z80>(*bus_))
+      cpu_(std::make_unique<multiarcaderecomp::z80::Z80>(*bus_))
 {
     static_cast<SoundBus*>(bus_.get())->bind(*cpu_);
     reset();
@@ -53,9 +53,9 @@ void Tmnt2SoundCpu::run(uint64_t cycles)
     const bool irq_pending = board_.sound_irq_pending();
     cpu_->SetInterruptLine(irq_pending);
     if (board_.sound_nmi_pending()) cpu_->RaiseNmi();
-    const auto mode = mamerecomp::z80::HasZ80Code()
-        ? mamerecomp::z80::Z80::Mode::Native
-        : mamerecomp::z80::Z80::Mode::Interpreter;
+    const auto mode = multiarcaderecomp::z80::HasZ80Code()
+        ? multiarcaderecomp::z80::Z80::Mode::Native
+        : multiarcaderecomp::z80::Z80::Mode::Interpreter;
     cpu_->Run(cpu_->cycles + cycles, mode);
     board_.advance_sound_to_cycles(cpu_->cycles);
     if (irq_pending && !cpu_->InterruptLineAsserted())
@@ -75,4 +75,4 @@ uint64_t Tmnt2SoundCpu::nmi_count() const { return cpu_->nmiServiced; }
 uint64_t Tmnt2SoundCpu::aot_instructions() const { return cpu_->nativeInstructions; }
 uint64_t Tmnt2SoundCpu::fallback_instructions() const { return cpu_->interpreted; }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

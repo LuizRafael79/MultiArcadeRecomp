@@ -9,6 +9,6 @@ algorithms:
 - Upstream license: MIT, retained in the imported source headers
 
 The port removes MAME's emu.h utility dependencies and keeps the numerical
-implementation independent of the MAME device framework. MameRecomp's SH-4
+implementation independent of the MAME device framework. MultiArcadeRecomp's SH-4
 interpreter calls it for FIPR, FTRV, FSCA and FSRRA; the Naomi-owned CPU state
 and FPSCR remain in Sh4Context. The source's MIT license is in [`docs/license/mame-sh4-fpu/MIT`](../../license/mame-sh4-fpu/MIT); retain it and the source-header copyright notices with redistributions.

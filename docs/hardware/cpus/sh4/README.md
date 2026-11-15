@@ -31,7 +31,7 @@ outside this CPU backend.
 
 - `flycast_interpreter.*`: runtime semantic fallback adapted from Flycast; it
   does not generate host code.
-- Naomi's existing SH-4 translator/dispatcher: MameRecomp's AOT path. Future
+- Naomi's existing SH-4 translator/dispatcher: MultiArcadeRecomp's AOT path. Future
   decoder and opcode coverage belongs to the translator, not the interpreter.
 - Naomi runtime: memory map, exceptions/interrupt delivery, cache/MMU policy,
   timing, and devices. These must not be folded into the generic CPU decoder.

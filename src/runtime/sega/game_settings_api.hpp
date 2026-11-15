@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 enum class GameInputPort : std::uint8_t { Service = 0, Player1 = 1, Player2 = 2 };
 
@@ -26,4 +26,4 @@ struct GameSettingsApi {
     std::uint8_t (*dsw2)(const void* state);
 };
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

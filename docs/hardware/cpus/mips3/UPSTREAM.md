@@ -23,6 +23,6 @@ should not be used as a byte-equality oracle after boot.
 
 The emitter produces intermediate `rec_*.c`/`rec_tab.c` files using the
 runtime ABI now ported under `core/cpus/mips3/`. Configure
-`MAMERECOMP_KI_MIPS_AOT_DIR` to compile a generated directory into the shared
-backend. The Seattle board runtime and `mamerecomp run` integration remain
+`MULTIARCADERECOMP_KI_MIPS_AOT_DIR` to compile a generated directory into the shared
+backend. The Seattle board runtime and `multiarcaderecomp run` integration remain
 unfinished. No game-derived output belongs in the repository.

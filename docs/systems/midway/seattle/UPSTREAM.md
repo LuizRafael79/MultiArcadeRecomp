@@ -11,7 +11,7 @@
   EPROM. The builder checks out commit
   `8e4344cfd2b039e2ca97c9f115bb8f1acaff804b` under ignored
   `build/ki/work/ki1/tooldeps/`; it is not linked into or copied into
-  MameRecomp. Its AGPL-3.0 license remains with that external checkout. A
+  MultiArcadeRecomp. Its AGPL-3.0 license remains with that external checkout. A
   prebuilt executable can be supplied with `--kipack`.
 - MAME `src/mame/rare/kinst.cpp`: parent-set ROM checksums, CHD identities,
   memory map and Seattle hardware declarations.

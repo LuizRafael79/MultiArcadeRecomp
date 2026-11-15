@@ -13,7 +13,7 @@ board services are split by responsibility:
 KI1 uses UltraCombo's ADSP-2105 static translator and interpreter over its DCS
 ROM code images. A short audio startup gap can occur when a coin is inserted
 during POST; compare the DCS reset, host-command, IRQ and sample event order.
-The MameRecomp ADSP backend remains in use for MK1/MK2. Consolidating CPU
+The MultiArcadeRecomp ADSP backend remains in use for MK1/MK2. Consolidating CPU
 implementations into generic shared backends is future work.
 
 KI2 uses the same Seattle board services and is connected to the dispatcher.
@@ -28,9 +28,9 @@ addresses, and its CHD reports CHS 1463/13/47 with the IDE serial at word offset
 Build and launch through the main dispatcher:
 
 ```sh
-build/mamerecomp build --machine=ki --board=seattle --game=ki1 \
+build/multiarcaderecomp build --machine=ki --board=seattle --game=ki1 \
   --rom-dir ~/git/mame/roms --jobs 4
-build/mamerecomp run --machine=ki --board=seattle --game=ki1 \
+build/multiarcaderecomp run --machine=ki --board=seattle --game=ki1 \
   --rom-dir ~/git/mame/roms --window
 ```
 

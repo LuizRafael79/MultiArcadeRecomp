@@ -4,19 +4,19 @@
 
 #include <utility>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
-Fd1094MusashiBinding::Fd1094MusashiBinding(mamerecomp::Fd1094& cipher,
-    mamerecomp::SegaAddressSpace& bus, std::span<const std::uint8_t> encrypted_program,
+Fd1094MusashiBinding::Fd1094MusashiBinding(multiarcaderecomp::Fd1094& cipher,
+    multiarcaderecomp::SegaAddressSpace& bus, std::span<const std::uint8_t> encrypted_program,
     std::function<void()> invalidate_aot)
     : m_context{&cipher, &bus, encrypted_program, std::move(invalidate_aot)} {
-    mamerecomp_m68k_musashi_set_opcode_reader(opcode_read, &m_context);
-    mamerecomp_m68k_musashi_set_extension_callbacks(cmpild, rte, irq_ack, &m_context);
+    multiarcaderecomp_m68k_musashi_set_opcode_reader(opcode_read, &m_context);
+    multiarcaderecomp_m68k_musashi_set_extension_callbacks(cmpild, rte, irq_ack, &m_context);
 }
 
 Fd1094MusashiBinding::~Fd1094MusashiBinding() {
-    mamerecomp_m68k_musashi_set_opcode_reader(nullptr, nullptr);
-    mamerecomp_m68k_musashi_set_extension_callbacks(nullptr, nullptr, nullptr, nullptr);
+    multiarcaderecomp_m68k_musashi_set_opcode_reader(nullptr, nullptr);
+    multiarcaderecomp_m68k_musashi_set_extension_callbacks(nullptr, nullptr, nullptr, nullptr);
 }
 
 std::uint16_t Fd1094MusashiBinding::opcode_read(void* opaque, std::uint32_t address) {
@@ -49,4 +49,4 @@ int Fd1094MusashiBinding::irq_ack(void* opaque, int) {
     return -1; // Musashi's M68K_INT_ACK_AUTOVECTOR.
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

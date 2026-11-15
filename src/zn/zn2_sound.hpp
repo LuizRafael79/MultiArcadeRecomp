@@ -7,22 +7,22 @@
 #include <array>
 #include <vector>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
-class Zn2SoundCpu final : private mamerecomp::z80::Z80Bus {
+class Zn2SoundCpu final : private multiarcaderecomp::z80::Z80Bus {
 public:
     explicit Zn2SoundCpu(CapcomZn2Board &board,
-                         const mamerecomp::z80::Z80Code *aot_code = nullptr,
-                         mamerecomp::chips::QSoundMode qsound_mode = mamerecomp::chips::QSoundMode::Lle,
+                         const multiarcaderecomp::z80::Z80Code *aot_code = nullptr,
+                         multiarcaderecomp::chips::QSoundMode qsound_mode = multiarcaderecomp::chips::QSoundMode::Lle,
                          std::span<const std::uint16_t> qsound_firmware = {},
-                         std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
-                         mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
+                         std::span<const multiarcaderecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program = {},
+                         multiarcaderecomp::dsp16::Dsp16ARunHandler dsp_aot_run = nullptr);
     void run_to_main_cycles(uint64_t psx_cycles);
     uint64_t next_main_event_cycle() const;
-    const mamerecomp::z80::Z80 &cpu() const { return cpu_; }
+    const multiarcaderecomp::z80::Z80 &cpu() const { return cpu_; }
     uint64_t audio_samples() const { return generated_samples_; }
     uint32_t audio_sample_rate() const { return 60'000'000u / 2u / 1248u; }
-    mamerecomp::chips::QSoundMode qsound_mode() const { return qsound_.mode(); }
+    multiarcaderecomp::chips::QSoundMode qsound_mode() const { return qsound_.mode(); }
     uint64_t qsound_dsp_cycles() const { return qsound_.dsp_cycles(); }
     uint64_t qsound_dsp_instructions() const { return qsound_.dsp_instructions(); }
     uint64_t qsound_dsp_aot_instructions() const { return qsound_.dsp_aot_instructions(); }
@@ -80,9 +80,9 @@ private:
     void SetMapping(uint32_t mapping) override { board_.set_sound_bank(static_cast<uint8_t>(mapping)); }
     void sync_qsound(uint64_t sound_cycles);
     CapcomZn2Board &board_;
-    mamerecomp::z80::Z80 cpu_;
-    const mamerecomp::z80::Z80Code *aot_code_ = nullptr;
-    mamerecomp::chips::QSound qsound_;
+    multiarcaderecomp::z80::Z80 cpu_;
+    const multiarcaderecomp::z80::Z80Code *aot_code_ = nullptr;
+    multiarcaderecomp::chips::QSound qsound_;
     std::vector<uint8_t> samples_;
     std::array<int16_t, 1024> qsound_stereo_{};
     std::vector<int16_t> audio_queue_;
@@ -106,4 +106,4 @@ private:
     uint64_t profile_dsp_slice_max_clocks_ = 0;
 };
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

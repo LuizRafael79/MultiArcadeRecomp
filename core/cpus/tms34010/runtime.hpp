@@ -2,7 +2,7 @@
 
 #include "tms34010.hpp"
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 
 // A fallback step executes one instruction at the current PC and returns
 // Dispatch when it advances state. It may return NeedsInterpreter if it
@@ -105,4 +105,4 @@ inline BlockExit run_until(State& state, Bus& bus, std::uint64_t stop_cycle,
     return BlockExit::Budget;
 }
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010

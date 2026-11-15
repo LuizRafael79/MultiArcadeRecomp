@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 // Sony ZN controller/security MCU serial HLE, based on MAME's znmcu_device.
 // The MCU ROM is NO_DUMP in the supplied sets; this models the observable
@@ -45,4 +45,4 @@ private:
     unsigned data_bytes_ = 0;
 };
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

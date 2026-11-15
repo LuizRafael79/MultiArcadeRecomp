@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 struct Range {
@@ -283,16 +283,16 @@ void m68k_debugger_note_write(std::uint32_t address, std::uint8_t width, std::ui
     }
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp
 
-extern "C" void mamerecomp_debug_instruction_adapter(uint32_t guest_pc) {
+extern "C" void multiarcaderecomp_debug_instruction_adapter(uint32_t guest_pc) {
     if (ng_debug_instruction_hook) ng_debug_instruction_hook(guest_pc);
 }
 
-extern "C" void mamerecomp_debug_write_adapter(uint32_t address, uint8_t width, uint32_t value) {
-    mamerecomp::m68k_debugger_note_write(address, width, value);
+extern "C" void multiarcaderecomp_debug_write_adapter(uint32_t address, uint8_t width, uint32_t value) {
+    multiarcaderecomp::m68k_debugger_note_write(address, width, value);
 }
 
-extern "C" void mamerecomp_debug_read_adapter(uint32_t address, uint8_t width, uint32_t value) {
-    mamerecomp::m68k_debugger_note_read(address, width, value);
+extern "C" void multiarcaderecomp_debug_read_adapter(uint32_t address, uint8_t width, uint32_t value) {
+    multiarcaderecomp::m68k_debugger_note_read(address, width, value);
 }

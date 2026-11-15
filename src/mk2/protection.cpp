@@ -1,6 +1,6 @@
 #include "mk2/protection.hpp"
 
-namespace mamerecomp::mk2 {
+namespace multiarcaderecomp::mk2 {
 
 bool Protection::read(std::uint32_t address, std::uint16_t& value) const noexcept {
     if ((address >= 0x01a190e0u && address < 0x01a19100u) ||
@@ -29,4 +29,4 @@ bool Protection::write(std::uint32_t address, std::uint16_t value) noexcept {
     return false;
 }
 
-} // namespace mamerecomp::mk2
+} // namespace multiarcaderecomp::mk2

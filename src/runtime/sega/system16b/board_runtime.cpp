@@ -15,10 +15,10 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 struct Fd1094RuntimeState {
-    std::shared_ptr<mamerecomp::Fd1094> cipher;
+    std::shared_ptr<multiarcaderecomp::Fd1094> cipher;
     std::unique_ptr<Fd1094MusashiBinding> musashi_binding;
 };
 }
@@ -94,7 +94,7 @@ BoardRuntimeHardware make_system16b_runtime(const BoardRuntimeContext& context) 
     if (context.profile.fd1094_key_region_size != 0) {
         const auto key = load_fd1094_key_roms(context.profile, context.rom_path);
         auto cpu_state = std::make_shared<Fd1094RuntimeState>();
-        cpu_state->cipher = std::make_shared<mamerecomp::Fd1094>(key);
+        cpu_state->cipher = std::make_shared<multiarcaderecomp::Fd1094>(key);
         cpu_state->musashi_binding = std::make_unique<Fd1094MusashiBinding>(
             *cpu_state->cipher, bus, context.maincpu_rom, context.invalidate_aot);
         runtime.cpu_variant_owner = cpu_state;
@@ -220,42 +220,42 @@ BoardRuntimeHardware make_system16b_runtime(const BoardRuntimeContext& context) 
     return runtime;
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega
 
-extern "C" unsigned mamerecomp_runtime_abi() { return 1; }
-extern "C" unsigned mamerecomp_runtime_revision() { return 18; }
-extern "C" mamerecomp::sega::BoardRuntimeHardware* mamerecomp_create_runtime(
-    const mamerecomp::sega::BoardRuntimeContext* context) {
-    return context ? new mamerecomp::sega::BoardRuntimeHardware(
-        mamerecomp::sega::make_system16b_runtime(*context)) : nullptr;
+extern "C" unsigned multiarcaderecomp_runtime_abi() { return 1; }
+extern "C" unsigned multiarcaderecomp_runtime_revision() { return 18; }
+extern "C" multiarcaderecomp::sega::BoardRuntimeHardware* multiarcaderecomp_create_runtime(
+    const multiarcaderecomp::sega::BoardRuntimeContext* context) {
+    return context ? new multiarcaderecomp::sega::BoardRuntimeHardware(
+        multiarcaderecomp::sega::make_system16b_runtime(*context)) : nullptr;
 }
-extern "C" void mamerecomp_destroy_runtime(mamerecomp::sega::BoardRuntimeHardware* runtime) {
+extern "C" void multiarcaderecomp_destroy_runtime(multiarcaderecomp::sega::BoardRuntimeHardware* runtime) {
     delete runtime;
 }
-extern "C" bool mamerecomp_runtime_memory_map(const mamerecomp::GameProfile* profile,
+extern "C" bool multiarcaderecomp_runtime_memory_map(const multiarcaderecomp::GameProfile* profile,
     const std::uint8_t* rom, std::size_t size,
     void (*visit)(void*, const char*, std::uint32_t, std::uint32_t, std::uint32_t, bool, bool), void* user) {
     if (!profile || (!rom && size) || !visit) return false;
-    const auto& config = std::get<mamerecomp::System16BConfiguration>(profile->board_configuration);
-    mamerecomp::System16BAddressSpace bus(std::span<const std::uint8_t>(rom, size), nullptr, nullptr, config.rom_board);
+    const auto& config = std::get<multiarcaderecomp::System16BConfiguration>(profile->board_configuration);
+    multiarcaderecomp::System16BAddressSpace bus(std::span<const std::uint8_t>(rom, size), nullptr, nullptr, config.rom_board);
     for (const auto& region : bus.regions())
         visit(user, region.name.c_str(), region.start, region.size, region.mirror_mask, region.writable, region.device);
     return true;
 }
 
-extern "C" std::vector<std::uint8_t> mamerecomp_runtime_decode_tiles(
+extern "C" std::vector<std::uint8_t> multiarcaderecomp_runtime_decode_tiles(
     const std::uint8_t* data, std::size_t size) {
     if (!data && size) throw std::invalid_argument("null tile ROM data");
-    return mamerecomp::decode_sega_tiles_3bpp(std::span<const std::uint8_t>(data, size));
+    return multiarcaderecomp::decode_sega_tiles_3bpp(std::span<const std::uint8_t>(data, size));
 }
 
-extern "C" std::vector<std::uint8_t> mamerecomp_runtime_decrypt_initial_program(
-    const mamerecomp::GameProfile* profile, const char* rom_path,
+extern "C" std::vector<std::uint8_t> multiarcaderecomp_runtime_decrypt_initial_program(
+    const multiarcaderecomp::GameProfile* profile, const char* rom_path,
     const std::uint8_t* encrypted, std::size_t size) {
     if (!profile || !rom_path || (!encrypted && size))
         throw std::invalid_argument("invalid FD1094 initial-program request");
-    const auto key = mamerecomp::load_fd1094_key_roms(*profile, rom_path);
-    mamerecomp::Fd1094 cipher(key);
+    const auto key = multiarcaderecomp::load_fd1094_key_roms(*profile, rom_path);
+    multiarcaderecomp::Fd1094 cipher(key);
     std::vector<std::uint8_t> opcodes(size);
     cipher.decrypt_region(std::span<const std::uint8_t>(encrypted, size), opcodes, cipher.state());
     return opcodes;

@@ -30,7 +30,7 @@ static bool exc_raised;
 bool irq_dirty = true;          // recheck pending interrupts before the next instruction
 static bool tlb_refill;
 
-// Optional coverage (MAMERECOMP_MIPS3_COVER=file): one bit per executed RAM word, plus a count of
+// Optional coverage (MULTIARCADERECOMP_MIPS3_COVER=file): one bit per executed RAM word, plus a count of
 // stores that hit words already executed (self-modifying code / overlays).
 static uint8_t *cover, *cover_lead;   // executed words; words reached by a jump
 static uint64_t cover_smc;
@@ -39,7 +39,7 @@ static inline bool cover_hit(uint32_t pa) { uint32_t i = COVER_IDX(pa); return c
 
 static void cover_save(void)
 {
-    FILE *f = fopen(getenv("MAMERECOMP_MIPS3_COVER"), "wb");
+    FILE *f = fopen(getenv("MULTIARCADERECOMP_MIPS3_COVER"), "wb");
     if (!f) return;
     fwrite(cover, 1, (RAM0_SIZE + RAM2_SIZE) / 32, f);
     fwrite(cover_lead, 1, (RAM0_SIZE + RAM2_SIZE) / 32, f);
@@ -126,11 +126,11 @@ void cpu_exception(int code, uint32_t badvaddr, bool has_badvaddr)
     cpu.cp0[CP0_STATUS] = sr | SR_EXL;
 
     static int log_exc = -1;
-    if (log_exc < 0) log_exc = getenv("MAMERECOMP_MIPS3_LOG_EXCEPTIONS") != NULL;
+    if (log_exc < 0) log_exc = getenv("MULTIARCADERECOMP_MIPS3_LOG_EXCEPTIONS") != NULL;
     if (log_exc && code != EXC_INT)
         fprintf(stderr, "exc %d at %08x%s badva=%08x sr=%08x\n", code, cpu.cur_pc, cpu.in_delay ? " (delay)" : "", badvaddr, sr);
 
-    if (code >= EXC_MOD && code <= EXC_DBE && getenv("MAMERECOMP_MIPS3_DUMP_ON_EXCEPTION")) {
+    if (code >= EXC_MOD && code <= EXC_DBE && getenv("MULTIARCADERECOMP_MIPS3_DUMP_ON_EXCEPTION")) {
         FILE *f = fopen("ram0.bin", "wb"); fwrite(ram0, 1, RAM0_SIZE, f); fclose(f);
         f = fopen("ram2.bin", "wb"); fwrite(ram2, 1, RAM2_SIZE, f); fclose(f);
         for (int i = 0; i < 32; i++) fprintf(stderr, "r%-2d=%016llx%s", i, (unsigned long long)cpu.r[i], (i & 3) == 3 ? "\n" : " ");
@@ -862,7 +862,7 @@ void cpu_reset(void)
     schedule_compare();
     irq_dirty = true;
     tlbc_flush();
-    if (getenv("MAMERECOMP_MIPS3_COVER") && !cover) {
+    if (getenv("MULTIARCADERECOMP_MIPS3_COVER") && !cover) {
         cover = calloc(1, (RAM0_SIZE + RAM2_SIZE) / 32);
         cover_lead = calloc(1, (RAM0_SIZE + RAM2_SIZE) / 32);
         atexit(cover_save);

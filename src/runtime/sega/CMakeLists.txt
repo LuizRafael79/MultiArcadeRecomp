@@ -5,6 +5,6 @@ add_subdirectory(system16a)
 add_subdirectory(system16b)
 add_subdirectory(system18)
 
-add_library(mamerecomp_sega_runtime INTERFACE)
-target_link_libraries(mamerecomp_sega_runtime INTERFACE
-    mamerecomp_sega_profiles)
+add_library(multiarcaderecomp_sega_runtime INTERFACE)
+target_link_libraries(multiarcaderecomp_sega_runtime INTERFACE
+    multiarcaderecomp_sega_profiles)

@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 class C352 {
 public:
@@ -48,4 +48,4 @@ private:
     uint64_t samples_rendered_ = 0;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

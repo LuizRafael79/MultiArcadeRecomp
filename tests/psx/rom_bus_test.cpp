@@ -6,7 +6,7 @@
 
 int main()
 {
-    mamerecomp::psx::MachineMemory memory(mamerecomp::psx::kZn2MemoryConfig);
+    multiarcaderecomp::psx::MachineMemory memory(multiarcaderecomp::psx::kZn2MemoryConfig);
     std::vector<uint8_t> bios(0x80000, 0x5a);
     assert(memory.load_bios(bios.data(), bios.size()));
     const PsxBus bus = memory.make_bus();
@@ -27,9 +27,9 @@ int main()
 
     PsxCpuState cpu{};
     psx_aot_reset(&cpu);
-    mamerecomp::psx::RunCounters counters{};
+    multiarcaderecomp::psx::RunCounters counters{};
     cpu.pc = 0x1e000000; // Unmapped instruction fetch reports IBE, not a stuck PC.
-    assert(mamerecomp::psx::execute_one(&cpu, &bus, nullptr, 0, &counters) ==
+    assert(multiarcaderecomp::psx::execute_one(&cpu, &bus, nullptr, 0, &counters) ==
            PSX_AOT_EXCEPTION);
     assert(cpu.pc == 0xbfc00180);
     assert(cpu.cp0[14] == 0x1e000000);

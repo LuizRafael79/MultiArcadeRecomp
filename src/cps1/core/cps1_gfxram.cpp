@@ -1,6 +1,6 @@
 #include "cps1_gfxram.hpp"
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 std::array<std::uint8_t, 0x40000> g_gfxram{};
 
@@ -15,4 +15,4 @@ void write_gfxram_word(std::size_t byte_offset, std::uint16_t value) {
     g_gfxram[byte_offset + 1] = static_cast<std::uint8_t>(value);
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

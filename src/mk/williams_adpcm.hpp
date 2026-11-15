@@ -8,7 +8,7 @@
 #include "mk/tunit.hpp"
 #include "ymfm_opm.h"
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 
 // Williams ADPCM sound-board bus used by T-unit Mortal Kombat. This models
 // the MC6809E address map and latches; CPU execution and chip synthesis are
@@ -115,4 +115,4 @@ private:
     bool m_reset{true};
 };
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

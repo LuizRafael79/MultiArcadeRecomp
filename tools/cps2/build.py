@@ -55,7 +55,7 @@ def main() -> int:
     parser.add_argument("--game", required=True)
     parser.add_argument("--rom-dir", type=Path, help="ROM zip or folder (defaults to SOURCE/rom)")
     parser.add_argument("--source-dir", type=Path,
-                        default=Path(os.environ.get("MAMERECOMP_CPS2_SOURCE", DEFAULT_SOURCE)))
+                        default=Path(os.environ.get("MULTIARCADERECOMP_CPS2_SOURCE", DEFAULT_SOURCE)))
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--rebuild", action="store_true", help="remove this game's build and generated work before rebuilding")
     args = parser.parse_args()
@@ -71,7 +71,7 @@ def main() -> int:
     build = ROOT / "build" / "cps2" / args.game
     work = ROOT / "build" / "cps2" / "work" / args.game
     module_build = ROOT / "build" / "cps2" / f"module-{args.game}"
-    module = ROOT / "build" / "cps2" / f"libmamerecomp_cps2_{args.game}.so"
+    module = ROOT / "build" / "cps2" / f"libmultiarcaderecomp_cps2_{args.game}.so"
     if args.rebuild:
         shutil.rmtree(build, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
@@ -127,7 +127,7 @@ def main() -> int:
         return result.returncode
     print("Building the CPS-2 board runtime module.", flush=True)
     return subprocess.run(["cmake", "--build", str(module_build), "--target",
-                           f"mamerecomp_cps2_{args.game}", "--parallel", str(args.jobs)],
+                           f"multiarcaderecomp_cps2_{args.game}", "--parallel", str(args.jobs)],
                           cwd=ROOT).returncode
 
 

@@ -1,8 +1,8 @@
-add_library(mamerecomp_sega_runtime_system18 MODULE board_runtime.cpp)
-set_target_properties(mamerecomp_sega_runtime_system18 PROPERTIES
-    PREFIX "" OUTPUT_NAME "mamerecomp_system18_runtime"
+add_library(multiarcaderecomp_sega_runtime_system18 MODULE board_runtime.cpp)
+set_target_properties(multiarcaderecomp_sega_runtime_system18 PROPERTIES
+    PREFIX "" OUTPUT_NAME "multiarcaderecomp_system18_runtime"
     LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-target_include_directories(mamerecomp_sega_runtime_system18 PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/core)
-target_link_libraries(mamerecomp_sega_runtime_system18 PUBLIC
-    mamerecomp_board_system18 mamerecomp_sega_board_common mamerecomp_sega_graphics_decode
-    mamerecomp_sega_profiles mamerecomp_chip_sega_i8751)
+target_include_directories(multiarcaderecomp_sega_runtime_system18 PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/core)
+target_link_libraries(multiarcaderecomp_sega_runtime_system18 PUBLIC
+    multiarcaderecomp_board_system18 multiarcaderecomp_sega_board_common multiarcaderecomp_sega_graphics_decode
+    multiarcaderecomp_sega_profiles multiarcaderecomp_chip_sega_i8751)

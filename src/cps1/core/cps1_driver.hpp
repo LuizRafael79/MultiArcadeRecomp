@@ -5,7 +5,7 @@
 #include <span>
 #include <string_view>
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 
 enum class Cps1SoundBoard : std::uint8_t { Ym2151Oki, QSound };
 enum class Cps1AddressMap : std::uint8_t { Main, QSound, Custom };
@@ -99,4 +99,4 @@ const Cps1GameDriver& sf2ce_driver();
 const Cps1GameDriver& dino_driver();
 const Cps1GameDriver* find_game_driver(std::string_view id);
 
-} // namespace mamerecomp::cps1
+} // namespace multiarcaderecomp::cps1

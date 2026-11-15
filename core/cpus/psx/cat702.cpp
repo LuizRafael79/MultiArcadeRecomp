@@ -2,7 +2,7 @@
 // CAT702 algorithm adapted from MAME src/devices/machine/cat702.cpp.
 #include "cat702.h"
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 constexpr std::array<uint8_t, 8> initial_sbox{
     0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x7f
@@ -60,4 +60,4 @@ void Cat702::clock(bool state)
     clock_ = state;
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

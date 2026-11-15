@@ -35,11 +35,11 @@ typedef struct {
     uint32_t address;
 } M68kBusFault;
 
-void mamerecomp_m68k_bus_bind(const M68kBusCallbacks *callbacks);
-void mamerecomp_m68k_bus_set_read_observer(M68kBusReadObserver observer);
-void mamerecomp_m68k_bus_set_write_observer(M68kBusWriteObserver observer);
-void mamerecomp_m68k_bus_clear_fault(void);
-M68kBusFault mamerecomp_m68k_bus_fault(void);
+void multiarcaderecomp_m68k_bus_bind(const M68kBusCallbacks *callbacks);
+void multiarcaderecomp_m68k_bus_set_read_observer(M68kBusReadObserver observer);
+void multiarcaderecomp_m68k_bus_set_write_observer(M68kBusWriteObserver observer);
+void multiarcaderecomp_m68k_bus_clear_fault(void);
+M68kBusFault multiarcaderecomp_m68k_bus_fault(void);
 
 #ifdef __cplusplus
 }

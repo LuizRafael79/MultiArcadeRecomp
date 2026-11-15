@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace mamerecomp::naomi::arm7 {
+namespace multiarcaderecomp::naomi::arm7 {
 namespace {
 
 using u8 = std::uint8_t;
@@ -308,4 +308,4 @@ std::array<std::uint32_t, 16> register_snapshot() {
 }
 std::uint64_t undefined_instructions() { return undefined_instruction_count; }
 
-} // namespace mamerecomp::naomi::arm7
+} // namespace multiarcaderecomp::naomi::arm7

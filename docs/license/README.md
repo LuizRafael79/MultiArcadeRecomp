@@ -3,7 +3,7 @@
 All license and notice texts are retained here. Component directories preserve
 upstream names and dependency nesting; do not merge or remove these files.
 
-The MameRecomp project license is [`mamerecomp/LICENSE.md`](mamerecomp/LICENSE.md).
+The MultiArcadeRecomp project license is [`multiarcaderecomp/LICENSE.md`](multiarcaderecomp/LICENSE.md).
 Upstream source/revision notes are organized under [`docs/third_party/`](../third_party/).
 
 ## Inventory
@@ -19,7 +19,7 @@ Upstream source/revision notes are organized under [`docs/third_party/`](../thir
 - [`mame-neogeo/BSD-3-Clause`](mame-neogeo/BSD-3-Clause)
 - [`mame-h8/BSD-3-Clause`](mame-h8/BSD-3-Clause)
 - [`mame-sh4-fpu/MIT`](mame-sh4-fpu/MIT)
-- [`mamerecomp/LICENSE.md`](mamerecomp/LICENSE.md)
+- [`multiarcaderecomp/LICENSE.md`](multiarcaderecomp/LICENSE.md)
 - [`musashi/LICENSE-MUSASHI.txt`](musashi/LICENSE-MUSASHI.txt)
 - [`neogeorecomp-m68krecomp/LICENSE`](neogeorecomp-m68krecomp/LICENSE)
 - [`neogeorecomp-m68krecomp/NOTICE`](neogeorecomp-m68krecomp/NOTICE)

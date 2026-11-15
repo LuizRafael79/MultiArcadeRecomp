@@ -7,7 +7,7 @@
 #include <limits>
 #include <utility>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 constexpr unsigned kIrqAddress = 0xd2;
 constexpr unsigned kTransferAddress = 0xd3;
@@ -66,7 +66,7 @@ void Spu::update_irq(bool active)
 {
     if (irq_active_ == active) return;
     irq_active_ = active;
-    if (std::getenv("MAMERECOMP_ZN_TRACE_SPU"))
+    if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SPU"))
         std::cerr << "ZN SPU IRQ9 " << (active ? "assert" : "clear")
                   << " status=0x" << std::hex << registers_[kStatus]
                   << " irq_addr=0x" << registers_[kIrqAddress]
@@ -179,7 +179,7 @@ void Spu::write(uint32_t byte_offset, unsigned size, uint32_t value)
             mask |= static_cast<uint16_t>(0xffu << shift);
             incoming |= static_cast<uint16_t>(((value >> ((consumed + i) * 8)) & 0xffu) << shift);
         }
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SPU") &&
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SPU") &&
             (reg == kIrqAddress || reg == kTransferAddress || reg == kControl ||
              reg == kKeyOnLow || reg == kKeyOnHigh || reg == kKeyOffLow || reg == kKeyOffHigh)) {
             static unsigned logged = 0;
@@ -368,4 +368,4 @@ std::vector<int16_t> Spu::take_audio()
     return out;
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

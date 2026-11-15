@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:Vas Crabb, MameRecomp contributors
+// copyright-holders:Vas Crabb, MultiArcadeRecomp contributors
 // DSP16A architecture and execution semantics ported from MAME's BSD-3-Clause
 // WE/AT&T DSP16 series emulator by Vas Crabb.
 #pragma once
@@ -12,7 +12,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace mamerecomp::dsp16 {
+namespace multiarcaderecomp::dsp16 {
 
 struct Dsp16AState;
 enum class Dsp16ATracePhase : std::uint8_t { Before, After };
@@ -271,4 +271,4 @@ private:
 
 #include "dsp16a_execute.ipp"
 
-} // namespace mamerecomp::dsp16
+} // namespace multiarcaderecomp::dsp16

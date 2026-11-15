@@ -2,7 +2,7 @@
 
 #include "naomi_holly.hpp"
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 MapleEndpoint make_jvs_maple_endpoint(NaomiJvs13551& board) {
     return [&board](unsigned bus, std::span<const std::uint32_t> request) {
@@ -10,4 +10,4 @@ MapleEndpoint make_jvs_maple_endpoint(NaomiJvs13551& board) {
     };
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

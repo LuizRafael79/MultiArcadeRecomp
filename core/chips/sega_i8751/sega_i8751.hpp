@@ -6,7 +6,7 @@
 #include <functional>
 #include <span>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Intel 8751-compatible MCU as wired on Sega ROM boards. The MCS-51 CPU is
 // generic; each board supplies external memory, pins, interrupts, and its host
@@ -47,4 +47,4 @@ private:
     bool m_started = false;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

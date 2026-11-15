@@ -8,7 +8,7 @@
 namespace {
 
 std::once_flag s_initialized;
-const mamerecomp_m68k_bus *s_active_bus = nullptr;
+const multiarcaderecomp_m68k_bus *s_active_bus = nullptr;
 
 int interrupt_acknowledge(int level)
 {
@@ -54,7 +54,7 @@ void initialize()
 }
 
 void load_context(void *context, size_t context_size,
-                  const mamerecomp_m68k_bus *bus)
+                  const multiarcaderecomp_m68k_bus *bus)
 {
     initialize();
     s_active_bus = bus;
@@ -98,42 +98,42 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 void m68k_write_memory_32_pd(unsigned int address, unsigned int value)
 { m68k_write_memory_32(address, value); }
 
-size_t mamerecomp_m68k_context_size(void)
+size_t multiarcaderecomp_m68k_context_size(void)
 {
     initialize();
     return m68k_get_context(nullptr);
 }
 
-int mamerecomp_m68k_reset(void *context, size_t context_size,
-                          const mamerecomp_m68k_bus *bus)
+int multiarcaderecomp_m68k_reset(void *context, size_t context_size,
+                          const multiarcaderecomp_m68k_bus *bus)
 {
-    if (!context || !bus || context_size < mamerecomp_m68k_context_size()) return 0;
+    if (!context || !bus || context_size < multiarcaderecomp_m68k_context_size()) return 0;
     s_active_bus = bus;
     m68k_pulse_reset();
     return m68k_get_context(context) != 0;
 }
 
-int mamerecomp_m68k_run(void *context, size_t context_size,
-                        const mamerecomp_m68k_bus *bus, int cycle_budget)
+int multiarcaderecomp_m68k_run(void *context, size_t context_size,
+                        const multiarcaderecomp_m68k_bus *bus, int cycle_budget)
 {
     if (!context || !bus || cycle_budget <= 0 ||
-        context_size < mamerecomp_m68k_context_size()) return 0;
+        context_size < multiarcaderecomp_m68k_context_size()) return 0;
     load_context(context, context_size, bus);
     const int consumed = m68k_execute(cycle_budget);
     (void)m68k_get_context(context);
     return consumed;
 }
 
-void mamerecomp_m68k_set_irq(void *context, size_t context_size,
-                             const mamerecomp_m68k_bus *bus, unsigned level)
+void multiarcaderecomp_m68k_set_irq(void *context, size_t context_size,
+                             const multiarcaderecomp_m68k_bus *bus, unsigned level)
 {
-    if (!context || !bus || context_size < mamerecomp_m68k_context_size()) return;
+    if (!context || !bus || context_size < multiarcaderecomp_m68k_context_size()) return;
     load_context(context, context_size, bus);
     m68k_set_irq(std::min(level, 7u));
     (void)m68k_get_context(context);
 }
 
-int mamerecomp_m68k_current_cycles_run(void)
+int multiarcaderecomp_m68k_current_cycles_run(void)
 {
     return m68k_cycles_run();
 }

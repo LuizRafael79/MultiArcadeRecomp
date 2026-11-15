@@ -1,6 +1,6 @@
 # ZUni80: Z80 AoT backend and board adapters
 
-**ZUni80** é o nome do backend AoT Z80 próprio do MameRecomp. Seu frontend
+**ZUni80** é o nome do backend AoT Z80 próprio do MultiArcadeRecomp. Seu frontend
 experimental em `tools/z80_aot/` já decodifica instruções, descobre blocos e
 analisa agrupamentos de rotinas/entradas de retomada. Ainda não emite o código
 de produção nem substitui o gerador legado; integração, verificação diferencial,
@@ -8,7 +8,7 @@ temporização e paridade de desempenho continuam pendentes.
 
 ## Shared CPU rule
 
-There is one MameRecomp Z80 CPU/recompiler implementation for every board.
+There is one MultiArcadeRecomp Z80 CPU/recompiler implementation for every board.
 An arcade board does not change the Z80 instruction set. CPS1, CPS2, Neo Geo,
 and any System 16/18 sound CPU should use the same decoder, generated-code
 ABI, instruction helpers, and selected interpreter. A board supplies its memory
@@ -16,23 +16,23 @@ and I/O bus, ROM banking, interrupt lines, clock ratio, and synchronization
 with its sound devices.
 
 Generated code tables remain per game because they come from each game's ROM;
-they plug into the shared `mamerecomp_z80_aot` backend. The common code is in
+they plug into the shared `multiarcaderecomp_z80_aot` backend. The common code is in
 `tools/z80/`, `core/third_party/z80-aot/`, and `core/cpus/z80/`. It is under the
-generic `mamerecomp::z80` namespace. `Mode::NativeStrict` is diagnostic only
+generic `multiarcaderecomp::z80` namespace. `Mode::NativeStrict` is diagnostic only
 and must not replace the normal hybrid mode in board runners.
 
 ## Current integration
 
 - The `sf2ce` and `dino` CPS1 commands use the local shared code generator and
-  compile generated tables into `libmamerecomp_z80_aot.a`. Dino's fixed opcode
+  compile generated tables into `libmultiarcaderecomp_z80_aot.a`. Dino's fixed opcode
   view is decoded with its MAME Kabuki key; its data view remains raw ROM bytes.
   Current generation reports zero unsupported instructions for both fixed
   sound programs. Their runtime board buses and chip scheduling are still
   being connected.
 - Neo Geo/KOF98 uses the shared C++ Z80 CPU state/runtime and generated tables.
-  Its historic game-facing wrappers now use `mamerecomp::z80`.
+  Its historic game-facing wrappers now use `multiarcaderecomp::z80`.
 - System 16A, System 16B, and System 18 sound adapters use the common
-  `mamerecomp::z80::Z80` interpreter through board-owned memory and port
+  `multiarcaderecomp::z80::Z80` interpreter through board-owned memory and port
   callbacks. Board-specific banking, YM synchronization, IRQ and NMI wiring
   stay in each adapter. Their generated per-game AOT tables are not connected
   yet, so those boards currently execute entirely through the shared
@@ -48,11 +48,11 @@ and must not replace the normal hybrid mode in board runners.
 There is no unconditional winner; the evidence favors a different core on each
 axis:
 
-| Criterion | SuperZazu (`core/third_party/superzazu-z80/`) | Local `mamerecomp::z80` (`core/third_party/z80-aot/`) |
+| Criterion | SuperZazu (`core/third_party/superzazu-z80/`) | Local `multiarcaderecomp::z80` (`core/third_party/z80-aot/`) |
 |---|---|---|
 | Instruction semantics | Upstream README for the pinned `d64fe10` revision reports passing both ZEXDOC and ZEXALL. This is stronger published conformance evidence than we currently have for the local core. | Broad opcode implementation is present, including undocumented/indexed behavior, but this repository has no Z80 CPU conformance target or recorded ZEX results. Do not infer correctness from KOF98 gameplay alone. |
 | Timing | Counts T-states per instruction; memory/I/O callbacks do not expose an intra-instruction bus-cycle timestamp. | Also uses instruction stepping, but `Z80Bus::InstructionBoundary` feeds the current guest timestamp to board devices and can yield at I/O/interrupt boundaries. This is more integrated with the current YM/audio scheduler. Neither is a bus-pin-accurate Z80 model. |
-| Interrupts and board hooks | Has NMI/INT support, interrupt mode/state and callback buses; the board adapter still needs to map its interrupt acknowledge and synchronization rules. | IRQ/NMI, EI delay, HALT, bank mapping, dynamic-code checks, fallback logging, and generated-block scheduling already use the MameRecomp board contract. |
+| Interrupts and board hooks | Has NMI/INT support, interrupt mode/state and callback buses; the board adapter still needs to map its interrupt acknowledge and synchronization rules. | IRQ/NMI, EI delay, HALT, bank mapping, dynamic-code checks, fallback logging, and generated-block scheduling already use the MultiArcadeRecomp board contract. |
 | AoT | Interpreter only. | Integrated with the project's AoT generator/runtime, but that implementation is GPL-3.0-only and cannot remain the project's MIT-distributable core under the current licensing requirement. |
 | Runtime speed | No comparative benchmark recorded. | AoT can skip interpreter dispatch for generated blocks; no controlled SuperZazu-vs-local interpreter benchmark recorded. |
 
@@ -60,7 +60,7 @@ axis:
 correctness reference based on ZEXDOC/ZEXALL. Its upstream test harness was
 compiled against the vendored `z80.c` and passed `prelim.com`, ZEXDOC and
 ZEXALL; the copyrighted test images and harness remain in the external
-upstream checkout and were not copied into MameRecomp.
+upstream checkout and were not copied into MultiArcadeRecomp.
 
 A 120-frame KOF98 comparison was run with `NG_PROFILE=1`, `--audio`, separate
 NVRAM files and a YM2610 write trace in each mode. The default AoT path and
@@ -112,26 +112,26 @@ Release; both included tests (`test_decode`, `test_rt`) passed. The license is
 the standard MIT license and retains the author's `sp00nz` copyright notice.
 
 It is a valuable implementation reference and potential source of audited
-MIT-licensed components, but it is not yet a drop-in backend for MameRecomp:
+MIT-licensed components, but it is not yet a drop-in backend for MultiArcadeRecomp:
 its runtime uses one global Pac-Man CPU/memory/I/O API, and every basic block
 returns to a host dispatcher. That output shape does not establish a speedup
 over the current KOF98 AoT, which groups blocks into routines with direct
 intra-routine gotos. Its two focused tests also do not establish complete
 opcode conformance, KOF98 compatibility, board timing, or performance. The
-new MameRecomp frontend should reuse or adapt only after those boundaries are
+new MultiArcadeRecomp frontend should reuse or adapt only after those boundaries are
 audited; in particular, retain the M68K-style direct block linking, the
 per-board callback contract, and benchmark output against the existing AoT.
 
 As a KOF98-specific feasibility probe, the relevant MIT decoder, analyzer, and
 emitter are now vendored under `tools/z80_aot/pacrecomp/`, with the upstream
 license and origin recorded alongside them. The excluded CMake target
-`mamerecomp_z80_pacrecomp_probe` analyzes the fixed BIOS (`sm1.sm1`) and
+`multiarcaderecomp_z80_pacrecomp_probe` analyzes the fixed BIOS (`sm1.sm1`) and
 cartridge (`242-m1.m1`) images using the current runtime-observed roots. It
 discovered 3,832 BIOS instructions in 947 blocks and 3,686 cartridge
 instructions in 966 blocks. The emitter produced both code files without
 reporting an unimplemented reachable opcode. This confirms that its instruction
 lowering covers the current static KOF98 corpus; it does not prove instruction
-semantics or timing parity. The emitted runtime still lacks MameRecomp's
+semantics or timing parity. The emitted runtime still lacks MultiArcadeRecomp's
 cycle-budget yields, interrupt deadlines, board I/O timestamps, and
 dynamic-code/fallback hooks, so those need an adapter before its output can run
 in the KOF98 sound scheduler.
@@ -140,7 +140,7 @@ in the KOF98 sound scheduler.
 
 The user-provided [`kof98recomp`](https://github.com/danilopaulinodasilva/kof98recomp)
 repository is a game profile and launcher around the NeoGeoRecomp toolkit: its
-68000 generator entry point delegates to `ng_recomp_main()`. MameRecomp's
+68000 generator entry point delegates to `ng_recomp_main()`. MultiArcadeRecomp's
 68000 frontend is itself based on the same NeoGeoRecomp `m68krecomp` sources,
 vendored and integrated locally under `core/third_party/m68krecomp/`. The
 toolkit's
@@ -178,7 +178,7 @@ blocks and identifying entry/resume points. It does not yet emit those grouped
 routines, instrument runtime misses, or provide differential verification.
 The Pacrecomp probe currently emits one function per block and is a useful
 source of instruction-lowering logic, but its dispatcher shape and untimed
-runtime are not the final MameRecomp design.
+runtime are not the final MultiArcadeRecomp design.
 
 The ZUni80 CFG was cross-checked against that MIT analyzer on the current
 KOF98 fixed-ROM inputs, using reset (`0x0000`), IM 1 (`0x0038`), and the
@@ -259,10 +259,10 @@ output has parity and passes that comparison.
 ### KOF98 runtime baseline (2026-11-13)
 
 **Benchmark interpretation:** the tested executable and game module are built
-and run by MameRecomp. The AoT source generator in `tools/z80/recomp.py` is a
+and run by MultiArcadeRecomp. The AoT source generator in `tools/z80/recomp.py` is a
 locally adapted implementation derived from CPS2Recomp, paired with the local
-`mamerecomp::z80` runtime; this is not an external CPS2Recomp module loaded at
-runtime. The 1,200-frame comparison below measures MameRecomp's current
+`multiarcaderecomp::z80` runtime; this is not an external CPS2Recomp module loaded at
+runtime. The 1,200-frame comparison below measures MultiArcadeRecomp's current
 integrated AoT path against SuperZazu's interpreter. It does not measure the
 new project-owned generator frontend under `tools/z80_aot/`, whose emitter and
 production integration are still unfinished. A direct comparison between that

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::devices {
+namespace multiarcaderecomp::devices {
 
 // Parallel Atmel AT28C16 (2 KiB x 8) with MAME-compatible write busy status.
 class At28c16 {
@@ -24,4 +24,4 @@ private:
     int last_write_ = -1;
 };
 
-} // namespace mamerecomp::devices
+} // namespace multiarcaderecomp::devices

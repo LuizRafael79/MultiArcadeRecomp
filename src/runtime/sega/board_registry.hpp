@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 struct BoardRegistration {
     std::string_view id;
@@ -21,4 +21,4 @@ struct BoardRegistration {
 const BoardRegistration* find_board(std::string_view id);
 const BoardRegistration* find_board(SegaBoardFamily family);
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

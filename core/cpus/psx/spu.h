@@ -7,7 +7,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 class Spu {
 public:
@@ -52,4 +52,4 @@ private:
     Irq irq_;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

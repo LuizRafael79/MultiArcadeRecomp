@@ -25,7 +25,7 @@ R3000A. Its decoder/emitter patterns can inform shared implementation, while
 PSX execution state and exception/delay-load behavior remain in this backend.
 
 PSXRecomp revision `060ef0ab` is vendored under
-`core/third_party/psxrecomp/`; CMake builds it as `mamerecomp_psxrecomp`.
+`core/third_party/psxrecomp/`; CMake builds it as `multiarcaderecomp_psxrecomp`.
 The command-line compiler successfully translated a synthetic PS-X EXE into
 function-discovered C shards in this project build. The generated C also
 compiled against the upstream runtime headers, confirming the executable

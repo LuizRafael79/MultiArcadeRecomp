@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Host-clocked timer and busy-line state used by ymfm device interfaces.
 class YmfmTimerBank {
@@ -23,4 +23,4 @@ private:
     std::uint64_t m_busy_until = 0;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

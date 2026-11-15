@@ -15,11 +15,11 @@
 #include <utility>
 #include <vector>
 
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
 #include <SDL3/SDL.h>
 #endif
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 extern "C" std::int64_t ng_cycles;
 namespace {
 constexpr std::uint32_t kZ80Clock = 8'000'000;
@@ -41,13 +41,13 @@ struct QSoundRuntime {
     std::uint64_t generated_fraction = 0;
     std::uint64_t qsound_writes = 0;
     bool active = false;
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     SDL_AudioStream* audio_stream = nullptr;
 #endif
 };
 
 QSoundRuntime g_qsound;
-extern mamerecomp::z80::Z80 g_cpu;
+extern multiarcaderecomp::z80::Z80 g_cpu;
 void sync_qsound_devices(std::uint64_t z80_cycles);
 
 std::uint8_t decode_byte(std::uint8_t src, unsigned key1, unsigned key2,
@@ -76,7 +76,7 @@ std::uint8_t decode_byte(std::uint8_t src, unsigned key1, unsigned key2,
     return static_cast<std::uint8_t>(swap1(value, key2 >> 16, select >> 8));
 }
 
-class QSoundBus final : public mamerecomp::z80::Z80Bus {
+class QSoundBus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     std::uint8_t Read(std::uint16_t address) override {
         if (address < 0x8000) return g_qsound.decrypted_data[address];
@@ -101,12 +101,12 @@ public:
     void Write(std::uint16_t address, std::uint8_t value) override {
         if (address >= 0xc000 && address < 0xd000) {
             g_qsound.shared0[address - 0xc000] = value;
-            if (std::getenv("MAMERECOMP_CPS1_TRACE_QSOUND"))
+            if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_QSOUND"))
                 std::fprintf(stderr, "[cps1-qsound] Z80 PC=%04x RAM0[%04x]=%02x\n", g_cpu.pc, address, value);
         }
         else if (address >= 0xf000) {
             g_qsound.shared1[address - 0xf000] = value;
-            if (std::getenv("MAMERECOMP_CPS1_TRACE_QSOUND"))
+            if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_QSOUND"))
                 std::fprintf(stderr, "[cps1-qsound] Z80 PC=%04x RAM1[%04x]=%02x\n", g_cpu.pc, address, value);
         }
         else if (address >= 0xd000 && address <= 0xd002) {
@@ -121,7 +121,7 @@ public:
 };
 
 QSoundBus g_bus;
-mamerecomp::z80::Z80 g_cpu(g_bus);
+multiarcaderecomp::z80::Z80 g_cpu(g_bus);
 
 void push_audio(std::uint64_t count) {
     if (!count) return;
@@ -130,7 +130,7 @@ void push_audio(std::uint64_t count) {
         const int chunk = static_cast<int>(std::min<std::uint64_t>(count, left.size()));
         std::int16_t* outputs[]{left.data(), right.data()};
         qsound_stream_update(&g_qsound.chip, outputs, chunk);
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
         if (g_qsound.audio_stream) {
             std::array<std::int16_t, 2048> interleaved{};
             for (int i = 0; i < chunk; ++i) {
@@ -153,7 +153,7 @@ void sync_qsound_devices(std::uint64_t z80_cycles) {
 } // namespace
 
 bool initialize_qsound(std::vector<std::uint8_t> program_rom, std::vector<std::uint8_t> sample_rom,
-    const mamerecomp::z80::Z80Code* code, bool audio_output) {
+    const multiarcaderecomp::z80::Z80Code* code, bool audio_output) {
     if (program_rom.size() != 0x28000 || sample_rom.size() != 0x200000) return false;
     g_qsound = {};
     g_qsound.program = std::move(program_rom);
@@ -172,11 +172,11 @@ bool initialize_qsound(std::vector<std::uint8_t> program_rom, std::vector<std::u
     g_qsound.chip.rom_data = g_qsound.samples.data();
     g_qsound.chip.rom_mask = g_qsound.samples.size() - 1;
     g_qsound.chip.ready_flag = 0x80;
-    mamerecomp::z80::SetZ80Code(code);
+    multiarcaderecomp::z80::SetZ80Code(code);
     g_cpu.Reset();
     g_cpu.recording = true;
     g_qsound.active = true;
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     if (audio_output) {
         if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) return false;
         SDL_AudioSpec spec{};
@@ -195,9 +195,9 @@ bool initialize_qsound(std::vector<std::uint8_t> program_rom, std::vector<std::u
 bool qsound_is_active() { return g_qsound.active; }
 void qsound_sync_to_main_clock() {
     if (!g_qsound.active || ng_cycles <= 0) return;
-    const auto mode = std::getenv("MAMERECOMP_CPS1_QSOUND_INTERPRETER")
-        ? mamerecomp::z80::Z80::Mode::Interpreter
-        : mamerecomp::z80::Z80::Mode::Native;
+    const auto mode = std::getenv("MULTIARCADERECOMP_CPS1_QSOUND_INTERPRETER")
+        ? multiarcaderecomp::z80::Z80::Mode::Interpreter
+        : multiarcaderecomp::z80::Z80::Mode::Native;
     const std::uint64_t target = static_cast<std::uint64_t>(ng_cycles) * kZ80Clock / g_main_clock_hz;
     while (g_qsound.next_irq <= target) {
         g_cpu.Run(g_qsound.next_irq, mode);
@@ -221,7 +221,7 @@ bool qsound_main_write(std::uint32_t address, std::uint16_t value) {
     if (address >= 0xf18000 && address <= 0xf19ffe) {
         const auto offset = (address - 0xf18000) >> 1;
         g_qsound.shared0[offset] = static_cast<std::uint8_t>(value);
-        if (std::getenv("MAMERECOMP_CPS1_TRACE_QSOUND"))
+        if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_QSOUND"))
             std::fprintf(stderr, "[cps1-qsound] 68000 RAM0[%04x]=%02x\n", offset,
                 static_cast<unsigned>(value & 0xff));
         return true;
@@ -229,7 +229,7 @@ bool qsound_main_write(std::uint32_t address, std::uint16_t value) {
     if (address >= 0xf1e000 && address <= 0xf1fffe) {
         const auto offset = (address - 0xf1e000) >> 1;
         g_qsound.shared1[offset] = static_cast<std::uint8_t>(value);
-        if (std::getenv("MAMERECOMP_CPS1_TRACE_QSOUND"))
+        if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_QSOUND"))
             std::fprintf(stderr, "[cps1-qsound] 68000 RAM1[%04x]=%02x\n", offset,
                 static_cast<unsigned>(value & 0xff));
         return true;
@@ -259,10 +259,10 @@ bool qsound_save_artifacts(const std::string& entry_path, const std::string&) {
     return static_cast<bool>(entries);
 }
 void qsound_shutdown() {
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     if (g_qsound.audio_stream) { SDL_DestroyAudioStream(g_qsound.audio_stream); g_qsound.audio_stream = nullptr; SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 #endif
     g_qsound.active = false;
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

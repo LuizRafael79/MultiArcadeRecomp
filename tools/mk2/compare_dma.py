@@ -19,7 +19,7 @@ def load(path: Path):
         except ValueError as exc:
             raise ValueError(f"{path}:{number}: invalid DMA field: {exc}") from exc
         # Sequence numbering is emitted as decimal by MAME and historically
-        # as hexadecimal by MameRecomp. Compare stream position instead.
+        # as hexadecimal by MultiArcadeRecomp. Compare stream position instead.
         records.append((values[0], fields, metadata))
     return records
 
@@ -41,21 +41,21 @@ def main():
             print(f"first DMA snapshot divergence at command #{index}")
             for name, a, b in zip(columns, left[1], right[1]):
                 if a != b:
-                    print(f"  {name}: MAME={a:#x} MameRecomp={b:#x}")
+                    print(f"  {name}: MAME={a:#x} MultiArcadeRecomp={b:#x}")
             print(f"  MAME seq={left[0]}:      {' '.join(f'{value:#x}' for value in left[1])}")
-            print(f"  MameRecomp seq={right[0]}: {' '.join(f'{value:#x}' for value in right[1])}")
+            print(f"  MultiArcadeRecomp seq={right[0]}: {' '.join(f'{value:#x}' for value in right[1])}")
             if left[2] or right[2]:
                 print(f"  trigger PC: MAME={left[2][0] if left[2] else 'n/a'} "
-                      f"MameRecomp={right[2][0] if right[2] else 'n/a'}")
+                      f"MultiArcadeRecomp={right[2][0] if right[2] else 'n/a'}")
                 if len(left[2]) > 1 or len(right[2]) > 1:
                     print(f"  trigger time/cycle: MAME={left[2][1] if len(left[2]) > 1 else 'n/a'}s "
-                          f"MameRecomp={right[2][1] if len(right[2]) > 1 else 'n/a'} cycles")
-            print("  CPU register metadata is included in each row; it is not compared because MAME samples during the bus write while MameRecomp records the pre-instruction state.")
+                          f"MultiArcadeRecomp={right[2][1] if len(right[2]) > 1 else 'n/a'} cycles")
+            print("  CPU register metadata is included in each row; it is not compared because MAME samples during the bus write while MultiArcadeRecomp records the pre-instruction state.")
             return 1
     if len(mame) != len(recomp):
         common = min(len(mame), len(recomp))
         print(f"Common prefix matches: {common} commands; trace lengths differ "
-              f"(MAME={len(mame)}, MameRecomp={len(recomp)}).")
+              f"(MAME={len(mame)}, MultiArcadeRecomp={len(recomp)}).")
         return 2
     print(f"DMA register snapshots match: {len(mame)} commands")
     return 0

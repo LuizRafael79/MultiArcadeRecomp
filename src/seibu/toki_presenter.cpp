@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 
 TokiAudioPresenter::TokiAudioPresenter(uint32_t sample_rate)
 {
@@ -40,4 +40,4 @@ void TokiAudioPresenter::queue(std::span<const int16_t> samples)
         throw std::runtime_error(std::string("SDL audio queue failed: ") + SDL_GetError());
 }
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

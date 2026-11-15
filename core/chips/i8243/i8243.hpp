@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Four-bit Intel 8243 I/O expander used with the MCS-48 P2/PROG interface.
 class I8243 {
@@ -27,4 +27,4 @@ private:
     bool m_prog_high = true;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

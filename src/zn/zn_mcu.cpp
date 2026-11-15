@@ -2,7 +2,7 @@
 // Protocol behavior adapted from MAME src/mame/sony/znmcu.cpp.
 #include "zn_mcu.hpp"
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 uint64_t ZnMcu::usec_cycles(uint64_t usec) const
 {
@@ -82,4 +82,4 @@ void ZnMcu::advance(uint64_t cpu_cycles)
         timer_fired(pending_low_pulse_);
 }
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

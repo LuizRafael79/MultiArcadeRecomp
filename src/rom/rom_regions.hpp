@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mamerecomp::rom {
+namespace multiarcaderecomp::rom {
 
 struct RomRegions {
     std::unordered_map<std::string, std::vector<std::uint8_t>> regions;
@@ -18,4 +18,4 @@ struct RomRegions {
     }
 };
 
-} // namespace mamerecomp::rom
+} // namespace multiarcaderecomp::rom

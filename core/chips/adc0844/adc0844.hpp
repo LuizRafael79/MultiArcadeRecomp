@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // ADC0844/ADC0848 conversion/interrupt behavior from MAME's BSD-3-Clause
 // device. Inputs are supplied by the owning board in 8-bit channel values.
@@ -27,4 +27,4 @@ private:
     bool m_interrupt{};
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

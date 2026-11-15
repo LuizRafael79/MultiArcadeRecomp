@@ -2,7 +2,7 @@
 #include "commands/machine_game_command.hpp"
 #include "naomi/naomi_module.hpp"
 #include "naomi/naomi_romset.hpp"
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
 #include <SDL3/SDL.h>
 #endif
@@ -16,24 +16,24 @@
 #include <vector>
 #include <dlfcn.h>
 
-namespace mamerecomp::app::naomi {
+namespace multiarcaderecomp::app::naomi {
 
 class NaomiMetadataModule {
 public:
     explicit NaomiMetadataModule(const std::filesystem::path& fallback_directory) {
-        const char* configured_directory = std::getenv("MAMERECOMP_MODULE_DIR");
+        const char* configured_directory = std::getenv("MULTIARCADERECOMP_MODULE_DIR");
         const auto module_directory = configured_directory && *configured_directory
             ? std::filesystem::path(configured_directory) : fallback_directory;
-        const auto path = module_directory / "mamerecomp_naomi.so";
+        const auto path = module_directory / "multiarcaderecomp_naomi.so";
         m_handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!m_handle) throw std::runtime_error("could not load Naomi module " + path.string() + ": " + dlerror());
-        const auto abi = reinterpret_cast<std::uint32_t (*)()>(dlsym(m_handle, "mamerecomp_naomi_abi"));
-        m_profiles = reinterpret_cast<ProfilesFn>(dlsym(m_handle, "mamerecomp_naomi_profiles"));
-        m_probe_create = reinterpret_cast<ProbeCreateFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_create"));
-        m_probe_destroy = reinterpret_cast<ProbeDestroyFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_destroy"));
-        m_probe_start = reinterpret_cast<ProbeStartFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_start"));
-        m_probe_run = reinterpret_cast<ProbeRunFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_run"));
-        m_probe_frame = reinterpret_cast<ProbeFrameFn>(dlsym(m_handle, "mamerecomp_naomi_sh4_probe_frame"));
+        const auto abi = reinterpret_cast<std::uint32_t (*)()>(dlsym(m_handle, "multiarcaderecomp_naomi_abi"));
+        m_profiles = reinterpret_cast<ProfilesFn>(dlsym(m_handle, "multiarcaderecomp_naomi_profiles"));
+        m_probe_create = reinterpret_cast<ProbeCreateFn>(dlsym(m_handle, "multiarcaderecomp_naomi_sh4_probe_create"));
+        m_probe_destroy = reinterpret_cast<ProbeDestroyFn>(dlsym(m_handle, "multiarcaderecomp_naomi_sh4_probe_destroy"));
+        m_probe_start = reinterpret_cast<ProbeStartFn>(dlsym(m_handle, "multiarcaderecomp_naomi_sh4_probe_start"));
+        m_probe_run = reinterpret_cast<ProbeRunFn>(dlsym(m_handle, "multiarcaderecomp_naomi_sh4_probe_run"));
+        m_probe_frame = reinterpret_cast<ProbeFrameFn>(dlsym(m_handle, "multiarcaderecomp_naomi_sh4_probe_frame"));
         if (!abi || !m_profiles || !m_probe_create || !m_probe_destroy ||
             !m_probe_start || !m_probe_run || !m_probe_frame || abi() != 6) {
             const auto error = dlerror();
@@ -115,7 +115,7 @@ int list_games(const std::filesystem::path& module_directory) {
 }
 
 int inspect_roms(const char* set_id, const char* rom_path) {
-    const auto image = mamerecomp::naomi::load_mvc2_rom_board(set_id, rom_path);
+    const auto image = multiarcaderecomp::naomi::load_mvc2_rom_board(set_id, rom_path);
     std::cout << "Validated Naomi cartridge set " << image.set_id
               << ": " << image.rom_files_loaded << " ROM loads assembled into 0x"
               << std::hex << image.bytes.size() << std::dec
@@ -125,7 +125,7 @@ int inspect_roms(const char* set_id, const char* rom_path) {
 
 int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_directory) {
             if (argc < 4) {
-                mamerecomp::app::print_usage(argv[0]);
+                multiarcaderecomp::app::print_usage(argv[0]);
                 return 2;
             }
             std::uint64_t budget = 1000000;
@@ -135,7 +135,7 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
                 std::filesystem::path(argv[3]).parent_path() / "naomi.zip";
             for (int i = 4; i < argc; ++i) {
                 if (std::string_view(argv[i]) == "--instructions" && i + 1 < argc)
-                    budget = mamerecomp::app::parse_u64(argv[++i], "SH-4 instruction budget");
+                    budget = multiarcaderecomp::app::parse_u64(argv[++i], "SH-4 instruction budget");
                 else if (std::string_view(argv[i]) == "--bios" && i + 1 < argc)
                     bios_path = argv[++i];
                 else if (std::string_view(argv[i]) == "--window")
@@ -146,13 +146,13 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
                     throw std::runtime_error("unknown run-naomi-sh4 option: " + std::string(argv[i]));
             }
             if (budget == 0) throw std::runtime_error("SH-4 instruction budget must be nonzero");
-#ifndef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifndef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             if (show_window)
                 throw std::runtime_error("--window requires SDL3 development files; reconfigure with SDL3 installed");
 #endif
 
-            const auto image = mamerecomp::naomi::load_mvc2_rom_board(argv[2], argv[3]);
-            const auto bios = mamerecomp::naomi::load_naomi_bios(argv[2], bios_path);
+            const auto image = multiarcaderecomp::naomi::load_mvc2_rom_board(argv[2], argv[3]);
+            const auto bios = multiarcaderecomp::naomi::load_naomi_bios(argv[2], bios_path);
             NaomiMetadataModule module(module_directory);
             void* raw_probe = module.create_probe(argv[2], interpreter_only);
             if (!raw_probe)
@@ -164,11 +164,11 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
             if (!module.start_probe(probe.get(), image.bytes, image.board_id_eeprom,
                                     bios.bytes, &result))
                 throw std::runtime_error(result.error[0] ? result.error : "Naomi SH-4 boot setup failed");
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
-            std::unique_ptr<mamerecomp::naomi::NaomiPvrPresenter> presenter;
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
+            std::unique_ptr<multiarcaderecomp::naomi::NaomiPvrPresenter> presenter;
             if (show_window) {
-                presenter = std::make_unique<mamerecomp::naomi::NaomiPvrPresenter>(
-                    "MameRecomp - Naomi BIOS executing (PVR scanout pending)");
+                presenter = std::make_unique<multiarcaderecomp::naomi::NaomiPvrPresenter>(
+                    "MultiArcadeRecomp - Naomi BIOS executing (PVR scanout pending)");
                 NaomiPvrFrameInfo boot_surface{};
                 boot_surface.width = 640;
                 boot_surface.height = 480;
@@ -243,7 +243,7 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
                 !result.unresolved_target && !result.exception_code)
                 std::cout << " stopped";
             std::cout << std::dec << '\n';
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             if (show_window) {
                 NaomiPvrFrameInfo frame_info{};
                 std::vector<std::uint8_t> rgb;
@@ -281,9 +281,9 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
                               << "\n";
                 }
                 if (!presenter)
-                    presenter = std::make_unique<mamerecomp::naomi::NaomiPvrPresenter>(
-                        has_scanout ? "MameRecomp - Naomi PVR2 framebuffer"
-                                    : "MameRecomp - Naomi PVR2 (no active scanout)");
+                    presenter = std::make_unique<multiarcaderecomp::naomi::NaomiPvrPresenter>(
+                        has_scanout ? "MultiArcadeRecomp - Naomi PVR2 framebuffer"
+                                    : "MultiArcadeRecomp - Naomi PVR2 (no active scanout)");
                 presenter->show(frame_info, rgb, has_scanout);
                 presenter->waitUntilClosed();
             }
@@ -292,4 +292,4 @@ int run_sh4_command(int argc, char** argv, const std::filesystem::path& module_d
     return 2;
 }
 
-} // namespace mamerecomp::app::naomi
+} // namespace multiarcaderecomp::app::naomi

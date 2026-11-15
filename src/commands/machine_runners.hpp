@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::app::machine_runners {
+namespace multiarcaderecomp::app::machine_runners {
 
-using InputEvent = mamerecomp::sega::InputEvent;
+using InputEvent = multiarcaderecomp::sega::InputEvent;
 
 int run_konami_tmnt2_machine(const std::filesystem::path& source_root, const std::string& game,
     const std::optional<std::filesystem::path>& explicit_zip, bool build_mode, bool window,
@@ -39,6 +39,6 @@ int run_zn_machine(const std::filesystem::path& source_root, const std::string& 
     const std::optional<std::filesystem::path>& frame_sequence_dir, std::uint64_t frame_sequence_step,
     const char* platform_name, const char* board_name,
     const std::optional<std::filesystem::path>& nvram_option, bool r3000a_no_aot, bool z80_no_aot,
-    bool dsp16a_no_aot, mamerecomp::chips::QSoundMode qsound_mode, bool qsound_mixed_requested);
+    bool dsp16a_no_aot, multiarcaderecomp::chips::QSoundMode qsound_mode, bool qsound_mixed_requested);
 
-} // namespace mamerecomp::app::machine_runners
+} // namespace multiarcaderecomp::app::machine_runners

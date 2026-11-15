@@ -8,7 +8,7 @@
 #include <functional>
 #include <utility>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace m2crypt_detail {
 
 using u8 = std::uint8_t;
@@ -839,4 +839,4 @@ void m2crypt_set_high_address(std::uint16_t address) { m2crypt_detail::cyptoSetH
 void m2crypt_set_subkey(std::uint16_t subkey) { m2crypt_detail::cyptoSetSubkey(subkey); }
 std::uint16_t m2crypt_read_word() { return m2crypt_detail::cryptoDecrypt(); }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

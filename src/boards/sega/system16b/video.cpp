@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 System16BFrame frame_from_tilemap_output(const chips::sega3155197::TilemapOutput& output) {
     System16BFrame frame;
@@ -94,7 +94,7 @@ System16BFrame render_system16b_frame_cpu(std::span<const std::uint8_t> decoded_
 
 
 bool system16b_opengl_backend_available() {
-#ifdef MAMERECOMP_HAS_OPENGL_VIDEO
+#ifdef MULTIARCADERECOMP_HAS_OPENGL_VIDEO
     return true;
 #else
     return false;
@@ -126,7 +126,7 @@ System16BFrame render_system16b_frame(std::span<const std::uint8_t> decoded_tile
     return frame;
 }
 
-#ifndef MAMERECOMP_HAS_OPENGL_VIDEO
+#ifndef MULTIARCADERECOMP_HAS_OPENGL_VIDEO
 System16BFrame render_system16b_tilemaps_opengl(std::span<const std::uint8_t>, std::span<const std::uint8_t>,
     std::span<const std::uint8_t>, chips::sega3155197::TilemapState) {
     throw std::runtime_error("System 16B OpenGL renderer was not built; install SDL3/OpenGL development files and reconfigure");
@@ -140,4 +140,4 @@ System16BFrame render_system16b_frame_opengl(std::span<const std::uint8_t>, std:
 }
 #endif
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -5,7 +5,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace mamerecomp::tms320c31::native_ops {
+namespace multiarcaderecomp::tms320c31::native_ops {
 
 inline constexpr std::uint32_t cflag = 0x01u;
 inline constexpr std::uint32_t vflag = 0x02u;
@@ -247,4 +247,4 @@ inline void mpyf(State& state, Register& dst, const Register& src1,
     set_float_nz(state, dst);
 }
 
-} // namespace mamerecomp::tms320c31::native_ops
+} // namespace multiarcaderecomp::tms320c31::native_ops

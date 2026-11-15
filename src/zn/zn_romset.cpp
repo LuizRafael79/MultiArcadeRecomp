@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 namespace {
 std::array<uint8_t, 8> security_key(const std::vector<uint8_t> &bytes)
 {
@@ -299,7 +299,7 @@ bool CapcomZn2Board::read(uint32_t address, unsigned size, uint32_t *value) {
     auto read_input = [&](uint32_t base, size_t port) {
         if (p < base || p > base + 3) return false;
         const uint32_t input = input_ports_[port];
-        if (std::getenv("MAMERECOMP_ZN_TRACE_INPUTS") && input != 0xff) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_INPUTS") && input != 0xff) {
             static unsigned traced = 0;
             if (traced++ < 64)
                 std::cerr << "ZN input-port=" << port << " read address=0x"
@@ -356,7 +356,7 @@ bool CapcomZn2Board::write(uint32_t address, unsigned size, uint32_t value,
     if (p == 0x1fb60000) {
         sound_latch_ = data;
         sound_pending_ = true;
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 512)
                 std::cerr << "ZN2 sound latch write value=0x" << std::hex
@@ -523,7 +523,7 @@ bool RaizingZn1Board::write(uint32_t address, unsigned size, uint32_t value) {
     }
     if (p == 0x1fb00000) {
         sound_latch_ = data;
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 128)
                 std::cerr << "ZN sound latch write data=0x" << std::hex
@@ -533,7 +533,7 @@ bool RaizingZn1Board::write(uint32_t address, unsigned size, uint32_t value) {
     }
     if (p == 0x1fb00004) {
         sound_irq_pending_ = true;
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 128)
                 std::cerr << "ZN sound IRQ2 write data=0x" << std::hex
@@ -554,4 +554,4 @@ bool RaizingZn1Board::write(uint32_t address, unsigned size, uint32_t value) {
     return false;
 }
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

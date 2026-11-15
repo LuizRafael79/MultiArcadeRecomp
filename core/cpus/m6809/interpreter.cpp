@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::m6809 {
+namespace multiarcaderecomp::m6809 {
 namespace {
 constexpr std::uint8_t C = cc_c, V = cc_v, Z = cc_z, N = cc_n;
 
@@ -290,15 +290,15 @@ std::uint32_t service_interrupt(State& s, Bus& bus) noexcept {
     s.pc = read16(bus, vector);
     const std::uint32_t consumed = full_state ? 19u : 10u;
     s.cycles += consumed;
-    mamerecomp_interpreter_trace_event("MC6809E", "mame-interrupt-entry",
-        MAMERECOMP_EXCEPTION_BOUNDARY, before_pc, s.pc, before_cycles,
+    multiarcaderecomp_interpreter_trace_event("MC6809E", "mame-interrupt-entry",
+        MULTIARCADERECOMP_EXCEPTION_BOUNDARY, before_pc, s.pc, before_cycles,
         s.cycles);
     (void)kind;
     return consumed;
 }
 
 BlockExit interpreter_step(State& s, Bus& bus, std::uint64_t stop_cycle,
-                          MamerecompFallbackReason reason) noexcept {
+                          MultiArcadeRecompFallbackReason reason) noexcept {
     if (!bus.read8 || !bus.write8) return BlockExit::BusFault;
     if (s.cycles >= stop_cycle) return BlockExit::Budget;
     const std::uint32_t pc = s.pc;
@@ -313,7 +313,7 @@ BlockExit interpreter_step(State& s, Bus& bus, std::uint64_t stop_cycle,
     }
     const auto done = [&](const char* mnemonic, unsigned cycles) {
         s.cycles += cycles;
-        mamerecomp_interpreter_trace_step("MC6809E", "mame-fallback",
+        multiarcaderecomp_interpreter_trace_step("MC6809E", "mame-fallback",
             reason, pc, page10 || page11 ?
                 ((std::uint64_t(prefix) << 8) | opcode) : opcode,
             page10 || page11 ? 16u : 8u, before, s.cycles, s.pc, mnemonic);
@@ -321,7 +321,7 @@ BlockExit interpreter_step(State& s, Bus& bus, std::uint64_t stop_cycle,
     };
     const auto unhandled = [&]() {
         s.pc = static_cast<std::uint16_t>(pc);
-        mamerecomp_interpreter_trace_step("MC6809E", "mame-fallback",
+        multiarcaderecomp_interpreter_trace_step("MC6809E", "mame-fallback",
             reason, pc, page10 || page11 ?
                 ((std::uint64_t(prefix) << 8) | opcode) : opcode,
             page10 || page11 ? 16u : 8u, before, before, pc,
@@ -597,4 +597,4 @@ BlockExit interpreter_step(State& s, Bus& bus, std::uint64_t stop_cycle,
     return unhandled();
 }
 
-} // namespace mamerecomp::m6809
+} // namespace multiarcaderecomp::m6809

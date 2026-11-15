@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 I8243::I8243(PortWrite port_write) : m_port_write(std::move(port_write)) {}
 
@@ -45,4 +45,4 @@ std::uint8_t I8243::port_latch(unsigned port) const {
     return m_ports[port & 3U];
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

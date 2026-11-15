@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 struct GpuHardwareRenderer::Impl {};
 
@@ -31,4 +31,4 @@ std::vector<uint8_t> GpuHardwareRenderer::scanout_rgb(unsigned, unsigned, bool, 
 bool GpuHardwareRenderer::present_scanout() { throw std::runtime_error("PSX OpenGL rasterizer was not built"); }
 const std::string& GpuHardwareRenderer::renderer_name() const noexcept { static const std::string empty; return empty; }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

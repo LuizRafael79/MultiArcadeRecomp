@@ -31,13 +31,13 @@ PsxInstructionTrace g_psx_instruction_trace[kPsxInstructionTraceCapacity]{};
 unsigned g_psx_instruction_trace_next = 0;
 unsigned g_psx_instruction_trace_count = 0;
 const bool g_psx_instruction_trace_enabled =
-    std::getenv("MAMERECOMP_ZN_TRACE_EXCEPTION_HISTORY") != nullptr;
+    std::getenv("MULTIARCADERECOMP_ZN_TRACE_EXCEPTION_HISTORY") != nullptr;
 
 bool psx_instruction_trace_matches(uint32_t pc)
 {
     struct Range { uint32_t first; uint32_t last; bool active; };
     static const Range range = [] {
-        const char *text = std::getenv("MAMERECOMP_ZN_TRACE_EXCEPTION_PC_RANGE");
+        const char *text = std::getenv("MULTIARCADERECOMP_ZN_TRACE_EXCEPTION_PC_RANGE");
         if (!text || !*text) return Range{0, 0, false};
         char *end = nullptr;
         const unsigned long first = std::strtoul(text, &end, 0);
@@ -64,7 +64,7 @@ void psx_record_instruction_trace(const PsxCpuState *state, uint32_t pc,
     trace.delayed_load_pending = state->delayed_load_pending;
     trace.branch_pending = state->branch_pending;
     trace.branch_taken = state->branch_taken;
-    if (std::getenv("MAMERECOMP_ZN_TRACE_EXCEPTION_STEPS")) {
+    if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_EXCEPTION_STEPS")) {
         std::cerr << "PSX step pc=0x" << std::hex << pc << " op=0x" << opcode
                   << " a1=0x" << state->r[5] << " t1=0x" << state->r[9]
                   << " t2=0x" << state->r[10] << " branch=" << std::dec
@@ -398,7 +398,7 @@ extern "C" PsxAotExit psx_aot_raise_exception(PsxCpuState *s,
                                                 uint32_t pc,
                                                 uint32_t op)
 {
-    if (std::getenv("MAMERECOMP_ZN_TRACE_EXCEPTIONS")) {
+    if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_EXCEPTIONS")) {
         static unsigned traced = 0;
         if ((code == EXC_ADEL || code == EXC_ADES) && traced++ < 32) {
             const unsigned rs = (op >> 21) & 31;
@@ -873,11 +873,11 @@ extern "C" PsxAotExit psx_aot_interpret_one(PsxCpuState *state,
     return result;
 }
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 struct AotProfile {
     AotProfile() {
-        const char *path = std::getenv("MAMERECOMP_PSX_AOT_PROFILE");
+        const char *path = std::getenv("MULTIARCADERECOMP_PSX_AOT_PROFILE");
         if (path && *path) {
             output.open(path, std::ios::trunc);
             active = output.is_open();
@@ -1008,7 +1008,7 @@ PSX_ALWAYS_INLINE PsxAotExit execute_one_body(PsxCpuState *state,
                 aot_entry->source_opcode_valid ? opcode : 0);
         const uint64_t before_cycles = state->cycles;
         static const bool trace_aot_blocks =
-            std::getenv("MAMERECOMP_PSX_TRACE_AOT_BLOCKS") != nullptr;
+            std::getenv("MULTIARCADERECOMP_PSX_TRACE_AOT_BLOCKS") != nullptr;
         static unsigned traced_aot_blocks = 0;
         const bool trace_this_block = trace_aot_blocks && traced_aot_blocks < 256;
         if (trace_this_block) {
@@ -1107,7 +1107,7 @@ PSX_ALWAYS_INLINE uint64_t skip_direct_ram_poll_loop(
     };
     static thread_local Candidate candidate;
     static const bool trace_aot_blocks =
-        std::getenv("MAMERECOMP_PSX_TRACE_AOT_BLOCKS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_PSX_TRACE_AOT_BLOCKS") != nullptr;
     if (!state) return 0;
     if (per_instruction) {
         if (candidate.pc == UINT32_MAX || candidate.phase == 0) {
@@ -1331,7 +1331,7 @@ PsxAotExit execute_until(PsxCpuState *state, const PsxBus *bus,
     if (!entry_count)
         return execute_interpreter_until(state, bus, counters, target_cycle);
     static const uint64_t aot_batch_limit = [] {
-        const char *text = std::getenv("MAMERECOMP_PSX_AOT_BATCH_LIMIT");
+        const char *text = std::getenv("MULTIARCADERECOMP_PSX_AOT_BATCH_LIMIT");
         if (!text || !*text) return uint64_t{0};
         char *end = nullptr;
         const unsigned long long parsed = std::strtoull(text, &end, 10);
@@ -1371,6 +1371,6 @@ PsxAotExit execute_until(PsxCpuState *state, const PsxBus *bus,
     }
     return result;
 }
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx
 
 #undef PSX_ALWAYS_INLINE

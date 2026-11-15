@@ -1,6 +1,6 @@
 # Shared Z80 CPU source and provenance
 
-This is the single Z80 CPU/AOT runtime vendored for use by all MameRecomp
+This is the single Z80 CPU/AOT runtime vendored for use by all MultiArcadeRecomp
 systems. Board-specific buses, clocks, interrupt wiring and sound-device
 synchronization live outside this directory.
 

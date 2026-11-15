@@ -4,7 +4,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::chips::sega3155049 {
+namespace multiarcaderecomp::chips::sega3155049 {
 
 inline constexpr unsigned kFrameWidth = 320;
 inline constexpr unsigned kFrameHeight = 224;
@@ -38,4 +38,4 @@ TilemapOutput render_layer(std::span<const std::uint8_t> decoded_tiles,
     TilemapState state, Layer layer, unsigned category, bool opaque,
     std::uint8_t priority_mark);
 
-} // namespace mamerecomp::chips::sega3155049
+} // namespace multiarcaderecomp::chips::sega3155049

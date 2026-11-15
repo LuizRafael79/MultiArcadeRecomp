@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 struct NaomiDeviceBus {
     // Device callbacks receive physical SH-4 addresses after P1/P2 alias
@@ -180,4 +180,4 @@ private:
     std::vector<std::uint8_t> m_main_ram;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

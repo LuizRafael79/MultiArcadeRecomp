@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <span>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class SegaAudioOutput {
 public:
@@ -26,4 +26,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 
 MKMachine::MKMachine(std::span<const std::uint8_t> main_rom,
                      std::span<const std::uint8_t> graphics_rom,
@@ -56,4 +56,4 @@ AudioDiagnostics MKMachine::audio_diagnostics() const noexcept {
             stats.peak, stats.ym_peak, stats.oki_peak, stats.dac_peak};
 }
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

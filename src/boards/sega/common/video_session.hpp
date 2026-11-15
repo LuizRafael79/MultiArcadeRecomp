@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class SegaBoardVideoRenderer {
 public:
@@ -16,4 +16,4 @@ public:
     virtual std::string_view comparison_label() const = 0;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

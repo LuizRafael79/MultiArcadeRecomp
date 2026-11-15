@@ -23,7 +23,7 @@ struct BusHooks {
     ng_z80_mapping_fn mapping = nullptr;
 };
 
-class NeoGeoZ80Bus final : public mamerecomp::z80::Z80Bus {
+class NeoGeoZ80Bus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     BusHooks hooks;
     uint8_t Read(uint16_t address) override {
@@ -50,9 +50,9 @@ public:
 };
 
 NeoGeoZ80Bus s_bus;
-mamerecomp::z80::Z80 s_cpu(s_bus);
-const mamerecomp::z80::Z80Code *s_bios_code = nullptr;
-const mamerecomp::z80::Z80Code *s_cart_code = nullptr;
+multiarcaderecomp::z80::Z80 s_cpu(s_bus);
+const multiarcaderecomp::z80::Z80Code *s_bios_code = nullptr;
+const multiarcaderecomp::z80::Z80Code *s_cart_code = nullptr;
 int s_active_bios = -1;
 std::vector<uint16_t> s_bios_misses;
 std::vector<uint16_t> s_cart_misses;
@@ -85,8 +85,8 @@ void persist_entries(const std::string &path, std::vector<uint16_t> entries) {
 }
 
 extern "C" void ng_z80_recomp_set_codes(const void *bios_code, const void *cart_code) {
-    s_bios_code = static_cast<const mamerecomp::z80::Z80Code *>(bios_code);
-    s_cart_code = static_cast<const mamerecomp::z80::Z80Code *>(cart_code);
+    s_bios_code = static_cast<const multiarcaderecomp::z80::Z80Code *>(bios_code);
+    s_cart_code = static_cast<const multiarcaderecomp::z80::Z80Code *>(cart_code);
     if (std::getenv("NG_PROFILE")) {
         std::fprintf(stderr, "[audio] Z80 AOT entries BIOS=%zu cart=%zu\n",
                      s_bios_code ? s_bios_code->entryCount : 0,
@@ -114,8 +114,8 @@ extern "C" void ng_z80_recomp_run_until(uint64_t cycle, int bios_rom, int irq_as
         else if (s_active_bios == 0) collect_entries(s_cart_misses);
         s_active_bios = selected_bios;
     }
-    mamerecomp::z80::SetZ80Code(bios_rom ? s_bios_code : s_cart_code);
-    mamerecomp::z80::z80native::SetImage(bios_rom != 0);
+    multiarcaderecomp::z80::SetZ80Code(bios_rom ? s_bios_code : s_cart_code);
+    multiarcaderecomp::z80::z80native::SetImage(bios_rom != 0);
     static int last_bios = -1;
     if (std::getenv("NG_PROFILE") && last_bios != (bios_rom != 0)) {
         std::fprintf(stderr, "[audio] Z80 maps %s ROM at PC=$%04X\n",
@@ -125,10 +125,10 @@ extern "C" void ng_z80_recomp_run_until(uint64_t cycle, int bios_rom, int irq_as
     s_cpu.SetInterruptLine(irq_asserted != 0);
     const char *mode = std::getenv("NG_Z80_MODE");
     const auto run_mode = mode && std::string(mode) == "interpreter"
-        ? mamerecomp::z80::Z80::Mode::Interpreter
+        ? multiarcaderecomp::z80::Z80::Mode::Interpreter
         : mode && std::string(mode) == "blocks"
-            ? mamerecomp::z80::Z80::Mode::Blocks
-            : mamerecomp::z80::Z80::Mode::Native;
+            ? multiarcaderecomp::z80::Z80::Mode::Blocks
+            : multiarcaderecomp::z80::Z80::Mode::Native;
     s_cpu.Run(cycle, run_mode);
 }
 
@@ -141,7 +141,7 @@ extern "C" void ng_z80_recomp_set_irq(int asserted) {
 }
 
 extern "C" void ng_z80_recomp_report(void) {
-    mamerecomp::z80::z80native::ReportInterpreterProfile();
+    multiarcaderecomp::z80::z80native::ReportInterpreterProfile();
     if (s_active_bios == 1) collect_entries(s_bios_misses);
     else if (s_active_bios == 0) collect_entries(s_cart_misses);
     auto print_misses = [](const char *name, std::vector<uint16_t> &entries) {
@@ -161,7 +161,7 @@ extern "C" void ng_z80_recomp_dump_misses(const char *path_prefix) {
     else if (s_active_bios == 0) collect_entries(s_cart_misses);
     persist_entries(std::string(path_prefix) + ".bios.txt", s_bios_misses);
     persist_entries(std::string(path_prefix) + ".cart.txt", s_cart_misses);
-    mamerecomp::z80::z80native::PersistFallbackLog((std::string(path_prefix) + ".fallbacks.log").c_str());
+    multiarcaderecomp::z80::z80native::PersistFallbackLog((std::string(path_prefix) + ".fallbacks.log").c_str());
 }
 
 extern "C" uint64_t ng_z80_recomp_cycles(void) {

@@ -86,7 +86,7 @@ without gating them on the separate CMOS-enable address. Unlike MK1, MK2 has
 no `Skip Post Test` DIP, so the runner supports timed active-low input pulses:
 
 ```sh
-build/mamerecomp_mk2_trace build/mk2/work 100000000 \
+build/multiarcaderecomp_mk2_trace build/mk2/work 100000000 \
   --press-continue-at=25000000 \
   --press-coin-at=62500000 --press-coin-at=68750000 \
   --press-start-at=81250000
@@ -106,10 +106,10 @@ python3 tools/mk2/build.py \
   --romset /home/luiz/git/mame/roms/mk2.zip \
   --out build/mk2/work
 cmake -S . -B build \
-  -DMAMERECOMP_MK2_TMS34010_AOT_SOURCE="$PWD/build/mk2/work/tms34010_aot.cpp" \
-  -DMAMERECOMP_ADSP2105_AOT_SOURCE="$PWD/build/mk2/work/adsp2105_aot.cpp"
-cmake --build build --target mamerecomp_mk2_trace -j4
-./build/mamerecomp_mk2_trace build/mk2/work 30000000 \
+  -DMULTIARCADERECOMP_MK2_TMS34010_AOT_SOURCE="$PWD/build/mk2/work/tms34010_aot.cpp" \
+  -DMULTIARCADERECOMP_ADSP2105_AOT_SOURCE="$PWD/build/mk2/work/adsp2105_aot.cpp"
+cmake --build build --target multiarcaderecomp_mk2_trace -j4
+./build/multiarcaderecomp_mk2_trace build/mk2/work 30000000 \
   build/mk2/work/mk2-frame.ppm --press-start-at=5000000
 ```
 
@@ -169,8 +169,8 @@ history rather than the current state.
 The common launcher accepts MAME shortnames and runs this board with:
 
 ```sh
-mamerecomp build --machine=midway --board=tunit --game=mk2
-mamerecomp run --machine=midway --board=tunit --game=mk2 --frames 600
+multiarcaderecomp build --machine=midway --board=tunit --game=mk2
+multiarcaderecomp run --machine=midway --board=tunit --game=mk2 --frames 600
 ```
 
 For deterministic headless diagnosis, `run` also accepts `--input-replay`

@@ -336,7 +336,7 @@ static void fill_read_buf(void)
 static void command(uint8_t c)
 {
     static int log = -1;
-    if (log < 0) log = getenv("MAMERECOMP_KI_LOG_IDE") != NULL;
+    if (log < 0) log = getenv("MULTIARCADERECOMP_KI_LOG_IDE") != NULL;
     if (log) fprintf(stderr, "ide: cmd %02x count=%d sec=%d cyl=%d dh=%02x lba=%u\n", c, d.count, d.sector,
                      d.cyl_hi << 8 | d.cyl_lo, d.drvhead, cur_lba());
     d.cmd = c;

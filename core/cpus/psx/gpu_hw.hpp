@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 struct GpuHwVertex {
     int x = 0;
@@ -81,4 +81,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 namespace {
 constexpr unsigned kTextureWidth = 4096;
 constexpr unsigned kTextureHeight = 2048;
@@ -291,7 +291,7 @@ struct VUnitGpuRenderer::Impl {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-        window = SDL_CreateWindow("MameRecomp V-Unit GPU", 32, 32,
+        window = SDL_CreateWindow("MultiArcadeRecomp V-Unit GPU", 32, 32,
                                   SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
         if (!window) {
             error = std::string("SDL hidden OpenGL window failed: ") + SDL_GetError();
@@ -601,4 +601,4 @@ bool VUnitGpuRenderer::convert_visible_rgb(unsigned page,
     }
 }
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 class System16BVideoRenderer final : public SegaBoardVideoRenderer {
 public:
@@ -63,4 +63,4 @@ std::unique_ptr<SegaBoardVideoRenderer> make_system16b_video_renderer(
     return std::make_unique<System16BVideoRenderer>(decoded_tiles, sprite_rom, bus, signals, backend, capture_reference);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

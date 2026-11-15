@@ -1,15 +1,15 @@
 #include "system12_runtime.hpp"
 
-namespace mamerecomp::namco::system12 {
+namespace multiarcaderecomp::namco::system12 {
 
-System12Runtime::System12Runtime(const mamerecomp::rom::RomRegions& roms)
+System12Runtime::System12Runtime(const multiarcaderecomp::rom::RomRegions& roms)
     : m_board(roms),
-      m_h8([this](mamerecomp::h8::u32 address) {
+      m_h8([this](multiarcaderecomp::h8::u32 address) {
           std::uint32_t value = 0xff;
           return m_board.sub_read(address, 1, &value)
-              ? static_cast<mamerecomp::h8::u8>(value)
-              : static_cast<mamerecomp::h8::u8>(0xff);
-      }, [this](mamerecomp::h8::u32 address, mamerecomp::h8::u8 value) {
+              ? static_cast<multiarcaderecomp::h8::u8>(value)
+              : static_cast<multiarcaderecomp::h8::u8>(0xff);
+      }, [this](multiarcaderecomp::h8::u32 address, multiarcaderecomp::h8::u8 value) {
           m_board.sub_write(address, 1, value);
       })
 {
@@ -25,4 +25,4 @@ void System12Runtime::sync_maincpu_cycles(std::uint64_t cycles) {
     m_maincpu_cycles += std::uint64_t(budget) * 4;
 }
 
-} // namespace mamerecomp::namco::system12
+} // namespace multiarcaderecomp::namco::system12

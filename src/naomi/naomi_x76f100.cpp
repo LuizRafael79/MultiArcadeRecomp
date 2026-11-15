@@ -5,12 +5,12 @@
 #include <cstdlib>
 #include <stdexcept>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 unsigned g_trace_events = 0;
 
 void traceX76(const char* event, unsigned a = 0, unsigned b = 0) {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_X76") && g_trace_events < 96) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_X76") && g_trace_events < 96) {
         ++g_trace_events;
         std::fprintf(stderr, "Naomi X76F100 %s a=%02x b=%02x\n", event, a, b);
     }
@@ -193,4 +193,4 @@ bool NaomiX76F100::readSDA() const {
     return m_cs ? true : m_sdar;
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

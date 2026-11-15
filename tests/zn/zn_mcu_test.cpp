@@ -5,7 +5,7 @@
 
 int main()
 {
-    mamerecomp::zn::ZnMcu mcu(100'000'000);
+    multiarcaderecomp::zn::ZnMcu mcu(100'000'000);
     mcu.select(false);
     mcu.advance(4'999);
     assert(mcu.dsr() == 1);

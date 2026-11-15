@@ -5,9 +5,9 @@
 #include <iostream>
 #include <utility>
 
-namespace mamerecomp::namco::system12 {
+namespace multiarcaderecomp::namco::system12 {
 
-NamcoSystem12Board::NamcoSystem12Board(const mamerecomp::rom::RomRegions& roms)
+NamcoSystem12Board::NamcoSystem12Board(const multiarcaderecomp::rom::RomRegions& roms)
     : roms_(&roms), c352_(roms.at("c352")) {}
 
 PsxBus NamcoSystem12Board::make_bus() {
@@ -79,7 +79,7 @@ bool NamcoSystem12Board::sub_write(uint32_t address, unsigned size, uint32_t val
     }
     if (address >= 0x280000 && address + size <= 0x288000) {
         const uint16_t offset = static_cast<uint16_t>((address - 0x280000) >> 1);
-        if (std::getenv("MAMERECOMP_TRACE_SYSTEM12_C352")) {
+        if (std::getenv("MULTIARCADERECOMP_TRACE_SYSTEM12_C352")) {
             static unsigned traced = 0;
             if (traced++ < 256)
                 std::cerr << "System 12 C352 write offset=0x" << std::hex << offset
@@ -266,4 +266,4 @@ std::vector<uint32_t> NamcoSystem12Board::dma_rom_read(size_t words) {
     return result;
 }
 
-} // namespace mamerecomp::namco::system12
+} // namespace multiarcaderecomp::namco::system12

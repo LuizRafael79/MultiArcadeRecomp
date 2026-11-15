@@ -1,14 +1,14 @@
 # MK T-Unit runtime port
 
-This document tracks the **machine runtime** port from MAME to MameRecomp.
+This document tracks the **machine runtime** port from MAME to MultiArcadeRecomp.
 The runtime models board devices and their interactions. CPU execution and
 translation stay in shared CPU code under `core/cpus`; they are connected to
-this runtime through `mamerecomp::tms34010::Bus` or the MC6809 bus interface.
+this runtime through `multiarcaderecomp::tms34010::Bus` or the MC6809 bus interface.
 The diagnostic runner in `tools/mk/trace.cpp` is not the machine runtime.
 
 ## Source correspondence
 
-| MAME source | MameRecomp location | Ported behavior / current status |
+| MAME source | MultiArcadeRecomp location | Ported behavior / current status |
 | --- | --- | --- |
 | `midtunit_base_state` / `midtunit_adpcm_state` machine composition | `src/mk/mk_machine.*` | Owns the T-Unit and Williams ADPCM devices and wires T-Unit sound-command/reset writes to the sound board. It does not instantiate or implement either CPU. |
 | `src/mame/williams/midtunit.cpp` | `src/mk/tunit.cpp` | T-Unit address map, RAM regions, ROM mirrors, input reads, palette, graphics ROM window, DMA/control windows and watchdog write. Base clocks and dynamic HTOTAL-at-frame-boundary timing are represented; full scanline event ordering still needs comparison. |

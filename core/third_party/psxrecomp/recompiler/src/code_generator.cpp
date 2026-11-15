@@ -2345,7 +2345,7 @@ std::string CodeGenerator::translate_basic_block(
         bool is_cf = ControlFlowAnalyzer::is_control_flow(instr);
 
         if (!is_cf) {
-            ss << "#ifdef MAMERECOMP_PSX_RUNTIME_ABI\n"
+            ss << "#ifdef MULTIARCADERECOMP_PSX_RUNTIME_ABI\n"
                << config_.indent
                << fmt::format("psx_recomp_set_pc(cpu, 0x{:08X}u);\n", runtime_pc(addr))
                << "#endif\n";
@@ -2454,7 +2454,7 @@ std::string CodeGenerator::translate_basic_block(
         } else {
             // Control flow is handled at block exit
             if (addr == exit_branch_addr) {
-                ss << "#ifdef MAMERECOMP_PSX_RUNTIME_ABI\n"
+                ss << "#ifdef MULTIARCADERECOMP_PSX_RUNTIME_ABI\n"
                    << config_.indent
                    << fmt::format("psx_recomp_set_pc(cpu, 0x{:08X}u);\n",
                                   runtime_pc(exit_branch_addr))
@@ -2575,7 +2575,7 @@ std::string CodeGenerator::translate_basic_block(
                         if (block.exit_instr.is_likely) {
                             ss << config_.indent << "/* delay slot (likely) - conditional execution */\n";
                             ss << config_.indent << "if (" << generate_branch_condition(block.exit_instr.instruction, block.exit_instr.address) << ") {\n";
-                            ss << "#ifdef MAMERECOMP_PSX_RUNTIME_ABI\n"
+                            ss << "#ifdef MULTIARCADERECOMP_PSX_RUNTIME_ABI\n"
                                << config_.indent << config_.indent
                                << fmt::format("psx_recomp_set_pc(cpu, 0x{:08X}u);\n",
                                               runtime_pc(delay_slot_addr))
@@ -2596,7 +2596,7 @@ std::string CodeGenerator::translate_basic_block(
                                                   delay_saved_cond, cond);
                             }
                             ss << config_.indent << "/* delay slot (always executes) */\n";
-                            ss << "#ifdef MAMERECOMP_PSX_RUNTIME_ABI\n"
+                            ss << "#ifdef MULTIARCADERECOMP_PSX_RUNTIME_ABI\n"
                                << config_.indent
                                << fmt::format("psx_recomp_set_pc(cpu, 0x{:08X}u);\n",
                                               runtime_pc(delay_slot_addr))

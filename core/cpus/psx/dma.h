@@ -9,7 +9,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 class DmaController {
 public:
@@ -53,4 +53,4 @@ private:
     uint64_t completion_cycles_[7]{};
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

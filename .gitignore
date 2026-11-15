@@ -7,9 +7,12 @@
 /out/
 
 # ROM and emulator output
+# Keep captures accidentally written to the repository root out of Git.
+/*.ppm
+/*.log
+/*.bin
 *.chd
 *.rom
-*.bin
 *.nv
 *.nvram
 *.sav
@@ -24,6 +27,8 @@
 *.csv
 *.trace
 *.dump
+
+# This file is intentionally tracked: it distributes the ignore rules.
 
 # Python tooling
 __pycache__/

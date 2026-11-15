@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 class System18VideoRenderer final : public SegaBoardVideoRenderer {
 public:
@@ -121,4 +121,4 @@ std::unique_ptr<SegaBoardVideoRenderer> make_system18_video_renderer(
     return std::make_unique<System18VideoRenderer>(decoded_tiles, sprite_rom, bus, signals);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Sega 315-5250 compare/timer register block. Each physical instance keeps
 // its own comparison history, as on the System16B ROM board.
@@ -19,4 +19,4 @@ private:
     std::uint8_t m_history_bit = 0;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

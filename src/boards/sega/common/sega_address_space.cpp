@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 namespace {
 
@@ -232,4 +232,4 @@ bool sega_bus_read8_callback(void* context, std::uint32_t address, std::uint8_t*
 }
 
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -25,7 +25,7 @@ Maintain the boundary by component:
 | Component | Active implementation | External reference role |
 | --- | --- | --- |
 | SH-4 instruction interpreter | `core/cpus/sh4/flycast_interpreter.*` adapted from Flycast | MAME opcode/behavior comparison only |
-| SH-4 AOT translator | MameRecomp's existing translator | independent of both emulators |
+| SH-4 AOT translator | MultiArcadeRecomp's existing translator | independent of both emulators |
 | Naomi bus, Holly and devices | `src/naomi`, adapted from Flycast | MAME cross-checks only, not runtime code |
 | PVR2, TA and framebuffer renderer | `src/naomi`, port from Flycast; MAME software PowerVR2 as an implementation source where useful | Cross-check Flycast/MAME behavior and the game's framebuffer output |
 
@@ -49,7 +49,7 @@ current instruction came from AOT or the interpreter.
 
 Flycast's **Interpreter** is the SH-4 instruction-semantics source because the
 selected Naomi game runs there with the available BIOS. Do not bring its
-Dynarec: MameRecomp already has its own SH-4 AOT translator, and a second
+Dynarec: MultiArcadeRecomp already has its own SH-4 AOT translator, and a second
 host-code generator would obscure which compiler is under evaluation. MAME
 remains useful for cross-checking Naomi hardware behavior; it is separate from
 the Flycast-derived runtime being ported and from the SH-4 instruction
@@ -73,7 +73,7 @@ Flycast does contain optional Naomi REIOS HLE code: `core/reios/reios.cpp`
 has `reios_boot()` and `reios_setup_naomi()`, which can seed a Naomi cartridge
 image and SH-4 state when explicitly invoked. This is separate from
 `reios_init()` in `core/reios/gdrom_hle.cpp`, which only registers the generic
-GD-ROM HLE scheduler callback. MameRecomp's Naomi BIOS runtime must not call
+GD-ROM HLE scheduler callback. MultiArcadeRecomp's Naomi BIOS runtime must not call
 `reios_init()` or use REIOS to replace the Naomi BIOS. The Naomi REIOS helper
 and its diagnostic AOT roots remain an explicitly selected test path only;
 they are not part of normal Naomi startup. The official-BIOS path is the
@@ -148,7 +148,7 @@ Parser verification against the saved authentic 224-byte Flycast capture
 decoded two type-4 control/polygon packets and one type-5 sprite with a 64-byte
 A+B vertex span, followed by the two completed list spans. This validates the
 new packet-boundary and sprite-pair accounting on captured input, not the
-rasterizer or the game boot. A fresh MameRecomp run at 1.25B instructions
+rasterizer or the game boot. A fresh MultiArcadeRecomp run at 1.25B instructions
 ended at `PC=0x0c045fe0`; its final TA buffer held only two type-4 packets and
 EOLs (128 bytes), `STARTRENDER=0`, and `FB_R_CTRL.fb_enable=0`. Thus that run
 still shows no game scene reaching the renderer.
@@ -190,14 +190,14 @@ provides the ROM source. Transfers advance in Flycast-sized chunks (up to
 1 KiB, 10 SH-4 cycles per byte), respect the M2 4 MiB bank mapping and cart
 boundary, update `GDSTARD/GDLEND`, and raise Holly normal interrupt bit 14 on
 completion. Clearing `GDEN` aborts an active transfer. Set
-`MAMERECOMP_NAOMI_TRACE_G1_DMA=1` to log starts and completion/progress.
+`MULTIARCADERECOMP_NAOMI_TRACE_G1_DMA=1` to log starts and completion/progress.
 
 This closes one missing board operation; it does not establish that MvC2's
 observed BIOS handoff uses G1 DMA. Existing synchronized traces show the BIOS
 only reading the 0x500-byte ROM boot header and no G1 start before the earlier
 probe ended. The guest-visible cart-to-RAM handoff remains unresolved, the TA
 scene/raster path is incomplete, and AICA synthesis is not connected. A
-visible Naomi frame has not yet been verified in MameRecomp.
+visible Naomi frame has not yet been verified in MultiArcadeRecomp.
 
 ### DMA writes and SH-4 AOT invalidation (2026-11-02)
 
@@ -293,7 +293,7 @@ permissions, first-write and physical P4 remap), ITLB fill/replacement using
 `MMUCR.LRUI`, URC updates, store-queue permission/alignment checks, and
 MMUCR.TI invalidation. TLB misses, multi-hits, protection faults, first writes
 and address errors now write TEA/PTEH, enter the appropriate exception vector
-and unwind the in-flight instruction. A focused build of `mamerecomp_naomi`
+and unwind the in-flight instruction. A focused build of `multiarcaderecomp_naomi`
 passed. Short official-BIOS runs in interpreter-only and hybrid modes both
 retired 5 million instructions to the budget at `PC=0x800000a2`, with no
 exception or unresolved target. They did not reach cartridge activity, TA
@@ -330,7 +330,7 @@ MAME as a hardware cross-check only.
 ### Live AOT guard boot check (2026-11-02)
 
 Regenerated the complete MVSC2 AOT source set with live-byte hashes, rebuilt
-`mamerecomp_naomi.so` and the host target, then ran the official BIOS. At 100M
+`multiarcaderecomp_naomi.so` and the host target, then ran the official BIOS. At 100M
 instructions the run stayed in the BIOS with 99,999,994 native and 6
 interpreted instructions. At a 1.2B budget, execution stopped earlier at
 `0x0c001dc8` after 195,722,255 instructions (195,722,151 native, 104
@@ -362,7 +362,7 @@ and scanout remained disabled. No visible frame has been verified.
 
 `build/naomi-hybrid` was configured separately because the existing
 `build/release` cache references absent generated directories for unrelated
-modules. Both `mamerecomp` and `mamerecomp_naomi` built there with Naomi's
+modules. Both `multiarcaderecomp` and `multiarcaderecomp_naomi` built there with Naomi's
 existing generated translations enabled. The run results above are from that
 isolated binary; they still do not validate a gameplay boot or rendered frame.
 

@@ -8,7 +8,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 using System16BFrame = SegaVideoFrame;
 using System16BLayerHook = std::function<void(System16BFrame&, unsigned)>;
@@ -41,4 +41,4 @@ System16BFrame render_system16b_frame(std::span<const std::uint8_t> decoded_tile
     chips::sega3155197::TilemapState state = {}, std::span<const std::uint8_t> sprite_banks = {},
     bool use_opengl = false, chips::sega3155197::TilemapRenderer* renderer = nullptr);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

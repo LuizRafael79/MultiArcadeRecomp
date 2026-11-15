@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 std::array<chips::Mapper3155195::Wiring, 8> System18AddressSpace::mapper_wiring(System18RomBoard board) {
     using Mapper = chips::Mapper3155195;
@@ -356,4 +356,4 @@ void System18AddressSpace::load_ram(std::string_view name, std::span<const std::
     std::copy(bytes.begin(), bytes.end(), target.begin());
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

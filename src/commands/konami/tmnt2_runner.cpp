@@ -8,11 +8,11 @@
 #include "seibu/toki_presenter.hpp"
 #include "zn_runtime.hpp"
 #include "native_z80.h"
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
 #include <SDL3/SDL.h>
 #endif
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #endif
 #include <algorithm>
@@ -35,10 +35,10 @@
 #include <vector>
 #include <dlfcn.h>
 
-namespace mamerecomp::app::machine_runners {
-using mamerecomp::app::read_binary_file;
-using mamerecomp::app::run_child_process;
-using InputEvent = mamerecomp::sega::InputEvent;
+namespace multiarcaderecomp::app::machine_runners {
+using multiarcaderecomp::app::read_binary_file;
+using multiarcaderecomp::app::run_child_process;
+using InputEvent = multiarcaderecomp::sega::InputEvent;
 
 int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
                              const std::string& game,
@@ -61,13 +61,13 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
 
     const auto zip = explicit_zip ? std::filesystem::absolute(*explicit_zip)
         : source_root.parent_path() / "mame/roms" / (game + ".zip");
-    auto roms = mamerecomp::konami::load_tmnt2_romset(game, zip);
+    auto roms = multiarcaderecomp::konami::load_tmnt2_romset(game, zip);
     std::cout << "Konami " << game << ": validated MAME ROMs from " << zip << '\n';
     const auto build_root = source_root / "build";
     const auto generated_root = build_root / "generated/konami/tmnt2" / game;
     const auto m68k_output = generated_root / "m68k";
     const auto z80_output = generated_root / "z80";
-    const auto module_path = build_root / ("mamerecomp_konami_" + game + ".so");
+    const auto module_path = build_root / ("multiarcaderecomp_konami_" + game + ".so");
     if (build_mode) {
         if (audio_enabled || window) throw std::runtime_error("TMNT2-family build does not accept run-only audio/video options");
         const auto m68k_image = generated_root / "program.bin";
@@ -107,7 +107,7 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
         std::filesystem::create_directories(z80_output);
         const auto m68krecomp = build_root / "m68krecomp";
         if (!std::filesystem::is_regular_file(m68krecomp))
-            throw std::runtime_error("m68krecomp tool not found; build the mamerecomp and m68krecomp targets first");
+            throw std::runtime_error("m68krecomp tool not found; build the multiarcaderecomp and m68krecomp targets first");
         const uint32_t reset_pc = (uint32_t(program[4]) << 24) | (uint32_t(program[5]) << 16)
             | (uint32_t(program[6]) << 8) | program[7];
         std::cout << "Generating " << game << " 68000 AOT from its program ROMs.\n" << std::flush;
@@ -116,46 +116,46 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
             "--prefix", game + "_", "--out", m68k_output.string(), "--files", "16"});
         if (status != 0) return status;
         std::cout << "Generating " << game << " Z80 AOT from its audio program ROM.\n" << std::flush;
-        status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE, (source_root / "tools/z80/recomp.py").string(),
+        status = run_child_process({MULTIARCADERECOMP_PYTHON_EXECUTABLE, (source_root / "tools/z80/recomp.py").string(),
             "--program", z80_image.string(), "--entries", z80_entries.string(), "--out", z80_output.string(),
             "--symbol-prefix", game + "_", "--precise-cycle-yield"});
         if (status != 0) return status;
         status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
-            "-DMAMERECOMP_KONAMI_TMNT2_AOT_DIR=" + generated_root.string(),
-            "-DMAMERECOMP_KONAMI_TMNT2_GAME_ID=" + game});
+            "-DMULTIARCADERECOMP_KONAMI_TMNT2_AOT_DIR=" + generated_root.string(),
+            "-DMULTIARCADERECOMP_KONAMI_TMNT2_GAME_ID=" + game});
         if (status != 0) return status;
         std::cout << "Building the " << game << " 68000/Z80 AOT module.\n" << std::flush;
         return run_child_process({"cmake", "--build", build_root.string(), "--target",
-            "mamerecomp_konami_tmnt2_aot", "-j", jobs});
+            "multiarcaderecomp_konami_tmnt2_aot", "-j", jobs});
     }
 
     if (!std::filesystem::is_regular_file(module_path))
-        throw std::runtime_error(game + " AOT module is missing; run `mamerecomp build --machine=konami --board=tmnt2 --game=" + game + "` first");
+        throw std::runtime_error(game + " AOT module is missing; run `multiarcaderecomp build --machine=konami --board=tmnt2 --game=" + game + "` first");
     void* module = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!module) throw std::runtime_error("could not load " + game + " AOT module: " + std::string(dlerror()));
     struct ModuleGuard { void* handle; ~ModuleGuard() { if (handle) dlclose(handle); } } module_guard{module};
     using M68kTableFn = const ng_func_entry_t* (*)(size_t*);
-    using Z80CodeFn = const mamerecomp::z80::Z80Code* (*)();
-    auto get_m68k_table = reinterpret_cast<M68kTableFn>(dlsym(module, "mamerecomp_konami_tmnt2_m68k_table"));
-    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "mamerecomp_konami_tmnt2_z80_code"));
+    using Z80CodeFn = const multiarcaderecomp::z80::Z80Code* (*)();
+    auto get_m68k_table = reinterpret_cast<M68kTableFn>(dlsym(module, "multiarcaderecomp_konami_tmnt2_m68k_table"));
+    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "multiarcaderecomp_konami_tmnt2_z80_code"));
     if (!get_m68k_table || !get_z80_code) throw std::runtime_error(game + " AOT module is missing CPU tables");
     size_t m68k_entry_count = 0;
     const auto* m68k_entries = get_m68k_table(&m68k_entry_count);
     if (!m68k_entries || !m68k_entry_count) throw std::runtime_error(game + " 68000 AOT table is empty");
-    mamerecomp::z80::SetZ80Code(get_z80_code());
+    multiarcaderecomp::z80::SetZ80Code(get_z80_code());
 
-    mamerecomp::konami::Tmnt2Board board(game, std::move(roms));
-    mamerecomp::konami::Tmnt2MainCpu main_cpu(board, m68k_entries, m68k_entry_count);
-    mamerecomp::konami::Tmnt2SoundCpu sound_cpu(board);
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
-    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> video_presenter;
-    if (window) video_presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
-        "Konami " + game + " - MameRecomp", game == "tmnt2" ? 304u : 288u, 224u);
+    multiarcaderecomp::konami::Tmnt2Board board(game, std::move(roms));
+    multiarcaderecomp::konami::Tmnt2MainCpu main_cpu(board, m68k_entries, m68k_entry_count);
+    multiarcaderecomp::konami::Tmnt2SoundCpu sound_cpu(board);
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<multiarcaderecomp::video::SdlVideoPresenter> video_presenter;
+    if (window) video_presenter = std::make_unique<multiarcaderecomp::video::SdlVideoPresenter>(
+        "Konami " + game + " - MultiArcadeRecomp", game == "tmnt2" ? 304u : 288u, 224u);
     if (video_presenter)
         std::cout << "Controls: P1 arrows + keypad 1/2/3, start 1; P2 WASD + J/K/L, start 2; coins 5-8; F2 service.\n";
-    std::unique_ptr<mamerecomp::konami::TmntPresenter> audio_output;
+    std::unique_ptr<multiarcaderecomp::konami::TmntPresenter> audio_output;
     if (audio_enabled)
-        audio_output = std::make_unique<mamerecomp::konami::TmntPresenter>(
+        audio_output = std::make_unique<multiarcaderecomp::konami::TmntPresenter>(
             "Konami TMNT2 audio", false, true, board.audio_sample_rate());
 #else
     if (window) throw std::runtime_error("Konami live video requires an SDL3-enabled build");
@@ -171,14 +171,14 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
     if (frame_sequence_dir) std::filesystem::create_directories(*frame_sequence_dir);
     auto next_audio_deadline = std::chrono::steady_clock::now();
     auto run_frame = [&] {
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (video_presenter && !video_presenter->pump_events()) {
             window_open = false;
             return;
         }
 #endif
         std::array<std::uint8_t, 5> input_masks{0xff, 0xff, 0xff, 0xff, 0xff};
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (video_presenter) {
             const auto keys = video_presenter->input_state();
             input_masks[0] &= static_cast<std::uint8_t>(~keys.coins_pressed);
@@ -217,12 +217,12 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
         }
         ++frame_index;
         if (frame_sequence_dir
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             || video_presenter
 #endif
         ) {
             const auto live_frame = board.render_frame();
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             if (video_presenter) {
                 video_presenter->present(board.frame_rgb(live_frame));
                 window_open = video_presenter->pump_events();
@@ -238,7 +238,7 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
                 if (!output) throw std::runtime_error("failed writing frame sequence image " + path.string());
             }
         }
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (audio_output) {
             audio_output->queue_audio(frame_audio);
             next_audio_deadline += std::chrono::duration_cast<std::chrono::steady_clock::duration>(frame_period);
@@ -250,7 +250,7 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
 #endif
     };
     if (window && !frames && !cycles) {
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         while (window_open) run_frame();
 #endif
     } else if (frames) {
@@ -309,4 +309,4 @@ int run_konami_tmnt2_machine(const std::filesystem::path& source_root,
     return 0;
 }
 
-} // namespace mamerecomp::app::machine_runners
+} // namespace multiarcaderecomp::app::machine_runners

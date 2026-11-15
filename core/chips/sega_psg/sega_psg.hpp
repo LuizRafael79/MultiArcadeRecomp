@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Sega VDP PSG compatible with the SN76489 register and divider model.
 // The host supplies input clock ticks and routes the mono DAC sample.
@@ -29,4 +29,4 @@ private:
     std::uint64_t m_writes = 0;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

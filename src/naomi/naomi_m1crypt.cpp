@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 void M1CryptStream::start_dma(std::span<const std::uint8_t> encrypted_region,
                               std::uint32_t key, std::uint32_t dma_address,
@@ -146,4 +146,4 @@ std::vector<std::uint8_t> M1CryptStream::read(std::size_t size) {
     return result;
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

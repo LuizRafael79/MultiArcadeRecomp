@@ -5,7 +5,7 @@
 
 #include <dlfcn.h>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 void* load_module(const std::filesystem::path& path) {
     return dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
@@ -27,19 +27,19 @@ std::string module_load_error() {
 }
 
 GeneratedBoardModule::GeneratedBoardModule(const BoardRegistration& registration, const char* game_id) {
-    const auto module_name = std::string("mamerecomp_") + std::string(registration.module_id)
+    const auto module_name = std::string("multiarcaderecomp_") + std::string(registration.module_id)
         + "_" + game_id + ".so";
-    const auto path = mamerecomp::sega::module_directory() / module_name;
+    const auto path = multiarcaderecomp::sega::module_directory() / module_name;
     m_handle = load_module(path);
     if (!m_handle) throw std::runtime_error("could not load board module " + path.string() + ": " + module_load_error());
 
-    const auto abi = reinterpret_cast<unsigned (*)()>(find_symbol(m_handle, "mamerecomp_board_abi"));
-    const auto module_revision = reinterpret_cast<int (*)()>(find_symbol(m_handle, "mamerecomp_board_revision"));
-    m_generated_table = reinterpret_cast<GeneratedTableFn>(find_symbol(m_handle, "mamerecomp_generated_table"));
+    const auto abi = reinterpret_cast<unsigned (*)()>(find_symbol(m_handle, "multiarcaderecomp_board_abi"));
+    const auto module_revision = reinterpret_cast<int (*)()>(find_symbol(m_handle, "multiarcaderecomp_board_revision"));
+    m_generated_table = reinterpret_cast<GeneratedTableFn>(find_symbol(m_handle, "multiarcaderecomp_generated_table"));
     m_z80_code = reinterpret_cast<const z80::Z80Code* (*)()>(
-        find_symbol(m_handle, "mamerecomp_sega_z80_code"));
+        find_symbol(m_handle, "multiarcaderecomp_sega_z80_code"));
     using GameAudioFn = const GameAudioApi* (*)();
-    if (const auto api_fn = reinterpret_cast<GameAudioFn>(find_symbol(m_handle, "mamerecomp_game_audio_api")))
+    if (const auto api_fn = reinterpret_cast<GameAudioFn>(find_symbol(m_handle, "multiarcaderecomp_game_audio_api")))
         m_game_audio_api = api_fn();
     if (!abi || !module_revision || !m_generated_table) {
         const auto error = module_load_error();
@@ -78,4 +78,4 @@ bool GeneratedBoardModule::on_sound_command(std::uint8_t command, const GameAudi
     return m_game_audio_api && m_game_audio_api->on_sound_command(command, host);
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

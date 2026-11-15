@@ -7,12 +7,12 @@
 #include <functional>
 #include <span>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 // Connects the FD1094 opcode/state behavior to the shared Musashi fallback CPU.
 class Fd1094MusashiBinding {
 public:
-    Fd1094MusashiBinding(mamerecomp::Fd1094& cipher, mamerecomp::SegaAddressSpace& bus,
+    Fd1094MusashiBinding(multiarcaderecomp::Fd1094& cipher, multiarcaderecomp::SegaAddressSpace& bus,
         std::span<const std::uint8_t> encrypted_program, std::function<void()> invalidate_aot);
     ~Fd1094MusashiBinding();
     Fd1094MusashiBinding(const Fd1094MusashiBinding&) = delete;
@@ -20,8 +20,8 @@ public:
 
 private:
     struct Context {
-        mamerecomp::Fd1094* cipher;
-        mamerecomp::SegaAddressSpace* bus;
+        multiarcaderecomp::Fd1094* cipher;
+        multiarcaderecomp::SegaAddressSpace* bus;
         std::span<const std::uint8_t> encrypted_program;
         std::function<void()> invalidate_aot;
     };
@@ -34,4 +34,4 @@ private:
     Context m_context;
 };
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

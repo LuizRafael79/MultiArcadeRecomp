@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 constexpr std::uint32_t kYmClock = 4'000'000;
 constexpr std::uint32_t kYmClocksPerSample = 64;
@@ -39,12 +39,12 @@ System16BSound::System16BSound(std::span<const std::uint8_t> region, SegaAudioSi
       m_sound_command_observer(std::move(sound_command_observer)) {
     if (m_rom.size() < 0x18000) throw std::invalid_argument("System 16B sound ROM region is too small for fixed and banked ROM");
     m_cpu.Reset();
-    if (const char* trace_path = std::getenv("MAMERECOMP_YM2151_TRACE"); trace_path && *trace_path) {
+    if (const char* trace_path = std::getenv("MULTIARCADERECOMP_YM2151_TRACE"); trace_path && *trace_path) {
         m_sound_trace.open(trace_path, std::ios::out | std::ios::trunc);
         if (!m_sound_trace) throw std::runtime_error(std::string("cannot open YM2151 trace file: ") + trace_path);
         m_sound_trace << "z80_cycle,z80_pc,event,register,value,channel,service,p1,p2,z80_ix,z80_sp,stack_return,voice_slot,voice_flags,voice_channel,voice_record\n";
     }
-    if (const char* trace_path = std::getenv("MAMERECOMP_SOUND_COMMAND_TRACE"); trace_path && *trace_path) {
+    if (const char* trace_path = std::getenv("MULTIARCADERECOMP_SOUND_COMMAND_TRACE"); trace_path && *trace_path) {
         m_sound_command_trace.open(trace_path, std::ios::out | std::ios::trunc);
         if (!m_sound_command_trace)
             throw std::runtime_error(std::string("cannot open sound command trace file: ") + trace_path);
@@ -307,4 +307,4 @@ void System16BSound::ymfm_set_busy_end(std::uint32_t c) { m_ym_timers.set_busy_e
 bool System16BSound::ymfm_is_busy() { return m_ym_timers.is_busy(m_ym_clock); }
 void System16BSound::ymfm_update_irq(bool v) { m_ym2151_irq=v; }
 void System16BSound::ymfm_external_write(ymfm::access_class, std::uint32_t, std::uint8_t) { }
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

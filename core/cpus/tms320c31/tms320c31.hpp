@@ -6,7 +6,7 @@
 #include <functional>
 #include <vector>
 
-namespace mamerecomp::tms320c31 {
+namespace multiarcaderecomp::tms320c31 {
 
 // The C31 has a 24-bit, word-addressed program/data space. Every access in
 // this interface is a 32-bit DSP word; board adapters translate the address
@@ -170,4 +170,4 @@ private:
     #include "mame_handler_declarations.inc"
 };
 
-} // namespace mamerecomp::tms320c31
+} // namespace multiarcaderecomp::tms320c31

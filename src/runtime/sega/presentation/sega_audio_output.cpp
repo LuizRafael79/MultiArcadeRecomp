@@ -11,15 +11,15 @@
 #include <vector>
 #include <unordered_map>
 
-#ifdef MAMERECOMP_HAS_MPG123
+#ifdef MULTIARCADERECOMP_HAS_MPG123
 #include <mpg123.h>
 #endif
 
-#ifdef MAMERECOMP_HAS_SDL3_AUDIO
+#ifdef MULTIARCADERECOMP_HAS_SDL3_AUDIO
 #include <SDL3/SDL.h>
 #endif
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 constexpr double kExternalTrackGain = 0.20;
 }
@@ -32,14 +32,14 @@ struct SegaAudioOutput::Impl {
     std::string one_shot_track;
     double one_shot_position = 0.0;
     double current_track_gain = 1.0;
-#ifdef MAMERECOMP_HAS_SDL3_AUDIO
+#ifdef MULTIARCADERECOMP_HAS_SDL3_AUDIO
     SDL_AudioStream* stream = nullptr;
     std::uint32_t sample_rate = 0;
 #endif
 };
 
 void SegaAudioOutput::load_external_tracks(const std::filesystem::path& directory) {
-#ifndef MAMERECOMP_HAS_MPG123
+#ifndef MULTIARCADERECOMP_HAS_MPG123
     (void)directory;
     throw std::runtime_error("external MP3 tracks require libmpg123 development files at build time");
 #else
@@ -116,7 +116,7 @@ void SegaAudioOutput::set_track_gain(float gain) {
 SegaAudioOutput::SegaAudioOutput() : impl_(std::make_unique<Impl>()) { }
 
 SegaAudioOutput::~SegaAudioOutput() {
-#ifdef MAMERECOMP_HAS_SDL3_AUDIO
+#ifdef MULTIARCADERECOMP_HAS_SDL3_AUDIO
     if (impl_->stream) SDL_DestroyAudioStream(impl_->stream);
     if (impl_->sample_rate != 0) SDL_QuitSubSystem(SDL_INIT_AUDIO);
 #endif
@@ -124,7 +124,7 @@ SegaAudioOutput::~SegaAudioOutput() {
 
 void SegaAudioOutput::submit(std::span<const std::int16_t> samples, std::uint32_t sample_rate) {
     if (samples.empty()) return;
-#ifdef MAMERECOMP_HAS_SDL3_AUDIO
+#ifdef MULTIARCADERECOMP_HAS_SDL3_AUDIO
     if (sample_rate == 0) throw std::invalid_argument("Sega audio output requires a nonzero sample rate");
     std::vector<std::int16_t> mixed_samples(samples.begin(), samples.end());
     const std::size_t frames = samples.size() / 2;
@@ -211,4 +211,4 @@ void SegaAudioOutput::submit(std::span<const std::int16_t> samples, std::uint32_
 #endif
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

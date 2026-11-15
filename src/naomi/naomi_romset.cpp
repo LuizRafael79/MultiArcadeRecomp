@@ -15,7 +15,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 
 struct RomLoad {
@@ -278,4 +278,4 @@ NaomiBiosImage load_naomi_bios(const std::string& set_id,
     throw std::runtime_error("no recognized 2 MiB Naomi BIOS found in " + zip_path.string());
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

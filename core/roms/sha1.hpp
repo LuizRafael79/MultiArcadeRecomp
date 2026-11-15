@@ -4,8 +4,8 @@
 #include <span>
 #include <string>
 
-namespace mamerecomp::roms {
+namespace multiarcaderecomp::roms {
 
 std::string sha1_hex(std::span<const std::uint8_t> data);
 
-} // namespace mamerecomp::roms
+} // namespace multiarcaderecomp::roms

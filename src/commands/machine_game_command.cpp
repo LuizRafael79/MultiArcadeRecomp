@@ -14,12 +14,12 @@
 #include "naomi/naomi_romset.hpp"
 #include "zn_runtime.hpp"
 #include "native_z80.h"
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
 #include "seibu/toki_presenter.hpp"
 #include <SDL3/SDL.h>
 #endif
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #endif
 #include <algorithm>
@@ -43,17 +43,17 @@
 #include <vector>
 #include <dlfcn.h>
 
-#ifndef MAMERECOMP_SOURCE_DIR
-#define MAMERECOMP_SOURCE_DIR "."
+#ifndef MULTIARCADERECOMP_SOURCE_DIR
+#define MULTIARCADERECOMP_SOURCE_DIR "."
 #endif
-#ifndef MAMERECOMP_PYTHON_EXECUTABLE
-#define MAMERECOMP_PYTHON_EXECUTABLE "python3"
+#ifndef MULTIARCADERECOMP_PYTHON_EXECUTABLE
+#define MULTIARCADERECOMP_PYTHON_EXECUTABLE "python3"
 #endif
 
-namespace mamerecomp::app {
-using mamerecomp::app::read_binary_file;
-using mamerecomp::app::run_child_process;
-using mamerecomp::app::machine_runners::InputEvent;
+namespace multiarcaderecomp::app {
+using multiarcaderecomp::app::read_binary_file;
+using multiarcaderecomp::app::run_child_process;
+using multiarcaderecomp::app::machine_runners::InputEvent;
 
 std::uint64_t parse_u64(std::string_view value, std::string_view label) {
     int base = 10;
@@ -257,10 +257,10 @@ int ki_machine_command(const std::filesystem::path& root,
     const auto work = root / "build/ki/work" / game;
     const auto aot = work / "mips_aot";
     const auto adsp_aot = work / "adsp_aot";
-    const auto host_build = game == "ki1" ? root / "build/ki/mamerecomp-host"
-                                           : root / "build/ki" / ("mamerecomp-host-" + game);
-    const auto runner = host_build / ("mamerecomp_" + game);
-    const auto stamp = work / ".mamerecomp-build-stamp";
+    const auto host_build = game == "ki1" ? root / "build/ki/multiarcaderecomp-host"
+                                           : root / "build/ki" / ("multiarcaderecomp-host-" + game);
+    const auto runner = host_build / ("multiarcaderecomp_" + game);
+    const auto stamp = work / ".multiarcaderecomp-build-stamp";
 
     bool stale = force_rebuild || !std::filesystem::is_regular_file(runner) ||
                  !std::filesystem::is_regular_file(aot / "rec_tab.c") ||
@@ -305,7 +305,7 @@ int ki_machine_command(const std::filesystem::path& root,
         std::cout << (force_rebuild ? "Forcing " + game + " rebuild.\n"
                                    : game + " runtime/AOT is missing or stale; building it.\n") << std::flush;
         std::vector<std::string> translate{
-            MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+            MULTIARCADERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
             "--system", "ki", "--game", game, "--rom-dir", rom_path.string(),
             "--jobs", jobs
         };
@@ -316,14 +316,14 @@ int ki_machine_command(const std::filesystem::path& root,
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_C_FLAGS_RELEASE=-O3",
             "-DCMAKE_CXX_FLAGS_RELEASE=-O3",
-            "-DMAMERECOMP_KI_MIPS_AOT_DIR=" + aot.string(),
-            "-DMAMERECOMP_KI_MIPS_GAME_ID=" + game,
-            "-DMAMERECOMP_KI_ADSP_AOT_DIR=" + adsp_aot.string()
+            "-DMULTIARCADERECOMP_KI_MIPS_AOT_DIR=" + aot.string(),
+            "-DMULTIARCADERECOMP_KI_MIPS_GAME_ID=" + game,
+            "-DMULTIARCADERECOMP_KI_ADSP_AOT_DIR=" + adsp_aot.string()
         };
         status = run_child_process(configure);
         if (status != 0) return status;
         status = run_child_process({"cmake", "--build", host_build.string(),
-                                    "--target", "mamerecomp_ki1", "--parallel", jobs});
+                                    "--target", "multiarcaderecomp_ki1", "--parallel", jobs});
         if (status != 0) return status;
         std::filesystem::create_directories(work);
         std::ofstream output(stamp, std::ios::binary | std::ios::trunc);
@@ -334,7 +334,7 @@ int ki_machine_command(const std::filesystem::path& root,
     }
 
     if (stale)
-        throw std::runtime_error(game + " build is missing or stale; run `mamerecomp build --machine=ki --board=seattle --game=" + game + "` first");
+        throw std::runtime_error(game + " build is missing or stale; run `multiarcaderecomp build --machine=ki --board=seattle --game=" + game + "` first");
     std::vector<std::string> command{runner.string(), "--rom-dir", rom_path.string(),
                                     "--work-dir", work.string(), "--game", game};
     if (window) command.emplace_back("--window");
@@ -365,7 +365,7 @@ int midway_machine_command(const std::filesystem::path& root,
     const auto work = root / "build" / game / "work";
     const auto game_build_root = root / "build" / game / "cmake";
     const bool mk2 = game == "mk2";
-    const auto runner = game_build_root / (mk2 ? "mamerecomp_mk2_trace" : "mamerecomp_mk_trace");
+    const auto runner = game_build_root / (mk2 ? "multiarcaderecomp_mk2_trace" : "multiarcaderecomp_mk_trace");
     const auto tms_aot = work / "tms34010_aot.cpp";
     const auto sound_aot = work / (mk2 ? "adsp2105_aot.cpp" : "mc6809e_aot.cpp");
     if (build_mode) {
@@ -373,7 +373,7 @@ int midway_machine_command(const std::filesystem::path& root,
             throw std::runtime_error("run-only options cannot be used with the Midway build command");
         const auto generator = root / "tools" / game / "build.py";
         std::vector<std::string> generate{
-            MAMERECOMP_PYTHON_EXECUTABLE, generator.string(), "--romset",
+            MULTIARCADERECOMP_PYTHON_EXECUTABLE, generator.string(), "--romset",
             rom_path.string(), "--out", work.string()
         };
         if (force_rebuild)
@@ -385,10 +385,10 @@ int midway_machine_command(const std::filesystem::path& root,
 
         std::vector<std::string> configure{
             "cmake", "-S", root.string(), "-B", game_build_root.string(),
-            "-DMAMERECOMP_TMS34010_AOT_SOURCE=" + (mk2 ? std::string{} : tms_aot.string()),
-            "-DMAMERECOMP_M6809_AOT_SOURCE=" + (mk2 ? std::string{} : sound_aot.string()),
-            "-DMAMERECOMP_MK2_TMS34010_AOT_SOURCE=" + (mk2 ? tms_aot.string() : std::string{}),
-            "-DMAMERECOMP_ADSP2105_AOT_SOURCE=" + (mk2 ? sound_aot.string() : std::string{})
+            "-DMULTIARCADERECOMP_TMS34010_AOT_SOURCE=" + (mk2 ? std::string{} : tms_aot.string()),
+            "-DMULTIARCADERECOMP_M6809_AOT_SOURCE=" + (mk2 ? std::string{} : sound_aot.string()),
+            "-DMULTIARCADERECOMP_MK2_TMS34010_AOT_SOURCE=" + (mk2 ? tms_aot.string() : std::string{}),
+            "-DMULTIARCADERECOMP_ADSP2105_AOT_SOURCE=" + (mk2 ? sound_aot.string() : std::string{})
         };
         status = run_child_process(configure);
         if (status != 0) return status;
@@ -397,7 +397,7 @@ int midway_machine_command(const std::filesystem::path& root,
                                     "--parallel", jobs});
         if (status != 0) return status;
         std::filesystem::create_directories(work);
-        std::ofstream stamp(work / ".mamerecomp-launcher-build", std::ios::trunc);
+        std::ofstream stamp(work / ".multiarcaderecomp-launcher-build", std::ios::trunc);
         if (!stamp) throw std::runtime_error("could not write T-Unit build stamp");
         stamp << "game=" << game << "\nrom=" << rom_path.string() << '\n';
         if (!stamp) throw std::runtime_error("failed writing T-Unit build stamp");
@@ -406,15 +406,15 @@ int midway_machine_command(const std::filesystem::path& root,
 
     if (!std::filesystem::is_regular_file(runner) || !std::filesystem::is_regular_file(tms_aot) ||
         !std::filesystem::is_regular_file(sound_aot)) {
-        throw std::runtime_error(game + " build is missing; run `mamerecomp build --machine=midway --board=tunit --game="
+        throw std::runtime_error(game + " build is missing; run `multiarcaderecomp build --machine=midway --board=tunit --game="
             + game + "` first");
     }
-    const auto stamp_path = work / ".mamerecomp-launcher-build";
+    const auto stamp_path = work / ".multiarcaderecomp-launcher-build";
     std::ifstream stamp(stamp_path);
     std::string stamp_text((std::istreambuf_iterator<char>(stamp)), std::istreambuf_iterator<char>());
     if (!stamp || stamp_text.find("game=" + game + "\n") == std::string::npos ||
         stamp_text.find("rom=" + rom_path.string() + "\n") == std::string::npos) {
-        throw std::runtime_error(game + " build does not match the requested ROM ZIP; rebuild it with `mamerecomp build --machine=midway --board=tunit --game="
+        throw std::runtime_error(game + " build does not match the requested ROM ZIP; rebuild it with `multiarcaderecomp build --machine=midway --board=tunit --game="
             + game + " --rom-dir " + rom_path.string() + "`");
     }
     if (headless && !frames && !cycles)
@@ -657,7 +657,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             if (game != "tmnt") throw std::runtime_error("Original TMNT board requires --game=tmnt");
             const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
             const bool play_audio = !build_mode && (audio_enabled || show_window);
-            return mamerecomp::app::machine_runners::run_konami_tmnt_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR),
+            return multiarcaderecomp::app::machine_runners::run_konami_tmnt_machine(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR),
                 rom_zip, build_mode, show_window, frames, cycles, frame_out, play_audio,
                 jobs, force_rebuild);
         }
@@ -667,7 +667,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         for (const auto& spec : button_event_specs)
             input_events.push_back(parse_konami_button_event(spec));
         const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
-        return mamerecomp::app::machine_runners::run_konami_tmnt2_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR),
+        return multiarcaderecomp::app::machine_runners::run_konami_tmnt2_machine(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR),
             game, rom_zip, build_mode, show_window, frames, cycles, frame_out, frame_sequence_dir,
             frame_sequence_step, audio_enabled || show_window,
             input_events, jobs, force_rebuild);
@@ -679,7 +679,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         std::vector<InputEvent> toki_events;
         for (const auto& spec : button_event_specs) toki_events.push_back(parse_toki_button_event(spec));
         const bool show_window = !build_mode && (window || (!headless && !frames && !cycles));
-        return mamerecomp::app::machine_runners::run_seibu_toki_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+        return multiarcaderecomp::app::machine_runners::run_seibu_toki_machine(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), game,
             rom_zip, build_mode, show_window, frames, cycles, frame_out, audio_enabled || show_window,
             toki_events, jobs, force_rebuild);
     }
@@ -699,7 +699,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         if (build_mode) {
             if (!valid_zn2)
                 throw std::runtime_error("ZN-1 AOT recipe is not available yet");
-            const std::filesystem::path source_root(MAMERECOMP_SOURCE_DIR);
+            const std::filesystem::path source_root(MULTIARCADERECOMP_SOURCE_DIR);
             const auto build_root = source_root / "build";
             const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
                 : source_root.parent_path() / "mame/roms" / (game + ".zip");
@@ -707,41 +707,41 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
                 throw std::runtime_error("ZN ROM ZIP not found: " + rom_path.string());
             const auto generated = build_root / "generated/sony/zn2/sfex2pa";
             std::cout << "Generating SFEX2PA QSound Z80 AOT from its ROMs.\n" << std::flush;
-            int status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE,
+            int status = run_child_process({MULTIARCADERECOMP_PYTHON_EXECUTABLE,
                 (source_root / "tools/psx/build_zn2_aot.py").string(),
                 "--rom", rom_path.string(), "--out", generated.string(),
-                "--python", MAMERECOMP_PYTHON_EXECUTABLE});
+                "--python", MULTIARCADERECOMP_PYTHON_EXECUTABLE});
             if (status != 0) return status;
             status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DMAMERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
+                "-DMULTIARCADERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
             if (status != 0) return status;
             status = run_child_process({"cmake", "--build", build_root.string(),
-                "--target", "mamerecomp_zn2_sfex2pa", "--parallel", jobs});
+                "--target", "multiarcaderecomp_zn2_sfex2pa", "--parallel", jobs});
             if (status != 0) return status;
             const auto pc_list = generated / "sfex2pa_ram_pcs.txt";
             const auto ram_snapshot = generated / "sfex2pa_ram_snapshot.bin";
             std::cout << "Profiling executed R3000A game code before compiling its RAM overlay.\n" << std::flush;
             status = run_child_process({"env",
-                "MAMERECOMP_PSX_AOT_PROFILE=" + pc_list.string(),
-                "MAMERECOMP_ZN_DUMP_RAM=" + ram_snapshot.string(),
-                (build_root / "mamerecomp").string(), "run",
+                "MULTIARCADERECOMP_PSX_AOT_PROFILE=" + pc_list.string(),
+                "MULTIARCADERECOMP_ZN_DUMP_RAM=" + ram_snapshot.string(),
+                (build_root / "multiarcaderecomp").string(), "run",
                 "--machine=sony", "--board=zn2", "--game=sfex2pa", "--headless", "--frames=1620",
                 "--button-event=300:coin1:3", "--button-event=950:start1:5",
                 "--button-event=1205:p1_button1:5"});
             if (status != 0) return status;
-            status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE,
+            status = run_child_process({MULTIARCADERECOMP_PYTHON_EXECUTABLE,
                 (source_root / "tools/psx/build_zn2_aot.py").string(),
                 "--rom", rom_path.string(), "--out", generated.string(),
-                "--python", MAMERECOMP_PYTHON_EXECUTABLE,
+                "--python", MULTIARCADERECOMP_PYTHON_EXECUTABLE,
                 "--ram-snapshot", ram_snapshot.string(), "--pc-list", pc_list.string()});
             if (status != 0) return status;
             status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DMAMERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
+                "-DMULTIARCADERECOMP_ZN2_SFEX2PA_AOT_DIR=" + generated.string()});
             if (status != 0) return status;
             return run_child_process({"cmake", "--build", build_root.string(),
-                "--target", "mamerecomp_zn2_sfex2pa", "--parallel", jobs});
+                "--target", "multiarcaderecomp_zn2_sfex2pa", "--parallel", jobs});
         }
         if (r3000a_no_aot || z80_no_aot || dsp16a_no_aot) {
             std::cout << "SFEX2PA AoT overrides:";
@@ -750,16 +750,16 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             if (dsp16a_no_aot) std::cout << " DSP16A=interpreter";
             std::cout << ".\n";
         }
-        return mamerecomp::app::machine_runners::run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
+        return multiarcaderecomp::app::machine_runners::run_zn_machine(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), game, rom_zip,
                               show_window, audio_enabled, gpu_hw, zn_events, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Sony",
                               valid_zn1 ? "ZN-1" : "ZN-2", nvram,
                               r3000a_no_aot, z80_no_aot, dsp16a_no_aot,
                               qsound_mode_option == "true"
-                                  ? mamerecomp::chips::QSoundMode::Lle
+                                  ? multiarcaderecomp::chips::QSoundMode::Lle
                                   : qsound_mode_option == "mixed"
-                                      ? mamerecomp::chips::QSoundMode::Mixed
-                                      : mamerecomp::chips::QSoundMode::Hle,
+                                      ? multiarcaderecomp::chips::QSoundMode::Mixed
+                                      : multiarcaderecomp::chips::QSoundMode::Hle,
                               qsound_mode_option == "mixed");
     }
     if (machine == "namco" && board == "system12") {
@@ -771,10 +771,10 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             !button_event_specs.empty())
             throw std::runtime_error("System 12 audio pan, input replay and NVRAM options are not integrated yet");
         const bool show_window = window || (!headless && !frames && !cycles);
-        return mamerecomp::app::machine_runners::run_zn_machine(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game, rom_zip,
+        return multiarcaderecomp::app::machine_runners::run_zn_machine(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), game, rom_zip,
                               show_window, audio_enabled, gpu_hw, {}, frames, cycles, frame_out,
                               frame_sequence_dir, frame_sequence_step, "Namco", "System 12", std::nullopt,
-                              false, false, false, mamerecomp::chips::QSoundMode::Lle, false);
+                              false, false, false, multiarcaderecomp::chips::QSoundMode::Lle, false);
     }
     if (!button_event_specs.empty())
         throw std::runtime_error("--button-event is currently supported for Konami games only");
@@ -806,7 +806,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         if (neogeo_input_script && build_mode)
             throw std::runtime_error("--input is a run-only Neo Geo scripted-input option");
 
-        const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
+        const std::filesystem::path root(MULTIARCADERECOMP_SOURCE_DIR);
         const auto default_rom_dir = root.parent_path() / "mame/roms";
         const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
                                       : default_rom_dir / "kof98.zip";
@@ -815,30 +815,30 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
 
         if (build_mode) {
             std::vector<std::string> build_command{
-                MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+                MULTIARCADERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
                 "--system", "neogeo", "--game", "kof98", "--jobs", jobs,
                 "--rom-dir", rom_path.string(), "--hardware-mode", board
             };
             if (force_rebuild) build_command.emplace_back("--rebuild");
             if (bios_zip) { build_command.emplace_back("--bios-zip"); build_command.push_back(std::filesystem::absolute(*bios_zip).string()); }
             if (bios_name) { build_command.emplace_back("--bios"); build_command.push_back(*bios_name); }
-            std::cout << "Building KOF98 modules through the MameRecomp Neo Geo pipeline.\n" << std::flush;
+            std::cout << "Building KOF98 modules through the MultiArcadeRecomp Neo Geo pipeline.\n" << std::flush;
             return run_child_process(build_command);
         }
 
-#ifdef MAMERECOMP_BINARY_DIR
-        const std::filesystem::path default_module_dir(MAMERECOMP_BINARY_DIR);
+#ifdef MULTIARCADERECOMP_BINARY_DIR
+        const std::filesystem::path default_module_dir(MULTIARCADERECOMP_BINARY_DIR);
 #else
         const std::filesystem::path default_module_dir = root / "build";
 #endif
-        const char* configured_module_dir = std::getenv("MAMERECOMP_MODULE_DIR");
+        const char* configured_module_dir = std::getenv("MULTIARCADERECOMP_MODULE_DIR");
         const auto module_dir = configured_module_dir && *configured_module_dir
             ? std::filesystem::path(configured_module_dir) : default_module_dir;
-        const auto runtime_module = module_dir / "mamerecomp_neogeo_runtime.so";
-        const auto window_module = module_dir / "mamerecomp_neogeo_window.so";
-        const auto game_module = module_dir / ("mamerecomp_game_kof98_" + board + ".so");
+        const auto runtime_module = module_dir / "multiarcaderecomp_neogeo_runtime.so";
+        const auto window_module = module_dir / "multiarcaderecomp_neogeo_window.so";
+        const auto game_module = module_dir / ("multiarcaderecomp_game_kof98_" + board + ".so");
         if (!std::filesystem::is_regular_file(runtime_module) || !std::filesystem::is_regular_file(game_module))
-            throw std::runtime_error("Neo Geo modules for " + board + " mode are missing; run `mamerecomp build --machine=neogeo --board=" + board + " --game=kof98` first");
+            throw std::runtime_error("Neo Geo modules for " + board + " mode are missing; run `multiarcaderecomp build --machine=neogeo --board=" + board + " --game=kof98` first");
 
 #if defined(__unix__) || defined(__APPLE__)
         void* window_handle = nullptr;
@@ -865,9 +865,9 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         using AbiFn = unsigned (*)();
         using IdFn = const char* (*)();
         using RunFn = int (*)(int, char**);
-        auto abi = reinterpret_cast<AbiFn>(dlsym(handle, "mamerecomp_board_module_abi"));
-        auto id = reinterpret_cast<IdFn>(dlsym(handle, "mamerecomp_board_module_id"));
-        auto run = reinterpret_cast<RunFn>(dlsym(handle, "mamerecomp_board_run"));
+        auto abi = reinterpret_cast<AbiFn>(dlsym(handle, "multiarcaderecomp_board_module_abi"));
+        auto id = reinterpret_cast<IdFn>(dlsym(handle, "multiarcaderecomp_board_module_id"));
+        auto run = reinterpret_cast<RunFn>(dlsym(handle, "multiarcaderecomp_board_run"));
         const char* symbol_error = dlerror();
         if (symbol_error || !abi || !id || !run || abi() != 1 || std::string_view(id()) != "neogeo") {
             dlclose(handle);
@@ -890,17 +890,17 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             throw std::runtime_error("Seattle currently supports --game=ki1 or --game=ki2");
         if (build_mode && (window || frames || frame_out))
             throw std::runtime_error("--window, --frames, and --frame-out are run-only options");
-        return ki_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+        return ki_machine_command(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), game,
                                    rom_zip, build_mode, jobs, force_rebuild,
                                    build_mode ? false : (window || (!headless && frames == 0)),
                                    frames, frame_out);
     }
     if (machine == "sega" || machine == "system16" || machine == "system18") {
-        if (!mamerecomp::sega::find_board(board))
+        if (!multiarcaderecomp::sega::find_board(board))
             throw std::runtime_error("Sega adapter requires --board=system16a, system16b, or system18");
         if (audio_stereo_spread && !audio_enabled)
             throw std::runtime_error("--audio-pan spread requires --audio");
-        return mamerecomp::sega::run_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), board, game, rom_zip,
+        return multiarcaderecomp::sega::run_machine_command(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), board, game, rom_zip,
                                     build_mode, audit_mode, jobs, force_rebuild, window, headless,
                                     frames ? std::optional<std::uint64_t>(frames) : std::nullopt,
                                     cycles, frame_out, video_state_out, audio_enabled, audio_stereo_spread,
@@ -918,7 +918,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             throw std::runtime_error("Midway T-Unit adapter requires --board=tunit");
         if (audio_enabled || audio_pan_option_set)
             throw std::runtime_error("T-Unit audio is enabled by its game runner; --audio options are not available");
-        return midway_machine_command(std::filesystem::path(MAMERECOMP_SOURCE_DIR), game,
+        return midway_machine_command(std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR), game,
                                       rom_zip, build_mode, jobs, force_rebuild,
                                       window, headless, frames, cycles, frame_out,
                                       input_replay, nvram, dma_command_log);
@@ -935,9 +935,9 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         if (build_mode && (window || headless || frames))
             throw std::runtime_error("--window, --headless, and --frames are run-only options");
 
-        const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
+        const std::filesystem::path root(MULTIARCADERECOMP_SOURCE_DIR);
         const auto work_dir = root / "build/cps2/work" / game;
-        const auto module = root / "build/cps2" / ("libmamerecomp_cps2_" + game + ".so");
+        const auto module = root / "build/cps2" / ("libmultiarcaderecomp_cps2_" + game + ".so");
         const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
             : root.parent_path() / "mame/roms" / (game + ".zip");
         if (!std::filesystem::is_regular_file(rom_path))
@@ -945,7 +945,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
 
         if (build_mode) {
             std::vector<std::string> build_command{
-                MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+                MULTIARCADERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
                 "--system", "cps2", "--game", game, "--jobs", jobs,
                 "--rom-dir", rom_path.string()
             };
@@ -956,11 +956,11 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         }
 
         if (!std::filesystem::is_regular_file(module)) {
-            throw std::runtime_error("CPS2 board module is missing; run `mamerecomp build --machine=cps --board=cps2 --game="
+            throw std::runtime_error("CPS2 board module is missing; run `multiarcaderecomp build --machine=cps --board=cps2 --game="
                 + game + "` first");
         }
         std::vector<std::string> run_arguments{
-            "mamerecomp-cps2-" + game, "--rom", rom_path.string(),
+            "multiarcaderecomp-cps2-" + game, "--rom", rom_path.string(),
             "--eeprom", (work_dir / "eeprom.bin").string(),
             "--settings", (work_dir / "settings.ini").string(),
             "--record-entries", (work_dir / "entries.txt").string(),
@@ -980,7 +980,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
         if (!handle) throw std::runtime_error("could not load CPS2 module " + module.string() + ": " + dlerror());
         dlerror();
         using Cps2RunFn = int (*)(int, char**);
-        const std::string entry_name = "mamerecomp_cps2_" + game + "_run";
+        const std::string entry_name = "multiarcaderecomp_cps2_" + game + "_run";
         auto run = reinterpret_cast<Cps2RunFn>(dlsym(handle, entry_name.c_str()));
         const char* symbol_error = dlerror();
         if (symbol_error || !run) {
@@ -1001,20 +1001,20 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
     if (game != "sf2ce" && game != "dino")
         throw std::runtime_error("CPS1 adapter currently supports only --game=sf2ce or --game=dino");
 
-    const std::filesystem::path root(MAMERECOMP_SOURCE_DIR);
+    const std::filesystem::path root(MULTIARCADERECOMP_SOURCE_DIR);
     const auto work_dir = root / "build/cps1/work" / game;
-    const auto build_dir = root / "build/cps1/mamerecomp-host";
+    const auto build_dir = root / "build/cps1/multiarcaderecomp-host";
     const auto generated_roms = work_dir / "roms";
-    const auto runner = build_dir / ("mamerecomp_" + game);
+    const auto runner = build_dir / ("multiarcaderecomp_" + game);
     const auto rom_path = rom_zip ? std::filesystem::absolute(*rom_zip)
         : root.parent_path() / "mame/roms" / (game + ".zip");
     if (rom_zip && !std::filesystem::is_regular_file(rom_path))
         throw std::runtime_error("ROM ZIP not found: " + rom_path.string());
 
-    const auto stamp = work_dir / ".mamerecomp-build-stamp";
+    const auto stamp = work_dir / ".multiarcaderecomp-build-stamp";
     bool needs_build = force_rebuild;
     const std::array<std::filesystem::path, 11> required_artifacts{
-        runner, build_dir / "libmamerecomp_cps1.so", build_dir / ("libmamerecomp_game_" + game + ".so"),
+        runner, build_dir / "libmultiarcaderecomp_cps1.so", build_dir / ("libmultiarcaderecomp_game_" + game + ".so"),
         work_dir / "program.bin", work_dir / "m68k_dynamic_entries.txt",
         work_dir / "z80_program.bin", work_dir / "z80_banked.bin",
         generated_roms / "maincpu.bin", generated_roms / "gfx.bin",
@@ -1046,7 +1046,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
             return 0;
         }
         std::vector<std::string> build_command{
-            MAMERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
+            MULTIARCADERECOMP_PYTHON_EXECUTABLE, (root / "tools/recompile.py").string(),
             "--system", "cps1", "--game", game, "--jobs", jobs
         };
         if (rom_zip) {
@@ -1066,7 +1066,7 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
     }
 
     if (needs_build) {
-        std::string message = "CPS-1 build is missing or stale; run `mamerecomp build --machine=cps --board=cps1 --game="
+        std::string message = "CPS-1 build is missing or stale; run `multiarcaderecomp build --machine=cps --board=cps1 --game="
             + game + "` first";
         if (rom_zip) message += " with the same `--rom-dir " + rom_path.string() + "`";
         throw std::runtime_error(message);
@@ -1096,4 +1096,4 @@ int machine_game_command(int argc, char** argv, bool build_mode, bool audit_mode
 }
 
 
-} // namespace mamerecomp::app
+} // namespace multiarcaderecomp::app

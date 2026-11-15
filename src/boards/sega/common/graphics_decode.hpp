@@ -4,8 +4,8 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 std::vector<std::uint8_t> decode_sega_tiles_3bpp(std::span<const std::uint8_t> region);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

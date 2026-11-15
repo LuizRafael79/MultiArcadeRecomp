@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// C-compatible descriptor exported by mamerecomp_naomi.so. Keep this POD
+// C-compatible descriptor exported by multiarcaderecomp_naomi.so. Keep this POD
 // stable; translated SH-4 entry points will use a separate ABI from 68k.
 struct NaomiProfileRecord {
     const char* set_id;
@@ -74,25 +74,25 @@ struct NaomiPvrFrameInfo {
 };
 
 extern "C" {
-std::uint32_t mamerecomp_naomi_abi();
-const NaomiProfileRecord* mamerecomp_naomi_profiles(std::size_t* count);
+std::uint32_t multiarcaderecomp_naomi_abi();
+const NaomiProfileRecord* multiarcaderecomp_naomi_profiles(std::size_t* count);
 // Returns 1 when a translated game set is available and writes its SH-4 entry.
-// `dispatcher` points to mamerecomp::naomi::Sh4Dispatcher in the C++ runtime ABI.
-int mamerecomp_naomi_register_sh4(const char* set_id, void* dispatcher,
+// `dispatcher` points to multiarcaderecomp::naomi::Sh4Dispatcher in the C++ runtime ABI.
+int multiarcaderecomp_naomi_register_sh4(const char* set_id, void* dispatcher,
                                   std::uint32_t* entry);
-void* mamerecomp_naomi_sh4_probe_create(const char* set_id, int interpreter_only);
-void mamerecomp_naomi_sh4_probe_destroy(void* probe);
-int mamerecomp_naomi_sh4_probe_start(void* probe, const std::uint8_t* rom,
+void* multiarcaderecomp_naomi_sh4_probe_create(const char* set_id, int interpreter_only);
+void multiarcaderecomp_naomi_sh4_probe_destroy(void* probe);
+int multiarcaderecomp_naomi_sh4_probe_start(void* probe, const std::uint8_t* rom,
                                      std::size_t rom_size,
                                      const std::uint8_t* board_id_eeprom,
                                      std::size_t board_id_eeprom_size,
                                      const std::uint8_t* bios,
                                      std::size_t bios_size,
                                      NaomiSh4ProbeResult* result);
-int mamerecomp_naomi_sh4_probe_run(void* probe, std::uint64_t budget,
+int multiarcaderecomp_naomi_sh4_probe_run(void* probe, std::uint64_t budget,
                                    NaomiSh4ProbeResult* result);
 // Copies a diagnostic RGB readback of FB_R_SOF1 into caller-owned memory.
 // A null RGB pointer reports the required capacity in frame_info.rgb_bytes.
-int mamerecomp_naomi_sh4_probe_frame(void* probe, NaomiPvrFrameInfo* frame_info,
+int multiarcaderecomp_naomi_sh4_probe_frame(void* probe, NaomiPvrFrameInfo* frame_info,
                                      std::uint8_t* rgb, std::size_t rgb_capacity);
 }

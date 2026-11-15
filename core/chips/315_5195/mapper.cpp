@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 Mapper3155195::Mapper3155195(std::array<Wiring, 8> wiring, Callbacks callbacks)
     : m_wiring(std::move(wiring)), m_callbacks(std::move(callbacks)) {
@@ -102,4 +102,4 @@ std::uint8_t Mapper3155195::sound_latch_read() {
     return m_regs[0x03];
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

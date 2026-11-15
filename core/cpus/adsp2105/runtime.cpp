@@ -2,10 +2,10 @@
 
 #include "interpreter.hpp"
 
-namespace mamerecomp::adsp2105 {
+namespace multiarcaderecomp::adsp2105 {
 
 BlockExit run_until(State& state, Bus& bus, std::uint64_t stop_cycle,
-                    MamerecompFallbackReason missing_entry_reason,
+                    MultiArcadeRecompFallbackReason missing_entry_reason,
                     bool interpreter_fallback,
                     bool native_enabled) noexcept {
     while (state.cycles < stop_cycle) {
@@ -30,20 +30,20 @@ BlockExit run_until(State& state, Bus& bus, std::uint64_t stop_cycle,
             // A block can decline execution when its code has become mutable.
             const auto fallback = bus.is_mutable_program &&
                 bus.is_mutable_program(bus.opaque, pc)
-                    ? MAMERECOMP_DYNAMIC_CODE
-                    : (state.loop == pc ? MAMERECOMP_EXCEPTION_BOUNDARY
-                                        : MAMERECOMP_UNSUPPORTED_VARIANT);
+                    ? MULTIARCADERECOMP_DYNAMIC_CODE
+                    : (state.loop == pc ? MULTIARCADERECOMP_EXCEPTION_BOUNDARY
+                                        : MULTIARCADERECOMP_UNSUPPORTED_VARIANT);
             const auto interpreted = interpreter_step(state, bus, stop_cycle, fallback);
             if (interpreted != BlockExit::Dispatch) return interpreted;
             continue;
         }
 
         if (!interpreter_fallback) return BlockExit::NeedsInterpreter;
-        const auto fallback_reason = !native_enabled ? MAMERECOMP_UNSUPPORTED_VARIANT :
+        const auto fallback_reason = !native_enabled ? MULTIARCADERECOMP_UNSUPPORTED_VARIANT :
             bus.is_mutable_program &&
             bus.is_mutable_program(bus.opaque, pc)
-                ? MAMERECOMP_DYNAMIC_CODE
-                : (lookup(pc) ? MAMERECOMP_UNSUPPORTED_VARIANT
+                ? MULTIARCADERECOMP_DYNAMIC_CODE
+                : (lookup(pc) ? MULTIARCADERECOMP_UNSUPPORTED_VARIANT
                               : missing_entry_reason);
         const auto interpreted = interpreter_step(
             state, bus, stop_cycle, fallback_reason);
@@ -52,4 +52,4 @@ BlockExit run_until(State& state, Bus& bus, std::uint64_t stop_cycle,
     return BlockExit::Budget;
 }
 
-} // namespace mamerecomp::adsp2105
+} // namespace multiarcaderecomp::adsp2105

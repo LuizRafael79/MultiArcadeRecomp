@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::dcs {
+namespace multiarcaderecomp::dcs {
 
 // Shared main-CPU side of Midway DCS host interfaces. Board maps own the
 // addresses and bus timing; the DCS device owns the latches and DSP runtime.
@@ -15,4 +15,4 @@ public:
     virtual std::uint64_t consume_host_stall_cycles() noexcept { return 0; }
 };
 
-} // namespace mamerecomp::dcs
+} // namespace multiarcaderecomp::dcs

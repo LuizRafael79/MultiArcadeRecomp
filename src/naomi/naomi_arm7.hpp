@@ -4,7 +4,7 @@
 #include <functional>
 #include <array>
 
-namespace mamerecomp::naomi::arm7 {
+namespace multiarcaderecomp::naomi::arm7 {
 
 using Read = std::function<std::uint32_t(std::uint32_t address, unsigned width)>;
 using Write = std::function<void(std::uint32_t address, unsigned width,
@@ -25,4 +25,4 @@ std::uint32_t instruction_address();
 std::array<std::uint32_t, 16> register_snapshot();
 std::uint64_t undefined_instructions();
 
-} // namespace mamerecomp::naomi::arm7
+} // namespace multiarcaderecomp::naomi::arm7

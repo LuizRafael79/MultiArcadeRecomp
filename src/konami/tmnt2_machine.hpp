@@ -16,9 +16,9 @@
 #include "devices/serial_eeprom.hpp"
 #include <neogeorecomp/neogeo.h>
 
-namespace mamerecomp::z80 { class Z80; class Z80Bus; }
+namespace multiarcaderecomp::z80 { class Z80; class Z80Bus; }
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 
 struct Tmnt2RomSet {
     std::unordered_map<std::string, std::vector<uint8_t>> regions;
@@ -97,7 +97,7 @@ private:
     unsigned screen_width_;
     unsigned visible_x_;
     Tmnt2RomSet roms_;
-    mamerecomp::devices::SerialEeprom eeprom_;
+    multiarcaderecomp::devices::SerialEeprom eeprom_;
     std::vector<uint8_t> work_ram_ = std::vector<uint8_t>(0x4000);
     std::vector<uint8_t> palette_ram_ = std::vector<uint8_t>(0x1000);
     std::vector<uint8_t> sprite_ram_ = std::vector<uint8_t>(0x4000);
@@ -224,8 +224,8 @@ public:
 
 private:
     Tmnt2Board& board_;
-    std::unique_ptr<mamerecomp::z80::Z80Bus> bus_;
-    std::unique_ptr<mamerecomp::z80::Z80> cpu_;
+    std::unique_ptr<multiarcaderecomp::z80::Z80Bus> bus_;
+    std::unique_ptr<multiarcaderecomp::z80::Z80> cpu_;
 };
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

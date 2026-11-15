@@ -17,7 +17,7 @@ namespace {
 struct SiteKey {
     const char *cpu{};
     const char *backend{};
-    MamerecompFallbackReason reason{};
+    MultiArcadeRecompFallbackReason reason{};
     std::uint32_t pc{};
     std::uint64_t opcode{};
     unsigned bits{};
@@ -68,7 +68,7 @@ const char *nonempty(const char *value, const char *fallback) {
     return value && *value ? value : fallback;
 }
 
-const char *reason_name(MamerecompFallbackReason reason) {
+const char *reason_name(MultiArcadeRecompFallbackReason reason) {
     static constexpr const char *names[] = {
         "UNSUPPORTED_OPCODE",
         "UNSUPPORTED_VARIANT",
@@ -84,7 +84,7 @@ const char *reason_name(MamerecompFallbackReason reason) {
 
 void register_exit_flush() {
     if (s_atexit_registered) return;
-    std::atexit(mamerecomp_interpreter_trace_flush);
+    std::atexit(multiarcaderecomp_interpreter_trace_flush);
     s_atexit_registered = true;
 }
 
@@ -93,7 +93,7 @@ void open_step_log() {
         s_step_file = std::fopen(s_step_path.c_str(), "w");
     if (!s_step_limit_initialized) {
         s_step_limit_initialized = true;
-        if (const char *limit = std::getenv("MAMERECOMP_INTERPRETER_STEP_LIMIT")) {
+        if (const char *limit = std::getenv("MULTIARCADERECOMP_INTERPRETER_STEP_LIMIT")) {
             char *end = nullptr;
             const auto parsed = std::strtoull(limit, &end, 0);
             if (end != limit && *end == '\0') s_step_limit = parsed;
@@ -114,7 +114,7 @@ SiteCounts collect_sites() {
 void print_summary(std::FILE *out, const SiteCounts& sites) {
     if (!out) return;
     std::map<std::tuple<std::string_view, std::string_view,
-                        MamerecompFallbackReason>, std::uint64_t> totals;
+                        MultiArcadeRecompFallbackReason>, std::uint64_t> totals;
     std::vector<std::pair<SiteKey, std::uint64_t>> ranked(sites.begin(), sites.end());
     for (const auto &[key, count] : sites) {
         totals[{key.cpu, key.backend, key.reason}] += count;
@@ -153,12 +153,12 @@ void print_summary(std::FILE *out, const SiteCounts& sites) {
 }
 } // namespace
 
-extern "C" const char *mamerecomp_fallback_reason_name(
-    MamerecompFallbackReason reason) {
+extern "C" const char *multiarcaderecomp_fallback_reason_name(
+    MultiArcadeRecompFallbackReason reason) {
     return reason_name(reason);
 }
 
-extern "C" void mamerecomp_interpreter_trace_set_step_log(const char *path) {
+extern "C" void multiarcaderecomp_interpreter_trace_set_step_log(const char *path) {
     std::lock_guard lock(s_mutex);
     register_exit_flush();
     if (s_step_file) {
@@ -171,7 +171,7 @@ extern "C" void mamerecomp_interpreter_trace_set_step_log(const char *path) {
     if (s_step_file) s_profile_enabled.store(true, std::memory_order_release);
 }
 
-extern "C" void mamerecomp_interpreter_trace_set_summary_log(const char *path) {
+extern "C" void multiarcaderecomp_interpreter_trace_set_summary_log(const char *path) {
     std::lock_guard lock(s_mutex);
     register_exit_flush();
     s_summary_path = path && *path ? path : "";
@@ -179,7 +179,7 @@ extern "C" void mamerecomp_interpreter_trace_set_summary_log(const char *path) {
         s_profile_enabled.store(true, std::memory_order_release);
 }
 
-extern "C" void mamerecomp_interpreter_trace_set_profile_enabled(int enabled) {
+extern "C" void multiarcaderecomp_interpreter_trace_set_profile_enabled(int enabled) {
     s_profile_enabled.store(enabled != 0, std::memory_order_release);
     if (enabled) {
         std::lock_guard lock(s_mutex);
@@ -187,18 +187,18 @@ extern "C" void mamerecomp_interpreter_trace_set_profile_enabled(int enabled) {
     }
 }
 
-extern "C" int mamerecomp_interpreter_trace_steps_enabled(void) {
+extern "C" int multiarcaderecomp_interpreter_trace_steps_enabled(void) {
     std::lock_guard lock(s_mutex);
     if (s_step_path.empty()) {
-        const char *env_path = std::getenv("MAMERECOMP_INTERPRETER_STEP_LOG");
+        const char *env_path = std::getenv("MULTIARCADERECOMP_INTERPRETER_STEP_LOG");
         if (env_path && *env_path) s_step_path = env_path;
     }
     open_step_log();
     return s_step_file != nullptr;
 }
 
-extern "C" void mamerecomp_interpreter_trace_step(const char *cpu,
-    const char *backend, MamerecompFallbackReason reason, std::uint32_t pc,
+extern "C" void multiarcaderecomp_interpreter_trace_step(const char *cpu,
+    const char *backend, MultiArcadeRecompFallbackReason reason, std::uint32_t pc,
     std::uint64_t opcode, unsigned opcode_bits, std::uint64_t cycles_before,
     std::uint64_t cycles_after, std::uint32_t next_pc,
     const char *instruction) {
@@ -237,22 +237,22 @@ extern "C" void mamerecomp_interpreter_trace_step(const char *cpu,
         !s_step_env_checked.exchange(true, std::memory_order_acq_rel)) {
         std::lock_guard lock(s_mutex);
         if (s_step_path.empty()) {
-            const char *env_path = std::getenv("MAMERECOMP_INTERPRETER_STEP_LOG");
+            const char *env_path = std::getenv("MULTIARCADERECOMP_INTERPRETER_STEP_LOG");
             if (env_path && *env_path) s_step_path = env_path;
         }
         open_step_log();
     }
 }
 
-extern "C" void mamerecomp_interpreter_trace_event(const char *cpu,
-    const char *backend, MamerecompFallbackReason reason, std::uint32_t pc,
+extern "C" void multiarcaderecomp_interpreter_trace_event(const char *cpu,
+    const char *backend, MultiArcadeRecompFallbackReason reason, std::uint32_t pc,
     std::uint32_t next_pc, std::uint64_t cycles_before,
     std::uint64_t cycles_after) {
-    mamerecomp_interpreter_trace_step(cpu, backend, reason, pc, 0, 0,
+    multiarcaderecomp_interpreter_trace_step(cpu, backend, reason, pc, 0, 0,
         cycles_before, cycles_after, next_pc, "<dispatch-event>");
 }
 
-extern "C" void mamerecomp_interpreter_trace_flush(void) {
+extern "C" void multiarcaderecomp_interpreter_trace_flush(void) {
     std::lock_guard lock(s_mutex);
     if (s_flushed) return;
     s_flushed = true;

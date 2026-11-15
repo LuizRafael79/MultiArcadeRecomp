@@ -9,7 +9,7 @@
 #define BIT(value, bit) (((value) >> (bit)) & 1U)
 #define LOG(...) ((void)0)
 
-namespace mamerecomp::mcs51 {
+namespace multiarcaderecomp::mcs51 {
 
 #define VERBOSE (0)
 
@@ -1456,4 +1456,4 @@ void Core::execute_op(u8 op)
 	}
 }
 
-} // namespace mamerecomp::mcs51
+} // namespace multiarcaderecomp::mcs51

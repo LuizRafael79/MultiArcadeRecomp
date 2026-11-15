@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 
 struct TmntPresenter::Impl {
     SDL_Window* window = nullptr;
@@ -31,7 +31,7 @@ struct TmntPresenter::Impl {
                 // from the board's emulated video rasterization.
                 renderer = SDL_CreateRenderer(window, "software");
                 if (!renderer) throw std::runtime_error(std::string("SDL renderer creation failed: ") + SDL_GetError());
-                SDL_Log("MameRecomp TMNT SDL video renderer: %s",
+                SDL_Log("MultiArcadeRecomp TMNT SDL video renderer: %s",
                     SDL_GetRendererName(renderer) ? SDL_GetRendererName(renderer) : "unknown");
                 SDL_SetRenderVSync(renderer, 1);
                 texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24,
@@ -129,4 +129,4 @@ void TmntPresenter::queue_audio(std::span<const std::int16_t> samples)
         throw std::runtime_error(std::string("SDL audio queue failed: ") + SDL_GetError());
 }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

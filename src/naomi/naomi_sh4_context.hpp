@@ -11,7 +11,7 @@
 #include <vector>
 #include "../../core/cpus/sh4/flycast_cycles.hpp"
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Device-facing memory seam for the single SH-4 used by MvC2. A future board
 // map routes these callbacks to cartridge ROM, system RAM, Holly and PVR2.
@@ -88,7 +88,7 @@ struct Sh4Context {
     // slice boundary, not on every guest instruction. Both AOT and interpreted
     // operations retire through the shared Flycast opcode-cycle model below.
     unsigned cycles_until_irq_poll = 448;
-    mamerecomp::cpus::sh4::flycast::CycleState cycle_state{};
+    multiarcaderecomp::cpus::sh4::flycast::CycleState cycle_state{};
     std::uint64_t instructions_executed = 0;
     std::uint64_t native_instructions = 0;
     std::uint64_t interpreted_instructions = 0;
@@ -182,4 +182,4 @@ private:
     mutable std::unordered_map<Sh4TranslatedFunction, GuardCache> m_guard_cache;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

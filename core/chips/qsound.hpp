@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// Copyright (c) 2026 MameRecomp contributors.
+// Copyright (c) 2026 MultiArcadeRecomp contributors.
 // QSound peripheral contract adapted from MAME's qsound.cpp/qsoundhle.cpp.
 #pragma once
 
@@ -9,7 +9,7 @@
 
 #include "cpus/dsp16/dsp16a.hpp"
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 enum class QSoundMode : std::uint8_t { Hle, Lle, Mixed };
 
@@ -88,4 +88,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

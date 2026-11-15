@@ -113,7 +113,7 @@ small test programs and understand compiler idioms, subject to the license and
 DOS-tool compatibility, but they do not remove the need for our own CPU core.
 
 The manual describes a broad instruction set, but that does **not** mean the
-first MameRecomp version should implement every documented form. First build a
+first MultiArcadeRecomp version should implement every documented form. First build a
 disassembler/trace path for the actual `mk` program ROM, then report both
 distinct instruction forms and dynamic frequency. That gives us an evidence-
 based implementation order; a short list of common opcodes can be prioritized
@@ -138,7 +138,7 @@ assemblers and development tools, not an existing game-specific opcode census.
    blitter; validate against MAME screenshots and memory/register traces.
 7. Add Williams ADPCM, its MC6809E and MK protection; compare sound command
    traffic and clocks with MAME.
-8. Only then wire a Mortal Kombat `build`/`run` path through `mamerecomp`.
+8. Only then wire a Mortal Kombat `build`/`run` path through `multiarcaderecomp`.
 
 ## Sources
 
@@ -154,5 +154,5 @@ assemblers and development tools, not an existing game-specific opcode census.
 
 MAME files are BSD-3-Clause. The SDK repository is an archival collection;
 review each included document/tool's license before copying any content into
-MameRecomp. Prefer implementing behavior from the architecture documentation
+MultiArcadeRecomp. Prefer implementing behavior from the architecture documentation
 and recording source attribution separately from the board's runtime code.

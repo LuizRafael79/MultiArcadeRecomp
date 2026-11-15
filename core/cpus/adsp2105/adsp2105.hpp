@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::adsp2105 {
+namespace multiarcaderecomp::adsp2105 {
 
 // ADSP-2105 uses a 14-bit, word-addressed program PC and 24-bit instructions.
 // Program and data spaces are separate; callbacks use word addresses, not byte
@@ -118,4 +118,4 @@ std::uint16_t entry_pc() noexcept;
 inline constexpr std::uint16_t pc_mask = 0x3fff;
 inline constexpr std::uint32_t opcode_mask = 0x00ffffff;
 
-} // namespace mamerecomp::adsp2105
+} // namespace multiarcaderecomp::adsp2105

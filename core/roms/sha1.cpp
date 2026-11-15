@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace mamerecomp::roms {
+namespace multiarcaderecomp::roms {
 namespace {
 
 constexpr std::uint32_t rotate_left(std::uint32_t value, unsigned count) noexcept {
@@ -92,4 +92,4 @@ std::string sha1_hex(std::span<const std::uint8_t> data) {
     return result;
 }
 
-} // namespace mamerecomp::roms
+} // namespace multiarcaderecomp::roms

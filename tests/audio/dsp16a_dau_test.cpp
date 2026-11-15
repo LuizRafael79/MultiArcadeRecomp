@@ -8,15 +8,15 @@
 #include <cassert>
 #include <cstdint>
 
-using mamerecomp::dsp16::Dsp16A;
-using mamerecomp::dsp16::Dsp16ABus;
+using multiarcaderecomp::dsp16::Dsp16A;
+using multiarcaderecomp::dsp16::Dsp16ABus;
 
 int main()
 {
     // JTDSP16 F2 RND rounds by adding accumulator bit 15 to the upper
     // 20-bit value. In particular, a negative exact half rounds toward zero;
     // MAME currently uses a different tie rule and documents this as unclear.
-    using mamerecomp::dsp16::detail::round_accumulator_f2_11;
+    using multiarcaderecomp::dsp16::detail::round_accumulator_f2_11;
     assert(round_accumulator_f2_11(-0x8000) == 0);
     assert(round_accumulator_f2_11(-0x8001) == -0x10000);
     assert(round_accumulator_f2_11(-0x7fff) == 0);
@@ -28,7 +28,7 @@ int main()
     // F2=9 increments the source's 21-bit high field. JTDSP16 wires the
     // low-word clear input from the destination accumulator's AUC bit, while
     // retaining the source low word when that bit is clear.
-    using mamerecomp::dsp16::detail::increment_accumulator_high_f2_9;
+    using multiarcaderecomp::dsp16::detail::increment_accumulator_high_f2_9;
     assert(increment_accumulator_high_f2_9(0x12345678, 0, 0) == 0x12350000);
     assert(increment_accumulator_high_f2_9(0x12345678, 0x10, 0) == 0x12355678);
     assert(increment_accumulator_high_f2_9(0x12345678, 0x10, 1) == 0x12350000);
@@ -38,7 +38,7 @@ int main()
 
     // AUC[4:5], not PSW overflow/guard bits, control low-half retention on
     // an upper-half accumulator load in the JTDSP16 DAU.
-    using mamerecomp::dsp16::detail::load_accumulator_high;
+    using multiarcaderecomp::dsp16::detail::load_accumulator_high;
     assert(load_accumulator_high(0x12345678, -2, false) == -0x20000);
     assert(load_accumulator_high(0x12345678, -2, true) == -0x1a988);
     assert(load_accumulator_high(0x12345678, 0x1234, false) == 0x12340000);
@@ -48,8 +48,8 @@ int main()
     // A negative P whose top two bits are discarded must stay positive after
     // wraparound; widening the signed P before shifting makes it a huge
     // negative accumulator and clips QSound output samples.
-    using mamerecomp::dsp16::detail::align_product_left_two;
-    using mamerecomp::dsp16::detail::align_product;
+    using multiarcaderecomp::dsp16::detail::align_product_left_two;
+    using multiarcaderecomp::dsp16::detail::align_product;
     assert(align_product_left_two(static_cast<std::int32_t>(0xc0008000U)) == 0x00020000);
     assert(align_product_left_two(static_cast<std::int32_t>(0x60008000U)) == -0x7ffe0000LL);
     assert(align_product(static_cast<std::int32_t>(0xc0008000U), 0) ==
@@ -117,10 +117,10 @@ int main()
     std::array<std::uint64_t, 2> do_body_cycles{};
     unsigned do_body_count = 0;
     Dsp16ABus do_cycle_bus;
-    do_cycle_bus.instruction_trace = [&](mamerecomp::dsp16::Dsp16ATracePhase phase,
+    do_cycle_bus.instruction_trace = [&](multiarcaderecomp::dsp16::Dsp16ATracePhase phase,
                                          std::uint16_t pc, std::uint16_t opcode,
-                                         const mamerecomp::dsp16::Dsp16AState&) {
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::Before &&
+                                         const multiarcaderecomp::dsp16::Dsp16AState&) {
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::Before &&
             pc == 1 && opcode == 0xa0d1 && do_body_count < do_body_cycles.size())
             do_body_cycles[do_body_count++] = do_cycle_dsp_ptr->cycles();
     };
@@ -149,16 +149,16 @@ int main()
             interrupt_acknowledged = true;
         }
     };
-    irq_bus.instruction_trace = [&](mamerecomp::dsp16::Dsp16ATracePhase phase,
+    irq_bus.instruction_trace = [&](multiarcaderecomp::dsp16::Dsp16ATracePhase phase,
                                     std::uint16_t pc, std::uint16_t opcode,
-                                    const mamerecomp::dsp16::Dsp16AState& state) {
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::After &&
+                                    const multiarcaderecomp::dsp16::Dsp16AState& state) {
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::After &&
             pc == 2 && opcode == 0x7082) // DO 2 { one instruction }
             irq_dsp_ptr->set_irq(true);
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::Before &&
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::Before &&
             pc == 3 && opcode == 0x2000)
             body_instruction_seen = true;
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::After &&
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::After &&
             pc == 0x0820 && opcode == 0x41c0)
             interrupt_status_seen = (state.a[1] & 0x0001'0000LL) != 0;
     };
@@ -180,10 +180,10 @@ int main()
     // interpreter does not run the load-pass body a second time.
     unsigned single_pass_count = 0;
     Dsp16ABus single_pass_bus;
-    single_pass_bus.instruction_trace = [&](mamerecomp::dsp16::Dsp16ATracePhase phase,
+    single_pass_bus.instruction_trace = [&](multiarcaderecomp::dsp16::Dsp16ATracePhase phase,
                                             std::uint16_t pc, std::uint16_t opcode,
-                                            const mamerecomp::dsp16::Dsp16AState&) {
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::After &&
+                                            const multiarcaderecomp::dsp16::Dsp16AState&) {
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::After &&
             pc == 1 && opcode == 0x2000)
             ++single_pass_count;
     };
@@ -200,10 +200,10 @@ int main()
     bool aliased_accumulator_seen = false;
     Dsp16ABus alias_bus;
     alias_bus.data_read = [](std::uint16_t) { return std::uint16_t(2); };
-    alias_bus.instruction_trace = [&](mamerecomp::dsp16::Dsp16ATracePhase phase,
+    alias_bus.instruction_trace = [&](multiarcaderecomp::dsp16::Dsp16ATracePhase phase,
                                       std::uint16_t pc, std::uint16_t opcode,
-                                      const mamerecomp::dsp16::Dsp16AState& state) {
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::After &&
+                                      const multiarcaderecomp::dsp16::Dsp16AState& state) {
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::After &&
             pc == 2 && opcode == 0xc9a0) {
             aliased_accumulator_seen = true;
             assert(state.a[0] == 3);
@@ -227,10 +227,10 @@ int main()
     bool f2_shift_seen = false;
     Dsp16ABus f2_bus;
     f2_bus.data_read = [](std::uint16_t) { return std::uint16_t(0x7000); };
-    f2_bus.instruction_trace = [&](mamerecomp::dsp16::Dsp16ATracePhase phase,
+    f2_bus.instruction_trace = [&](multiarcaderecomp::dsp16::Dsp16ATracePhase phase,
                                    std::uint16_t pc, std::uint16_t opcode,
-                                   const mamerecomp::dsp16::Dsp16AState& state) {
-        if (phase == mamerecomp::dsp16::Dsp16ATracePhase::After &&
+                                   const multiarcaderecomp::dsp16::Dsp16AState& state) {
+        if (phase == multiarcaderecomp::dsp16::Dsp16ATracePhase::After &&
             pc == 2 && opcode == 0x982e) {
             f2_shift_seen = true;
             assert(state.a[0] == -0x20000000LL);

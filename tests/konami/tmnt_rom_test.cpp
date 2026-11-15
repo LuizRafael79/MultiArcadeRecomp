@@ -9,7 +9,7 @@ extern "C" { int64_t ng_cycles = 0; }
 int main(int argc, char** argv)
 {
     assert(argc == 2);
-    const auto roms = mamerecomp::konami::load_tmnt_romset(argv[1]);
+    const auto roms = multiarcaderecomp::konami::load_tmnt_romset(argv[1]);
     assert(roms.at("maincpu").size() == 0x60000);
     assert(roms.at("audiocpu").size() == 0x10000);
     assert(roms.at("k052109").size() == 0x100000);
@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     assert(roms.at("title").size() == 0x80000);
     assert(roms.at("maincpu")[0] != 0xff || roms.at("maincpu")[1] != 0xff);
 
-    mamerecomp::konami::TmntBoard board(roms);
+    multiarcaderecomp::konami::TmntBoard board(roms);
     assert(board.main_read(0x060000) == 0x0000);
     board.main_write(0x060000, 0x1234);
     assert(board.main_read(0x060000) == 0x1234);
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     board.video_vblank();
     assert(board.irq5_pending());
 
-    mamerecomp::konami::TmntMainCpu cpu(board, nullptr, 0);
+    multiarcaderecomp::konami::TmntMainCpu cpu(board, nullptr, 0);
     const uint32_t reset_pc = (uint32_t(board.main_read(4)) << 16) | board.main_read(6);
     assert(cpu.pc() == reset_pc);
     assert(reset_pc < 0x60000);
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     assert(board.frame_rgb(frame).size() == 320u * 224u * 3u);
     board.main_write(0x0a0008, 0x005a, 0x00ff);
     assert(board.sound_read(0xa000) == 0x5a);
-    mamerecomp::konami::TmntSoundCpu sound_cpu(board);
+    multiarcaderecomp::konami::TmntSoundCpu sound_cpu(board);
     sound_cpu.run(20'000);
     assert(sound_cpu.cycles() >= 20'000);
     assert(sound_cpu.pc() < 0x8000);

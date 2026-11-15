@@ -22,12 +22,12 @@
 #include <thread>
 #include <vector>
 
-#ifdef MAMERECOMP_MK_SDL
+#ifdef MULTIARCADERECOMP_MK_SDL
 #include <SDL3/SDL.h>
 #endif
 
 namespace {
-using namespace mamerecomp::tms34010;
+using namespace multiarcaderecomp::tms34010;
 
 std::ofstream tms34010_fallback_event_log;
 std::uint64_t tms34010_fallback_event_count{};
@@ -56,21 +56,21 @@ std::vector<InputReplayEvent> read_input_replay(const std::string& path) {
 }
 
 void log_tms34010_fallback(std::uint32_t pc, std::uint16_t opcode,
-                           MamerecompFallbackReason reason) {
+                           MultiArcadeRecompFallbackReason reason) {
     if (!tms34010_fallback_event_log) return;
     tms34010_fallback_event_log << "[TMS34010 interpreter] PC=0x"
         << std::hex << pc << " OPCODE=0x" << opcode << std::dec
-        << " CATEGORY=" << mamerecomp_fallback_reason_name(reason) << '\n';
+        << " CATEGORY=" << multiarcaderecomp_fallback_reason_name(reason) << '\n';
     if ((++tms34010_fallback_event_count % 128) == 0)
         tms34010_fallback_event_log.flush();
 }
 
 void log_m6809_fallback(std::uint16_t pc, std::uint8_t opcode,
-                        MamerecompFallbackReason reason) {
+                        MultiArcadeRecompFallbackReason reason) {
     if (!m6809_fallback_event_log) return;
     m6809_fallback_event_log << "[MC6809E interpreter] PC=0x"
         << std::hex << pc << " OPCODE=0x" << unsigned(opcode) << std::dec
-        << " CATEGORY=" << mamerecomp_fallback_reason_name(reason) << '\n';
+        << " CATEGORY=" << multiarcaderecomp_fallback_reason_name(reason) << '\n';
     if ((++m6809_fallback_event_count % 128) == 0)
         m6809_fallback_event_log.flush();
 }
@@ -99,17 +99,17 @@ struct TraceRing {
 };
 
 std::uint8_t sound_bus_read(void* opaque, std::uint16_t address) {
-    return static_cast<mamerecomp::mk::MKMachine*>(opaque)->
+    return static_cast<multiarcaderecomp::mk::MKMachine*>(opaque)->
         sound_cpu_read(address);
 }
 
 void sound_bus_write(void* opaque, std::uint16_t address, std::uint8_t value) {
-    static_cast<mamerecomp::mk::MKMachine*>(opaque)->
+    static_cast<multiarcaderecomp::mk::MKMachine*>(opaque)->
         sound_cpu_write(address, value);
 }
 
 std::uint8_t sound_bus_bank(void* opaque) {
-    return static_cast<mamerecomp::mk::MKMachine*>(opaque)->sound_cpu_bank();
+    return static_cast<multiarcaderecomp::mk::MKMachine*>(opaque)->sound_cpu_bank();
 }
 
 struct SoundCpuRunner {
@@ -123,13 +123,13 @@ struct SoundCpuRunner {
         std::uint16_t s{};
     };
 
-    explicit SoundCpuRunner(mamerecomp::mk::MKMachine& machine)
+    explicit SoundCpuRunner(multiarcaderecomp::mk::MKMachine& machine)
         : machine(machine), bus{&machine, &sound_bus_read, &sound_bus_write,
                             &sound_bus_bank} {}
 
-    mamerecomp::mk::MKMachine& machine;
-    mamerecomp::m6809::State state{};
-    mamerecomp::m6809::Bus bus{};
+    multiarcaderecomp::mk::MKMachine& machine;
+    multiarcaderecomp::m6809::State state{};
+    multiarcaderecomp::m6809::Bus bus{};
     std::uint64_t main_cycle_remainder{};
     std::uint64_t sound_cycle_target{};
     std::uint64_t native_instructions{};
@@ -167,8 +167,8 @@ struct SoundCpuRunner {
         if (!reset_released) {
             state = {};
             state.cycles = sound_cycle_target;
-            state.pc = mamerecomp::m6809::reset_vector(bus);
-            state.cc = mamerecomp::m6809::cc_i | mamerecomp::m6809::cc_f;
+            state.pc = multiarcaderecomp::m6809::reset_vector(bus);
+            state.cc = multiarcaderecomp::m6809::cc_i | multiarcaderecomp::m6809::cc_f;
             reset_released = true;
             stalled_on_unsupported = false;
             std::cerr << "[MC6809E] reset vector PC=0x" << std::hex
@@ -178,7 +178,7 @@ struct SoundCpuRunner {
         while (state.cycles < sound_cycle_target) {
             state.irq = machine.sound_cpu_irq_asserted();
             state.firq = machine.sound_cpu_firq_asserted();
-            if (mamerecomp::m6809::service_interrupt(state, bus))
+            if (multiarcaderecomp::m6809::service_interrupt(state, bus))
                 continue;
             const auto pc = state.pc;
             const auto opcode = bus.read8(bus.opaque, pc);
@@ -205,29 +205,29 @@ struct SoundCpuRunner {
                               << " S=0x" << entry.s << std::dec << '\n';
                 }
             }
-            auto result = mamerecomp::m6809::BlockExit::NeedsInterpreter;
-            MamerecompFallbackReason reason = MAMERECOMP_UNCOVERED_ENTRY;
-#ifdef MAMERECOMP_M6809_HAS_AOT
-            if (!force_interpreter) if (const auto block = mamerecomp::m6809::lookup(
+            auto result = multiarcaderecomp::m6809::BlockExit::NeedsInterpreter;
+            MultiArcadeRecompFallbackReason reason = MULTIARCADERECOMP_UNCOVERED_ENTRY;
+#ifdef MULTIARCADERECOMP_M6809_HAS_AOT
+            if (!force_interpreter) if (const auto block = multiarcaderecomp::m6809::lookup(
                     state.pc, bus.rom_bank ? bus.rom_bank(bus.opaque) : 0)) {
                 result = block(state, bus, sound_cycle_target);
-                if (result == mamerecomp::m6809::BlockExit::NeedsInterpreter)
-                    reason = MAMERECOMP_UNSUPPORTED_OPCODE;
-                if (result == mamerecomp::m6809::BlockExit::Dispatch)
+                if (result == multiarcaderecomp::m6809::BlockExit::NeedsInterpreter)
+                    reason = MULTIARCADERECOMP_UNSUPPORTED_OPCODE;
+                if (result == multiarcaderecomp::m6809::BlockExit::Dispatch)
                     ++native_instructions;
             }
 #endif
-            if (result == mamerecomp::m6809::BlockExit::NeedsInterpreter) {
+            if (result == multiarcaderecomp::m6809::BlockExit::NeedsInterpreter) {
                 if (logged_fallbacks.emplace(pc, opcode).second)
                     log_m6809_fallback(pc, opcode, reason);
-                result = mamerecomp::m6809::interpreter_step(
+                result = multiarcaderecomp::m6809::interpreter_step(
                     state, bus, sound_cycle_target, reason);
-                if (result == mamerecomp::m6809::BlockExit::Dispatch ||
-                    result == mamerecomp::m6809::BlockExit::Budget)
+                if (result == multiarcaderecomp::m6809::BlockExit::Dispatch ||
+                    result == multiarcaderecomp::m6809::BlockExit::Budget)
                     ++interpreted_instructions;
             }
-            if (result == mamerecomp::m6809::BlockExit::NeedsInterpreter ||
-                result == mamerecomp::m6809::BlockExit::BusFault) {
+            if (result == multiarcaderecomp::m6809::BlockExit::NeedsInterpreter ||
+                result == multiarcaderecomp::m6809::BlockExit::BusFault) {
                 std::cerr << "[MC6809E stalled] PC=0x" << std::hex << state.pc
                           << " opcode=0x" << unsigned(bus.read8(bus.opaque, state.pc))
                           << " bank=0x" << unsigned(bank) << std::dec << '\n';
@@ -266,7 +266,7 @@ struct SoundCpuRunner {
                               << " S=0x" << entry.s << std::dec << '\n';
                 }
             }
-            if (result == mamerecomp::m6809::BlockExit::Budget) break;
+            if (result == multiarcaderecomp::m6809::BlockExit::Budget) break;
         }
     }
 };
@@ -337,11 +337,11 @@ void save_cmos_file(const std::string& path,
     }
 }
 
-constexpr unsigned kFrameWidth = mamerecomp::mk::TUnit::frame_width;
-constexpr unsigned kFrameHeight = mamerecomp::mk::TUnit::frame_height;
+constexpr unsigned kFrameWidth = multiarcaderecomp::mk::TUnit::frame_width;
+constexpr unsigned kFrameHeight = multiarcaderecomp::mk::TUnit::frame_height;
 
 bool service_interrupt(State& state, Bus& bus,
-                       mamerecomp::mk::TUnit& machine) noexcept {
+                       multiarcaderecomp::mk::TUnit& machine) noexcept {
     constexpr std::uint32_t kIe = 1u << 21;
     if (!bus.read16) return false;
     constexpr unsigned kRegHstctlH = 16;
@@ -357,21 +357,21 @@ bool service_interrupt(State& state, Bus& bus,
             if (!write_long(bus, state.sp, state.st)) return false;
         }
         bus.write16(bus.opaque,
-                    mamerecomp::mk::TUnit::internal_io_base +
+                    multiarcaderecomp::mk::TUnit::internal_io_base +
                         kRegHstctlH * 16u,
                     static_cast<std::uint16_t>(hstctlh & ~0x0100u));
         state.st = 0x10;
         if (!read_long(bus, 0xfffffee0u, state.pc)) return false;
         state.pc &= 0xfffffff0u;
         state.cycles += 16;
-        mamerecomp_interpreter_trace_event("TMS34010", "aot-dispatch",
-            MAMERECOMP_EXCEPTION_BOUNDARY, interrupted_pc, state.pc,
+        multiarcaderecomp_interpreter_trace_event("TMS34010", "aot-dispatch",
+            MULTIARCADERECOMP_EXCEPTION_BOUNDARY, interrupted_pc, state.pc,
             cycles_before, state.cycles);
         return true;
     }
     if (!(state.st & kIe)) return false;
-    const auto pending = bus.read16(bus.opaque, mamerecomp::mk::TUnit::internal_io_base + 18u * 16u);
-    const auto enabled = bus.read16(bus.opaque, mamerecomp::mk::TUnit::internal_io_base + 17u * 16u);
+    const auto pending = bus.read16(bus.opaque, multiarcaderecomp::mk::TUnit::internal_io_base + 18u * 16u);
+    const auto enabled = bus.read16(bus.opaque, multiarcaderecomp::mk::TUnit::internal_io_base + 17u * 16u);
     const auto irq = static_cast<std::uint16_t>(pending & enabled);
     std::uint32_t vector = 0;
     bool dma_irq = false;
@@ -392,8 +392,8 @@ bool service_interrupt(State& state, Bus& bus,
     state.pc &= 0xfffffff0u;
     if (dma_irq) machine.acknowledge_interrupt(0x0002);
     state.cycles += 16;
-    mamerecomp_interpreter_trace_event("TMS34010", "mame-compatible-fallback",
-        MAMERECOMP_EXCEPTION_BOUNDARY, interrupted_pc, state.pc, cycles_before,
+    multiarcaderecomp_interpreter_trace_event("TMS34010", "mame-compatible-fallback",
+        MULTIARCADERECOMP_EXCEPTION_BOUNDARY, interrupted_pc, state.pc, cycles_before,
         state.cycles);
     return true;
 }
@@ -411,7 +411,7 @@ void write_rgb_snapshot(std::span<const std::uint32_t> frame,
     }
 }
 
-void write_vram_page_snapshot(const mamerecomp::mk::TUnit& machine,
+void write_vram_page_snapshot(const multiarcaderecomp::mk::TUnit& machine,
                               unsigned page_base,
                               const std::string& path) {
     std::vector<std::uint32_t> frame(
@@ -436,7 +436,7 @@ void write_vram_page_snapshot(const mamerecomp::mk::TUnit& machine,
     write_rgb_snapshot(frame, path);
 }
 
-#ifdef MAMERECOMP_MK_SDL
+#ifdef MULTIARCADERECOMP_MK_SDL
 struct LiveWindow {
     using Clock = std::chrono::steady_clock;
     static constexpr auto frame_period = std::chrono::nanoseconds(18'279'250);
@@ -482,7 +482,7 @@ struct LiveWindow {
         SDL_Quit();
     }
 
-    void poll_and_set_inputs(mamerecomp::mk::TUnit& machine) {
+    void poll_and_set_inputs(multiarcaderecomp::mk::TUnit& machine) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT ||
@@ -527,7 +527,7 @@ struct LiveWindow {
     }
 
     void present(std::span<const std::uint32_t> frame,
-                 const mamerecomp::mk::TUnit::DisplayParams& display,
+                 const multiarcaderecomp::mk::TUnit::DisplayParams& display,
                  std::span<const std::int16_t> audio_samples) {
         if (!audio_samples.empty() &&
             !SDL_PutAudioStreamData(audio_stream, audio_samples.data(),
@@ -595,7 +595,7 @@ struct LiveWindow {
 
 BlockExit run_scheduled(State& cpu, Bus& bus,
                         std::uint64_t stop_cycle,
-                        mamerecomp::mk::TUnit& machine,
+                        multiarcaderecomp::mk::TUnit& machine,
                         SoundCpuRunner& sound_cpu,
                         TraceRing& trace,
                         std::uint64_t& native_instructions,
@@ -636,11 +636,11 @@ BlockExit run_scheduled(State& cpu, Bus& bus,
                         std::size_t frame_dump_limit,
                         std::size_t& frame_dumps_written,
                         bool force_interpreter
-#ifdef MAMERECOMP_MK_SDL
+#ifdef MULTIARCADERECOMP_MK_SDL
                         , LiveWindow* window
 #endif
                         ) {
-    using namespace mamerecomp::tms34010;
+    using namespace multiarcaderecomp::tms34010;
     bool noted_ram_jump = false;
     bool noted_idle_jump = false;
     while (cpu.cycles < stop_cycle) {
@@ -730,25 +730,25 @@ BlockExit run_scheduled(State& cpu, Bus& bus,
         }
         record_trace(&trace, pc, opcode, cpu.sp, cpu.cycles);
         BlockExit result = BlockExit::NeedsInterpreter;
-        MamerecompFallbackReason fallback_reason = MAMERECOMP_UNCOVERED_ENTRY;
+        MultiArcadeRecompFallbackReason fallback_reason = MULTIARCADERECOMP_UNCOVERED_ENTRY;
         if (!force_interpreter) if (const auto block = lookup(cpu.pc)) {
             result = block(cpu, bus, stop_cycle);
             if (result == BlockExit::NeedsInterpreter)
                 fallback_reason = classify_unsupported_opcode(opcode);
             else if (result == BlockExit::BusFault) {
-                mamerecomp_interpreter_trace_event("TMS34010",
-                    "aot-dispatch", MAMERECOMP_MEMORY_ACCESS, pc,
+                multiarcaderecomp_interpreter_trace_event("TMS34010",
+                    "aot-dispatch", MULTIARCADERECOMP_MEMORY_ACCESS, pc,
                     cpu.pc, cycle_before, cpu.cycles);
             } else if (result == BlockExit::Dispatch &&
                        opcode_causes_exception(opcode) && cpu.pc != pc + 16u) {
-                mamerecomp_interpreter_trace_event("TMS34010",
-                    "aot-dispatch", MAMERECOMP_EXCEPTION_BOUNDARY, pc,
+                multiarcaderecomp_interpreter_trace_event("TMS34010",
+                    "aot-dispatch", MULTIARCADERECOMP_EXCEPTION_BOUNDARY, pc,
                     cpu.pc, cycle_before, cpu.cycles);
             }
             if (result == BlockExit::Dispatch) ++native_instructions;
         } else if (bus.is_mutable_code &&
                    bus.is_mutable_code(bus.opaque, cpu.pc)) {
-            fallback_reason = MAMERECOMP_DYNAMIC_CODE;
+            fallback_reason = MULTIARCADERECOMP_DYNAMIC_CODE;
         }
         if (result == BlockExit::NeedsInterpreter) {
             if (logged_fallbacks.emplace(pc, opcode).second)
@@ -814,7 +814,7 @@ BlockExit run_scheduled(State& cpu, Bus& bus,
             do { next_timeline_cycle += timeline_interval; }
             while (next_timeline_cycle <= cpu.cycles);
         }
-#ifdef MAMERECOMP_MK_SDL
+#ifdef MULTIARCADERECOMP_MK_SDL
         if (window && machine.take_completed_frames()) {
             window->poll_and_set_inputs(machine);
             window->present(machine.framebuffer(), machine.current_display_params(),
@@ -828,7 +828,7 @@ BlockExit run_scheduled(State& cpu, Bus& bus,
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "usage: mamerecomp_mk_trace <work-dir> [cycles] [frame.ppm] "
+        std::cerr << "usage: multiarcaderecomp_mk_trace <work-dir> [cycles] [frame.ppm] "
                      "[--window] [--fallback-summary=PATH] "
                      "[--interpreter-steps=PATH] [--press-any-at=CYCLES] "
                      "[--release-start-at=CYCLES] [--press-start-again-at=CYCLES] "
@@ -978,9 +978,9 @@ int main(int argc, char** argv) {
             ? std::vector<InputReplayEvent>{}
             : read_input_replay(input_replay_path);
         std::size_t input_replay_index = 0;
-#ifndef MAMERECOMP_MK_SDL
+#ifndef MULTIARCADERECOMP_MK_SDL
         if (window_requested)
-            throw std::runtime_error("--window needs an SDL3-enabled build (configure with -DMAMERECOMP_ENABLE_WINDOW=ON)");
+            throw std::runtime_error("--window needs an SDL3-enabled build (configure with -DMULTIARCADERECOMP_ENABLE_WINDOW=ON)");
 #endif
         if (window_requested && !frame_dump_dir.empty())
             throw std::runtime_error("--frame-dump-dir cannot be combined with --window");
@@ -1004,9 +1004,9 @@ int main(int argc, char** argv) {
                   << work << "/tms34010_uncovered_entries.log\n";
         std::cout << "MC6809E fallback events: " << work
                   << "/m6809e_uncovered_entries.log\n";
-        mamerecomp_interpreter_trace_set_summary_log(fallback_summary.c_str());
-        mamerecomp_interpreter_trace_set_step_log(interpreter_steps.c_str());
-        mamerecomp::mk::MKMachine runtime(program, graphics, sound_cpu_rom,
+        multiarcaderecomp_interpreter_trace_set_summary_log(fallback_summary.c_str());
+        multiarcaderecomp_interpreter_trace_set_step_log(interpreter_steps.c_str());
+        multiarcaderecomp::mk::MKMachine runtime(program, graphics, sound_cpu_rom,
                                           oki_rom);
         auto& machine = runtime.tunit();
         machine.enable_dma_history(!dma_trace_path.empty());
@@ -1040,7 +1040,7 @@ int main(int argc, char** argv) {
         }
         std::ostream* graphics_op_trace_stream = graphics_op_trace_path.empty()
             ? nullptr : &graphics_op_trace;
-#ifdef MAMERECOMP_MK_SDL
+#ifdef MULTIARCADERECOMP_MK_SDL
         std::unique_ptr<LiveWindow> live;
         if (window_requested) live = std::make_unique<LiveWindow>();
         BlockExit result = BlockExit::Budget;
@@ -1282,7 +1282,7 @@ int main(int argc, char** argv) {
         save_cmos_file(nvram_path, machine.cmos());
         std::cout << "Saved " << machine.cmos().size()
                   << " bytes of T-Unit CMOS to " << nvram_path << '\n';
-        mamerecomp_interpreter_trace_flush();
+        multiarcaderecomp_interpreter_trace_flush();
         return result == BlockExit::Budget ? 0 : 1;
     } catch (const std::exception& error) {
         std::cerr << "mk-trace: " << error.what() << '\n';

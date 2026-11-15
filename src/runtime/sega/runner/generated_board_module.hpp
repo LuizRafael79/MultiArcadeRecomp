@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <neogeorecomp/neogeo.h>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 class GeneratedBoardModule {
 public:
@@ -32,4 +32,4 @@ private:
     const GameAudioApi* m_game_audio_api = nullptr;
 };
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

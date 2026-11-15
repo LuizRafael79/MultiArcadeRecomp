@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 
 static constexpr std::uint32_t STBIT_N = 1u << 31;
 static constexpr std::uint32_t STBIT_C = 1u << 30;
@@ -541,4 +541,4 @@ BlockExit execute_mame_interpreter(State& state, Bus& bus, std::uint64_t stop_cy
     return cpu.step(state,bus,stop_cycle);
 }
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010

@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <stdexcept>
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 namespace {
 bool read8(void* context, uint32_t address, uint8_t* value)
 {
@@ -42,11 +42,11 @@ public:
     {
         if (!entries || !count) throw std::runtime_error("Toki 68000 AOT table is empty");
         const M68kBusCallbacks bus{&board, read8, read16, write8, write16};
-        mamerecomp_m68k_bus_bind(&bus);
-        mame_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
+        multiarcaderecomp_m68k_bus_bind(&bus);
+        multiarcade_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
         reset();
     }
-    ~Impl() { mamerecomp_m68k_bus_bind(nullptr); }
+    ~Impl() { multiarcaderecomp_m68k_bus_bind(nullptr); }
 
     void reset()
     {
@@ -76,8 +76,8 @@ public:
             const auto before = ng_icount;
             const auto result = m68k_recomp_dispatch_once(entries, count);
             if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
-                mamerecomp_m68k_bus_clear_fault();
-                const int consumed = mamerecomp_m68k_musashi_step();
+                multiarcaderecomp_m68k_bus_clear_fault();
+                const int consumed = multiarcaderecomp_m68k_musashi_step();
                 ng_cycles += consumed > 0 ? consumed : 1;
                 ++ng_icount;
                 ++fallback;
@@ -111,4 +111,4 @@ uint64_t TokiMainCpu::cycles() const { return static_cast<uint64_t>(ng_cycles); 
 uint64_t TokiMainCpu::aot_instructions() const { return impl_->aot; }
 uint64_t TokiMainCpu::fallback_instructions() const { return impl_->fallback; }
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

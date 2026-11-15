@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
 enum class State { Reset, Start, Command, Read, WriteData, WriteAllData, Complete };
 std::array<std::uint8_t, 128> cells;
@@ -103,7 +103,7 @@ void cps1_eeprom_set_path(std::string path) { nvram_path = std::move(path); }
 void cps1_eeprom_reset() {
     cells.fill(0xff);
     if (nvram_path.empty()) {
-        if (const char* path = std::getenv("MAMERECOMP_CPS1_EEPROM")) nvram_path = path;
+        if (const char* path = std::getenv("MULTIARCADERECOMP_CPS1_EEPROM")) nvram_path = path;
     }
     if (!nvram_path.empty()) {
         std::ifstream in(nvram_path, std::ios::binary);
@@ -157,4 +157,4 @@ bool cps1_eeprom_save() {
     return static_cast<bool>(out);
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

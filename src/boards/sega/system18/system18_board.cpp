@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 // Mirrors and offsets follow the separate map_as_* calls in MAME. In
@@ -44,4 +44,4 @@ std::span<const System18MapperWindow> system18_mapper_windows(System18RomBoard b
                                                : std::span<const System18MapperWindow>(kShadowDancerWindows);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

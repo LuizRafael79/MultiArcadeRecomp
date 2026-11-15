@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <cstring>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 std::uint16_t read_be16(std::span<const std::uint8_t> bytes, std::size_t offset) {
@@ -92,4 +92,4 @@ void write_sega_frame_ppm(const SegaVideoFrame& frame, std::span<const std::uint
     if (!out) throw std::runtime_error("failed while writing frame image: " + path.string());
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

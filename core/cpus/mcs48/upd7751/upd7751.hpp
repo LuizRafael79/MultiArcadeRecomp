@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 // NEC uPD7751: an 8048-compatible MCU with 1 KiB internal program ROM.
 // The board owns the oscillator rate and the external ROM/DAC wiring.
@@ -25,4 +25,4 @@ private:
     Mcs48 m_cpu;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

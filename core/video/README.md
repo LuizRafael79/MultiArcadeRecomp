@@ -12,7 +12,7 @@ after the palette lookup. Other board presenters can use the shared RGB shader
 once they opt into the OpenGL post-process path; their normal CPU/SDL output is
 unchanged.
 
-The shader is original MameRecomp code. The local UltraCombo repository was
+The shader is original MultiArcadeRecomp code. The local UltraCombo repository was
 consulted for reference: its `crt-lottes-fast.glsl` is marked public domain, and
 `crt-hyllian-fast.glsl` carries an MIT license. No source from those shaders is
 copied here.

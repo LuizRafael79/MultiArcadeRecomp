@@ -2,7 +2,7 @@
 
 This directory is a source snapshot of Flycast's PowerVR2 hardware runtime
 (`core/hw/pvr`) for the Naomi PVR/TA port. It is reference/source material;
-MameRecomp does not compile these files unchanged yet.
+MultiArcadeRecomp does not compile these files unchanged yet.
 
 - Upstream: https://github.com/flycast/flycast
 - Source checkout: `/home/luiz/git/flycast/core/hw/pvr`
@@ -16,7 +16,7 @@ MameRecomp does not compile these files unchanged yet.
 
 The snapshot depends on Flycast's global machine state, memory services,
 settings, and renderer backend interfaces. The port must adapt those seams to
-MameRecomp's Naomi bus and graphics presenter. Keep the stages separate:
+MultiArcadeRecomp's Naomi bus and graphics presenter. Keep the stages separate:
 SH-4 CPU execution in `core/cpus/sh4`, Naomi/Holly device routing in
 `src/naomi`, and PVR TA/scene rendering in the Naomi video runtime. Do not
 mistake this reference snapshot for an active or complete PVR implementation.

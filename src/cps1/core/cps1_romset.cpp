@@ -11,7 +11,7 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 namespace {
 struct ArchiveCloser { void operator()(archive* value) const { if (value) archive_read_free(value); } };
 
@@ -109,4 +109,4 @@ void export_romset(const Cps1RomSet& romset, const std::filesystem::path& zip_pa
     }
 }
 
-} // namespace mamerecomp::cps1
+} // namespace multiarcaderecomp::cps1

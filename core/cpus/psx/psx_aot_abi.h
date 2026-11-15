@@ -170,7 +170,7 @@ static PSX_AOT_ALWAYS_INLINE void psx_aot_advance_inline(PsxCpuState *state)
 // inline there so a guest instruction does not cross the DSO boundary for a
 // two- or three-field update. The out-of-line functions remain the canonical
 // ABI for the interpreter and other callers.
-#if defined(MAMERECOMP_PSX_AOT_INLINE_PIPELINE)
+#if defined(MULTIARCADERECOMP_PSX_AOT_INLINE_PIPELINE)
 static PSX_AOT_ALWAYS_INLINE void psx_aot_schedule_load_inline(
     PsxCpuState *state, unsigned reg, uint32_t value)
 {
@@ -230,7 +230,7 @@ bool psx_aot_memory_write(PsxCpuState *state, const PsxBus *bus,
 // cache-isolated and MMIO accesses on the shared callbacks preserves the
 // machine bus contract while avoiding a shared-library helper call for every
 // ordinary load/store in a static block.
-#if defined(MAMERECOMP_PSX_AOT_INLINE_MEMORY)
+#if defined(MULTIARCADERECOMP_PSX_AOT_INLINE_MEMORY)
 #if defined(__GNUC__)
 #define PSX_AOT_MEMORY_INLINE inline __attribute__((always_inline))
 #else

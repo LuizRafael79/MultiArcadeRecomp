@@ -1,7 +1,7 @@
-# QSound: diferenças entre MameRecomp e o source do MAME
+# QSound: diferenças entre MultiArcadeRecomp e o source do MAME
 
-Data da auditoria: 2026-11-07  
-MameRecomp: `43c8698` mais alterações locais não commitadas.  
+Data da auditoria: 2026-11-07
+MultiArcadeRecomp: `43c8698` mais alterações locais não commitadas.
 MAME: `/home/luiz/git/mame`, commit `b2a182f0`.
 
 ## Escopo e critério
@@ -24,7 +24,7 @@ gera o chiado.
 
 ## Diferenças concretas
 
-| Área | MAME | MameRecomp | Estado e possível efeito |
+| Área | MAME | MultiArcadeRecomp | Estado e possível efeito |
 |---|---|---|---|
 | Fetch inicial do firmware DSP16A | MAME debugger `dasm` sobre `:qsound:dsp` lê `0:000 = 0x0288` (`goto 0x0288`) e `0:288 = 0x51c0` (`pioc = 0x3800`). | O carregador little-endian e o DSP local dão as mesmas duas palavras e o mesmo salto. | **Paridade confirmada no vetor e no início do bootstrap.** A hipótese de que o DSP do MAME recebe `0x8802` está refutada pelo dump da região efetivamente consumida pelo DSP. Forçar big-endian gera PC `0x0802` local e não corresponde ao MAME. |
 | Escrita da metade alta de A0/A1 | `dau_set_atx` e `dau_set_at` preservam a metade baixa conforme `PSW[4+dest]` ([`dsp16core.ipp:168-186`](../../mame/src/devices/cpu/dsp16/dsp16core.ipp:168)). | Usa `AUC[4+dest]` ([`dsp16a.cpp:277-291`](../core/cpus/dsp16/dsp16a.cpp:277)). | Divergência real de estado DAU. O projeto segue o fio descrito no JTDSP16. Uma captura local anterior com o mesmo NVRAM produziu PCM bit a bit igual nos dois modos para aquele trecho; não demonstra equivalência geral. |
@@ -106,7 +106,7 @@ primeira divergência observável no source do MAME e reproduzi-la localmente.
 ## Trace de execução confirmado
 
 A referência MAME usada nesta rodada é
-`/home/luiz/git/MameRecomp/build/qsoundtest`, com ROMs em
+`/home/luiz/git/MultiArcadeRecomp/build/qsoundtest`, com ROMs em
 `/home/luiz/git/mame/roms` e NVRAM em diretório temporário novo. O debugger
 conseguiu focar `:qsound:dsp`, confirmando que essa execução usou o dispositivo
 LLE. Capturas anteriores que iniciaram sem esse DSP no device tree e usaram

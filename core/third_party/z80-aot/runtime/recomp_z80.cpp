@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 namespace {
     uint64_t s_interpreted_pc[0x10000] = {};
@@ -497,4 +497,4 @@ void Z80::RunChecked(uint64_t until) {
 }
 #endif
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80

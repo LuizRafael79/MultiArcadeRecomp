@@ -2,7 +2,7 @@
 """Capture and statically translate a KI1/KI2 MIPS RAM image.
 
 This is an offline discovery/build stage. It does not produce a runnable KI
-executable yet: MameRecomp still needs the shared R4600 runtime and generated
+executable yet: MultiArcadeRecomp still needs the shared R4600 runtime and generated
 code ABI described in docs/hardware/cpus/mips3/UPSTREAM.md.
 """
 from __future__ import annotations

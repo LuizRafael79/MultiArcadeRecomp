@@ -8,11 +8,11 @@
 #include "seibu/toki_presenter.hpp"
 #include "zn_runtime.hpp"
 #include "native_z80.h"
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
 #include <SDL3/SDL.h>
 #endif
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #endif
 #include <algorithm>
@@ -35,10 +35,10 @@
 #include <vector>
 #include <dlfcn.h>
 
-namespace mamerecomp::app::machine_runners {
-using mamerecomp::app::read_binary_file;
-using mamerecomp::app::run_child_process;
-using InputEvent = mamerecomp::sega::InputEvent;
+namespace multiarcaderecomp::app::machine_runners {
+using multiarcaderecomp::app::read_binary_file;
+using multiarcaderecomp::app::run_child_process;
+using InputEvent = multiarcaderecomp::sega::InputEvent;
 
 int run_seibu_toki_machine(const std::filesystem::path& source_root,
                            const std::string& game,
@@ -56,12 +56,12 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
 
     const auto zip = explicit_zip ? std::filesystem::absolute(*explicit_zip)
         : source_root.parent_path() / "mame/roms/toki.zip";
-    auto roms = mamerecomp::seibu::load_toki_romset(zip);
+    auto roms = multiarcaderecomp::seibu::load_toki_romset(zip);
     std::cout << "Toki: validated MAME ROMs from " << zip << '\n';
     const auto build_root = source_root / "build";
     const auto generated_root = build_root / "generated/seibu/toki/toki/m68k";
     const auto z80_generated_root = build_root / "generated/seibu/toki/toki/z80";
-    const auto module_path = build_root / "mamerecomp_seibu_toki.so";
+    const auto module_path = build_root / "multiarcaderecomp_seibu_toki.so";
     if (build_mode) {
         std::filesystem::create_directories(generated_root);
         std::filesystem::create_directories(z80_generated_root);
@@ -87,7 +87,7 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
         }
         const auto m68krecomp = build_root / "m68krecomp";
         if (!std::filesystem::is_regular_file(m68krecomp))
-            throw std::runtime_error("m68krecomp not found; build the mamerecomp and m68krecomp targets first");
+            throw std::runtime_error("m68krecomp not found; build the multiarcaderecomp and m68krecomp targets first");
         const uint32_t reset_pc = (uint32_t(program[4]) << 24) | (uint32_t(program[5]) << 16)
             | (uint32_t(program[6]) << 8) | program[7];
         if (force_rebuild) std::filesystem::remove_all(generated_root);
@@ -103,8 +103,8 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
         std::vector<uint8_t> z80_data(0x8000, 0xff);
         for (uint16_t address = 0; address < 0x2000; ++address) {
             z80_program[address] = audio[address];
-            z80_opcodes[address] = mamerecomp::seibu::toki_sei80bu_opcode(address, audio[address]);
-            z80_data[address] = mamerecomp::seibu::toki_sei80bu_data(address, audio[address]);
+            z80_opcodes[address] = multiarcaderecomp::seibu::toki_sei80bu_opcode(address, audio[address]);
+            z80_data[address] = multiarcaderecomp::seibu::toki_sei80bu_data(address, audio[address]);
         }
         const auto write_image = [](const std::filesystem::path& path, const std::vector<uint8_t>& bytes) {
             std::ofstream output(path, std::ios::binary);
@@ -126,46 +126,46 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
         }
         const auto z80_recomp = source_root / "tools/z80/recomp.py";
         std::cout << "Generating Toki encrypted Z80 AOT from SEI80BU opcode/data views.\n" << std::flush;
-        status = run_child_process({MAMERECOMP_PYTHON_EXECUTABLE, z80_recomp.string(),
+        status = run_child_process({MULTIARCADERECOMP_PYTHON_EXECUTABLE, z80_recomp.string(),
             "--program", z80_program_path.string(), "--opcodes", z80_opcode_path.string(),
             "--data", z80_data_path.string(), "--entries", z80_entries_path.string(),
             "--out", z80_generated_root.string(), "--symbol-prefix", "toki_",
             "--precise-cycle-yield", "--list", (z80_generated_root / "instructions.txt").string()});
         if (status != 0) return status;
         status = run_child_process({"cmake", "-S", source_root.string(), "-B", build_root.string(),
-            "-DMAMERECOMP_SEIBU_TOKI_AOT_DIR=" + generated_root.string(),
-            "-DMAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR=" + z80_generated_root.string()});
+            "-DMULTIARCADERECOMP_SEIBU_TOKI_AOT_DIR=" + generated_root.string(),
+            "-DMULTIARCADERECOMP_SEIBU_TOKI_Z80_AOT_DIR=" + z80_generated_root.string()});
         if (status != 0) return status;
         std::cout << "Building Toki 68000 AOT module.\n" << std::flush;
         return run_child_process({"cmake", "--build", build_root.string(), "--target",
-            "mamerecomp_seibu_toki_aot", "-j", jobs});
+            "multiarcaderecomp_seibu_toki_aot", "-j", jobs});
     }
 
     if (!std::filesystem::is_regular_file(module_path))
-        throw std::runtime_error("Toki AOT module is missing; run `mamerecomp build --machine=seibu --board=toki --game=toki` first");
+        throw std::runtime_error("Toki AOT module is missing; run `multiarcaderecomp build --machine=seibu --board=toki --game=toki` first");
     void* module = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!module) throw std::runtime_error("could not load Toki AOT module: " + std::string(dlerror()));
     struct ModuleGuard { void* handle; ~ModuleGuard() { if (handle) dlclose(handle); } } guard{module};
     using TableFn = const ng_func_entry_t* (*)(size_t*);
-    using Z80CodeFn = const mamerecomp::z80::Z80Code* (*)();
-    auto get_table = reinterpret_cast<TableFn>(dlsym(module, "mamerecomp_seibu_toki_m68k_table"));
+    using Z80CodeFn = const multiarcaderecomp::z80::Z80Code* (*)();
+    auto get_table = reinterpret_cast<TableFn>(dlsym(module, "multiarcaderecomp_seibu_toki_m68k_table"));
     if (!get_table) throw std::runtime_error("Toki AOT module is missing its 68000 table");
-    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "mamerecomp_seibu_toki_z80_code"));
+    auto get_z80_code = reinterpret_cast<Z80CodeFn>(dlsym(module, "multiarcaderecomp_seibu_toki_z80_code"));
     if (!get_z80_code) throw std::runtime_error("Toki AOT module is missing its Z80 table");
-    mamerecomp::z80::SetZ80Code(get_z80_code());
+    multiarcaderecomp::z80::SetZ80Code(get_z80_code());
     size_t count = 0;
     const auto* entries = get_table(&count);
-    mamerecomp::seibu::TokiBoard board(std::move(roms));
-    mamerecomp::seibu::TokiMainCpu cpu(board, entries, count);
-    mamerecomp::seibu::TokiSoundCpu sound_cpu(board);
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
-    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> video_presenter;
-    if (window) video_presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
-        "Toki - MameRecomp", 256, 224);
+    multiarcaderecomp::seibu::TokiBoard board(std::move(roms));
+    multiarcaderecomp::seibu::TokiMainCpu cpu(board, entries, count);
+    multiarcaderecomp::seibu::TokiSoundCpu sound_cpu(board);
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
+    std::unique_ptr<multiarcaderecomp::video::SdlVideoPresenter> video_presenter;
+    if (window) video_presenter = std::make_unique<multiarcaderecomp::video::SdlVideoPresenter>(
+        "Toki - MultiArcadeRecomp", 256, 224);
     if (video_presenter)
         std::cout << "Controls: coin 5, start 1, P1 arrows + keypad 1/2, P2 WASD + J/K, F2 service.\n";
-    std::unique_ptr<mamerecomp::seibu::TokiAudioPresenter> audio_presenter;
-    if (audio_enabled) audio_presenter = std::make_unique<mamerecomp::seibu::TokiAudioPresenter>(board.audio_sample_rate());
+    std::unique_ptr<multiarcaderecomp::seibu::TokiAudioPresenter> audio_presenter;
+    if (audio_enabled) audio_presenter = std::make_unique<multiarcaderecomp::seibu::TokiAudioPresenter>(board.audio_sample_rate());
 #else
     if (window) throw std::runtime_error("Toki live video requires an SDL3-enabled build");
     if (audio_enabled) throw std::runtime_error("Toki --audio requires an SDL3-enabled build");
@@ -177,14 +177,14 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
     uint64_t next_vblank = vblank_cycles;
     uint64_t scheduled_cycles = 0;
     bool window_open = true;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
-    mamerecomp::video::SdlArcadeInput live_keys{};
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
+    multiarcaderecomp::video::SdlArcadeInput live_keys{};
     uint64_t live_keys_frame = std::numeric_limits<uint64_t>::max();
 #endif
     while (scheduled_cycles < budget && window_open) {
         const uint64_t target = std::min({next_vblank, scheduled_cycles + 650, budget});
         const uint64_t frame_index = scheduled_cycles / frame_cycles;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (video_presenter && live_keys_frame != frame_index) {
             if (!video_presenter->pump_events()) {
                 window_open = false;
@@ -198,22 +198,22 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
         uint8_t coins = 0;
         uint8_t p1 = 0xff;
         uint8_t p2 = 0xff;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (video_presenter) {
             if (live_keys.service_pressed) system &= static_cast<uint8_t>(~(1U << 2));
-            if (live_keys.players_pressed[0] & mamerecomp::video::SdlArcadeInput::start)
+            if (live_keys.players_pressed[0] & multiarcaderecomp::video::SdlArcadeInput::start)
                 system &= static_cast<uint8_t>(~(1U << 3));
-            if (live_keys.players_pressed[1] & mamerecomp::video::SdlArcadeInput::start)
+            if (live_keys.players_pressed[1] & multiarcaderecomp::video::SdlArcadeInput::start)
                 system &= static_cast<uint8_t>(~(1U << 4));
             coins |= live_keys.coins_pressed & 0x03;
             const auto to_toki_controls = [](uint8_t pressed) {
                 uint8_t active_low = 0xff;
-                if (pressed & mamerecomp::video::SdlArcadeInput::up) active_low &= ~(1U << 0);
-                if (pressed & mamerecomp::video::SdlArcadeInput::down) active_low &= ~(1U << 1);
-                if (pressed & mamerecomp::video::SdlArcadeInput::left) active_low &= ~(1U << 2);
-                if (pressed & mamerecomp::video::SdlArcadeInput::right) active_low &= ~(1U << 3);
-                if (pressed & mamerecomp::video::SdlArcadeInput::button1) active_low &= ~(1U << 4);
-                if (pressed & mamerecomp::video::SdlArcadeInput::button2) active_low &= ~(1U << 5);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::up) active_low &= ~(1U << 0);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::down) active_low &= ~(1U << 1);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::left) active_low &= ~(1U << 2);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::right) active_low &= ~(1U << 3);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::button1) active_low &= ~(1U << 4);
+                if (pressed & multiarcaderecomp::video::SdlArcadeInput::button2) active_low &= ~(1U << 5);
                 return active_low;
             };
             p1 = to_toki_controls(live_keys.players_pressed[0]);
@@ -243,7 +243,7 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
         if (target == next_vblank) {
             board.video_vblank();
             next_vblank += frame_cycles;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             if (video_presenter) {
                 const auto live_frame = board.render_frame();
                 video_presenter->present(live_frame.rgb);
@@ -256,7 +256,7 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
     }
     const auto frame = board.render_frame();
     const auto audio_samples = board.take_audio_samples();
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     if (audio_presenter) audio_presenter->queue(audio_samples);
 #endif
     if (frame_out) {
@@ -314,4 +314,4 @@ int run_seibu_toki_machine(const std::filesystem::path& source_root,
     return 0;
 }
 
-} // namespace mamerecomp::app::machine_runners
+} // namespace multiarcaderecomp::app::machine_runners

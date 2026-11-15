@@ -8,11 +8,11 @@
 #include "seibu/toki_presenter.hpp"
 #include "zn_runtime.hpp"
 #include "native_z80.h"
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
 #include "naomi/naomi_presenter.hpp"
 #include <SDL3/SDL.h>
 #endif
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #endif
 #include <algorithm>
@@ -35,10 +35,10 @@
 #include <vector>
 #include <dlfcn.h>
 
-namespace mamerecomp::app::machine_runners {
-using mamerecomp::app::read_binary_file;
-using mamerecomp::app::run_child_process;
-using InputEvent = mamerecomp::sega::InputEvent;
+namespace multiarcaderecomp::app::machine_runners {
+using multiarcaderecomp::app::read_binary_file;
+using multiarcaderecomp::app::run_child_process;
+using InputEvent = multiarcaderecomp::sega::InputEvent;
 
 int run_zn_machine(const std::filesystem::path& source_root,
                    const std::string& game,
@@ -55,7 +55,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                    bool r3000a_no_aot,
                    bool z80_no_aot,
                    bool dsp16a_no_aot,
-                   mamerecomp::chips::QSoundMode qsound_mode,
+                   multiarcaderecomp::chips::QSoundMode qsound_mode,
                    bool qsound_mixed_requested) {
     const bool zn1 = game == "bldyror2";
     const bool system12 = game == "tekken3";
@@ -63,9 +63,9 @@ int run_zn_machine(const std::filesystem::path& source_root,
     // converts four crystal clocks into one execute cycle. Frame scheduling
     // shares the same execute-cycle counter as PsxCpuState::cycles.
     const std::uint64_t cpu_clock_hz = zn1
-        ? mamerecomp::psx::kZn1MemoryConfig.cpu_cycle_hz
-        : system12 ? mamerecomp::psx::kSystem12MemoryConfig.cpu_cycle_hz
-                   : mamerecomp::psx::kZn2MemoryConfig.cpu_cycle_hz;
+        ? multiarcaderecomp::psx::kZn1MemoryConfig.cpu_cycle_hz
+        : system12 ? multiarcaderecomp::psx::kSystem12MemoryConfig.cpu_cycle_hz
+                   : multiarcaderecomp::psx::kZn2MemoryConfig.cpu_cycle_hz;
     // MAME's PSX GPU uses 59.8260978565 Hz for the default NTSC 240-line
     // mode (psxgpu_device::updatevisiblearea). Keep the CPU frame scheduler
     // on that same cadence so --frames, input events, and GPU vblank don't
@@ -88,50 +88,50 @@ int run_zn_machine(const std::filesystem::path& source_root,
     if (!std::filesystem::is_regular_file(rom_path))
         throw std::runtime_error("ZN ROM ZIP not found: " + rom_path.string());
 
-#ifndef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifndef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     if (show_window || audio_enabled)
         throw std::runtime_error("ZN live video/audio requires an SDL3-enabled build");
 #endif
 
-    const std::filesystem::path zn_aot_module = source_root / "build/mamerecomp_zn2_sfex2pa.so";
+    const std::filesystem::path zn_aot_module = source_root / "build/multiarcaderecomp_zn2_sfex2pa.so";
     void *zn_aot_handle = nullptr;
-    const mamerecomp::z80::Z80Code *zn2_z80_code = nullptr;
+    const multiarcaderecomp::z80::Z80Code *zn2_z80_code = nullptr;
     const PsxAotEntry *zn2_psx_entries = nullptr;
     size_t zn2_psx_entry_count = 0;
-    const mamerecomp::dsp16::Dsp16ACompiledEntry *zn2_dsp16a_entries = nullptr;
+    const multiarcaderecomp::dsp16::Dsp16ACompiledEntry *zn2_dsp16a_entries = nullptr;
     size_t zn2_dsp16a_entry_count = 0;
-    mamerecomp::dsp16::Dsp16ARunHandler zn2_dsp16a_run = nullptr;
+    multiarcaderecomp::dsp16::Dsp16ARunHandler zn2_dsp16a_run = nullptr;
 #if defined(__unix__) || defined(__APPLE__)
     if (game == "sfex2pa" && std::filesystem::is_regular_file(zn_aot_module)) {
         zn_aot_handle = dlopen(zn_aot_module.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!zn_aot_handle)
             throw std::runtime_error("could not load ZN-2 AOT module " + zn_aot_module.string() + ": " + dlerror());
-        using Z80CodeFn = const mamerecomp::z80::Z80Code *(*)();
-        auto get_code = reinterpret_cast<Z80CodeFn>(dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_z80_code"));
+        using Z80CodeFn = const multiarcaderecomp::z80::Z80Code *(*)();
+        auto get_code = reinterpret_cast<Z80CodeFn>(dlsym(zn_aot_handle, "multiarcaderecomp_zn2_sfex2pa_z80_code"));
         const char *symbol_error = dlerror();
         if (symbol_error || !get_code)
             throw std::runtime_error("ZN-2 AOT module has no Z80 table: " + std::string(symbol_error ? symbol_error : "unknown loader error"));
         if (!z80_no_aot)
             zn2_z80_code = get_code();
         using PsxEntriesFn = void (*)(const PsxAotEntry **, size_t *);
-        auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_psx_entries"));
+        auto get_psx_entries = reinterpret_cast<PsxEntriesFn>(dlsym(zn_aot_handle, "multiarcaderecomp_zn2_sfex2pa_psx_entries"));
         if (get_psx_entries && !r3000a_no_aot)
             get_psx_entries(&zn2_psx_entries, &zn2_psx_entry_count);
-        using Dsp16AEntriesFn = void (*)(const mamerecomp::dsp16::Dsp16ACompiledEntry **, size_t *);
+        using Dsp16AEntriesFn = void (*)(const multiarcaderecomp::dsp16::Dsp16ACompiledEntry **, size_t *);
         auto get_dsp16a_entries = reinterpret_cast<Dsp16AEntriesFn>(
-            dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_entries"));
+            dlsym(zn_aot_handle, "multiarcaderecomp_zn2_sfex2pa_dsp16a_entries"));
         if (get_dsp16a_entries && !dsp16a_no_aot)
             get_dsp16a_entries(&zn2_dsp16a_entries, &zn2_dsp16a_entry_count);
         if (!dsp16a_no_aot)
-            zn2_dsp16a_run = reinterpret_cast<mamerecomp::dsp16::Dsp16ARunHandler>(
-                dlsym(zn_aot_handle, "mamerecomp_zn2_sfex2pa_dsp16a_run"));
+            zn2_dsp16a_run = reinterpret_cast<multiarcaderecomp::dsp16::Dsp16ARunHandler>(
+                dlsym(zn_aot_handle, "multiarcaderecomp_zn2_sfex2pa_dsp16a_run"));
     }
 #endif
     std::vector<std::uint16_t> qsound_firmware;
     if (game == "sfex2pa") {
-        const char *firmware_archive = qsound_mode != mamerecomp::chips::QSoundMode::Hle
+        const char *firmware_archive = qsound_mode != multiarcaderecomp::chips::QSoundMode::Hle
             ? "qsound.zip" : "qsound_hle.zip";
-        const char *alternate_archive = qsound_mode != mamerecomp::chips::QSoundMode::Hle
+        const char *alternate_archive = qsound_mode != multiarcaderecomp::chips::QSoundMode::Hle
             ? "qsound_hle.zip" : "qsound.zip";
         const auto adjacent_firmware = rom_path.parent_path() / firmware_archive;
         const auto alternate_adjacent = rom_path.parent_path() / alternate_archive;
@@ -143,33 +143,33 @@ int run_zn_machine(const std::filesystem::path& source_root,
                     ? default_firmware : alternate_default;
         if (!std::filesystem::is_regular_file(firmware_zip))
             throw std::runtime_error("QSound DL-1425 firmware ZIP not found: " + firmware_zip.string());
-        qsound_firmware = mamerecomp::zn::load_qsound_firmware(firmware_zip);
+        qsound_firmware = multiarcaderecomp::zn::load_qsound_firmware(firmware_zip);
         std::cout << "ZN-2 QSound mode: ";
         if (qsound_mixed_requested)
             std::cout << "mixed (DSP16A LLE primary; automatic HLE fallback armed)";
-        else if (qsound_mode == mamerecomp::chips::QSoundMode::Lle)
+        else if (qsound_mode == multiarcaderecomp::chips::QSoundMode::Lle)
             std::cout << "DSP16A LLE (forced)";
         else
             std::cout << "MAME HLE (forced)";
         std::cout << " (firmware=" << firmware_zip << ").\n";
     }
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     // Declare the window before the machine so the PSX renderer is destroyed
     // before the externally owned GL context during normal return/unwinding.
-    std::unique_ptr<mamerecomp::video::SdlVideoPresenter> presenter;
+    std::unique_ptr<multiarcaderecomp::video::SdlVideoPresenter> presenter;
 #endif
-    mamerecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
+    multiarcaderecomp::zn::ZnMachineRuntime machine(game, rom_path, zn2_psx_entries,
                                              zn2_psx_entry_count, zn2_z80_code,
                                              qsound_mode, qsound_firmware,
-                                             std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry>(
+                                             std::span<const multiarcaderecomp::dsp16::Dsp16ACompiledEntry>(
                                                  zn2_dsp16a_entries, zn2_dsp16a_entry_count),
                                              zn2_dsp16a_run);
     bool direct_gpu_present = false;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     direct_gpu_present = gpu_hw && show_window && !frame_out && !frame_sequence_dir;
     if (direct_gpu_present) {
-        presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
-            "Sony ZN - " + game + " - MameRecomp", 640, 480, 4, 3, 960, 720, true);
+        presenter = std::make_unique<multiarcaderecomp::video::SdlVideoPresenter>(
+            "Sony ZN - " + game + " - MultiArcadeRecomp", 640, 480, 4, 3, 960, 720, true);
         machine.memory().gpu().enable_hardware_renderer(
             presenter->native_window(), presenter->native_gl_context());
     } else if (gpu_hw) {
@@ -198,24 +198,24 @@ int run_zn_machine(const std::filesystem::path& source_root,
     std::uint64_t next_frame_number = 1;
     std::uint64_t next_frame_cycle = cycle_at_frame(next_frame_number);
     std::uint64_t frame_updates = 0;
-    const bool zn_diagnostics = std::getenv("MAMERECOMP_ZN_DIAGNOSTICS") != nullptr;
+    const bool zn_diagnostics = std::getenv("MULTIARCADERECOMP_ZN_DIAGNOSTICS") != nullptr;
     uint64_t diagnostics_window_cycles = machine.cpu().cycles;
     double diagnostics_window_host_ms = 0.0;
     unsigned diagnostics_window_frames = 0;
     bool window_open = true;
     uint64_t system12_audio_frames = 0;
     uint32_t system12_audio_peak = 0;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     SDL_AudioStream* zn_audio_stream = nullptr;
     SDL_AudioStream* zn_spu_stream = nullptr;
     std::ofstream zn_qsound_pcm_dump;
     std::ofstream zn_spu_pcm_dump;
-    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_QSOUND_PCM")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_ZN_DUMP_QSOUND_PCM")) {
         zn_qsound_pcm_dump.open(dump_path, std::ios::binary | std::ios::trunc);
         if (!zn_qsound_pcm_dump)
             throw std::runtime_error("could not create ZN QSound PCM dump " + std::string(dump_path));
     }
-    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_SPU_PCM")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_ZN_DUMP_SPU_PCM")) {
         zn_spu_pcm_dump.open(dump_path, std::ios::binary | std::ios::trunc);
         if (!zn_spu_pcm_dump)
             throw std::runtime_error("could not create ZN PSX SPU PCM dump " + std::string(dump_path));
@@ -300,18 +300,18 @@ int run_zn_machine(const std::filesystem::path& source_root,
         }
     };
 #endif
-    mamerecomp::runtime::ArcadeInput live_inputs{};
+    multiarcaderecomp::runtime::ArcadeInput live_inputs{};
     auto apply_zn_inputs = [&](std::uint64_t frame) {
         auto input = live_inputs;
         const auto add_directions_and_buttons = [&](unsigned player, uint8_t active) {
             auto &pressed = input.players_pressed[player];
-            if (active & 0x01u) pressed |= mamerecomp::runtime::ArcadeInput::up;
-            if (active & 0x02u) pressed |= mamerecomp::runtime::ArcadeInput::down;
-            if (active & 0x04u) pressed |= mamerecomp::runtime::ArcadeInput::left;
-            if (active & 0x08u) pressed |= mamerecomp::runtime::ArcadeInput::right;
-            if (active & 0x10u) pressed |= mamerecomp::runtime::ArcadeInput::button1;
-            if (active & 0x20u) pressed |= mamerecomp::runtime::ArcadeInput::button2;
-            if (active & 0x40u) pressed |= mamerecomp::runtime::ArcadeInput::button3;
+            if (active & 0x01u) pressed |= multiarcaderecomp::runtime::ArcadeInput::up;
+            if (active & 0x02u) pressed |= multiarcaderecomp::runtime::ArcadeInput::down;
+            if (active & 0x04u) pressed |= multiarcaderecomp::runtime::ArcadeInput::left;
+            if (active & 0x08u) pressed |= multiarcaderecomp::runtime::ArcadeInput::right;
+            if (active & 0x10u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button1;
+            if (active & 0x20u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button2;
+            if (active & 0x40u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button3;
         };
         for (const auto &event : button_events) {
             if (frame < event.first_frame || frame - event.first_frame >= event.duration_frames)
@@ -329,17 +329,17 @@ int run_zn_machine(const std::filesystem::path& source_root,
                 add_directions_and_buttons(1, active);
                 break;
             case InputEvent::Port::System:
-                if (active & 0x01u) input.players_pressed[0] |= mamerecomp::runtime::ArcadeInput::start;
-                if (active & 0x02u) input.players_pressed[1] |= mamerecomp::runtime::ArcadeInput::start;
+                if (active & 0x01u) input.players_pressed[0] |= multiarcaderecomp::runtime::ArcadeInput::start;
+                if (active & 0x02u) input.players_pressed[1] |= multiarcaderecomp::runtime::ArcadeInput::start;
                 if (active & 0x10u) input.coins_pressed |= 1u;
                 if (active & 0x20u) input.coins_pressed |= 2u;
                 break;
             case InputEvent::Port::P1Kick:
             case InputEvent::Port::P2Kick: {
                 auto &pressed = input.players_pressed[event.port == InputEvent::Port::P1Kick ? 0 : 1];
-                if (active & 0x01u) pressed |= mamerecomp::runtime::ArcadeInput::button4;
-                if (active & 0x02u) pressed |= mamerecomp::runtime::ArcadeInput::button5;
-                if (active & 0x04u) pressed |= mamerecomp::runtime::ArcadeInput::button6;
+                if (active & 0x01u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button4;
+                if (active & 0x02u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button5;
+                if (active & 0x04u) pressed |= multiarcaderecomp::runtime::ArcadeInput::button6;
                 break;
             }
             case InputEvent::Port::Coin:
@@ -349,16 +349,16 @@ int run_zn_machine(const std::filesystem::path& source_root,
         }
         machine.set_input_state(input);
     };
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     auto sample_live_zn_inputs = [&] {
         if (!presenter || (game != "sfex2pa" && game != "bldyror2")) return;
         live_inputs = presenter->input_state();
     };
-    auto show_frame = [&](const mamerecomp::psx::GpuFrame &frame) {
+    auto show_frame = [&](const multiarcaderecomp::psx::GpuFrame &frame) {
         if (!show_window) return;
         if (!presenter) {
-            presenter = std::make_unique<mamerecomp::video::SdlVideoPresenter>(
-                "Sony ZN - " + game + " - MameRecomp", frame.width, frame.height,
+            presenter = std::make_unique<multiarcaderecomp::video::SdlVideoPresenter>(
+                "Sony ZN - " + game + " - MultiArcadeRecomp", frame.width, frame.height,
                 4, 3, 960, 720);
         }
         if (frame.direct_present) {
@@ -376,7 +376,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
               << std::flush;
     apply_zn_inputs(0);
     while (window_open && (unlimited || machine.cpu().cycles < instruction_budget)) {
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
         if (presenter) {
             if (!presenter->pump_events()) {
                 window_open = false;
@@ -395,8 +395,8 @@ int run_zn_machine(const std::filesystem::path& source_root,
         if (machine.cpu().cycles >= next_frame_cycle) {
             const bool capture_sequence_frame = frame_sequence_dir &&
                 (frame_updates + 1) % frame_sequence_step == 0;
-            std::optional<mamerecomp::psx::GpuFrame> fallback_frame;
-            const mamerecomp::psx::GpuFrame *frame = nullptr;
+            std::optional<multiarcaderecomp::psx::GpuFrame> fallback_frame;
+            const multiarcaderecomp::psx::GpuFrame *frame = nullptr;
             if (show_window || capture_sequence_frame) {
                 const auto& vblank_frame = machine.last_vblank_frame();
                 if (vblank_frame) frame = &*vblank_frame;
@@ -405,7 +405,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                     frame = &*fallback_frame;
                 }
             }
-            if (std::getenv("MAMERECOMP_ZN_TRACE_FRAME_STATE") &&
+            if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_FRAME_STATE") &&
                 (((frame_updates + 1) % 60 == 0) ||
                  ((frame_updates + 1) >= 178 && (frame_updates + 1) <= 185) ||
                  ((frame_updates + 1) >= 1205 && (frame_updates + 1) <= 1225))) {
@@ -442,7 +442,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                     std::cerr << std::dec << '\n';
                 }
             }
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
             if (show_window) {
                 if (presenter && !presenter->pump_events()) {
                     window_open = false;
@@ -479,7 +479,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                               << static_cast<double>(elapsed_cycles) / frames
                               << " host-ms/frame=" << diagnostics_window_host_ms / frames
                               << " emu-ms/frame=" << emulated_ms / frames;
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
                     std::cerr << " audio-frames(board/spu)="
                               << diagnostics_qsound_frames << '/' << diagnostics_spu_frames
                               << " stream-available-bytes(board/spu)="
@@ -515,7 +515,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
     const auto& last_vblank_frame = machine.last_vblank_frame();
     const auto frame = last_vblank_frame ? *last_vblank_frame
                                          : machine.framebuffer_rgb();
-#ifdef MAMERECOMP_HAS_SDL3_PRESENTER
+#ifdef MULTIARCADERECOMP_HAS_SDL3_PRESENTER
     flush_zn_audio();
     if (zn_audio_stream) {
         SDL_DestroyAudioStream(zn_audio_stream);
@@ -533,7 +533,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
             throw std::runtime_error("failed writing ZN PSX SPU PCM dump");
     }
 #endif
-    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_VRAM")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_ZN_DUMP_VRAM")) {
         std::ofstream dump(dump_path, std::ios::binary);
         const auto& vram = machine.memory().vram();
         if (!dump) throw std::runtime_error("could not create ZN VRAM dump " + std::string(dump_path));
@@ -542,7 +542,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
         if (!dump) throw std::runtime_error("failed writing ZN VRAM dump " + std::string(dump_path));
         std::cout << "Wrote " << vram.size() << " bytes of ZN VRAM to " << dump_path << '\n';
     }
-    if (const char* dump_path = std::getenv("MAMERECOMP_ZN_DUMP_RAM")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_ZN_DUMP_RAM")) {
         std::ofstream dump(dump_path, std::ios::binary);
         const auto& ram = machine.memory().ram();
         if (!dump) throw std::runtime_error("could not create ZN RAM dump " + std::string(dump_path));
@@ -573,7 +573,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
         if (!nvram_file) throw std::runtime_error("failed saving AT28C16 NVRAM " + nvram_path->string());
         std::cout << "Saved " << image.size() << " bytes of AT28C16 NVRAM to " << *nvram_path << '\n';
     }
-    if (std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME")) {
+    if (std::getenv("MULTIARCADERECOMP_ZN_PROFILE_RUNTIME")) {
         const auto total_ns = machine.profile_run_until_ns();
         const auto gpu_ns = machine.memory().gpu().profile_execute_packet_ns();
         const auto sound_ns = machine.profile_zn2_sound_ns();
@@ -644,7 +644,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << machine.zn2_qsound_samples()
                   << " peak=" << machine.zn2_qsound_peak()
                   << " sample_rate=" << machine.zn2_qsound_sample_rate() << ".\n";
-    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == multiarcaderecomp::chips::QSoundMode::Lle)
         std::cout << "ZN-2 DSP16A LLE cycles=" << machine.zn2_qsound_dsp_cycles()
                   << " instructions=" << machine.zn2_qsound_dsp_instructions()
                   << " (AOT=" << machine.zn2_qsound_dsp_aot_instructions()
@@ -662,7 +662,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << '/' << machine.zn2_qsound_mirrored_sample_reads()
                   << " nonzero serial words=" << machine.zn2_qsound_nonzero_serial_words()
                   << " serial word peak=" << machine.zn2_qsound_serial_word_peak() << ".\n";
-    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == multiarcaderecomp::chips::QSoundMode::Lle)
         std::cout << "ZN-2 DSP16A pins: OCK rising=" << machine.zn2_qsound_dsp_ock_edges()
                   << " DO transitions=" << machine.zn2_qsound_dsp_do_transitions()
                   << " OSE transitions=" << machine.zn2_qsound_dsp_ose_transitions()
@@ -673,7 +673,7 @@ int run_zn_machine(const std::filesystem::path& source_root,
                   << " nonzero serial loads=" << machine.zn2_qsound_dsp_nonzero_serial_loads()
                   << " last SDX/load=0x" << std::hex << machine.zn2_qsound_dsp_last_sdx()
                   << "/0x" << machine.zn2_qsound_dsp_last_serial_loaded() << std::dec << ".\n";
-    if (game == "sfex2pa" && machine.zn2_qsound_mode() == mamerecomp::chips::QSoundMode::Lle)
+    if (game == "sfex2pa" && machine.zn2_qsound_mode() == multiarcaderecomp::chips::QSoundMode::Lle)
         std::cout << "ZN-2 DSP16A last SDX at PC=0x" << std::hex
                   << machine.zn2_qsound_dsp_last_sdx_pc() << " opcode=0x"
                   << machine.zn2_qsound_dsp_last_sdx_opcode() << " A0=0x"
@@ -692,4 +692,4 @@ int run_zn_machine(const std::filesystem::path& source_root,
     return 0;
 }
 
-} // namespace mamerecomp::app::machine_runners
+} // namespace multiarcaderecomp::app::machine_runners

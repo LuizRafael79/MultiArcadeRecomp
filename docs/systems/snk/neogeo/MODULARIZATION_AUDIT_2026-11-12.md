@@ -5,7 +5,7 @@
 The launcher and local build pipeline now default to the original AES BIOS
 `neo-po.bin` with AES hardware signals; MVS defaults to `sp-s2.sp1`. UniBIOS
 remains selectable with an explicit `--bios`. A 120-frame headless launch
-through `mamerecomp` previously captured the UniBIOS 4.0 screen reporting
+through `multiarcaderecomp` previously captured the UniBIOS 4.0 screen reporting
 `Region: EUROPE Mode: CONSOLE`; that was before BIOS-specific AoT modules were
 split. The current native AES and MVS modules are generated from `neo-po.bin`
 and `sp-s2.sp1`, respectively. UniBIOS now gets its own optional AoT variant
@@ -14,11 +14,11 @@ when built explicitly, because using the native-AES AoT with UniBIOS produces
 
 That Release build generated 29,450 M68K routines / 152,986 dispatch entries
 (1,077,425 emitted instruction occurrences), 20 BIOS and 59 cart Z80 roots,
-and linked the original combined-mode `mamerecomp_game_kof98.so` at
+and linked the original combined-mode `multiarcaderecomp_game_kof98.so` at
 114,297,096 bytes. These are pre-split build measurements. The build pipeline
 now writes the BIOS-dependent M68K AoT to separate `aes/generated/` and
-`mvs/generated/` directories and produces `mamerecomp_game_kof98_aes.so` and
-`mamerecomp_game_kof98_mvs.so` with separate CMake targets/object directories.
+`mvs/generated/` directories and produces `multiarcaderecomp_game_kof98_aes.so` and
+`multiarcaderecomp_game_kof98_mvs.so` with separate CMake targets/object directories.
 The sound CPU AoT stays shared because both modes use the same sound program
 ROMs. AES selects the original `neo-po.bin` by default; MVS selects
 `sp-s2.sp1`. UniBIOS is a separate optional AoT variant, selected with
@@ -41,7 +41,7 @@ module, so the stated MIT-only distribution goal is not met.
 
 After restoring the reference-style Neo Geo dispatch policy, the default AES
 KOF98 run was checked with
-`build/mamerecomp run --machine=neogeo --board=mvs --game=kof98 --headless
+`build/multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98 --headless
 --frames=3600 --verify`. It completed 1,547,511 verified blocks with zero
 register/flag/PC/bus mismatches; 8,518,982 instructions still ran through
 Musashi and 80 entry points were uncovered. `--board=mvs` selects the board
@@ -61,7 +61,7 @@ AoT/Musashi parity for executed blocks in this run, not full static coverage.
 
 The current generated AoT has 60,832 dispatch entries, 1,706,046 emitted
 instruction occurrences and about 300 MiB of generated C. Compared with the
-KOF98 reference emitter, MameRecomp adds an `NG_DEBUG_INSN()` hook at every
+KOF98 reference emitter, MultiArcadeRecomp adds an `NG_DEBUG_INSN()` hook at every
 instruction. That is an evidenced code-size/runtime-hook cost difference to
 measure and potentially remove for Neo Geo; no performance gain is claimed
 yet. The current worktree also contains the early ZUni80 decoder/discovery/
@@ -73,7 +73,7 @@ production Z80 AoT integrations.
 
 `tools/z80/recomp.py` is currently invoked by both
 `tools/neogeo/build.py` and `tools/generators/cps1/build.py`; its generated
-tables are consumed through the existing `mamerecomp::z80::Z80Code` ABI.
+tables are consumed through the existing `multiarcaderecomp::z80::Z80Code` ABI.
 Runtime consumers also include System 16A/B, System 18, CPS1, ZN2, TMNT,
 Toki and KOF98. The replacement AoT generator must therefore keep the current
 board-facing contract (`Z80Bus`, `Z80::Run`, `SetZ80Code`, generated table and
@@ -115,9 +115,9 @@ remain unverified.
 
 ## Executive status
 
-At the time of the initial audit, KOF98's MameRecomp application path launched
+At the time of the initial audit, KOF98's MultiArcadeRecomp application path launched
 the generated modules: a 60-frame headless run through
-`mamerecomp run --machine=neogeo --board=mvs --game=kof98` reported 15,988
+`multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98` reported 15,988
 native 68000 blocks, zero interpreted instructions and zero uncovered entry
 points. The integration exposed ELF interposition between Neo Geo and generic
 68000 symbols. Later symbol namespacing and local symbol binding addressed the
@@ -130,7 +130,7 @@ source directories. CMake now defines deterministic defaults under
 performs a second configure so CMake can discover the generated shards. The
 common command does not yet own a shared game-independent generation pipeline.
 The active build contains those generated tables and
-`mamerecomp_game_kof98.so`.
+`multiarcaderecomp_game_kof98.so`.
 
 There is no `.gitmodules` entry or required source path into a sibling
 NeoGeoRecomp checkout. The 68000 frontend/runtime snapshot and Neo Geo board
@@ -148,9 +148,9 @@ licenses must remain attached to imported sources.
   no longer need the old NeoGeoRecomp repository checkout or its directory
   names.
 - Renamed the local 68000 frontend target to
-  `mamerecomp_m68k_aot_frontend` (with a temporary CMake alias for existing
+  `multiarcaderecomp_m68k_aot_frontend` (with a temporary CMake alias for existing
   users) and changed the board library to the shared target/output
-  `mamerecomp_neogeo_runtime.so`.
+  `multiarcaderecomp_neogeo_runtime.so`.
 - Replaced the KOF98 generator's call to NeoGeoRecomp-specific
   `ng_recomp_main()` with the common `rc_raw_main()` m68krecomp frontend.
   The KOF98 profile validates/assembles the TOML ROM image, applies its
@@ -161,7 +161,7 @@ licenses must remain attached to imported sources.
   `kof98.zip`/`neogeo.zip` produced 27,600 routines and 142,144 dispatch
   entries, matching the historical KOF98 baseline recorded in `STATUS.md`.
 - Moved `kof98_game.c` out of the shared ROM/profile library and into
-  `mamerecomp_game_kof98.so`. The game module now exports the descriptor and
+  `multiarcaderecomp_game_kof98.so`. The game module now exports the descriptor and
   reset hook. The shared ROM validator no longer embeds KOF98's decryption;
   the game profile applies that transform in the board runtime.
 - Renamed the KOF98 builder entry point to `tools/neogeo/build.py` and wired
@@ -187,7 +187,7 @@ licenses must remain attached to imported sources.
 - The first module run exposed symbol interposition and a hidden dependency on
   `ng_protection_active`; the Neo Geo ABI is now namespaced and the Neo Geo bus
   defines its own protection flag. `nm -D` confirms the runtime exports and
-  KOF98 module imports resolve as `mamerecomp_neogeo_*`.
+  KOF98 module imports resolve as `multiarcaderecomp_neogeo_*`.
 
 ## Current KOF98 path
 
@@ -196,10 +196,10 @@ licenses must remain attached to imported sources.
 | ROM profile | `src/romsets/snk/neogeo/neogeo_mvs/kof98.toml`, emitted by `emit_neogeo_runtime.py` | TOML validation and generated ROM metadata are already local. |
 | Game behavior | `src/neogeo/kof98_game.c` | KOF98 owns PROGSF1 transform, protection callbacks, and the `ng_game_t` descriptor; these now compile into the KOF98 game module. Shared ZIP/ROM validation leaves program bytes raw. |
 | 68000 generation | `kof98_aot` prepares manifest-backed regions and calls the shared `rc_raw_main()` frontend with `--board neogeo`; `tools/neogeo/build.py` orchestrates generation | KOF98 no longer invokes the NeoGeoRecomp-specific ROM-profile generator. The frontend's emitted ABI and headers still use `ng_func_entry_t`, `CPU` and `neogeorecomp` names. |
-| Z80 generation | Local `tools/z80/recomp.py` emits C++ from SM1 and M1 ROMs | This is already a MameRecomp-local generator; KOF98 roots and ROM extraction are wired by its bespoke build script. Runtime fallback remains active. |
-| Z80 execution | `src/neogeo/kof98_z80_host.cpp` selects the BIOS/cart table and calls `mamerecomp::z80::Z80::Run()`; bus, clocks and IRQ callbacks live in `core/third_party/neogeo-runtime/src/audio.c` | Default is native translated blocks. Missing entries, RAM execution and interrupt boundaries use the GPL-derived `Execute()` interpreter in `core/third_party/z80-aot/sound/z80.cpp`; this is neither Musashi nor SuperZazu. `NG_Z80_MODE=interpreter` selects the same interpreter deliberately. |
-| AOT packaging | CMake combines 68000 C shards, Z80 C++ shards and `kof98_module.cpp` into `mamerecomp_game_kof98.so` | Both CPUs are packaged together per game. The module API is KOF98/NeoGeo-specific, not the common game-module contract used by Sega. |
-| Board execution | `mamerecomp` dynamically loads `mamerecomp_neogeo_runtime.so`; the board module loads `mamerecomp_game_kof98.so` | The 60-frame headless app run reports 15,988 native blocks, zero interpreted instructions and zero uncovered entries. CPU/dispatcher implementation is still duplicated inside the board runtime; board loop, map, LSPC/video, I/O, Z80 scheduling/audio and platform code remain grouped there. |
+| Z80 generation | Local `tools/z80/recomp.py` emits C++ from SM1 and M1 ROMs | This is already a MultiArcadeRecomp-local generator; KOF98 roots and ROM extraction are wired by its bespoke build script. Runtime fallback remains active. |
+| Z80 execution | `src/neogeo/kof98_z80_host.cpp` selects the BIOS/cart table and calls `multiarcaderecomp::z80::Z80::Run()`; bus, clocks and IRQ callbacks live in `core/third_party/neogeo-runtime/src/audio.c` | Default is native translated blocks. Missing entries, RAM execution and interrupt boundaries use the GPL-derived `Execute()` interpreter in `core/third_party/z80-aot/sound/z80.cpp`; this is neither Musashi nor SuperZazu. `NG_Z80_MODE=interpreter` selects the same interpreter deliberately. |
+| AOT packaging | CMake combines 68000 C shards, Z80 C++ shards and `kof98_module.cpp` into `multiarcaderecomp_game_kof98.so` | Both CPUs are packaged together per game. The module API is KOF98/NeoGeo-specific, not the common game-module contract used by Sega. |
+| Board execution | `multiarcaderecomp` dynamically loads `multiarcaderecomp_neogeo_runtime.so`; the board module loads `multiarcaderecomp_game_kof98.so` | The 60-frame headless app run reports 15,988 native blocks, zero interpreted instructions and zero uncovered entries. CPU/dispatcher implementation is still duplicated inside the board runtime; board loop, map, LSPC/video, I/O, Z80 scheduling/audio and platform code remain grouped there. |
 | Build entry point | `tools/recompile.py --system neogeo --game kof98` delegates to `tools/neogeo/build.py` | The wrapper accepts the common `--rom-dir` contract. The game adapter still owns ROM extraction and generation, then reconfigures CMake using the deterministic build-tree defaults so it can add emitted sources. |
 
 ## AoT coverage and evidence
@@ -235,13 +235,13 @@ That comparison found no newer 68000 recompiler commit to import. Upstream
 documents complete 68000 opcode
 translation, runtime-profile roots, and a Musashi comparison mode; the local
 snapshot already contains that frontend, but KOF98 does not yet use the
-upstream verifier as a gate in the standard MameRecomp pipeline. NeoGeoRecomp
+upstream verifier as a gate in the standard MultiArcadeRecomp pipeline. NeoGeoRecomp
 has no Z80 AoT translator: its Z80 is the separately licensed SuperZazu
 interpreter, already vendored locally under MIT.
 
 No newer 68000 implementation was found to port in this comparison. The
 remaining useful upstream work is integration: make generation, profiling,
-and verification stages part of the generic MameRecomp build interface rather
+and verification stages part of the generic MultiArcadeRecomp build interface rather
 than KOF98-only orchestration. There is no upstream Z80 AoT feature to port;
 the active Z80 AoT implementation was derived from CPS2Recomp under GPL-3.0.
 Given the project's MIT distribution goal, it must be replaced with an
@@ -255,7 +255,7 @@ licenses can coexist; the MAME-derived code must not be relabeled MIT or GPL.
 
 Separately, the active KOF98 Z80 translator/runtime at `tools/z80/` and
 `core/third_party/z80-aot/` carries `GPL-3.0-only` provenance from
-CPS2Recomp. Since MameRecomp is MIT, this code cannot remain in the distributed
+CPS2Recomp. Since MultiArcadeRecomp is MIT, this code cannot remain in the distributed
 pipeline under the requested project license. It must be replaced by a clean
 MIT implementation; preserve the GPL license and provenance only with the
 retired source snapshot if it remains in the repository, and ensure it is not
@@ -266,7 +266,7 @@ NeoGeoRecomp-derived runtime code, SuperZazu Z80 interpreter and YMFM retain
 their respective permissive licenses and notices.
 
 This Z80 license issue is repository-wide, not isolated to Neo Geo: CMake
-builds `mamerecomp_z80_core` from the GPL files and links it into multiple
+builds `multiarcaderecomp_z80_core` from the GPL files and links it into multiple
 production runtimes and generated game modules. The Neo Geo board contains an
 MIT SuperZazu stepper (`NG_Z80_MODE=legacy`). In this mode `audio_sync()` calls
 `z80_step()` one instruction at a time and feeds its T-state count into board
@@ -281,7 +281,7 @@ reimplemented or replaced and the dependent boards have been checked.
 
 | Path | License/provenance | Execution model | Current KOF98 role |
 |---|---|---|---|
-| `mamerecomp::z80::Z80` (`core/third_party/z80-aot/`) | GPL-3.0-only, derived from CPS2Recomp | Generated native blocks with instruction interpreter fallback; guest-cycle/interrupt boundaries and fallback profiling | Still the production/default path across current AoT integrations; must be removed from the distributed build. |
+| `multiarcaderecomp::z80::Z80` (`core/third_party/z80-aot/`) | GPL-3.0-only, derived from CPS2Recomp | Generated native blocks with instruction interpreter fallback; guest-cycle/interrupt boundaries and fallback profiling | Still the production/default path across current AoT integrations; must be removed from the distributed build. |
 | SuperZazu `z80_step()` (`core/third_party/superzazu-z80/`) | MIT | Compact C instruction-step interpreter; memory/I/O callbacks, interrupt state and T-state counter | Optional Neo Geo diagnostic path; KOF98 YM write port/value parity evidence exists. Not AoT. |
 
 Current evidence shows matching KOF98 YM port/value behavior over a 1,200-frame
@@ -295,13 +295,13 @@ required before production migration is complete.
 
 - The KOF98 game module owns game transforms/protection. Its Neo Geo board
   still embeds a separate 68000 dispatcher and Z80 execution host instead of
-  composing the generic MameRecomp CPU runtimes end to end. The Z80 has two
+  composing the generic MultiArcadeRecomp CPU runtimes end to end. The Z80 has two
   selectable engines (GPL AoT/interpreter and MIT SuperZazu), with only the
   former as the production default.
 - KOF98's decryption and protection behavior are game-owned.
 - 68000 and Z80 generated code are separate generated artifacts but are
   compiled into one per-game shared object.
-- The Neo Geo board has a loadable MameRecomp runtime module, but its internal
+- The Neo Geo board has a loadable MultiArcadeRecomp runtime module, but its internal
   scheduler/map/LSPC/video/I/O/audio/platform implementation remains grouped
   in one imported runtime and still uses a legacy API shape.
 - Video rendering is split into a CPU rasterizer and an SDL presentation
@@ -313,17 +313,17 @@ required before production migration is complete.
   no hardware tile/sprite rasterizer or game-specific shaders.
 - YM2610, LSPC, address map, frame scheduler, audio, and platform presentation
   are not yet exposed as independently composed board/chip modules in the
-  MameRecomp architecture. They need a source-ownership and signal/clock map
+  MultiArcadeRecomp architecture. They need a source-ownership and signal/clock map
   before extraction; avoid moving files mechanically.
 - The top-level application routes KOF98 build/run through its common command
   interface and dynamically loaded board/game modules. A 60-frame headless run
-  through `mamerecomp run --machine=neogeo --board=mvs --game=kof98` now reaches
+  through `multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98` now reaches
   the registered board runtime and reports 15,988 native blocks, zero
   interpreted instructions and zero uncovered entry points.
 - The module boundary had an ELF symbol-interposition defect: the Neo Geo
-  runtime and generic MameRecomp 68000 runtime exported the same `ng_*` CPU and
+  runtime and generic MultiArcadeRecomp 68000 runtime exported the same `ng_*` CPU and
   bus globals. The local Neo Geo public headers now map that private ABI to
-  `mamerecomp_neogeo_*`; its bus also owns the protection-active flag. The AoT
+  `multiarcaderecomp_neogeo_*`; its bus also owns the protection-active flag. The AoT
   game module and board runtime therefore bind to the same Neo Geo state while
   other 68000 boards keep their existing ABI. `nm -D` confirms the renamed
   runtime exports and matching game-module imports.
@@ -333,7 +333,7 @@ required before production migration is complete.
 1. Keep all imported sources local and preserve each source's original license.
    NeoGeoRecomp-derived code retains its MIT notices; the MAME-derived Neo Geo
    raster/LSPC portions retain their BSD-3-Clause attribution. Move active
-   68000 code behind MameRecomp-owned CPU/frontend APIs and make the generated
+   68000 code behind MultiArcadeRecomp-owned CPU/frontend APIs and make the generated
    table ABI board-neutral. Do not require an external checkout.
 2. Replace the current GPL-3.0-only Z80 translator/runtime, which came from
    CPS2Recomp and is still in active targets, with a project-owned compatible
@@ -346,10 +346,10 @@ required before production migration is complete.
    independent device modules (LSPC/video, YM2610 adapter, I/O, audio timing,
    platform). Keep clock rates, memory mapping and IRQ wiring in the board.
 4. Replace the bespoke runner with a Neo Geo board runtime module and make
-   `mamerecomp` register/launch it. Keep KOF98 transform, protection and AOT
+   `multiarcaderecomp` register/launch it. Keep KOF98 transform, protection and AOT
    exports in a game module.
 5. Route KOF98 through the same build orchestration contract as other
-   MameRecomp games. Keep generated ROM-derived source/assets in `build/`,
+   MultiArcadeRecomp games. Keep generated ROM-derived source/assets in `build/`,
    emit 68000 and Z80 tables, and package them into the game's
    `xxx_game.so`. A game-only rebuild should not rebuild unrelated boards.
 6. Revalidate a clean generated build, MVS boot, attract/gameplay, video,

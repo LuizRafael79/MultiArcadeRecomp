@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp::dcs {
+namespace multiarcaderecomp::dcs {
 
 struct DcsAudio2KDiagnostics {
     std::uint64_t host_commands{};
@@ -94,7 +94,7 @@ struct DcsAudio2KDiagnostics {
 // Shared Midway DCS Audio 2K runtime. Board maps own how host commands and
 // reset reach this device; ADSP instruction semantics stay in
 // core/cpus/adsp2105.
-class DcsAudio2K final : public mamerecomp::dcs::HostInterface {
+class DcsAudio2K final : public multiarcaderecomp::dcs::HostInterface {
 public:
     explicit DcsAudio2K(std::span<const std::uint8_t> sound_region);
 
@@ -106,12 +106,12 @@ public:
     std::uint64_t consume_host_stall_cycles() noexcept override;
     void set_reset(bool released) noexcept;
 
-    mamerecomp::adsp2105::State& cpu() noexcept;
-    const mamerecomp::adsp2105::State& cpu() const noexcept;
-    mamerecomp::adsp2105::Bus cpu_bus() noexcept;
+    multiarcaderecomp::adsp2105::State& cpu() noexcept;
+    const multiarcaderecomp::adsp2105::State& cpu() const noexcept;
+    multiarcaderecomp::adsp2105::Bus cpu_bus() noexcept;
     bool program_word_was_written(std::uint16_t address) const noexcept;
     std::vector<std::pair<std::uint16_t, std::uint32_t>> program_overlay() const;
-    mamerecomp::adsp2105::BlockExit run_until(
+    multiarcaderecomp::adsp2105::BlockExit run_until(
         std::uint64_t cycle_limit, bool interpreter_only = false,
         bool recompiler_only = false) noexcept;
     std::vector<std::int16_t> take_samples() noexcept;
@@ -148,7 +148,7 @@ private:
     std::vector<std::pair<std::uint16_t, std::uint32_t>> m_boot_program_history;
     std::vector<std::uint16_t> m_local_ram;
     std::vector<std::int16_t> m_samples;
-    mamerecomp::adsp2105::State m_cpu{};
+    multiarcaderecomp::adsp2105::State m_cpu{};
     std::uint16_t m_control[32]{};
     std::uint16_t m_sound_bank{};
     std::uint16_t m_input_latch{};
@@ -226,4 +226,4 @@ private:
     std::int16_t m_last_sample{};
 };
 
-} // namespace mamerecomp::dcs
+} // namespace multiarcaderecomp::dcs

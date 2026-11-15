@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Xicor X76F100 secure serial EEPROM used as the Naomi ROM-board ID.
 // Protocol and reset behavior follow MAME's x76f100_device and Flycast's
@@ -53,4 +53,4 @@ private:
     std::uint8_t m_command = 0;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

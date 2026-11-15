@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Sega 315-5248 signed 16x16 multiplier used on selected System16B ROM boards.
 class Sega3155248Multiplier {
@@ -15,4 +15,4 @@ private:
     std::array<std::uint16_t, 2> m_operands{};
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

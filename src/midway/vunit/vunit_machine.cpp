@@ -7,7 +7,7 @@
 #include <iterator>
 #include <string_view>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 namespace {
 constexpr std::uint32_t kAddressMask = 0x00ffffff;
 constexpr std::uint32_t kRomBase = 0x00c00000;
@@ -193,7 +193,7 @@ std::uint32_t Machine::read(std::uint32_t address) noexcept {
     if (address == 0x00995000) return static_cast<std::uint32_t>(m_wheel_board_output) << 8;
     if (address >= 0x00997000 && address <= 0x00997008) {
         const auto offset = address - 0x00997000;
-        static const bool trace_comm = std::getenv("MAMERECOMP_VUNIT_TRACE_COMM") != nullptr;
+        static const bool trace_comm = std::getenv("MULTIARCADERECOMP_VUNIT_TRACE_COMM") != nullptr;
         static std::uint64_t trace_count = 0;
         if (trace_comm && trace_count++ < 256)
             std::fprintf(stderr, "[V-Unit COMM] PC=%06x R[%06x] offset=%x data=%04x flags=%02x\n",
@@ -224,7 +224,7 @@ void Machine::write(std::uint32_t address, std::uint32_t value) noexcept {
         (address >= 0x00809800 && address < 0x0080a000))
         m_cpu.invalidate_code_word(address);
     if (address < 0x00020000) {
-        static const bool trace_ram = std::getenv("MAMERECOMP_VUNIT_TRACE_RAM") != nullptr;
+        static const bool trace_ram = std::getenv("MULTIARCADERECOMP_VUNIT_TRACE_RAM") != nullptr;
         static std::uint64_t trace_count = 0;
         if (trace_ram && address >= 0x00009fe0 && address <= 0x0000a030 &&
             trace_count++ < 256) {
@@ -272,7 +272,7 @@ void Machine::write(std::uint32_t address, std::uint32_t value) noexcept {
     if (address == 0x00995000) { wheel_board_write(value); return; }
     if (address >= 0x00997000 && address <= 0x00997008) {
         const auto offset = address - 0x00997000;
-        static const bool trace_comm = std::getenv("MAMERECOMP_VUNIT_TRACE_COMM") != nullptr;
+        static const bool trace_comm = std::getenv("MULTIARCADERECOMP_VUNIT_TRACE_COMM") != nullptr;
         static std::uint64_t trace_count = 0;
         if (trace_comm && trace_count++ < 256)
             std::fprintf(stderr, "[V-Unit COMM] PC=%06x W[%06x] offset=%x value=%08x data=%04x flags=%02x\n",
@@ -393,4 +393,4 @@ void Machine::advance_audio_to(std::uint64_t main_cycle) noexcept {
     else m_dcs.advance_cycles(audio_cycles);
 }
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

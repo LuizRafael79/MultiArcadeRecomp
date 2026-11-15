@@ -4,7 +4,7 @@ The later TMNT2-family board is implemented separately from original TMNT.
 Its board CPU adapters are in `src/konami/tmnt2_machine.cpp`,
 `src/konami/tmnt2_m68k.cpp`, and `src/konami/tmnt2_z80.cpp`. ROM manifests for
 TMNT2 and Sunset Riders are under `src/romsets/konami/tmnt2/`. CMake builds
-`mamerecomp_konami_tmnt2`; generated AOT sources are selected separately by
+`multiarcaderecomp_konami_tmnt2`; generated AOT sources are selected separately by
 game identifier.
 
 The 68000 AOT bridge and Musashi fallback are shared CPU modules. The board

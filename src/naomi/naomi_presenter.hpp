@@ -6,7 +6,7 @@
 #include <span>
 #include <string>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // SDL viewer for Naomi PVR direct-framebuffer readback.
 class NaomiPvrPresenter {
@@ -25,4 +25,4 @@ private:
     Impl* impl_ = nullptr;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

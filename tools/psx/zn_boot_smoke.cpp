@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     }
     try {
         const uint64_t limit = argc == 4 ? std::strtoull(argv[3], nullptr, 0) : 10'000'000;
-        mamerecomp::zn::ZnMachineRuntime machine(argv[1], argv[2]);
+        multiarcaderecomp::zn::ZnMachineRuntime machine(argv[1], argv[2]);
         struct Trace { uint32_t pc, op, t0, t1, t2, t3, s0, s1, sp, ra, stack_ra; };
         std::array<Trace, 4096> history{};
         uint64_t exceptions = 0;
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         unsigned boot_trace_lines = 0;
         unsigned watched_pc_lines = 0;
         unsigned watched_write_lines = 0;
-        const char *step_trace_text = std::getenv("MAMERECOMP_ZN_TRACE_STEPS");
+        const char *step_trace_text = std::getenv("MULTIARCADERECOMP_ZN_TRACE_STEPS");
         uint32_t step_trace_pc = 0xffffffffu;
         uint64_t step_trace_limit = 0;
         if (step_trace_text) {
@@ -33,11 +33,11 @@ int main(int argc, char **argv)
             if (end && *end == ':') step_trace_limit = std::strtoull(end + 1, nullptr, 0);
         }
         uint64_t step_trace_remaining = 0;
-        const char *watched_pc_text = std::getenv("MAMERECOMP_ZN_TRACE_PC");
+        const char *watched_pc_text = std::getenv("MULTIARCADERECOMP_ZN_TRACE_PC");
         const uint32_t watched_pc = watched_pc_text
             ? static_cast<uint32_t>(std::strtoul(watched_pc_text, nullptr, 0))
             : 0xffffffffu;
-        const char *watched_write_text = std::getenv("MAMERECOMP_ZN_TRACE_WRITE");
+        const char *watched_write_text = std::getenv("MULTIARCADERECOMP_ZN_TRACE_WRITE");
         const uint32_t watched_write_address = watched_write_text
             ? static_cast<uint32_t>(std::strtoul(watched_write_text, nullptr, 0))
             : 0xffffffffu;
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
                 (void)machine.memory().read(watched_write_address, 4, &watched_write_before);
             const bool trace_low = fault_pc >= 0x100 && fault_pc < 0x140 && low_trace_lines < 32;
             const bool trace_boot = fault_pc >= 0x1000 && fault_pc < 0x1040 && boot_trace_lines < 32;
-            if (std::getenv("MAMERECOMP_ZN_TRACE_BOOT") &&
+            if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_BOOT") &&
                 (i < 100 || trace_low || trace_boot)) {
                 if (trace_low) ++low_trace_lines;
                 if (trace_boot) ++boot_trace_lines;
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
                           << " sp=" << r[29] << " ra=" << r[31]
                           << " stack+14=" << saved_ra << std::dec << '\n';
             }
-            if (std::getenv("MAMERECOMP_ZN_TRACE_BOOT") &&
+            if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_BOOT") &&
                 (fault_pc == 0x100 || fault_pc == 0x1000) && i >= history.size()) {
                 std::cerr << "entry trace to RAM 0x" << std::hex << fault_pc << ":\n";
                 for (size_t j = 0; j < history.size(); ++j) {

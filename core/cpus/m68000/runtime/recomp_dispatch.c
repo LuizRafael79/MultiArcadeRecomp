@@ -42,10 +42,10 @@ M68kRecompDispatchResult m68k_recomp_dispatch_once(
 
     s_bad_dispatch = 0;
     s_bad_dispatch_pc = 0;
-    mamerecomp_m68k_bus_clear_fault();
+    multiarcaderecomp_m68k_bus_clear_fault();
     entries[lo].fn();
 
-    const M68kBusFault fault = mamerecomp_m68k_bus_fault();
+    const M68kBusFault fault = multiarcaderecomp_m68k_bus_fault();
     if (fault.access != M68K_BUS_ACCESS_NONE) {
         result.status = M68K_RECOMP_DISPATCH_BUS_FAULT;
         result.pc = CPU.pc;
@@ -76,7 +76,7 @@ M68kRecompDispatchResult m68k_recomp_accept_interrupt(uint8_t level)
     }
 
     s_bad_dispatch = 0;
-    mamerecomp_m68k_bus_clear_fault();
+    multiarcaderecomp_m68k_bus_clear_fault();
     CPU.stopped = 0;
     ng_exception(24 + level, CPU.pc);
     CPU.ipl = level;
@@ -84,7 +84,7 @@ M68kRecompDispatchResult m68k_recomp_accept_interrupt(uint8_t level)
      * interrupt entry is 44 cycles in the Musashi reference table. */
     ng_cycles += 10;
 
-    const M68kBusFault fault = mamerecomp_m68k_bus_fault();
+    const M68kBusFault fault = multiarcaderecomp_m68k_bus_fault();
     result.pc = CPU.pc;
     if (fault.access != M68K_BUS_ACCESS_NONE) {
         result.status = M68K_RECOMP_DISPATCH_BUS_FAULT;

@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-namespace mamerecomp::games::sega::system16a::shinobi {
+namespace multiarcaderecomp::games::sega::system16a::shinobi {
 namespace {
 
 struct Options {
@@ -156,23 +156,23 @@ bool draw_game_tab(void* opaque) {
     return changed;
 }
 
-const mamerecomp::sega::GameInputBinding input_bindings[] = {
-    {mamerecomp::sega::GameInputPort::Service, 0, "5", "Ficha 1"},
-    {mamerecomp::sega::GameInputPort::Service, 1, "6", "Ficha 2"},
-    {mamerecomp::sega::GameInputPort::Service, 2, "F2", "Servico"},
-    {mamerecomp::sega::GameInputPort::Service, 4, "1", "Iniciar 1"},
-    {mamerecomp::sega::GameInputPort::Service, 5, "2", "Iniciar 2"},
-    {mamerecomp::sega::GameInputPort::Player1, 1, "K", "Botao 1"},
-    {mamerecomp::sega::GameInputPort::Player1, 2, "L", "Botao 2"},
-    {mamerecomp::sega::GameInputPort::Player1, 0, "J", "Botao 3"},
-    {mamerecomp::sega::GameInputPort::Player1, 4, "S", "Baixo"},
-    {mamerecomp::sega::GameInputPort::Player1, 5, "W", "Cima"},
-    {mamerecomp::sega::GameInputPort::Player1, 6, "D", "Direita"},
-    {mamerecomp::sega::GameInputPort::Player1, 7, "A", "Esquerda"},
-    {mamerecomp::sega::GameInputPort::Player2, 0, "Keypad 3", "P2 Botao 3"},
+const multiarcaderecomp::sega::GameInputBinding input_bindings[] = {
+    {multiarcaderecomp::sega::GameInputPort::Service, 0, "5", "Ficha 1"},
+    {multiarcaderecomp::sega::GameInputPort::Service, 1, "6", "Ficha 2"},
+    {multiarcaderecomp::sega::GameInputPort::Service, 2, "F2", "Servico"},
+    {multiarcaderecomp::sega::GameInputPort::Service, 4, "1", "Iniciar 1"},
+    {multiarcaderecomp::sega::GameInputPort::Service, 5, "2", "Iniciar 2"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 1, "K", "Botao 1"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 2, "L", "Botao 2"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 0, "J", "Botao 3"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 4, "S", "Baixo"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 5, "W", "Cima"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 6, "D", "Direita"},
+    {multiarcaderecomp::sega::GameInputPort::Player1, 7, "A", "Esquerda"},
+    {multiarcaderecomp::sega::GameInputPort::Player2, 0, "Keypad 3", "P2 Botao 3"},
 };
 
-const mamerecomp::sega::GameInputBinding* get_input_bindings(std::size_t* count) {
+const multiarcaderecomp::sega::GameInputBinding* get_input_bindings(std::size_t* count) {
     if (count) *count = std::size(input_bindings);
     return input_bindings;
 }
@@ -193,7 +193,7 @@ void destroy_options(void* state) { delete static_cast<Options*>(state); }
 std::uint8_t options_dsw1(const void* state) { return static_cast<const Options*>(state)->dsw1(); }
 std::uint8_t options_dsw2(const void* state) { return static_cast<const Options*>(state)->dsw2(); }
 
-const mamerecomp::sega::GameSettingsApi api{1, create_options, destroy_options, draw_game_tab,
+const multiarcaderecomp::sega::GameSettingsApi api{1, create_options, destroy_options, draw_game_tab,
     get_input_bindings, options_dsw1, options_dsw2};
 
 } // namespace
@@ -224,11 +224,11 @@ const char* lives_mode_name(std::uint8_t dsw2, bool infinite) {
     return "Free Play";
 }
 
-const mamerecomp::sega::GameSettingsApi* game_settings_api() { return &api; }
+const multiarcaderecomp::sega::GameSettingsApi* game_settings_api() { return &api; }
 
-} // namespace mamerecomp::games::sega::system16a::shinobi
+} // namespace multiarcaderecomp::games::sega::system16a::shinobi
 
 extern "C" __attribute__((visibility("default")))
-const mamerecomp::sega::GameSettingsApi* mamerecomp_game_settings_api() {
-    return mamerecomp::games::sega::system16a::shinobi::game_settings_api();
+const multiarcaderecomp::sega::GameSettingsApi* multiarcaderecomp_game_settings_api() {
+    return multiarcaderecomp::games::sega::system16a::shinobi::game_settings_api();
 }

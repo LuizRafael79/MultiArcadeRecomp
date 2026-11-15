@@ -1,6 +1,6 @@
 #include "mk2/mk2_machine.hpp"
 
-namespace mamerecomp::mk2 {
+namespace multiarcaderecomp::mk2 {
 
 MK2Machine::MK2Machine(std::span<const std::uint8_t> main_rom,
                        std::span<const std::uint8_t> graphics_rom,
@@ -14,11 +14,11 @@ MK2Machine::MK2Machine(std::span<const std::uint8_t> main_rom,
     m_tunit.attach_protection(&m_protection);
 }
 
-mamerecomp::mk::TUnit& MK2Machine::tunit() noexcept { return m_tunit; }
-const mamerecomp::mk::TUnit& MK2Machine::tunit() const noexcept { return m_tunit; }
+multiarcaderecomp::mk::TUnit& MK2Machine::tunit() noexcept { return m_tunit; }
+const multiarcaderecomp::mk::TUnit& MK2Machine::tunit() const noexcept { return m_tunit; }
 Dcs2K& MK2Machine::dcs() noexcept { return m_dcs; }
 const Dcs2K& MK2Machine::dcs() const noexcept { return m_dcs; }
 Protection& MK2Machine::protection() noexcept { return m_protection; }
 const Protection& MK2Machine::protection() const noexcept { return m_protection; }
 
-} // namespace mamerecomp::mk2
+} // namespace multiarcaderecomp::mk2

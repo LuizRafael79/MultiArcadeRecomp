@@ -6,13 +6,13 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace mamerecomp::app::neogeo {
+namespace multiarcaderecomp::app::neogeo {
 
 int inspect_roms(std::string_view game, const std::filesystem::path& game_zip) {
     if (game != "kof98")
         throw std::invalid_argument("unsupported Neo Geo ROM inspection target: " + std::string(game));
     const auto bios_path = game_zip.parent_path() / "neogeo.zip";
-    const auto image = mamerecomp::neogeo::load_kof98(game_zip, bios_path);
+    const auto image = multiarcaderecomp::neogeo::load_kof98(game_zip, bios_path);
     std::cout << "Validated Neo Geo set " << image.set_id << ": " << image.files_loaded
               << " ROM files; BIOS=" << image.bios_filename
               << "; raw 68000 program assembled to 0x" << std::hex
@@ -25,4 +25,4 @@ int inspect_roms(std::string_view game, const std::filesystem::path& game_zip) {
     return 0;
 }
 
-} // namespace mamerecomp::app::neogeo
+} // namespace multiarcaderecomp::app::neogeo

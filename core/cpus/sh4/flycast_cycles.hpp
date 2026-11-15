@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::cpus::sh4::flycast {
+namespace multiarcaderecomp::cpus::sh4::flycast {
 
 struct CycleState {
     // Flycast's execution-unit pipeline and memory-operation window.
@@ -15,4 +15,4 @@ struct CycleState {
 // included yet; they belong in the SH-4 memory bus contract.
 std::uint32_t instruction_cycles(std::uint16_t opcode, CycleState& state);
 
-} // namespace mamerecomp::cpus::sh4::flycast
+} // namespace multiarcaderecomp::cpus::sh4::flycast

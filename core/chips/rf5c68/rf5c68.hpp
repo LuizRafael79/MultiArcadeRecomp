@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // RF5C68 eight-channel PCM generator. The host supplies chip clock ticks and
 // routes the stereo DAC output into its board's mixer.
@@ -45,4 +45,4 @@ private:
     bool m_enabled = false;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

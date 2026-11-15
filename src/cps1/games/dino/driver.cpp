@@ -1,6 +1,6 @@
 #include "cps1_driver.hpp"
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 const Cps1MachineProfile& qsound_machine();
 const Cps1InputProfile& dino_inputs();
 const Cps1RomSet& dino_romset();

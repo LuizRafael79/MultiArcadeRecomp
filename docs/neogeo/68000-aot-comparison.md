@@ -4,11 +4,11 @@
 
 KOF98 and the Sega 68000 boards compile the same local frontend sources:
 `core/third_party/m68krecomp/{decode.c,emit.c,recomp.c}`. CMake builds these
-into `mamerecomp_m68k_aot_frontend` and the `m68krecomp` executable. The KOF98
+into `multiarcaderecomp_m68k_aot_frontend` and the `m68krecomp` executable. The KOF98
 generator calls `rc_raw_main()` from that frontend after decrypting and
 preparing its program image (`src/neogeo/kof98_aot_main.cpp`). The generated
 KOF98 code and the Sega board modules do not share a board runtime: Neo Geo
-uses `core/third_party/neogeo-runtime`, while System16/18 use the shared MameRecomp
+uses `core/third_party/neogeo-runtime`, while System16/18 use the shared MultiArcadeRecomp
 68000 CPU runtime with their own board bus and scheduling.
 
 ## Reference snapshot
@@ -16,14 +16,14 @@ uses `core/third_party/neogeo-runtime`, while System16/18 use the shared MameRec
 The comparison target is the `neogeorecomp` submodule revision pinned by
 KOF98Recomp: `a47ee3fe09dc46d1f2b86c36ec972b43b35ebf62` from
 `danilopaulinodasilva/neogeorecomp`. This is distinct from the sibling local
-`sp00nznet/neogeorecomp` checkout at `af96b2b` and from MameRecomp's adapted
+`sp00nznet/neogeorecomp` checkout at `af96b2b` and from MultiArcadeRecomp's adapted
 frontend/runtime. Keep this provenance distinction when comparing behavior.
 
 ## Semantic differences found
 
-| File | KOF98Recomp snapshot | MameRecomp local state | Assessment |
+| File | KOF98Recomp snapshot | MultiArcadeRecomp local state | Assessment |
 |---|---|---|---|
-| `tools/m68krecomp/recomp.c` | Tracks bank context for the `$200000-$2fffff` program window, emits bank-tagged entries, and recognizes configured live immediate words. | The current Neo Geo raw-image path splits the region into 1 MiB physical banks, analyzes each in its own bank context, and emits bank-tagged entries. It does not recognize configured live immediate words. | The previously reported missing bank identity is stale: both frontend and runtime now preserve physical bank identity. Live-immediate support remains absent; the current MameRecomp KOF98 profile does not apply the reference's widescreen live-word patches, so this is a feature gap rather than the cause of the verified vanilla run. |
+| `tools/m68krecomp/recomp.c` | Tracks bank context for the `$200000-$2fffff` program window, emits bank-tagged entries, and recognizes configured live immediate words. | The current Neo Geo raw-image path splits the region into 1 MiB physical banks, analyzes each in its own bank context, and emits bank-tagged entries. It does not recognize configured live immediate words. | The previously reported missing bank identity is stale: both frontend and runtime now preserve physical bank identity. Live-immediate support remains absent; the current MultiArcadeRecomp KOF98 profile does not apply the reference's widescreen live-word patches, so this is a feature gap rather than the cause of the verified vanilla run. |
 | `tools/m68krecomp/emit.c` | Emits dynamic reads for configured live immediates and checks event deadlines on taken internal back-edges. | Emits constants for immediate operands, adds `NG_DEBUG_INSN()` to every instruction, and charges variable MULU/MULS cycles. The Neo Geo profile does not enable per-instruction event yields; its taken back-edges use the same deadline check. `single_step` is currently used by a different board profile. | The per-instruction event-yield warning in the previous version of this document was inaccurate for Neo Geo and is withdrawn. The debug hook is a measured code-size/runtime-hook cost candidate; MULU/MULS cycle charging is a timing difference to validate separately. |
 | `tools/m68krecomp/decode.c` | Retains the extension-word address for immediate operands so the emitter can identify live immediates. | Does not retain that address for `EA_IMM`. | Needed before supporting live-immediate ROM patches; not implicated by the current unpatched KOF98 run. |
 | `src/exec.c` | Maintains a dispatch table per physical program bank and resolves tagged entries using the currently selected bank. | Allocates one `$200000` dispatch table per bank; each lookup selects `bus_bank()`, and bank-tagged generated entries are installed by their physical bank. | The prior claim of a single dispatch table was stale and is withdrawn. Current KOF98 generation/runtime preserve bank identity for up to eight banks. |
@@ -43,7 +43,7 @@ separate root cause for that historical capture without reproducing it.
 
 The KOF98Recomp verification claim is useful evidence for its exact frontend,
 runtime, ROM preparation, and test sequence, but it does not alone establish
-that MameRecomp has the same coverage or equivalent test conditions.
+that MultiArcadeRecomp has the same coverage or equivalent test conditions.
 
 ## Next audit steps
 

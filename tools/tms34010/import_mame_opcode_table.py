@@ -2,7 +2,7 @@
 """Generate the TMS34010 opcode dispatch table from the vendored MAME source.
 
 The generator keeps MAME's handler selection authoritative while the handler
-implementation is adapted to MameRecomp's State/Bus interfaces.
+implementation is adapted to MultiArcadeRecomp's State/Bus interfaces.
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ def main() -> None:
 
 #include <cstdint>
 
-namespace mamerecomp::tms34010 {{
+namespace multiarcaderecomp::tms34010 {{
 
 class MameTMS34010 {{
 public:
@@ -116,7 +116,7 @@ public:
 BlockExit execute_mame_interpreter(State& state, Bus& bus,
                                    std::uint64_t stop_cycle);
 
-}} // namespace mamerecomp::tms34010
+}} // namespace multiarcaderecomp::tms34010
 '''
     HEADER.write_text(class_header, encoding="utf-8")
     print(f"wrote {HEADER.relative_to(ROOT)} with {len(methods)} handlers")
@@ -141,7 +141,7 @@ BlockExit execute_mame_interpreter(State& state, Bus& bus,
 #include <cstdint>
 #include <limits>
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 
 static constexpr std::uint32_t STBIT_N = 1u << 31;
 static constexpr std::uint32_t STBIT_C = 1u << 30;
@@ -357,7 +357,7 @@ BlockExit execute_mame_interpreter(State& state, Bus& bus, std::uint64_t stop_cy
     return cpu.step(state,bus,stop_cycle);
 }
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010
 '''
     table_handlers = sorted(set(re.findall(r"&MameTMS34010::([A-Za-z0-9_]+)", table)))
     handler_cases = "\n".join(

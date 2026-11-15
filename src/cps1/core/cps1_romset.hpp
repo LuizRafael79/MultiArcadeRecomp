@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 
 using RomRegions = std::unordered_map<std::string, std::vector<std::uint8_t>>;
 
@@ -15,4 +15,4 @@ RomRegions load_romset(const Cps1RomSet& romset, const std::filesystem::path& zi
 void export_romset(const Cps1RomSet& romset, const std::filesystem::path& zip_path,
                    const std::filesystem::path& output_dir);
 
-} // namespace mamerecomp::cps1
+} // namespace multiarcaderecomp::cps1

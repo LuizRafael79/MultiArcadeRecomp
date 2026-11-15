@@ -11,9 +11,9 @@ struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
 
-namespace mamerecomp::video {
+namespace multiarcaderecomp::video {
 
-using SdlArcadeInput = mamerecomp::runtime::ArcadeInput;
+using SdlArcadeInput = multiarcaderecomp::runtime::ArcadeInput;
 
 // Shared OpenGL-backed framebuffer presenter for board modules with an RGB24 frame.
 class SdlVideoPresenter {
@@ -31,7 +31,7 @@ public:
     bool pump_events();
     SdlArcadeInput input_state() const;
     void present(std::span<const std::uint8_t> rgb);
-    void present(mamerecomp::runtime::Rgb24FrameView frame);
+    void present(multiarcaderecomp::runtime::Rgb24FrameView frame);
     void* native_window() const noexcept { return window_; }
     void* native_gl_context() const noexcept { return gl_context_; }
     bool has_native_gl_context() const noexcept { return gl_context_ != nullptr; }
@@ -50,4 +50,4 @@ private:
     void resize_texture(unsigned width, unsigned height);
 };
 
-} // namespace mamerecomp::video
+} // namespace multiarcaderecomp::video

@@ -1,0 +1,4 @@
+#pragma once
+
+#define MULTIARCADERECOMP_CPS2_MAIN cps2recomp_@CPS2RECOMP_GAME@_main
+#define MULTIARCADERECOMP_CPS2_ENTRY multiarcaderecomp_cps2_@CPS2RECOMP_GAME@_run

@@ -33,7 +33,7 @@ layout(std430, binding = 4) readonly buffer BatchScanlines {
 
 layout(location = 0) out uint oColor;
 layout(binding = 0) uniform usampler2D uVram;
-#ifndef MAMERECOMP_PSX_NO_TEXTURE_CACHE
+#ifndef MULTIARCADERECOMP_PSX_NO_TEXTURE_CACHE
 layout(binding = 1) uniform usampler2DArray uTextureCache;
 #endif
 uniform int uVramHeight;
@@ -198,7 +198,7 @@ void main() {
     if (textured) {
         const int u = uv_sample.x & vWindowState.z;
         const int v = uv_sample.y & vWindowState.w;
-#ifdef MAMERECOMP_PSX_NO_TEXTURE_CACHE
+#ifdef MULTIARCADERECOMP_PSX_NO_TEXTURE_CACHE
         texel = sample_texture_direct(u, v);
 #else
         texel = texelFetch(uTextureCache,

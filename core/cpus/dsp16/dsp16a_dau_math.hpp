@@ -5,7 +5,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace mamerecomp::dsp16::detail {
+namespace multiarcaderecomp::dsp16::detail {
 
 constexpr std::uint64_t acc36_mask = (std::uint64_t{1} << 36) - 1;
 constexpr std::uint64_t alu37_mask = (std::uint64_t{1} << 37) - 1;
@@ -77,4 +77,4 @@ constexpr std::int64_t align_product(std::int32_t product, std::uint8_t auc_alig
     }
 }
 
-} // namespace mamerecomp::dsp16::detail
+} // namespace multiarcaderecomp::dsp16::detail

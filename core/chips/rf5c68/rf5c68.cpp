@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 void Rf5c68::write_register(std::uint8_t offset, std::uint8_t value) noexcept {
     offset &= 0x0fU;
@@ -93,4 +93,4 @@ void Rf5c68::update_enabled_channels() noexcept {
             m_enabled_channels |= static_cast<std::uint8_t>(1U << index);
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

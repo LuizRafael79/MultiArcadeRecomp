@@ -4,7 +4,7 @@ The MK runtime now has a MAME-derived TMS34010 interpreter fallback. Native
 translated blocks remain the first execution path. When dispatch reaches an
 untranslated entry, one instruction is executed through the MAME opcode table;
 graphics handlers that are still incomplete in the adapter are explicitly
-handed to the existing incremental MameRecomp implementation.
+handed to the existing incremental MultiArcadeRecomp implementation.
 
 ## Imported source and generated adapter
 

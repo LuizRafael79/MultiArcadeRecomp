@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <vector>
 
-using namespace mamerecomp;
-using namespace mamerecomp::chips::sega3155197;
+using namespace multiarcaderecomp;
+using namespace multiarcaderecomp::chips::sega3155197;
 
 static void assert_same(const TilemapOutput& a, const TilemapOutput& b) {
     assert(a.palette_indices == b.palette_indices);

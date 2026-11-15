@@ -66,7 +66,7 @@ int window_open(const char *title, int scale) {
     if (s_ren) {
         SDL_RendererInfo info;
         if (SDL_GetRendererInfo(s_ren, &info) == 0)
-            fprintf(stderr, "MameRecomp NeoGeo SDL video renderer: %s\n", info.name);
+            fprintf(stderr, "MultiArcadeRecomp NeoGeo SDL video renderer: %s\n", info.name);
     }
     SDL_RenderSetLogicalSize(s_ren, NG_SCREEN_W, NG_SCREEN_H);
     s_tex = SDL_CreateTexture(s_ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,

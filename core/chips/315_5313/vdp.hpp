@@ -5,7 +5,7 @@
 #include <functional>
 #include <utility>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Behavioral model of Sega's 315-5313 VDP bus, memory, and scanline output.
 // System 18 layer mixing remains a board/video-pipeline responsibility.
@@ -95,4 +95,4 @@ private:
     bool m_irq6_asserted = false;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

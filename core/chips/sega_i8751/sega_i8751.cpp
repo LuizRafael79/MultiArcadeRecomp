@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 namespace {
 constexpr std::uint32_t kOscillatorHz = 8'000'000;
 constexpr std::uint32_t kClocksPerMachineCycle = 12;
@@ -52,4 +52,4 @@ void SegaI8751::advance_to_host_cycle(std::uint64_t cycle, std::uint32_t host_cl
 void SegaI8751::set_vblank(bool asserted) { m_cpu.set_irq0(asserted); }
 void SegaI8751::set_irq1(bool asserted) { m_cpu.set_irq1(asserted); }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

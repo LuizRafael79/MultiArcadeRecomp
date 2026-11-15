@@ -10,7 +10,7 @@
 #include <limits>
 #include <string>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 constexpr std::uint32_t kSh4Clock = 200'000'000;
 constexpr std::uint32_t kPixelClock = 27'000'000;
@@ -201,7 +201,7 @@ NaomiPvr2::NaomiPvr2() : m_vram(kVramBytes) {
 }
 
 NaomiPvr2::~NaomiPvr2() {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR"))
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR"))
         std::fprintf(stderr,
                      "Naomi PVR runtime: dma-commands=%llu dma-bytes=%llu render-starts=%llu register-writes=%u TA-bytes=%llu completed-lists=%zu VRAM-bytes=%llu\n",
                      static_cast<unsigned long long>(m_pvr_dma_commands),
@@ -211,7 +211,7 @@ NaomiPvr2::~NaomiPvr2() {
                      static_cast<unsigned long long>(m_ta_bytes_submitted),
                      m_ta_lists.size(),
                      static_cast<unsigned long long>(m_vram_bytes_written));
-    const char* prefix = std::getenv("MAMERECOMP_NAOMI_DUMP_PVR_PREFIX");
+    const char* prefix = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_PVR_PREFIX");
     if (!prefix || !*prefix) return;
 
     const auto write_bytes = [prefix](const char* suffix, const std::uint8_t* data,
@@ -365,7 +365,7 @@ std::uint32_t NaomiPvr2::read(std::uint32_t address, unsigned width) const {
         if (address == kTaListInit) {
             // Flycast's PVR register handler exposes this command register as
             // zero on readback.
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") &&
                 g_pvr_trace_ta_init_reads < 64) {
                 ++g_pvr_trace_ta_init_reads;
                 std::fprintf(stderr, "Naomi PVR REG R address=%08x width=%u value=00000000\n",
@@ -414,7 +414,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
                 startPvrDma();
             break;
         }
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
             ++g_pvr_trace_writes;
             std::fprintf(stderr, "Naomi PVR IF W address=%08x width=%u value=%08x merged=%08x\n",
                          address, width, value, reg);
@@ -486,7 +486,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
             // the frame must survive that without substituting a diagnostic
             // surface for guest pixels.
             if (!m_ppm_capture_written) {
-                if (const char* prefix = std::getenv("MAMERECOMP_NAOMI_DUMP_PVR_PREFIX");
+                if (const char* prefix = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_PVR_PREFIX");
                     prefix && *prefix) {
                     const auto frame = captureFramebuffer();
                     if (frame.width != 0 && frame.height != 0 &&
@@ -529,7 +529,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
                 : std::min<std::uint64_t>(450000u + context_bytes * 100u,
                                           1500000u);
             m_render_done_cycles_remaining = static_cast<std::uint32_t>(render_delay);
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") &&
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") &&
                 m_render_start_requests <= 16) {
                 std::size_t vertex_count = 0;
                 for (const auto& primitive : m_scene_primitives)
@@ -566,7 +566,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
                                      vertex.base_color[0][2], vertex.base_color[0][3]);
                     }
                 }
-                if (const char* prefix = std::getenv("MAMERECOMP_NAOMI_DUMP_PVR_PREFIX");
+                if (const char* prefix = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_PVR_PREFIX");
                     prefix && *prefix && m_render_start_requests == 1) {
                     std::ofstream scene(std::string(prefix) + ".first-render-scene.txt");
                     if (scene) {
@@ -587,7 +587,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
                     }
                 }
             }
-            if (const char* prefix = std::getenv("MAMERECOMP_NAOMI_DUMP_PVR_PREFIX");
+            if (const char* prefix = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_PVR_PREFIX");
                 prefix && *prefix &&
                 (m_render_start_requests == 1 || m_render_start_requests == 2 ||
                  m_render_start_requests == 4 || m_render_start_requests == 8 ||
@@ -693,7 +693,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
                 m_ta_active_primitive = -1;
             }
             // Flycast handles TA_LIST_INIT as a command without storing data.
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
                 ++g_pvr_trace_writes;
                 std::fprintf(stderr, "Naomi PVR REG W address=%08x width=%u value=%08x command_readback=00000000\n",
                              address, width, value);
@@ -743,7 +743,7 @@ void NaomiPvr2::write(std::uint32_t address, unsigned width, std::uint32_t value
             aligned == kPvrCoreStart + 0xd0u ||
             aligned == kPvrCoreStart + 0xd8u)
             recalculateTiming();
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_writes < 256) {
             ++g_pvr_trace_writes;
             std::fprintf(stderr, "Naomi PVR REG W address=%08x width=%u value=%08x merged=%08x\n",
                          address, width, value, reg);
@@ -850,7 +850,7 @@ void NaomiPvr2::startPvrDma() {
     constexpr std::uint32_t kDmaorMask = 0xffff8201u;
     const auto dmaor = m_dma_read32(kDmaor);
     if ((dmaor & kDmaorMask) != 0x8201u) {
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_dma_trace_events++ < 128)
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_dma_trace_events++ < 128)
             std::fprintf(stderr,
                          "Naomi PVR DMA rejected DMAOR=%08x mask=%08x PDSTAP=%08x PDSTAR=%08x PDLEN=%08x\n",
                          dmaor, dmaor & kDmaorMask, m_pvr_dma_pvr_address,
@@ -863,7 +863,7 @@ void NaomiPvr2::startPvrDma() {
     auto destination = m_pvr_dma_direction ? m_pvr_dma_system_address : m_pvr_dma_pvr_address;
     // Flycast's block helper transfers complete words and ignores any tail.
     const auto transfer_bytes = bytes & ~3u;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_dma_trace_events++ < 128)
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_dma_trace_events++ < 128)
         std::fprintf(stderr,
                      "Naomi PVR DMA start dir=%u src=%08x dst=%08x bytes=%08x DMAOR=%08x\n",
                      m_pvr_dma_direction ? 1u : 0u, source, destination,
@@ -2079,7 +2079,7 @@ void NaomiPvr2::writeStoreQueue(std::uint32_t address,
                                 const std::array<std::uint8_t, 64>& queues) {
     const auto queue_offset = static_cast<std::size_t>((address >> 5) & 1u) * kStoreQueueBytes;
     const auto target = address & 0x01ffffe0u;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_submits < 64) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_submits < 64) {
         ++g_pvr_trace_submits;
         std::fprintf(stderr, "Naomi PVR SQ address=%08x target=%08x queue=%zu first=%02x%02x%02x%02x\n",
                      address, target, queue_offset,
@@ -2484,7 +2484,7 @@ void NaomiPvr2::parseTaPackets() {
             } else {
                 const auto format = decodeTaObjectFormat(static_cast<std::uint8_t>(pcw));
                 if (!format.valid) {
-                    if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") &&
+                    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") &&
                         m_render_start_requests < 8)
                         std::fprintf(stderr,
                                      "Naomi PVR TA invalid polygon format pcw=%08x offset=%zu\n",
@@ -2540,13 +2540,13 @@ void NaomiPvr2::parseTaPackets() {
                 }
                 const auto bit = list_end_irq[completed_list];
                 m_pending_ta_irqs.push_back(bit);
-                if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_ta_eols < 64) {
+                if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_ta_eols < 64) {
                     ++g_pvr_trace_ta_eols;
                     std::fprintf(stderr,
                                  "Naomi PVR TA EOL list=%u irq_bit=%u stream_offset=%zu\n",
                                  completed_list, bit, m_ta_parse_offset);
                 }
-            } else if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_ta_eols < 64) {
+            } else if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR") && g_pvr_trace_ta_eols < 64) {
                 ++g_pvr_trace_ta_eols;
                 std::fprintf(stderr,
                              "Naomi PVR TA EOL unsupported_list=%u stream_offset=%zu\n",
@@ -2566,4 +2566,4 @@ void NaomiPvr2::parseTaPackets() {
     }
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

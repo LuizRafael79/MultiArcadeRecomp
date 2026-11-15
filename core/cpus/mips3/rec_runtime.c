@@ -37,8 +37,8 @@ const rec_host_t *rec_host_info(void)
 
 static bool use(const rec_module_t *m)
 {
-    if (!m || !m->nfuncs || getenv("MAMERECOMP_MIPS3_INTERPRETER_ONLY") ||
-        getenv("MAMERECOMP_MIPS3_COVER") || cpu_trace) return false;
+    if (!m || !m->nfuncs || getenv("MULTIARCADERECOMP_MIPS3_INTERPRETER_ONLY") ||
+        getenv("MULTIARCADERECOMP_MIPS3_COVER") || cpu_trace) return false;
     if (m->abi != REC_ABI_VERSION || m->sizeof_cpu != sizeof(cpu_t) || m->sizeof_tlbc != sizeof(tlbc_t)) {
         fprintf(stderr, "rec: translated code is from another version, not used\n");
         return false;

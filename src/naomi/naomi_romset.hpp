@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 struct NaomiRomBoardImage {
     std::string set_id;
@@ -30,4 +30,4 @@ NaomiRomBoardImage load_mvc2_rom_board(const std::string& set_id,
 NaomiBiosImage load_naomi_bios(const std::string& set_id,
                                const std::filesystem::path& zip_path);
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

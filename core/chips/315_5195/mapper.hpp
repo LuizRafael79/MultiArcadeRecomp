@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Behavioral model of Sega's 315-5195 mapper ASIC. Board packages provide
 // the eight region wirings and callbacks for the device's external bus pins.
@@ -50,4 +50,4 @@ private:
     std::uint8_t m_sound_reply = 0;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

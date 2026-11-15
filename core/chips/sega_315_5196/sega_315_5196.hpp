@@ -4,7 +4,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::chips::sega3155196 {
+namespace multiarcaderecomp::chips::sega3155196 {
 
 inline constexpr int kFrameWidth = 320;
 inline constexpr int kFrameHeight = 224;
@@ -17,4 +17,4 @@ inline constexpr int kFrameHeight = 224;
 std::vector<std::uint16_t> rasterize_sprites(std::span<const std::uint8_t> sprite_rom,
     std::span<std::uint8_t> sprite_ram, std::span<const std::uint8_t> sprite_banks = {}, bool flip = false);
 
-} // namespace mamerecomp::chips::sega3155196
+} // namespace multiarcaderecomp::chips::sega3155196

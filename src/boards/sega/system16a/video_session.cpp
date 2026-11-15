@@ -1,6 +1,6 @@
 #include "boards/sega/system16a/video_session.hpp"
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 class System16AVideoRenderer final : public SegaBoardVideoRenderer {
 public:
@@ -43,4 +43,4 @@ std::unique_ptr<SegaBoardVideoRenderer> make_system16a_video_renderer(
     return std::make_unique<System16AVideoRenderer>(decoded_tiles, sprite_rom, bus, signals, backend);
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

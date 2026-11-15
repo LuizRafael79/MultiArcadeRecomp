@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 using RuntimeAbiFn = unsigned (*)();
 using RuntimeRevisionFn = unsigned (*)();
@@ -39,7 +39,7 @@ BoardRuntimeHardware make_board_runtime(const BoardRuntimeContext& context) {
     if (!registration) throw std::runtime_error("Sega board has no registered runtime");
 
     const auto module_path = module_directory()
-        / ("mamerecomp_" + std::string(registration->module_id) + "_runtime.so");
+        / ("multiarcaderecomp_" + std::string(registration->module_id) + "_runtime.so");
     dlerror();
     void* raw_handle = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!raw_handle) {
@@ -51,13 +51,13 @@ BoardRuntimeHardware make_board_runtime(const BoardRuntimeContext& context) {
     std::shared_ptr<void> module_owner(raw_handle, close_module);
 
     const auto abi = reinterpret_cast<RuntimeAbiFn>(required_symbol(
-        raw_handle, "mamerecomp_runtime_abi", module_path));
+        raw_handle, "multiarcaderecomp_runtime_abi", module_path));
     const auto revision = reinterpret_cast<RuntimeRevisionFn>(required_symbol(
-        raw_handle, "mamerecomp_runtime_revision", module_path));
+        raw_handle, "multiarcaderecomp_runtime_revision", module_path));
     const auto create = reinterpret_cast<CreateRuntimeFn>(required_symbol(
-        raw_handle, "mamerecomp_create_runtime", module_path));
+        raw_handle, "multiarcaderecomp_create_runtime", module_path));
     const auto destroy = reinterpret_cast<DestroyRuntimeFn>(required_symbol(
-        raw_handle, "mamerecomp_destroy_runtime", module_path));
+        raw_handle, "multiarcaderecomp_destroy_runtime", module_path));
     if (abi() != 1 || revision() != registration->module_revision)
         throw std::runtime_error("board runtime ABI/revision mismatch: " + module_path.string());
 
@@ -74,7 +74,7 @@ std::vector<BoardMemoryRegion> inspect_board_memory_map(const GameProfile& profi
     const auto* registration = find_board(board_family(profile));
     if (!registration) throw std::runtime_error("Sega board has no registered runtime");
     const auto module_path = module_directory()
-        / ("mamerecomp_" + std::string(registration->module_id) + "_runtime.so");
+        / ("multiarcaderecomp_" + std::string(registration->module_id) + "_runtime.so");
     void* handle = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
         const auto* error = dlerror();
@@ -83,7 +83,7 @@ std::vector<BoardMemoryRegion> inspect_board_memory_map(const GameProfile& profi
     }
     std::shared_ptr<void> owner(handle, close_module);
     const auto visit = reinterpret_cast<MemoryMapFn>(required_symbol(
-        handle, "mamerecomp_runtime_memory_map", module_path));
+        handle, "multiarcaderecomp_runtime_memory_map", module_path));
     std::vector<BoardMemoryRegion> regions;
     const auto append = [](void* user, const char* name, std::uint32_t start,
         std::uint32_t size, std::uint32_t mirror, bool writable, bool device) {
@@ -100,7 +100,7 @@ std::vector<std::uint8_t> decode_board_tiles(const GameProfile& profile,
     const auto* registration = find_board(board_family(profile));
     if (!registration) throw std::runtime_error("Sega board has no registered runtime");
     const auto module_path = module_directory()
-        / ("mamerecomp_" + std::string(registration->module_id) + "_runtime.so");
+        / ("multiarcaderecomp_" + std::string(registration->module_id) + "_runtime.so");
     void* handle = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
         const auto* error = dlerror();
@@ -109,7 +109,7 @@ std::vector<std::uint8_t> decode_board_tiles(const GameProfile& profile,
     }
     std::shared_ptr<void> owner(handle, close_module);
     const auto decode = reinterpret_cast<DecodeTilesFn>(required_symbol(
-        handle, "mamerecomp_runtime_decode_tiles", module_path));
+        handle, "multiarcaderecomp_runtime_decode_tiles", module_path));
     return decode(tile_rom.data(), tile_rom.size());
 }
 
@@ -118,7 +118,7 @@ std::vector<std::uint8_t> decrypt_board_initial_program(const GameProfile& profi
     const auto* registration = find_board(board_family(profile));
     if (!registration) throw std::runtime_error("Sega board has no registered runtime");
     const auto module_path = module_directory()
-        / ("mamerecomp_" + std::string(registration->module_id) + "_runtime.so");
+        / ("multiarcaderecomp_" + std::string(registration->module_id) + "_runtime.so");
     void* handle = dlopen(module_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
         const auto* error = dlerror();
@@ -127,8 +127,8 @@ std::vector<std::uint8_t> decrypt_board_initial_program(const GameProfile& profi
     }
     std::shared_ptr<void> owner(handle, close_module);
     const auto decrypt = reinterpret_cast<DecryptInitialProgramFn>(required_symbol(
-        handle, "mamerecomp_runtime_decrypt_initial_program", module_path));
+        handle, "multiarcaderecomp_runtime_decrypt_initial_program", module_path));
     return decrypt(&profile, rom_path.c_str(), encrypted_program.data(), encrypted_program.size());
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

@@ -9,7 +9,7 @@ extern "C" {
 #include <neogeorecomp/neogeo.h>
 }
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 struct Cps1CpuStats {
     uint64_t native_blocks = 0;
@@ -28,4 +28,4 @@ void write_m68k_profile(std::ostream& out);
 bool save_m68k_entries(const std::string& path);
 bool save_m68k_ram_artifacts(const std::string& entries_path, const std::string& snapshot_path);
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

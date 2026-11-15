@@ -3,7 +3,7 @@
 The original TMNT board is implemented separately from the later TMNT2/Sunset
 Riders board. Its board code is in `src/konami/tmnt_machine.cpp` and
 `src/konami/tmnt_z80.cpp`; game ROM wiring is in `src/romsets/konami/tmnt/`.
-The CMake target is `mamerecomp_konami_tmnt`.
+The CMake target is `multiarcaderecomp_konami_tmnt`.
 
 The 68000 AOT bridge and Musashi interpreter fallback are shared CPU modules
 under `core/cpus/m68000/runtime/`. TMNT supplies its own board memory callbacks;

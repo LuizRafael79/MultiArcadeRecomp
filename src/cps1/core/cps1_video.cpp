@@ -13,13 +13,13 @@
 #include <unordered_map>
 #include <vector>
 
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
 #include <SDL3/SDL.h>
 #endif
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
 SDL_Window* g_cps1_window = nullptr;
 SDL_Renderer* g_cps1_renderer = nullptr;
 SDL_Texture* g_cps1_texture = nullptr;
@@ -30,14 +30,14 @@ void present_live_frame(const std::vector<uint32_t>& frame) {
     static uint64_t next_frame_ns = 0;
     static uint64_t pacing_window_start_ns = 0;
     static uint64_t pacing_frames = 0;
-    static const bool trace_pacing = std::getenv("MAMERECOMP_CPS1_TRACE_PACING") != nullptr;
+    static const bool trace_pacing = std::getenv("MULTIARCADERECOMP_CPS1_TRACE_PACING") != nullptr;
     if (!g_cps1_window) {
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { g_cps1_window_failed = true; return; }
-        g_cps1_window = SDL_CreateWindow("CPS-1 MameRecomp", 768, 448, SDL_WINDOW_RESIZABLE);
+        g_cps1_window = SDL_CreateWindow("CPS-1 MultiArcadeRecomp", 768, 448, SDL_WINDOW_RESIZABLE);
         if (!g_cps1_window) { g_cps1_window_failed = true; return; }
         g_cps1_renderer = SDL_CreateRenderer(g_cps1_window, "software");
         if (g_cps1_renderer)
-            SDL_Log("MameRecomp CPS1 SDL video renderer: %s",
+            SDL_Log("MultiArcadeRecomp CPS1 SDL video renderer: %s",
                     SDL_GetRendererName(g_cps1_renderer) ? SDL_GetRendererName(g_cps1_renderer) : "unknown");
         g_cps1_texture = g_cps1_renderer ? SDL_CreateTexture(g_cps1_renderer, SDL_PIXELFORMAT_ARGB8888,
                                                                SDL_TEXTUREACCESS_STREAMING, 384, 224) : nullptr;
@@ -89,7 +89,7 @@ void present_live_frame(const std::vector<uint32_t>& frame) {
         (held(SDL_SCANCODE_5) ? 0x01 : 0) | (held(SDL_SCANCODE_6) ? 0x02 : 0)
         | (held(SDL_SCANCODE_F2) ? 0x04 : 0) | (held(SDL_SCANCODE_1) ? 0x10 : 0)
         | (held(SDL_SCANCODE_2) ? 0x20 : 0));
-    if (std::getenv("MAMERECOMP_CPS1_TRACE_INPUT")) {
+    if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_INPUT")) {
         static std::uint16_t last_players = 0xffff;
         static std::uint8_t last_system = 0xff, last_extra = 0xff;
         if (last_players != static_cast<std::uint16_t>(~players)
@@ -142,7 +142,7 @@ uint64_t g_video_nonzero_pens = 0;
 
 void set_live_window_enabled(bool enabled) { g_live_window_enabled = enabled; }
 bool live_window_quit_requested() {
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     return g_cps1_quit || (g_live_window_enabled && g_cps1_window_failed);
 #else
     return false;
@@ -399,7 +399,7 @@ void render_sprites(std::vector<uint32_t>& frame, const std::array<uint32_t, 0xc
             break;
         }
     }
-    if (std::getenv("MAMERECOMP_CPS1_TRACE_OBJECTS")) {
+    if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_OBJECTS")) {
         const unsigned layer_control_index = g_active_cps_b_profile
             ? g_active_cps_b_profile->layer_control_register : 0x13;
         if (g_cps_b[layer_control_index] == 0x06d6) {
@@ -480,7 +480,7 @@ bool write_frame(const std::string& path) {
             g_active_cps_b_profile->layer_enable_masks[1], g_active_cps_b_profile->layer_enable_masks[2],
             g_active_cps_b_profile->layer_enable_masks[3], g_active_cps_b_profile->layer_enable_masks[4]}
         : std::array<unsigned, 5>{0x02, 0x04, 0x08, 0x30, 0x30};
-    if (std::getenv("MAMERECOMP_CPS1_TRACE_COMPOSITION")) {
+    if (std::getenv("MULTIARCADERECOMP_CPS1_TRACE_COMPOSITION")) {
         static std::array<uint16_t, 6> previous{};
         const std::array<uint16_t, 6> current{
             control, g_cps_a[0x11],
@@ -521,7 +521,7 @@ bool write_frame(const std::string& path) {
         }
     }
     if (g_cps_a[0x11] & 0x8000) flip_frame_180(frame);
-    if (const char* prefix = std::getenv("MAMERECOMP_CPS1_DUMP_LAYERS")) {
+    if (const char* prefix = std::getenv("MULTIARCADERECOMP_CPS1_DUMP_LAYERS")) {
         std::vector<uint8_t> no_sprite_mask(384 * 224, 0);
         for (unsigned layer = 0; layer <= 3; ++layer) {
             auto layer_frame = std::vector<uint32_t>(384 * 224, palette[0xbff]);
@@ -539,7 +539,7 @@ bool write_frame(const std::string& path) {
             }
         }
     }
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     if (g_live_window_enabled) present_live_frame(frame);
 #endif
     if (path.empty()) return true;
@@ -554,4 +554,4 @@ bool write_frame(const std::string& path) {
 }
 
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

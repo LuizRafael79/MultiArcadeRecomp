@@ -21,14 +21,14 @@ sources. Preserve the upstream source links and license notice with this board
 module; the source links and license text are recorded in
 [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
-See [`RUNTIME_PORT.md`](RUNTIME_PORT.md) for the MAME-to-MameRecomp source map,
+See [`RUNTIME_PORT.md`](RUNTIME_PORT.md) for the MAME-to-MultiArcadeRecomp source map,
 CPU/runtime ownership boundaries and explicit remaining port work.
 
 The common launcher uses the MAME set names and Midway's T-Unit board family:
 
 ```sh
-mamerecomp build --machine=midway --board=tunit --game=mk
-mamerecomp run --machine=midway --board=tunit --game=mk --frames 600
+multiarcaderecomp build --machine=midway --board=tunit --game=mk
+multiarcaderecomp run --machine=midway --board=tunit --game=mk --frames 600
 ```
 
 Headless runs can select `--cycles` and save a frame with `--frame-out`; input
@@ -89,11 +89,11 @@ Generate the ROM regions/AOT source, then build the module and bounded runner:
 python3 tools/mk/build.py --romset ~/git/mame/roms/mk.zip --out build/mk/work \
   --entry-list tools/mk/aot_entries_mk.txt
 cmake -S . -B build/mk/native \
-  -DMAMERECOMP_TMS34010_AOT_SOURCE="$PWD/build/mk/work/tms34010_aot.cpp" \
-  -DMAMERECOMP_M6809_AOT_SOURCE="$PWD/build/mk/work/mc6809e_aot.cpp" \
-  -DMAMERECOMP_ENABLE_WINDOW=ON
-cmake --build build/mk/native --target mamerecomp_mk_trace -j2
-build/mk/native/mamerecomp_mk_trace build/mk/work --window
+  -DMULTIARCADERECOMP_TMS34010_AOT_SOURCE="$PWD/build/mk/work/tms34010_aot.cpp" \
+  -DMULTIARCADERECOMP_M6809_AOT_SOURCE="$PWD/build/mk/work/mc6809e_aot.cpp" \
+  -DMULTIARCADERECOMP_ENABLE_WINDOW=ON
+cmake --build build/mk/native --target multiarcaderecomp_mk_trace -j2
+build/mk/native/multiarcaderecomp_mk_trace build/mk/work --window
 ```
 
 The runner loads and saves the T-Unit's 16 KiB CMOS image at
@@ -121,7 +121,7 @@ scheduled framebuffer to PPM. Runtime-discovered roots are recorded in
 
 The build step also emits `mc6809e_aot.cpp` from the sound ROM region. Its
 first native pass covers a small reset/control-flow subset across all eight
-MAME ROM banks and is compiled as `mamerecomp_m6809_aot`; other instructions
+MAME ROM banks and is compiled as `multiarcaderecomp_m6809_aot`; other instructions
 fall back to the shared MC6809E interpreter in the runner.
 
 CPU blocks are currently scheduled by the diagnostic runner at dispatch
@@ -132,6 +132,6 @@ Start 1; reaching it is not proof that the board has passed ROM validation.
 
 MAME's `.cpp` files are not drop-in standalone runtime units: they depend on
 MAME's device framework, address-space callbacks, scheduler and screen model.
-The local files therefore port board behavior into MameRecomp's bus/runtime
+The local files therefore port board behavior into MultiArcadeRecomp's bus/runtime
 interfaces and keep exact upstream file references above; they do not compile
 or link MAME's emulator framework into the generated game.

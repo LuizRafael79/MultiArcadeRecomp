@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 constexpr uint32_t STOP = 0x001;
 constexpr uint32_t RESET = 0x004;
@@ -159,4 +159,4 @@ void RootTimers::advance(uint64_t cycles)
     recompute_next_event();
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

@@ -5,7 +5,7 @@
 #include <functional>
 #include <span>
 
-namespace mamerecomp::mcs51 {
+namespace multiarcaderecomp::mcs51 {
 using u8 = std::uint8_t;
 using s8 = std::int8_t;
 using u16 = std::uint16_t;
@@ -211,4 +211,4 @@ private:
     void illegal(u8);
     void execute_op(u8);
 };
-} // namespace mamerecomp::mcs51
+} // namespace multiarcaderecomp::mcs51

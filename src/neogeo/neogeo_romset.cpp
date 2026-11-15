@@ -18,7 +18,7 @@
 
 // KOF98 PROGSF1 byte/word permutation follows MAME's BSD-3-Clause
 // prot_kof98.cpp (device implementation, not linked at runtime).
-namespace mamerecomp::neogeo {
+namespace multiarcaderecomp::neogeo {
 namespace {
 namespace data = romset_data;
 struct ArchiveCloser { void operator()(archive* a) const { if (a) archive_read_free(a); } };
@@ -159,4 +159,4 @@ void extract_kof98_inputs(const std::filesystem::path& game_zip,
     write_files(game_directory,game_files);
     write_files(bios_directory,bios_files);
 }
-} // namespace mamerecomp::neogeo
+} // namespace multiarcaderecomp::neogeo

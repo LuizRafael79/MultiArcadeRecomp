@@ -2,7 +2,7 @@
 #include "boards/sega/common/sega_address_space.hpp"
 #include "runtime/sega/board_runtime.hpp"
 
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
 #include <neogeorecomp/cpu.h>
 #endif
 #include <algorithm>
@@ -23,7 +23,7 @@
 
 extern "C" int rc_raw_main(int argc, char** argv);
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 std::uint32_t read_be32(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
     if (offset + 3 >= bytes.size()) throw std::runtime_error("reset vectors are truncated");
@@ -33,18 +33,18 @@ std::uint32_t read_be32(const std::vector<std::uint8_t>& bytes, std::size_t offs
         | static_cast<std::uint32_t>(bytes[offset + 3]);
 }
 
-std::vector<std::uint8_t> load_profile_cpu(const mamerecomp::GameProfile& profile,
+std::vector<std::uint8_t> load_profile_cpu(const multiarcaderecomp::GameProfile& profile,
     const std::filesystem::path& zip_path) {
-    auto bytes = mamerecomp::load_maincpu_roms(profile, zip_path);
+    auto bytes = multiarcaderecomp::load_maincpu_roms(profile, zip_path);
     std::cout << "Profile: " << profile.id << " (" << profile.title << ")\n"
-              << "Board: " << mamerecomp::board_family_name(mamerecomp::board_family(profile)) << "\n"
+              << "Board: " << multiarcaderecomp::board_family_name(multiarcaderecomp::board_family(profile)) << "\n"
               << "Validated and assembled " << profile.maincpu_roms.size() << " 68000 ROMs into 0x"
               << std::hex << profile.maincpu_size << " bytes\n";
     return bytes;
 }
 
 std::vector<std::uint8_t> decrypt_fd1094_for_translation(
-    const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+    const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     const std::vector<std::uint8_t>& encrypted) {
     if (profile.fd1094_key_region_size == 0) return encrypted;
     // Static AOT discovery uses the same power-on decryption implemented by
@@ -108,34 +108,34 @@ void stop_fd1094_aot_at_state_changes(const std::filesystem::path& output_dir,
 }
 }
 void print_game_profiles() {
-    for (const auto& profile : mamerecomp::game_profiles()) {
-        std::cout << profile.id << "  " << profile.title << "  [" << mamerecomp::board_family_name(mamerecomp::board_family(profile)) << "]\n";
+    for (const auto& profile : multiarcaderecomp::game_profiles()) {
+        std::cout << profile.id << "  " << profile.title << "  [" << multiarcaderecomp::board_family_name(multiarcaderecomp::board_family(profile)) << "]\n";
     }
 }
 
 
-const mamerecomp::GameProfile& require_profile(std::string_view id) {
-    const auto* profile = mamerecomp::find_game_profile(id);
+const multiarcaderecomp::GameProfile& require_profile(std::string_view id) {
+    const auto* profile = multiarcaderecomp::find_game_profile(id);
     if (!profile) {
-        throw std::runtime_error("unknown game profile: " + std::string(id) + " (run 'mamerecomp list-games')");
+        throw std::runtime_error("unknown game profile: " + std::string(id) + " (run 'multiarcaderecomp list-games')");
     }
     return *profile;
 }
 
-void inspect_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+void inspect_game(const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     const std::filesystem::path* output_path) {
     const auto maincpu = load_profile_cpu(profile, zip_path);
     if (profile.tile_region_size != 0 && profile.sprite_region_size != 0) {
-        const auto graphics = mamerecomp::load_graphics_roms(profile, zip_path);
+        const auto graphics = multiarcaderecomp::load_graphics_roms(profile, zip_path);
         std::cout << "Validated raw graphics ROM regions: tiles=0x" << std::hex << graphics.tiles.size()
                   << " sprites=0x" << graphics.sprites.size() << std::dec << " bytes\n";
     }
     if (profile.soundcpu_region_size != 0) {
-        const auto soundcpu = mamerecomp::load_soundcpu_roms(profile, zip_path);
+        const auto soundcpu = multiarcaderecomp::load_soundcpu_roms(profile, zip_path);
         std::cout << "Validated sound CPU ROM region: 0x" << std::hex << soundcpu.size() << std::dec << " bytes\n";
     }
     if (profile.mcu_region_size != 0) {
-        const auto mcu = mamerecomp::load_mcu_roms(profile, zip_path);
+        const auto mcu = multiarcaderecomp::load_mcu_roms(profile, zip_path);
         std::cout << "Validated MCU ROM region: 0x" << std::hex << mcu.size() << std::dec << " bytes\n";
     }
     const std::uint32_t initial_sp = read_be32(maincpu, 0);
@@ -171,7 +171,7 @@ void inspect_game(const mamerecomp::GameProfile& profile, const std::filesystem:
     }
 }
 
-void translate_full_game(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+void translate_full_game(const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     const std::filesystem::path& output_dir, const std::vector<std::uint32_t>& additional_entries,
     std::size_t output_files, bool scan_pointers) {
     const auto encrypted_maincpu = load_profile_cpu(profile, zip_path);
@@ -220,7 +220,7 @@ void translate_full_game(const mamerecomp::GameProfile& profile, const std::file
         for (const auto address : entry_points) output << std::setw(6) << address << '\n';
         if (!output) throw std::runtime_error("failed writing 68000 translation entry list: " + entry_file.string());
     }
-    const auto sound_rom = mamerecomp::load_soundcpu_roms(profile, zip_path);
+    const auto sound_rom = multiarcaderecomp::load_soundcpu_roms(profile, zip_path);
     const auto z80_dir = output_dir / "z80_input";
     std::filesystem::create_directories(z80_dir);
     std::vector<std::pair<std::uint64_t, std::uint16_t>> observed_z80_entries;
@@ -299,26 +299,26 @@ void translate_full_game(const mamerecomp::GameProfile& profile, const std::file
         stop_fd1094_aot_at_state_changes(output_dir, prefix);
     }
 
-    std::ofstream wrapper(output_dir / "mamerecomp_generated_table.c");
+    std::ofstream wrapper(output_dir / "multiarcaderecomp_generated_table.c");
     if (!wrapper) throw std::runtime_error("could not create generated table adapter");
     wrapper << "#include <string.h>\n#include <neogeorecomp/neogeo.h>\n"
             << "extern const ng_func_entry_t " << prefix << "ng_recomp_table[];\n"
             << "extern const size_t " << prefix << "ng_recomp_count;\n"
-            << "const ng_func_entry_t* mamerecomp_generated_table(const char* profile_id, size_t* count) {\n"
+            << "const ng_func_entry_t* multiarcaderecomp_generated_table(const char* profile_id, size_t* count) {\n"
             << "    if (strcmp(profile_id, \"" << prefix << "\") != 0) { *count = 0; return NULL; }\n"
             << "    *count = " << prefix << "ng_recomp_count;\n"
             << "    return " << prefix << "ng_recomp_table;\n"
             << "}\n";
     if (!wrapper) throw std::runtime_error("failed while writing generated table adapter");
-    std::cout << "Wrote build adapter: " << output_dir / "mamerecomp_generated_table.c" << '\n';
+    std::cout << "Wrote build adapter: " << output_dir / "multiarcaderecomp_generated_table.c" << '\n';
 }
 
-void extract_graphics(const mamerecomp::GameProfile& profile, const std::filesystem::path& zip_path,
+void extract_graphics(const multiarcaderecomp::GameProfile& profile, const std::filesystem::path& zip_path,
     const std::filesystem::path& output_dir) {
     if (profile.tile_region_size == 0 || profile.sprite_region_size == 0) {
         throw std::runtime_error("profile has no graphics ROM layout");
     }
-    const auto graphics = mamerecomp::load_graphics_roms(profile, zip_path);
+    const auto graphics = multiarcaderecomp::load_graphics_roms(profile, zip_path);
     std::filesystem::create_directories(output_dir);
     const auto write_region = [](const std::filesystem::path& path, const std::vector<std::uint8_t>& bytes) {
         std::ofstream output(path, std::ios::binary);
@@ -339,7 +339,7 @@ void extract_graphics(const mamerecomp::GameProfile& profile, const std::filesys
               << "  sprites:      0x" << std::hex << graphics.sprites.size() << " bytes -> " << sprites_path << '\n';
 }
 
-void print_memory_map(const mamerecomp::GameProfile& profile, const std::vector<std::uint8_t>& maincpu) {
+void print_memory_map(const multiarcaderecomp::GameProfile& profile, const std::vector<std::uint8_t>& maincpu) {
     for (const auto& region : inspect_board_memory_map(profile, maincpu)) {
         std::cout << "  " << std::left << std::setw(10) << region.name << std::right << "  0x" << std::hex
                   << std::setw(6) << std::setfill('0') << region.start << "-0x"
@@ -457,4 +457,4 @@ int run_rom_command(int argc, char** argv) {
 
 
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

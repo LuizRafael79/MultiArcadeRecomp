@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cstddef>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 
 constexpr std::uint32_t kMproStart = 0x3400u;
@@ -300,4 +300,4 @@ void NaomiAicaDsp::runStep(
     if (--m_mdec_ct == 0) m_mdec_ct = m_rbl + 1u;
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

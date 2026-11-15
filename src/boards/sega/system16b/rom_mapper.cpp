@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 std::array<chips::Mapper3155195::Wiring, 8> system16b_5797_mapper_wiring(std::uint32_t workram_size) {
     using Target = chips::Mapper3155195::Target;
@@ -318,4 +318,4 @@ void System16BAddressSpace::load_ram(std::string_view name, std::span<const std:
     std::copy(bytes.begin(), bytes.end(), target.begin());
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

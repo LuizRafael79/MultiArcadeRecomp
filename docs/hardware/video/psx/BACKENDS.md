@@ -16,7 +16,7 @@ the renderer itself has no ZN-specific types or board callbacks.
 
 ## Current implementation status
 
-- `mamerecomp_psx_gpu` is a reusable PSX GPU target composed by the common PSX
+- `multiarcaderecomp_psx_gpu` is a reusable PSX GPU target composed by the common PSX
   machine layer. GP0/GP1 decoding and device-visible state stay in `gpu.cpp`;
   raster work is routed through the `GpuHardwareRenderer` backend interface.
 - Software rendering remains the default. `--gpu-hw` explicitly selects the
@@ -142,7 +142,7 @@ they do not need a ping-pong copy. Polygon sequences still use ping-pong and
 matched the software VRAM image in an overlapping-triangle probe without a
 per-primitive `glFlush`. The command SSBO uses a fenced ring with one fence per
 256 commands, and per-command GL error polling is opt-in via
-`MAMERECOMP_PSX_GPU_GL_CHECK`.
+`MULTIARCADERECOMP_PSX_GPU_GL_CHECK`.
 
 Hardware-mode display scanout converts the selected PSX VRAM window to RGB in
 an OpenGL compute shader. A windowed run blits that output texture directly to
@@ -209,9 +209,9 @@ flush the queue. Before queuing a textured primitive, the renderer checks
 whether its source page or CLUT intersects pending writes; if so it flushes
 first so the texture fetch sees the updated VRAM snapshot. Interleaved and
 wrapped source regions conservatively force that flush.
-`MAMERECOMP_PSX_GPU_BATCHING=0` disables the path;
-`MAMERECOMP_PSX_GPU_BATCH_LIMIT` caps primitives per submission, and
-`MAMERECOMP_PSX_GPU_BATCH_STATS=1` prints aggregate counts.
+`MULTIARCADERECOMP_PSX_GPU_BATCHING=0` disables the path;
+`MULTIARCADERECOMP_PSX_GPU_BATCH_LIMIT` caps primitives per submission, and
+`MULTIARCADERECOMP_PSX_GPU_BATCH_STATS=1` prints aggregate counts.
 
 Validation on an NVIDIA GTX 1650 ran SFEX2PA for 1,800 frames through gameplay
 with fresh NVRAM. The batch and non-batch frame captures were byte-identical
@@ -235,7 +235,7 @@ and evictions from 24,563. The single matched 1,800-frame software run took
 not a stable benchmark. After changing GP0 `A0` to upload only its destination
 rectangle, a repeat GPU run remained byte-identical to the prior GPU capture.
 A separate 600-frame run
-with `MAMERECOMP_PSX_GPU_GL_CHECK=1` completed without OpenGL errors. Remaining
+with `MULTIARCADERECOMP_PSX_GPU_GL_CHECK=1` completed without OpenGL errors. Remaining
 work includes reducing cache invalidations and broadening GP0/VRAM parity
 coverage. CPU-visible VRAM operations and scanout remain explicit
 synchronization points. GP0 `A0` reads back the full
@@ -269,7 +269,7 @@ triangle paths. They changed the capture but did not restore the portrait, so
 those unverified sampling changes were reverted. A same-frame
 software-textured-polygon fallback probe also left the portrait missing, so
 the defect is not isolated to that path. The GP0 packet trace for this scene
-is available with `MAMERECOMP_PSX_GPU_COMPARE_TRACE_FRAME`; the next diagnosis
+is available with `MULTIARCADERECOMP_PSX_GPU_COMPARE_TRACE_FRAME`; the next diagnosis
 needs to follow the relevant draw and its VRAM source data against the software
 reference. That trace showed the flipped `GP0 0x64` rectangle (`tpage=0x18b4`)
 was sampling its first texel one position too early. The rectangle path now
@@ -330,7 +330,7 @@ bypass batching and that the 1,074-frame result was slower describe the
 previous implementation and are superseded by this checkpoint.
 
 The same OpenGL path was checked on 2026-11-08 with
-`MAMERECOMP_PSX_GPU_GL_CHECK=1` and per-frame software comparison. ZN-1
+`MULTIARCADERECOMP_PSX_GPU_GL_CHECK=1` and per-frame software comparison. ZN-1
 `bldyror2` completed 600 vblanks with 552 visible captures at 512×480, and
 Namco System 12 `tekken3` completed 600 vblanks with 600 visible captures at
 640×240. Both used the NVIDIA GTX 1650 renderer; neither reported a GL error
@@ -381,7 +381,7 @@ still attributes most simulated CPU work to the DSP16A and R3000A paths; it
 does not justify changing those CPU cores as part of the GPU work.
 
 A fresh 2026-11-08 run repeated the frame-1074 comparison on the Mesa Intel
-UHD 630, with `MAMERECOMP_PSX_GPU_GL_CHECK=1`, the software reference enabled,
+UHD 630, with `MULTIARCADERECOMP_PSX_GPU_GL_CHECK=1`, the software reference enabled,
 and per-command tracing. The process completed all 1,074 vblanks with no GL
 error or scanout difference reported; both textured polygon commands in the
 portrait scene again had zero differing VRAM pixels. This supplements the
@@ -390,7 +390,7 @@ GPU.
 
 After the scanline precomputation change, the Mesa UHD 630 smoke comparisons
 were repeated for ZN-1 `bldyror2` and Namco System 12 `tekken3`, each for 600
-vblanks with `MAMERECOMP_PSX_GPU_GL_CHECK=1` and the software reference
+vblanks with `MULTIARCADERECOMP_PSX_GPU_GL_CHECK=1` and the software reference
 enabled. They completed at 512×480 and 640×240 respectively, with no GL error
 or differing scanout reported. These are boot/scanout checks and do not claim
 full gameplay parity for either title.
@@ -510,7 +510,7 @@ visible CPU-side penalty in this sample, but is not a repeated throughput
 result and does not show a material total-runtime gain.
 
 The earlier frame-900 QSound-logo and frame-1500 ARIKA-intro mismatches are
-also superseded: fresh Mesa UHD 630 runs with `MAMERECOMP_PSX_GPU_GL_CHECK=1`
+also superseded: fresh Mesa UHD 630 runs with `MULTIARCADERECOMP_PSX_GPU_GL_CHECK=1`
 and software comparison completed 900 and 1,500 vblanks respectively, with no
 GL error or RGB pixel difference reported at their final captures. Together
 with the frame-1074 portrait and frame-1560 gameplay checks, these cover the
@@ -551,7 +551,7 @@ the portrait frame; it is still a selected-frame comparison, not a continuous
 full-title image-parity or performance result.
 
 An opt-in GPU timer-query probe is available with
-`MAMERECOMP_PSX_GPU_TIMING=1`. It times batch draws, immediate draws, raster
+`MULTIARCADERECOMP_PSX_GPU_TIMING=1`. It times batch draws, immediate draws, raster
 compute, texture-cache generation, and scanout dispatches without waiting
 during normal submission; results are collected asynchronously and outstanding
 queries are drained at shutdown. The first GTX 1650 profile measured only
@@ -605,7 +605,7 @@ undithered, while Gouraud/modulated textured polygons and lines use the E1 state
 as appropriate.
 
 Two fresh-NVRAM 600-frame SFEX2PA headless profile pairs were measured on the
-GTX 1650 with `MAMERECOMP_ZN_PROFILE_RUNTIME=1`. Both modes processed 52,742
+GTX 1650 with `MULTIARCADERECOMP_ZN_PROFILE_RUNTIME=1`. Both modes processed 52,742
 GP0 packets and 250,726,699 guest instructions/cycles. Mean CPU time attributed
 to GP0 packet raster/dispatch was 51.75 ms with `--gpu-hw` and 87.65 ms with
 software (about 41% less). Mean `run_until` was 11.55 s and 11.64 s
@@ -816,7 +816,7 @@ JAMMA initialization scene, not 3D gameplay, so it confirms shared-backend
 parity at this checkpoint only.
 
 The batch shader now has an opt-in direct-from-VRAM texture path for A/B
-diagnosis: `MAMERECOMP_PSX_GPU_TEXTURE_CACHE=0` skips page-cache generation and
+diagnosis: `MULTIARCADERECOMP_PSX_GPU_TEXTURE_CACHE=0` skips page-cache generation and
 fetches indexed texels from the resident VRAM texture. The default remains the
 64-layer cache. Cache and direct paths produced byte-identical 512×480
 Bloody Roar 2 frame-1900 fight captures and byte-identical SFEX2PA frame-1074
@@ -837,9 +837,9 @@ invalidations, and zero evictions show that writes overlapping texture pages
 drive most regeneration; simply enlarging the cache would not address it.
 
 Opt-in host-side renderer timings are available with
-`MAMERECOMP_PSX_GPU_CPU_PROFILE=1`; they report draw submission, batch flush,
-scanout, present, readback, upload, and copy calls. `MAMERECOMP_PSX_GPU_TIMING=1`
-reports asynchronous device times, and `MAMERECOMP_PSX_GPU_BATCH_STATS=1`
+`MULTIARCADERECOMP_PSX_GPU_CPU_PROFILE=1`; they report draw submission, batch flush,
+scanout, present, readback, upload, and copy calls. `MULTIARCADERECOMP_PSX_GPU_TIMING=1`
+reports asynchronous device times, and `MULTIARCADERECOMP_PSX_GPU_BATCH_STATS=1`
 reports cache/batch counters. These categories overlap: draw submission can
 force a batch flush, and present includes the window swap interval. A
 2,000-frame ZN-1 direct-present profile measured 0.881 s in draw submission,

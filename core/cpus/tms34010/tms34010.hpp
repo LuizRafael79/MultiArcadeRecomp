@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 
 // The TMS34010 addresses memory in bits. Keep PC and memory-facing addresses
 // in that form; converting them to byte addresses belongs in a board bus.
@@ -253,4 +253,4 @@ inline bool write_byte(Bus& bus, std::uint32_t bit_address,
     return true;
 }
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010

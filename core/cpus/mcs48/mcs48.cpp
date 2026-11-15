@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 Mcs48::Mcs48(std::span<const std::uint8_t> program, Bus bus) : m_bus(std::move(bus)) {
     if (program.size() != m_rom.size())
@@ -309,4 +309,4 @@ std::uint32_t Mcs48::step() {
     return cycles;
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

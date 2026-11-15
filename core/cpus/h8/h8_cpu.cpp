@@ -4,7 +4,7 @@
 #include <sstream>
 #include <utility>
 
-namespace mamerecomp::h8 {
+namespace multiarcaderecomp::h8 {
 
 H8Core::H8Core(Read8 read, Write8 write)
     : read8_(std::move(read)), write8_(std::move(write))
@@ -155,4 +155,4 @@ void H8Core::illegal()
 #include "../../third_party/mame-h8/h8_base_generated.inc"
 #include "../../third_party/mame-h8/h8_advanced_generated.inc"
 
-} // namespace mamerecomp::h8
+} // namespace multiarcaderecomp::h8

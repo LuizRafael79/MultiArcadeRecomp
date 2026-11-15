@@ -15,9 +15,9 @@
 #include "devices/at28c16.hpp"
 #include "../../core/chips/c352.hpp"
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
-using RomRegions = mamerecomp::rom::RomRegions;
+using RomRegions = multiarcaderecomp::rom::RomRegions;
 
 // Loads the MAME-defined ROM regions directly from a ZIP. No extracted ROM
 // files are written. Initial profiles cover the two ZN games in this batch.
@@ -86,12 +86,12 @@ private:
     bool sound_pending_ = false;
     void *sound_command_opaque_ = nullptr;
     SoundCommandCallback sound_command_callback_ = nullptr;
-    mamerecomp::psx::Cat702 security_a_;
-    mamerecomp::psx::Cat702 security_b_;
+    multiarcaderecomp::psx::Cat702 security_a_;
+    multiarcaderecomp::psx::Cat702 security_b_;
     // These clocks are expressed in the PSX core's execute-cycle timebase
     // (one tick per four R3000A crystal clocks), matching cpu_cycles_cb.
     ZnMcu mcu_{25'000'000};
-    mamerecomp::devices::At28c16 eeprom_{25'000'000};
+    multiarcaderecomp::devices::At28c16 eeprom_{25'000'000};
 };
 
 class RaizingZn1Board {
@@ -127,11 +127,11 @@ private:
     uint64_t cpu_cycles_ = 0;
     bool sound_irq_pending_ = false;
     std::array<uint8_t, 6> input_ports_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-    mamerecomp::psx::Cat702 security_a_;
-    mamerecomp::psx::Cat702 security_b_;
+    multiarcaderecomp::psx::Cat702 security_a_;
+    multiarcaderecomp::psx::Cat702 security_b_;
     ZnMcu mcu_{16'934'400};
-    mamerecomp::devices::At28c16 eeprom_{16'934'400};
+    multiarcaderecomp::devices::At28c16 eeprom_{16'934'400};
 };
 
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

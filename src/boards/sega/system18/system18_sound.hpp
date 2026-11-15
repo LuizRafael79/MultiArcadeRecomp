@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class System18Sound {
 public:
@@ -91,4 +91,4 @@ private:
     SegaAudioSink m_audio_sink;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

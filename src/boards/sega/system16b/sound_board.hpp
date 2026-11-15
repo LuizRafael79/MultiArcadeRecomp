@@ -14,7 +14,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class System16BSound final : private ymfm::ymfm_interface {
 public:
@@ -100,4 +100,4 @@ private:
     std::function<bool(std::uint8_t)> m_sound_command_observer;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

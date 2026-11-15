@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 void ADC0844::set_inputs(std::uint8_t ch1, std::uint8_t ch2,
                          std::uint8_t ch3, std::uint8_t ch4) noexcept {
@@ -58,4 +58,4 @@ void ADC0844::complete_conversion() noexcept {
     m_interrupt = true;
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

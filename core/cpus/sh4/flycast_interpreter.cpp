@@ -14,12 +14,12 @@
 #include <cfenv>
 #include <cstdio>
 
-namespace mamerecomp::cpus::sh4::flycast {
+namespace multiarcaderecomp::cpus::sh4::flycast {
 namespace {
 
 class ScopedFpscrRounding {
 public:
-    ScopedFpscrRounding(const mamerecomp::naomi::Sh4Context& context,
+    ScopedFpscrRounding(const multiarcaderecomp::naomi::Sh4Context& context,
                         std::uint16_t opcode)
         : previous_(std::fegetround()), active_((opcode & 0xf000u) == 0xf000u) {
         if (active_ && previous_ != -1) {
@@ -50,7 +50,7 @@ std::int32_t sign_extend12(std::uint32_t v) {
                         : static_cast<std::int32_t>(v);
 }
 
-bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
+bool step_instruction(multiarcaderecomp::naomi::Sh4Context& c, bool delay_slot,
                       std::uint16_t prefetched_opcode = 0,
                       bool has_prefetched_opcode = false) {
     const auto instruction_pc = c.pc;
@@ -62,7 +62,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
     const unsigned n = (op >> 8) & 0xf;
     const unsigned m = (op >> 4) & 0xf;
     bool handled = true;
-    MamerecompFallbackReason unhandled_reason = MAMERECOMP_UNSUPPORTED_OPCODE;
+    MultiArcadeRecompFallbackReason unhandled_reason = MULTIARCADERECOMP_UNSUPPORTED_OPCODE;
     const char* unhandled_detail = "unimplemented SH-4 operation";
 
     // Delay-slot instructions are interpreted by this same one-step engine.
@@ -77,12 +77,12 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         c.delay_slot = old_delay_slot;
         const auto event = delay_slot ? 0x820u : 0x800u;
         const auto exception_pc = delay_slot ? instruction_pc - 2u : instruction_pc;
-        mamerecomp::naomi::host_raise_exception(c, event, exception_pc, 0x100u);
+        multiarcaderecomp::naomi::host_raise_exception(c, event, exception_pc, 0x100u);
         std::fprintf(stderr,
                      "[SH-4 interpreter] PC=%08x OPCODE=%04x CATEGORY=EXCEPTION_BOUNDARY event=%03x\n",
                      instruction_pc, op, event);
-        mamerecomp_interpreter_trace_step(
-            "SH-4", "Flycast-interpreter", MAMERECOMP_EXCEPTION_BOUNDARY,
+        multiarcaderecomp_interpreter_trace_step(
+            "SH-4", "Flycast-interpreter", MULTIARCADERECOMP_EXCEPTION_BOUNDARY,
             instruction_pc, op, 16, 0, 1, c.pc, "FPU disabled exception");
         return !c.execution_stopped;
     }
@@ -104,7 +104,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
     case 0x002b: { // RTE, delayed; fetch under old MD, execute under restored SSR.
         if (delay_slot) { handled = false; break; }
         const auto target = c.spc;
-        const auto interrupted_sr = mamerecomp::naomi::host_store_sr(c);
+        const auto interrupted_sr = multiarcaderecomp::naomi::host_store_sr(c);
         c.control_target = target;
         // Flycast's ExecuteDelayslot_RTE fetches under the interrupted mode,
         // restores SR, then executes the already-fetched opcode. With MMU
@@ -113,12 +113,12 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         c.delay_slot = true;
         if (!c.fetchInstruction16(instruction_pc + 2u, delay_opcode))
             return false;
-        mamerecomp::naomi::load_sr(c, c.ssr);
+        multiarcaderecomp::naomi::load_sr(c, c.ssr);
         if (!step_instruction(c, true, delay_opcode, true)) {
             // Unsupported instruction variants are declined before retiring
             // the delay slot. Undo the SR/RB transition and leave RTE intact
             // so the dispatcher reports the actual fallback boundary.
-            mamerecomp::naomi::load_sr(c, interrupted_sr);
+            multiarcaderecomp::naomi::load_sr(c, interrupted_sr);
             c.pc = instruction_pc;
             c.delay_slot = old_delay_slot;
             return false;
@@ -272,7 +272,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf00fu) == 0x000fu) { // MAC.L @Rm+,@Rn+
             if (c.sr & 0x00000002u) {
                 handled = false;
-                unhandled_reason = MAMERECOMP_UNSUPPORTED_VARIANT;
+                unhandled_reason = MULTIARCADERECOMP_UNSUPPORTED_VARIANT;
                 unhandled_detail = "Flycast MAC.L handler requires SR.S == 0";
             } else {
                 // Preserve Flycast's bus-read order: @Rm+ first, then @Rn+
@@ -298,7 +298,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
             c.macl = static_cast<std::uint32_t>(product);
             c.mach = static_cast<std::uint32_t>(static_cast<std::uint64_t>(product) >> 32);
         } else if ((op & 0xf00fu) == 0x3004u) { // DIV1
-            mamerecomp::naomi::host_div1(c, n, m);
+            multiarcaderecomp::naomi::host_div1(c, n, m);
         } else if ((op & 0xf00fu) == 0x6007u) { // NOT Rm,Rn
             c.r[n] = ~c.r[m];
         } else if ((op & 0xf00fu) == 0x6008u) { // SWAP.B Rm,Rn
@@ -322,7 +322,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf00fu) == 0x600fu) { // EXTS.W
             c.r[n] = static_cast<std::uint32_t>(static_cast<std::int32_t>(static_cast<std::int16_t>(c.r[m])));
         } else if ((op & 0xf0ffu) == 0x0002u) { // STC SR,Rn
-            c.r[n] = mamerecomp::naomi::host_store_sr(c);
+            c.r[n] = multiarcaderecomp::naomi::host_store_sr(c);
         } else if ((op & 0xf0ffu) == 0x0012u) { // STC GBR,Rn
             c.r[n] = c.gbr;
         } else if ((op & 0xf0ffu) == 0x0022u) { // STC VBR,Rn
@@ -350,7 +350,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf0ffu) == 0x006au) { // STS FPSCR,Rn
             c.r[n] = c.fpscr;
         } else if ((op & 0xf0ffu) == 0x400eu) { // LDC Rn,SR
-            mamerecomp::naomi::load_sr(c, c.r[n]);
+            multiarcaderecomp::naomi::load_sr(c, c.r[n]);
         } else if ((op & 0xf0ffu) == 0x401eu) { // LDC Rn,GBR
             c.gbr = c.r[n];
         } else if ((op & 0xf0ffu) == 0x402eu) { // LDC Rn,VBR
@@ -376,7 +376,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf0ffu) == 0x406au) { // LDS Rn,FPSCR
             fpu::load_fpscr(c, c.r[n]);
         } else if ((op & 0xf0ffu) == 0x4003u) { // STC.L SR,@-Rn
-            c.r[n] -= 4; c.write32(c.r[n], mamerecomp::naomi::host_store_sr(c));
+            c.r[n] -= 4; c.write32(c.r[n], multiarcaderecomp::naomi::host_store_sr(c));
         } else if ((op & 0xf0ffu) == 0x4013u) { // STC.L GBR,@-Rn
             c.r[n] -= 4; c.write32(c.r[n], c.gbr);
         } else if ((op & 0xf0ffu) == 0x4023u) { // STC.L VBR,@-Rn
@@ -403,7 +403,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
             c.r[n] -= 4; c.write32(c.r[n], c.fpscr);
         } else if ((op & 0xf0ffu) == 0x4007u) { // LDC.L @Rn+,SR
             const auto value = c.read32(c.r[n]); c.r[n] += 4;
-            mamerecomp::naomi::load_sr(c, value);
+            multiarcaderecomp::naomi::load_sr(c, value);
         } else if ((op & 0xf0ffu) == 0x4017u) { // LDC.L @Rn+,GBR
             c.gbr = c.read32(c.r[n]); c.r[n] += 4;
         } else if ((op & 0xf0ffu) == 0x4027u) { // LDC.L @Rn+,VBR
@@ -481,7 +481,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
             c.t = value == 0;
             c.write8(c.r[n], static_cast<std::uint8_t>(value | 0x80u));
         } else if ((op & 0xf0ffu) == 0x0083u) { // PREF @Rn
-            mamerecomp::naomi::host_pref(c, c.r[n]);
+            multiarcaderecomp::naomi::host_pref(c, c.r[n]);
         } else if ((op & 0xf0ffu) == 0x0093u || // OCBI @Rn
                    (op & 0xf0ffu) == 0x00a3u || // OCBP @Rn
                    (op & 0xf0ffu) == 0x00b3u || // OCBWB @Rn
@@ -497,7 +497,7 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
             if (c.cache_operation_handler &&
                 !c.cache_operation_handler(c, op, c.r[n])) {
                 handled = false;
-                unhandled_reason = MAMERECOMP_MEMORY_ACCESS;
+                unhandled_reason = MULTIARCADERECOMP_MEMORY_ACCESS;
                 unhandled_detail = "board rejected SH-4 cache operation";
             }
         } else if ((op & 0xf0ffu) == 0x00c3u) { // MOVCA.L R0,@Rn
@@ -505,12 +505,12 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xff00u) == 0xc300u) { // TRAPA #imm
             const auto event = 0x160u;
             const auto tra = (op & 0xffu) << 2;
-            mamerecomp::naomi::host_raise_exception(c, event, instruction_pc + 2u,
+            multiarcaderecomp::naomi::host_raise_exception(c, event, instruction_pc + 2u,
                                                      0x100u, tra);
         } else if ((op & 0xf00fu) == 0x400fu) { // MAC.W @Rm+,@Rn+
             if (c.sr & 0x00000002u) {
                 handled = false;
-                unhandled_reason = MAMERECOMP_UNSUPPORTED_VARIANT;
+                unhandled_reason = MULTIARCADERECOMP_UNSUPPORTED_VARIANT;
                 unhandled_detail = "Flycast MAC.W handler rejects SR.S != 0";
             } else {
                 const auto lhs = static_cast<std::int16_t>(c.read16(c.r[n]));
@@ -636,27 +636,27 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf00fu) == 0xf005u) { // FCMP/GT
             fpu::fcmp_gt(c, n, m);
         } else if ((op & 0xf00fu) == 0xf006u) { // FMOV @(R0,Rm),FRn
-            mamerecomp::naomi::host_fmov_load(c, n, c.r[0] + c.r[m]);
+            multiarcaderecomp::naomi::host_fmov_load(c, n, c.r[0] + c.r[m]);
         } else if ((op & 0xf00fu) == 0xf007u) { // FMOV FRm,@(R0,Rn)
-            mamerecomp::naomi::host_fmov_store(c, c.r[0] + c.r[n], m);
+            multiarcaderecomp::naomi::host_fmov_store(c, c.r[0] + c.r[n], m);
         } else if ((op & 0xf00fu) == 0xf008u) { // FMOV @Rm,FRn
-            mamerecomp::naomi::host_fmov_load(c, n, c.r[m]);
+            multiarcaderecomp::naomi::host_fmov_load(c, n, c.r[m]);
         } else if ((op & 0xf00fu) == 0xf009u) { // FMOV @Rm+,FRn
-            mamerecomp::naomi::host_fmov_load_postinc(c, n, m);
+            multiarcaderecomp::naomi::host_fmov_load_postinc(c, n, m);
         } else if ((op & 0xf00fu) == 0xf00au) { // FMOV FRm,@Rn
-            mamerecomp::naomi::host_fmov_store(c, c.r[n], m);
+            multiarcaderecomp::naomi::host_fmov_store(c, c.r[n], m);
         } else if ((op & 0xf00fu) == 0xf00bu) { // FMOV FRm,@-Rn
-            mamerecomp::naomi::host_fmov_store_predec(c, n, m);
+            multiarcaderecomp::naomi::host_fmov_store_predec(c, n, m);
         } else if ((op & 0xf00fu) == 0xf00cu) { // FMOV FRm,FRn
-            mamerecomp::naomi::host_fmov_reg(c, n, m);
+            multiarcaderecomp::naomi::host_fmov_reg(c, n, m);
         } else if ((op & 0xf0ffu) == 0xf00du) { // FSTS FPUL,FRn
-            mamerecomp::naomi::host_fsts_fpul(c, n);
+            multiarcaderecomp::naomi::host_fsts_fpul(c, n);
         } else if ((op & 0xf0ffu) == 0xf01du) { // FLDS FRn,FPUL
-            mamerecomp::naomi::host_flds_fpul(c, n);
+            multiarcaderecomp::naomi::host_flds_fpul(c, n);
         } else if ((op & 0xf0ffu) == 0xf02du) { // FLOAT FPUL,FRn/DRn
-            mamerecomp::naomi::host_float_fpul(c, n);
+            multiarcaderecomp::naomi::host_float_fpul(c, n);
         } else if ((op & 0xf0ffu) == 0xf03du) { // FTRC FRn/DRn,FPUL
-            mamerecomp::naomi::host_ftrc_fpul(c, n);
+            multiarcaderecomp::naomi::host_ftrc_fpul(c, n);
         } else if ((op & 0xf0ffu) == 0xf04du) { // FNEG
             fpu::fneg(c, n);
         } else if ((op & 0xf0ffu) == 0xf05du) { // FABS
@@ -666,13 +666,13 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
         } else if ((op & 0xf0ffu) == 0xf07du) { // FSRRA
             fpu::fsrra(c, n);
         } else if ((op & 0xf0ffu) == 0xf08du) { // FLDI0
-            mamerecomp::naomi::host_fldi(c, n, 0.0f);
+            multiarcaderecomp::naomi::host_fldi(c, n, 0.0f);
         } else if ((op & 0xf0ffu) == 0xf09du) { // FLDI1
-            mamerecomp::naomi::host_fldi(c, n, 1.0f);
+            multiarcaderecomp::naomi::host_fldi(c, n, 1.0f);
         } else if ((op & 0xf0ffu) == 0xf0adu) { // FCNVSD FPUL,DRn
-            mamerecomp::naomi::host_fcnvsd(c, n);
+            multiarcaderecomp::naomi::host_fcnvsd(c, n);
         } else if ((op & 0xf0ffu) == 0xf0bdu) { // FCNVDS DRn,FPUL
-            mamerecomp::naomi::host_fcnvds(c, n);
+            multiarcaderecomp::naomi::host_fcnvds(c, n);
         } else if ((op & 0xf00fu) == 0xf00eu) { // FMAC FR0,FRm,FRn
             fpu::fmac(c, n, m);
         } else if ((op & 0xf0ffu) == 0xf0edu) { // FIPR FV_M,FV_N
@@ -707,44 +707,44 @@ bool step_instruction(mamerecomp::naomi::Sh4Context& c, bool delay_slot,
             op == 0x000bu || op == 0x002bu;
         if (delay_slot && delayed_branch_opcode) {
             const auto event = 0x1a0u; // SlotIllegalInstr
-            mamerecomp::naomi::host_raise_exception(c, event,
+            multiarcaderecomp::naomi::host_raise_exception(c, event,
                 instruction_pc - 2u, 0x100u);
-            mamerecomp_interpreter_trace_step(
-                "SH-4", "Flycast-interpreter", MAMERECOMP_EXCEPTION_BOUNDARY,
+            multiarcaderecomp_interpreter_trace_step(
+                "SH-4", "Flycast-interpreter", MULTIARCADERECOMP_EXCEPTION_BOUNDARY,
                 instruction_pc, op, 16, 0, 1, c.pc,
                 "control transfer in delay slot");
             return !c.execution_stopped;
         }
-        if (unhandled_reason == MAMERECOMP_UNSUPPORTED_OPCODE) {
+        if (unhandled_reason == MULTIARCADERECOMP_UNSUPPORTED_OPCODE) {
             const auto event = delay_slot ? 0x1a0u : 0x180u;
             const auto exception_pc = delay_slot ? instruction_pc - 2u : instruction_pc;
             std::fprintf(stderr,
                          "[SH-4 interpreter] PC=%08x OPCODE=%04x CATEGORY=UNSUPPORTED_OPCODE event=%03x\n",
                          instruction_pc, op, event);
-            mamerecomp::naomi::host_raise_exception(c, event, exception_pc, 0x100u);
-            mamerecomp_interpreter_trace_step(
-                "SH-4", "Flycast-interpreter", MAMERECOMP_EXCEPTION_BOUNDARY,
+            multiarcaderecomp::naomi::host_raise_exception(c, event, exception_pc, 0x100u);
+            multiarcaderecomp_interpreter_trace_step(
+                "SH-4", "Flycast-interpreter", MULTIARCADERECOMP_EXCEPTION_BOUNDARY,
                 instruction_pc, op, 16, 0, 1, c.pc, "illegal instruction exception");
             return !c.execution_stopped;
         }
         std::fprintf(stderr,
                      "[SH-4 interpreter] PC=%08x OPCODE=%04x CATEGORY=%s\n",
-                     instruction_pc, op, mamerecomp_fallback_reason_name(unhandled_reason));
-        mamerecomp_interpreter_trace_step(
+                     instruction_pc, op, multiarcaderecomp_fallback_reason_name(unhandled_reason));
+        multiarcaderecomp_interpreter_trace_step(
             "SH-4", "Flycast-interpreter", unhandled_reason,
             instruction_pc, op, 16, 0, 0, instruction_pc, unhandled_detail);
         return false;
     }
-    mamerecomp_interpreter_trace_step(
-        "SH-4", "Flycast-interpreter", MAMERECOMP_UNCOVERED_ENTRY,
+    multiarcaderecomp_interpreter_trace_step(
+        "SH-4", "Flycast-interpreter", MULTIARCADERECOMP_UNCOVERED_ENTRY,
         instruction_pc, op, 16, 0, 1, c.pc, "Flycast SH-4 LLE");
     return true;
 }
 
 } // namespace
 
-bool step(mamerecomp::naomi::Sh4Context& context) {
+bool step(multiarcaderecomp::naomi::Sh4Context& context) {
     return step_instruction(context, context.delay_slot);
 }
 
-} // namespace mamerecomp::cpus::sh4::flycast
+} // namespace multiarcaderecomp::cpus::sh4::flycast

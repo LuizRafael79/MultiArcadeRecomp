@@ -1,6 +1,6 @@
 #include "cps1_driver.hpp"
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 const Cps1MachineProfile& cps1_12mhz_machine();
 const Cps1InputProfile& sf2_inputs();
 const Cps1RomSet& sf2ce_romset();

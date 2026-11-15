@@ -6,12 +6,12 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 void ZnMachineRuntime::set_input_state(
-    const mamerecomp::runtime::ArcadeInput &input)
+    const multiarcaderecomp::runtime::ArcadeInput &input)
 {
-    using Input = mamerecomp::runtime::ArcadeInput;
+    using Input = multiarcaderecomp::runtime::ArcadeInput;
     const auto active_low_player = [&](unsigned player) {
         const uint16_t pressed = input.players_pressed[player];
         uint8_t port = 0xff;
@@ -48,7 +48,7 @@ void ZnMachineRuntime::set_input_state(
         const uint8_t kick2 = kick_port(1);
         const uint8_t p3 = static_cast<uint8_t>(0x8fu | ((kick1 & 7u) << 4));
         const uint8_t p4 = static_cast<uint8_t>(0x8fu | ((kick2 & 7u) << 4));
-        if (std::getenv("MAMERECOMP_ZN_TRACE_INPUTS") &&
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_INPUTS") &&
             (input.players_pressed[0] & Input::start || input.coins_pressed))
             std::cerr << "ZN input start=" << bool(input.players_pressed[0] & Input::start)
                       << " coins=" << unsigned(input.coins_pressed)
@@ -70,19 +70,19 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
                                    const std::filesystem::path &zip,
                                    const PsxAotEntry *entries,
                                    size_t entry_count,
-                                   const mamerecomp::z80::Z80Code *zn2_z80_code,
-                                   mamerecomp::chips::QSoundMode qsound_mode,
+                                   const multiarcaderecomp::z80::Z80Code *zn2_z80_code,
+                                   multiarcaderecomp::chips::QSoundMode qsound_mode,
                                    std::span<const std::uint16_t> qsound_firmware,
-                                   std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program,
-                                   mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run)
+                                   std::span<const multiarcaderecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program,
+                                   multiarcaderecomp::dsp16::Dsp16ARunHandler dsp_aot_run)
     : roms_(load_romset(set, zip)),
-      memory_(std::make_unique<mamerecomp::psx::MachineMemory>(
-          set == "bldyror2" ? mamerecomp::psx::kZn1MemoryConfig :
-          set == "tekken3" ? mamerecomp::psx::kSystem12MemoryConfig :
-                             mamerecomp::psx::kZn2MemoryConfig)),
+      memory_(std::make_unique<multiarcaderecomp::psx::MachineMemory>(
+          set == "bldyror2" ? multiarcaderecomp::psx::kZn1MemoryConfig :
+          set == "tekken3" ? multiarcaderecomp::psx::kSystem12MemoryConfig :
+                             multiarcaderecomp::psx::kZn2MemoryConfig)),
       entries_(entries), entry_count_(entry_count)
 {
-    profile_timing_ = std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
+    profile_timing_ = std::getenv("MULTIARCADERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
     const auto &bios = roms_.at("bios");
     if (!memory_->load_bios(bios.data(), bios.size()))
         throw std::runtime_error("invalid ZN BIOS region");
@@ -97,7 +97,7 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
         zn1_sound_ = std::make_unique<Zn1SoundCpu>(*zn1_, roms_);
         board_bus_ = zn1_->make_bus();
     } else if (set == "tekken3") {
-        system12_runtime_ = std::make_unique<mamerecomp::namco::system12::System12Runtime>(roms_);
+        system12_runtime_ = std::make_unique<multiarcaderecomp::namco::system12::System12Runtime>(roms_);
         board_bus_ = system12_runtime_->make_bus();
         memory_->set_dma_device_read(5, [this](uint32_t, size_t words) {
             return system12_runtime_->dma_rom_read(words);
@@ -113,7 +113,7 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
 
 PsxAotExit ZnMachineRuntime::step()
 {
-    const PsxAotExit result = mamerecomp::psx::execute_one(
+    const PsxAotExit result = multiarcaderecomp::psx::execute_one(
         &cpu_, &bus_, entries_, entry_count_, &counters_);
     sync_secondary_processors();
     return result;
@@ -134,7 +134,7 @@ void ZnMachineRuntime::run_until(uint64_t target_cycle)
         } else {
             slice_end = std::min(slice_end, cpu_.cycles + scheduler_quantum);
         }
-        (void)mamerecomp::psx::execute_until(
+        (void)multiarcaderecomp::psx::execute_until(
             &cpu_, &bus_, entries_, entry_count_, &counters_, slice_end);
         sync_secondary_processors();
     }
@@ -173,4 +173,4 @@ void ZnMachineRuntime::sync_secondary_processors()
     }
 }
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

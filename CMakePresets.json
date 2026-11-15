@@ -14,8 +14,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "MAMERECOMP_ENABLE_OPENGL_VIDEO": "ON",
-        "MAMERECOMP_ENABLE_PSX_GPU_OPENGL": "ON"
+        "MULTIARCADERECOMP_ENABLE_OPENGL_VIDEO": "ON",
+        "MULTIARCADERECOMP_ENABLE_PSX_GPU_OPENGL": "ON"
       }
     },
     {
@@ -43,8 +43,8 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build/windows-x64/${presetName}",
       "cacheVariables": {
-        "MAMERECOMP_ENABLE_OPENGL_VIDEO": "ON",
-        "MAMERECOMP_ENABLE_PSX_GPU_OPENGL": "ON"
+        "MULTIARCADERECOMP_ENABLE_OPENGL_VIDEO": "ON",
+        "MULTIARCADERECOMP_ENABLE_PSX_GPU_OPENGL": "ON"
       }
     },
     {

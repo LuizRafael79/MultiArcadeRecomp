@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 SegaAddressSpace make_system16a_address_space(std::span<const std::uint8_t> maincpu_rom,
     System16AVideoSignals* video_signals, SegaInputState* input_state, System16ASound* sound) {
     SegaAddressSpace bus;
@@ -109,4 +109,4 @@ SegaAddressSpace make_system16a_address_space(std::span<const std::uint8_t> main
 }
 
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

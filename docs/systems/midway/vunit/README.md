@@ -1,6 +1,6 @@
 # Midway V-Unit / Cruis'n USA
 
-`mamerecomp_vunit` is the board/runtime module. It uses the shared
+`multiarcaderecomp_vunit` is the board/runtime module. It uses the shared
 `core/cpus/tms320c31/` interpreter for the 50 MHz-input main DSP and the shared
 `core/chips/dcs/` DCS Audio 2K runtime, which in turn uses the generic
 `core/cpus/adsp2105/` interpreter. Cruis'n USA's board notes identify no
@@ -31,7 +31,7 @@ coverage, texture interpolation, display timing and DMA behavior still need
 comparison against MAME. MAME's own C31 source still marks some operations
 unimplemented; runtime traces will establish whether Cruis'n uses those paths.
 
-`mamerecomp_vunit_trace` supports `--window` on SDL3 builds and writes the most
+`multiarcaderecomp_vunit_trace` supports `--window` on SDL3 builds and writes the most
 recent image as a PPM. Pass `--audio=PATH.wav` to capture the exact mono signed
 16-bit, 31.25 kHz sample stream sent by the DCS runtime to SDL. Its default run
 is limited to 600 frames; pass `--frames=0 --window` to continue until the
@@ -58,20 +58,20 @@ use a separate build directory and a fresh profile directory:
 ```sh
 cmake -S . -B build/vunit/pgo-generate \
   -DCMAKE_BUILD_TYPE=Release \
-  -DMAMERECOMP_ENABLE_WINDOW=ON \
-  -DMAMERECOMP_ENABLE_VUNIT_OPENGL=ON \
-  -DMAMERECOMP_CRUSNUSA_C31_ROM_IMAGE="$PWD/build/vunit/work/crusnusa/main.bin" \
-  -DMAMERECOMP_CRUSNUSA_C31_OVERLAY="$PWD/build/vunit/work/crusnusa/c31-hot-overlay.txt" \
-  -DMAMERECOMP_VUNIT_PGO_MODE=GENERATE \
-  -DMAMERECOMP_VUNIT_PGO_DIR="$PWD/build/vunit/pgo-data"
-cmake --build build/vunit/pgo-generate --target mamerecomp_vunit_trace -j2
+  -DMULTIARCADERECOMP_ENABLE_WINDOW=ON \
+  -DMULTIARCADERECOMP_ENABLE_VUNIT_OPENGL=ON \
+  -DMULTIARCADERECOMP_CRUSNUSA_C31_ROM_IMAGE="$PWD/build/vunit/work/crusnusa/main.bin" \
+  -DMULTIARCADERECOMP_CRUSNUSA_C31_OVERLAY="$PWD/build/vunit/work/crusnusa/c31-hot-overlay.txt" \
+  -DMULTIARCADERECOMP_VUNIT_PGO_MODE=GENERATE \
+  -DMULTIARCADERECOMP_VUNIT_PGO_DIR="$PWD/build/vunit/pgo-data"
+cmake --build build/vunit/pgo-generate --target multiarcaderecomp_vunit_trace -j2
 ```
 
 Run the instrumented binary through representative gameplay, including the
 heavy 3D track. Keep each execution mode's profile in its own fresh profile
 directory so interpreter-only and hybrid measurements remain separable. An
 instrumented run's FPS is not a performance result. Then reconfigure the same
-build directory with `-DMAMERECOMP_VUNIT_PGO_MODE=USE` and rebuild. Keeping the
+build directory with `-DMULTIARCADERECOMP_VUNIT_PGO_MODE=USE` and rebuild. Keeping the
 build directory, source, compiler, and Release options the same also keeps
 GCC's profile-to-object mapping stable. Regenerate the profile after code
 changes. PGO builds add `-g` while retaining `-O3` and `-DNDEBUG`, so optimized
@@ -86,7 +86,7 @@ VSync state; the runner requests VSync off because the machine loop already
 paces frames.
 The default video backend is the existing CPU rasterizer. An experimental,
 optional OpenGL 4.3 compute rasterizer for V-Unit DMA quads can be built with
-`-DMAMERECOMP_ENABLE_VUNIT_OPENGL=ON` and selected with
+`-DMULTIARCADERECOMP_ENABLE_VUNIT_OPENGL=ON` and selected with
 `--video-backend=opengl`; `--video-backend=cpu` explicitly selects the unchanged
 reference path. The OpenGL path keeps the same DMA command order and VRAM
 interface, then reads the rendered pages back so the rest of the runtime stays
@@ -103,8 +103,8 @@ The generic RGB GLSL filter lives in `core/video/shaders/scanlines.frag` and is
 not tied to V-Unit or its palette format. Other board presenters have not yet
 been switched to the shared OpenGL post-process path.
 For a separate prototype build, configure with
-`cmake -S . -B build/vunit/opengl -DCMAKE_BUILD_TYPE=Release -DMAMERECOMP_ENABLE_VUNIT_OPENGL=ON -DMAMERECOMP_ENABLE_OPENGL_VIDEO=OFF`, then run
-`cmake --build build/vunit/opengl --target mamerecomp_vunit_trace -j4` and pass
+`cmake -S . -B build/vunit/opengl -DCMAKE_BUILD_TYPE=Release -DMULTIARCADERECOMP_ENABLE_VUNIT_OPENGL=ON -DMULTIARCADERECOMP_ENABLE_OPENGL_VIDEO=OFF`, then run
+`cmake --build build/vunit/opengl --target multiarcaderecomp_vunit_trace -j4` and pass
 `--video-backend=opengl` when launching it.
 All DMA quads are uploaded together and rasterized in one compute dispatch;
 ordered tile bins preserve overlap order. Only the page requested by the CPU is
@@ -150,11 +150,11 @@ before 40-bit accumulation. Recheck the WAV and listening result after rebuild.
 A 600-frame
 headless POST run took 12.1
 seconds and generated no DCS commands, so it did not exercise gameplay audio.
-Set `MAMERECOMP_ADSP_TRACE_PROGRAM_WRITE=1` to log writes that patch ADSP
+Set `MULTIARCADERECOMP_ADSP_TRACE_PROGRAM_WRITE=1` to log writes that patch ADSP
 program word `0x014b`, including the writing PC/opcode and DAG/data registers;
 this isolates the dynamic sample-writer instruction seen in silent gameplay
 captures. The trace is capped at 256 records.
-Set `MAMERECOMP_ADSP_TRACE_SAMPLE_WRITES=1` to log the first 128 writes into
+Set `MULTIARCADERECOMP_ADSP_TRACE_SAMPLE_WRITES=1` to log the first 128 writes into
 the active SPORT sample buffer, including the sample value, source instruction,
 and ADSP arithmetic/DAG state. Recent gameplay still wrote only zeros to that
 buffer; no program write to `0x014b` was observed, so that earlier dynamic-code
@@ -167,7 +167,7 @@ global mutex on every interpreted instruction while keeping categorized logs.
 Compared `core/chips/dcs/audio_2k.*` with `~/git/mame/src/mame/shared/dcs.cpp`:
 the DCS 2K memory map, 10 MHz ADSP clock, 31.25 kHz SPORT1 external clock,
 half-buffer size/increment, AS_DATA reads and mono DAC transfer match the MAME
-path. A scheduling mismatch was found: MameRecomp previously
+path. A scheduling mismatch was found: MultiArcadeRecomp previously
 waited until the whole V-Unit frame's ADSP budget had executed before draining
 SPORT, while MAME's timer drains at every half-buffer boundary as the DSP runs.
 The runtime now slices ADSP execution at those deadlines and drains there, so

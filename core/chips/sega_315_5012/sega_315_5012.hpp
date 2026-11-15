@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::chips::sega3155012 {
+namespace multiarcaderecomp::chips::sega3155012 {
 
 inline constexpr std::uint16_t kTransparentPixel = 0xffff;
 
@@ -30,4 +30,4 @@ struct Output {
 Output rasterize(const sega3155011::Comparator& line_comparator,
     std::span<const std::uint8_t> sprite_rom, std::span<const std::uint8_t> sprite_ram, State state);
 
-} // namespace mamerecomp::chips::sega3155012
+} // namespace multiarcaderecomp::chips::sega3155012

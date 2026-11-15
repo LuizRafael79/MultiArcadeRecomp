@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 
 class MameTMS34010 {
 public:
@@ -475,4 +475,4 @@ public:
 BlockExit execute_mame_interpreter(State& state, Bus& bus,
                                    std::uint64_t stop_cycle);
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010

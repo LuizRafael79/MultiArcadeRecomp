@@ -6,8 +6,8 @@
 #include <iterator>
 
 namespace {
-using mamerecomp::sega::GameAudioApi;
-using mamerecomp::sega::GameAudioHostApi;
+using multiarcaderecomp::sega::GameAudioApi;
+using multiarcaderecomp::sega::GameAudioHostApi;
 
 enum class Fade : std::uint8_t { None, In, Out };
 struct State {
@@ -155,6 +155,6 @@ bool on_sound_command(std::uint8_t command, const GameAudioHostApi* host_ptr) {
 const GameAudioApi api{1, on_sound_command};
 }
 
-extern "C" const mamerecomp::sega::GameAudioApi* mamerecomp_game_audio_api() {
+extern "C" const multiarcaderecomp::sega::GameAudioApi* multiarcaderecomp_game_audio_api() {
     return &api;
 }

@@ -23,8 +23,8 @@ The `.bps` files are binary diffs for the two interleaved 68000 program ROMs. No
 The `goldnaxepc` profile selects Free Play by default. Build and run it with:
 
 ```sh
-build/mamerecomp build --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip
-build/mamerecomp run --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip --audio --arranged-bgm
+build/multiarcaderecomp build --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip
+build/multiarcaderecomp run --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip --audio --arranged-bgm
 ```
 
 The patch is based on `goldnaxeud`; other Golden Axe revisions have different program ROM layouts and need their own analysis.

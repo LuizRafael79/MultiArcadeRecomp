@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Group discovered Z80 basic blocks into dispatcher-sized routines.
 
-The routine boundary policy follows MameRecomp's shared 68000 AoT shape:
+The routine boundary policy follows MultiArcadeRecomp's shared 68000 AoT shape:
 calls and unconditional transfers cross the dispatcher, while conditional
 branches and their loop edges stay as labels inside a generated routine.
 """

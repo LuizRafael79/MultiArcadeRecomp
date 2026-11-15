@@ -2,7 +2,7 @@
 
 Toki board code is in `src/seibu/toki_machine.cpp`, `toki_m68k.cpp`, and
 `toki_z80.cpp`, with its ROM manifest at `src/romsets/seibu/toki/toki.toml`.
-CMake builds the board as `mamerecomp_seibu_toki` and accepts per-game 68000
+CMake builds the board as `multiarcaderecomp_seibu_toki` and accepts per-game 68000
 and Z80 generated sources.
 
 Toki owns its address map, encrypted Z80 setup, video, interrupts, and sound

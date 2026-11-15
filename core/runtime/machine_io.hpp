@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::runtime {
+namespace multiarcaderecomp::runtime {
 
 // Board-facing address bus. CPU ABIs may extend this with ISA-specific
 // services, while machine runtimes use the same read/write contract to
@@ -55,4 +55,4 @@ struct Pcm16AudioView {
     std::span<const std::int16_t> samples;
 };
 
-} // namespace mamerecomp::runtime
+} // namespace multiarcaderecomp::runtime

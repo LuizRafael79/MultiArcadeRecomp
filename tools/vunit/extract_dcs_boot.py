@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the first DCS 2K ADSP boot stream in MameRecomp packed format.
+"""Extract the first DCS 2K ADSP boot stream in MultiArcadeRecomp packed format.
 
 The board's DCS ROM is a 16-bit interleaved region. MAME's DCS boot routine
 selects every even byte into a 0x1000-byte transfer buffer, then loads packed

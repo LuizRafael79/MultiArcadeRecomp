@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 struct NaomiPvrPresenter::Impl {
     SDL_Window* window = nullptr;
@@ -100,4 +100,4 @@ void NaomiPvrPresenter::waitUntilClosed() {
     }
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

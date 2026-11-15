@@ -54,22 +54,22 @@ int main() {
     memory[0] = 0x4e; memory[1] = 0x71;
     memory[2] = 0x70; memory[3] = 0x01;
     M68kBusCallbacks bus{nullptr, read8, read16, write8, write16};
-    mamerecomp_m68k_bus_bind(&bus);
+    multiarcaderecomp_m68k_bus_bind(&bus);
 
     const std::uint32_t translated_pc = 2;
     std::uint64_t instructions = 0;
     reset_cpu();
-    int cycles = mamerecomp_m68k_musashi_run_until(&translated_pc, 1, &aot_valid, &instructions);
+    int cycles = multiarcaderecomp_m68k_musashi_run_until(&translated_pc, 1, &aot_valid, &instructions);
     assert(cycles == 4 && instructions == 1 && ng_cpu.pc == 2 && ng_cpu.d[0] == 0);
-    assert(mamerecomp_m68k_musashi_step() == 4 && ng_cpu.pc == 4 && ng_cpu.d[0] == 1);
+    assert(multiarcaderecomp_m68k_musashi_step() == 4 && ng_cpu.pc == 4 && ng_cpu.d[0] == 1);
 
     reset_cpu();
     shorten_event = true;
-    cycles = mamerecomp_m68k_musashi_run_until(nullptr, 0, nullptr, &instructions);
+    cycles = multiarcaderecomp_m68k_musashi_run_until(nullptr, 0, nullptr, &instructions);
     assert(cycles == 4 && instructions == 1 && ng_cpu.pc == 2 && ng_cpu.d[0] == 0);
 
     reset_cpu();
     invalidate_on_fetch = true;
-    cycles = mamerecomp_m68k_musashi_run_until(nullptr, 0, &aot_valid, &instructions);
+    cycles = multiarcaderecomp_m68k_musashi_run_until(nullptr, 0, &aot_valid, &instructions);
     assert(cycles == 4 && instructions == 1 && ng_cpu.pc == 2 && ng_cpu.d[0] == 0);
 }

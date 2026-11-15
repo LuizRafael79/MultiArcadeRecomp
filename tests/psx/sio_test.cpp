@@ -19,7 +19,7 @@ int main()
     pins.serial_data = data_pin;
     pins.serial_read = read_pin;
 
-    mamerecomp::psx::Sio0 sio;
+    multiarcaderecomp::psx::Sio0 sio;
     sio.write(2, (1u << 16) | 1u); // 8-bit TX enabled, divide by 1
     sio.write(3, 1u << 16);        // baud period = 1
     sio.write(0, 0xa5);
@@ -34,7 +34,7 @@ int main()
     // roughly one SIO bit per three CPU cycles (prescaler=baud=1).
     Loopback zn2_loop;
     pins.opaque = &zn2_loop;
-    mamerecomp::psx::Sio0 zn2_sio;
+    multiarcaderecomp::psx::Sio0 zn2_sio;
     zn2_sio.write(2, (1u << 16) | 1u);
     zn2_sio.write(3, 1u << 16);
     zn2_sio.write(0, 0x5a);
@@ -47,7 +47,7 @@ int main()
     // ZN-1's 67.7376 MHz CPU has a 1:2 ratio to the serial reference.
     Loopback zn1_loop;
     pins.opaque = &zn1_loop;
-    mamerecomp::psx::Sio0 zn1_sio;
+    multiarcaderecomp::psx::Sio0 zn1_sio;
     zn1_sio.write(2, (1u << 16) | 1u);
     zn1_sio.write(3, 1u << 16);
     zn1_sio.write(0, 0xa6);

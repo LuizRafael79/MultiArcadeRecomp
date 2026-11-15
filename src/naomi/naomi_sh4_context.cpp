@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 namespace {
 struct UnresolvedSh4Target {};
 unsigned g_naomi_bios_callback_trace_events = 0;
@@ -77,7 +77,7 @@ std::uint32_t sh4_mmr_read(const Sh4Context& context, std::uint32_t address) {
                                        Sh4Access access,
                                        std::uint32_t event) {
     auto& context = const_cast<Sh4Context&>(source);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SH4_EXCEPTIONS")) {
         static unsigned memory_fault_trace_events = 0;
         if (memory_fault_trace_events < 128) {
             ++memory_fault_trace_events;
@@ -237,13 +237,13 @@ AicaTraceStats& aica_trace_stats() {
 }
 
 bool aica_trace_enabled() {
-    static const bool enabled = std::getenv("MAMERECOMP_NAOMI_TRACE_AICA") != nullptr;
+    static const bool enabled = std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AICA") != nullptr;
     return enabled;
 }
 
 bool event_memory_trace_enabled() {
     static const bool enabled =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_EVENT_MEMORY") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_EVENT_MEMORY") != nullptr;
     return enabled;
 }
 
@@ -251,7 +251,7 @@ void trace_bios_pointer_table_read(const Sh4Context& context,
                                   std::uint32_t address, unsigned width,
                                   std::uint32_t value) {
     static const bool enabled =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_BIOS_POINTER_TABLE") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BIOS_POINTER_TABLE") != nullptr;
     if (!enabled || g_naomi_bios_pointer_table_reads >= 128) return;
     const auto physical = address & 0x1fffffffu;
     if (physical >= 0x0c018080u || physical + width <= 0x0c018040u) return;
@@ -263,7 +263,7 @@ void trace_bios_pointer_table_read(const Sh4Context& context,
 }
 
 void trace_bios_pointer_table_read_summary() {
-    if (!std::getenv("MAMERECOMP_NAOMI_TRACE_BIOS_POINTER_TABLE")) return;
+    if (!std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BIOS_POINTER_TABLE")) return;
     std::fprintf(stderr, "SH-4 BIOS pointer-table read summary count=%u range=0c018040-0c018080\n",
                  g_naomi_bios_pointer_table_reads);
 }
@@ -272,7 +272,7 @@ void trace_m2_pio_access(const Sh4Context& context, char operation,
                          std::uint32_t address, unsigned width,
                          std::uint32_t value) {
     static const bool enabled =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_M2_PIO_PC") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_M2_PIO_PC") != nullptr;
     if (!enabled || g_naomi_m2_pio_trace_events >= 4096) return;
     const auto physical = address & 0x1fffffffu;
     if (physical < 0x005f7000u || physical >= 0x005f7016u) return;
@@ -360,7 +360,7 @@ void trace_aica_access(const Sh4Context& context, char operation,
 void trace_aot_table_guest_write(const Sh4Context& context, std::uint32_t address,
                                  unsigned width, std::uint32_t value) {
     static const bool enabled =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES") != nullptr;
     if (!enabled) return;
     const auto physical = address & 0x1fffffffu;
     const bool braf_table = physical < 0x0c035fb0u && physical + width > 0x0c035f84u;
@@ -425,7 +425,7 @@ bool read_intevt(const Sh4Context& context, std::uint32_t address,
     const auto shift = (physical - kSh4IntevtAddress) * 8u;
     value = context.intevt >> shift;
     if (width < 4) value &= (1u << (width * 8u)) - 1u;
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_INTEVT") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_INTEVT") &&
         g_naomi_intevt_trace_events++ < 64)
         std::fprintf(stderr,
                      "SH-4 INTEVT R pc=%08x address=%08x width=%u -> %08x\n",
@@ -443,7 +443,7 @@ bool write_intevt(const Sh4Context& context, std::uint32_t address,
         ((1u << (width * 8u)) - 1u) << shift;
     auto& intevt = const_cast<Sh4Context&>(context).intevt;
     intevt = (intevt & ~mask) | ((value << shift) & mask);
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_INTEVT") &&
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_INTEVT") &&
         g_naomi_intevt_trace_events++ < 64)
         std::fprintf(stderr,
                      "SH-4 INTEVT W pc=%08x address=%08x width=%u <- %08x\n",
@@ -455,7 +455,7 @@ void trace_pvr_framebuffer_write(const Sh4Context& context,
                                 std::uint32_t address,
                                 unsigned width, std::uint32_t value) {
     static unsigned events = 0;
-    if (!std::getenv("MAMERECOMP_NAOMI_TRACE_PVR_FB_WRITES") || events >= 128)
+    if (!std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR_FB_WRITES") || events >= 128)
         return;
     const auto physical = address & 0x1fffffffu;
     const auto aligned = physical & ~3u;
@@ -489,7 +489,7 @@ void trace_watched_write(const Sh4Context& context, std::uint32_t address,
     static unsigned range_events = 0;
     if (!range_initialized) {
         range_initialized = true;
-        if (const char* text = std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_RANGE")) {
+        if (const char* text = std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_RANGE")) {
             char* end = nullptr;
             const auto begin = std::strtoul(text, &end, 0);
             if (end != text && *end == ':') {
@@ -524,7 +524,7 @@ void trace_watched_write(const Sh4Context& context, std::uint32_t address,
     static std::uint32_t watched_address = 0;
     if (!initialized) {
         initialized = true;
-        if (const char* text = std::getenv("MAMERECOMP_NAOMI_WATCH_ADDRESS")) {
+        if (const char* text = std::getenv("MULTIARCADERECOMP_NAOMI_WATCH_ADDRESS")) {
             char* end = nullptr;
             const auto parsed = std::strtoul(text, &end, 0);
             if (end != text && *end == '\0') {
@@ -546,7 +546,7 @@ void trace_watched_write(const Sh4Context& context, std::uint32_t address,
 
 void trace_task_range_read(const Sh4Context& context, std::uint32_t address,
                            unsigned width, std::uint32_t value) {
-    // Opt-in bounded counterpart to MAMERECOMP_NAOMI_TRACE_TASK_RANGE writes.
+    // Opt-in bounded counterpart to MULTIARCADERECOMP_NAOMI_TRACE_TASK_RANGE writes.
     // This observes scheduler reads only; it never changes guest memory/state.
     static bool initialized = false;
     static bool enabled = false;
@@ -557,8 +557,8 @@ void trace_task_range_read(const Sh4Context& context, std::uint32_t address,
     if (!initialized) {
         initialized = true;
         changes_only = std::getenv(
-            "MAMERECOMP_NAOMI_TRACE_TASK_RANGE_READ_CHANGES") != nullptr;
-        if (const char* text = std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_RANGE_READ")) {
+            "MULTIARCADERECOMP_NAOMI_TRACE_TASK_RANGE_READ_CHANGES") != nullptr;
+        if (const char* text = std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_RANGE_READ")) {
             char* end = nullptr;
             const auto begin = std::strtoul(text, &end, 0);
             if (end != text && *end == ':') {
@@ -602,14 +602,14 @@ void trace_task_range_read_summary() {
                  "SH-4 task-range read summary logged=%u suppressed=%llu changes_only=%u\n",
                      g_naomi_task_range_read_trace_events,
                  static_cast<unsigned long long>(g_naomi_task_range_read_suppressed),
-                 std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_RANGE_READ_CHANGES") ? 1u : 0u);
+                 std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_RANGE_READ_CHANGES") ? 1u : 0u);
 }
 
 void trace_watched_pc(const Sh4Context& context) {
     static bool initialized = false;
     if (!initialized) {
         initialized = true;
-        if (const char* text = std::getenv("MAMERECOMP_NAOMI_TRACE_PC")) {
+        if (const char* text = std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PC")) {
             const char* cursor = text;
             while (*cursor && g_naomi_watched_pc_count < g_naomi_watched_pcs.size()) {
                 char* end = nullptr;
@@ -818,7 +818,7 @@ void Sh4Context::noteAotCodeWrite(std::uint32_t address, unsigned width) const {
 void Sh4Context::dispatch_indirect(std::uint32_t target) {
     const auto source_pc = pc;
     static const bool trace_callback_table =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_CALLBACK_TABLE") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_CALLBACK_TABLE") != nullptr;
     if (trace_callback_table && source_pc == 0x0c0353fcu &&
         g_naomi_callback_table_dispatch_events < 256) {
         ++g_naomi_callback_table_dispatch_events;
@@ -828,7 +828,7 @@ void Sh4Context::dispatch_indirect(std::uint32_t target) {
                      r[3], target, pr);
     }
     static const bool trace_task_callbacks =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
     // The BIOS is commonly reached through P1/P2 aliases. Compare the
     // physical SH-4 address so diagnostics follow the same code regardless
     // of the alias used by the current AOT block.
@@ -847,7 +847,7 @@ void Sh4Context::dispatch_indirect(std::uint32_t target) {
         }
     }
     const bool trace_bios_callback =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_CALLBACKS") &&
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_CALLBACKS") &&
         ((source_pc >= 0xac00119eu && source_pc <= 0xac001228u) ||
          target == 0xac0014b0u || target == 0xac00181cu || target == 0xac0023e2u) &&
         g_naomi_bios_callback_trace_events < 96;
@@ -863,7 +863,7 @@ void Sh4Context::dispatch_indirect(std::uint32_t target) {
     // Match all SH-4 P0/P1/P2 aliases; this does not affect dispatch.
     static unsigned m2_handoff_trace_events = 0;
     const bool trace_m2_handoff =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_M2_HANDOFF") &&
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_M2_HANDOFF") &&
         (target & 0x1fffffffu) == 0x0c019550u &&
         m2_handoff_trace_events < 16;
     if (trace_m2_handoff) {
@@ -875,7 +875,7 @@ void Sh4Context::dispatch_indirect(std::uint32_t target) {
                      r[8], r[9], r[10], r[11], r[12], r[13], r[14],
                      pr, sr, t ? 1u : 0u, r[15]);
     }
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_DISPATCH")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_DISPATCH")) {
         std::fprintf(stderr,
                      "SH-4 dispatch pc=0x%08x target=0x%08x r0=0x%08x r1=0x%08x r2=0x%08x r3=0x%08x pr=0x%08x sp=0x%08x\n",
                      source_pc, target, r[0], r[1], r[2], r[3], pr, r[15]);
@@ -931,7 +931,7 @@ bool Sh4Context::acceptInterrupt() {
     constexpr std::uint32_t kSrBl = 1u << 28;
     if ((sr & kSrBl) != 0 || level <= mask) return false;
 
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_IRQ")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_IRQ")) {
         static unsigned trace_events = 0;
         if (trace_events++ < 32)
             std::fprintf(stderr,
@@ -955,17 +955,17 @@ bool Sh4Context::consume_instruction(unsigned cycles, bool interpreted) {
     // These switches sit on the per-instruction hot path. Cache them once so
     // disabled debug traces do not call getenv() for every SH-4 instruction.
     static const bool trace_reset_idle =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_RESET_IDLE") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_RESET_IDLE") != nullptr;
     static const bool trace_game_entry =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_GAME_ENTRY") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_GAME_ENTRY") != nullptr;
     static const bool trace_boot_loop =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_LOOP") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT_LOOP") != nullptr;
     static const bool trace_progress =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_PROGRESS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PROGRESS") != nullptr;
     static const char* trace_manifest_sha256 =
-        std::getenv("MAMERECOMP_NAOMI_MANIFEST_SHA256");
+        std::getenv("MULTIARCADERECOMP_NAOMI_MANIFEST_SHA256");
     static const bool trace_bios_task_pc =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS") != nullptr;
     static std::uint32_t bios_task_pc_events = 0;
     const auto physical_pc = pc & 0x1fffffffu;
     if (trace_bios_task_pc && bios_task_pc_events < 256u &&
@@ -1051,7 +1051,7 @@ bool Sh4Context::retire_opcode(std::uint16_t opcode, bool interpreted) {
     // both interpreted instructions and generated AOT instructions without
     // changing either execution path.
     static const bool trace_gbr =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_GBR") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_GBR") != nullptr;
     static std::uint32_t previous_pc = 0;
     static std::uint16_t previous_opcode = 0;
     static bool previous_wrote_gbr = false;
@@ -1070,14 +1070,14 @@ bool Sh4Context::retire_opcode(std::uint16_t opcode, bool interpreted) {
                              (opcode & 0xf0ffu) == 0x4017u;
     }
     return consume_instruction(
-        mamerecomp::cpus::sh4::flycast::instruction_cycles(opcode, cycle_state),
+        multiarcaderecomp::cpus::sh4::flycast::instruction_cycles(opcode, cycle_state),
         interpreted);
 }
 
 void Sh4Dispatcher::add(std::uint32_t guest_address, Sh4TranslatedFunction function) {
     if (!function) return;
     if (guest_address == 0x0c04b88cu &&
-        std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS")) {
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS")) {
         const auto old = m_functions.find(guest_address);
         std::fprintf(stderr,
                      "SH-4 task callback registration pc=%08x old=%p new=%p caller=%p replace=%u\n",
@@ -1119,7 +1119,7 @@ bool Sh4Dispatcher::contains(std::uint32_t guest_address) const {
 }
 
 void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BIOS_M2_FLOW")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BIOS_M2_FLOW")) {
         static constexpr std::array<std::uint32_t, 7> watched{
             0x0c0193d8u, 0x0c01943cu, 0x0c019550u, 0x0c0195e8u,
             0x0c019602u, 0x0c019626u, 0x0c019640u};
@@ -1151,7 +1151,7 @@ void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
     };
     std::unordered_set<Sh4TranslatedFunction> interpreter_only_functions;
     const bool trace_aot_fallback =
-        std::getenv("MAMERECOMP_NAOMI_TRACE_AOT_FALLBACK") != nullptr;
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_AOT_FALLBACK") != nullptr;
     const auto lookup = [this, &context, &requires_interpreter,
                          &interpreter_only_functions, trace_aot_fallback](std::uint32_t address) {
         if (context.interpreter_only) return m_functions.end();
@@ -1246,7 +1246,7 @@ void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
         const auto step_pc = context.pc;
         const auto physical_step_pc = step_pc & 0x1fffffffu;
         const bool trace_bios_task_step =
-            std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS") &&
+            std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS") &&
             (physical_step_pc == 0x0c045fdcu ||
              physical_step_pc == 0x0c04b88cu);
         static std::uint32_t bios_task_step_events = 0;
@@ -1317,7 +1317,7 @@ void Sh4Dispatcher::call(Sh4Context& context, std::uint32_t target) const {
     const auto task_callback_function = found->second;
     found->second(context);
     if (target == 0x0c04b88cu &&
-        std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS")) {
+        std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS")) {
         const auto dispatch = ++g_naomi_task_callback_returns;
         if (dispatch <= 16 || (dispatch % 1000000u) == 0) {
             std::fprintf(stderr,
@@ -1404,4 +1404,4 @@ Sh4RunResult Sh4Dispatcher::run(Sh4Context& context, std::uint32_t entry,
                 context.unresolved_target == 0};
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

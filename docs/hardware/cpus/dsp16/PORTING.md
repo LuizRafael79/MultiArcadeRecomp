@@ -4,7 +4,7 @@
 instruction sequencing, register model, cache execution, and serial/parallel
 interfaces are adapted from MAME's `src/devices/cpu/dsp16/` implementation by
 Vas Crabb. The upstream files identify their license as BSD-3-Clause; the
-MameRecomp files retain that license tag and attribution, and the complete
+MultiArcadeRecomp files retain that license tag and attribution, and the complete
 BSD-3-Clause text is included at [`docs/license/dsp16/LICENSE`](../../../license/dsp16/LICENSE) for source and
 binary redistribution. The QSound-specific ROM, command latch, serial DAC
 recovery, and HLE live in `core/chips/qsound.*`, outside the CPU core.
@@ -23,7 +23,7 @@ Reference revisions inspected during this port:
   and `src/devices/sound/qsound.cpp`), BSD-3-Clause.
 - ZN-2 MiSTer: `d16528fd9e833265dfce473bf3923ca6ca406135`
   (`rtl/sound/jt_qsound/`), GPL-3.0-or-later. Used to check behavior only;
-  no RTL source is included in the MameRecomp DSP16A core.
+  no RTL source is included in the MultiArcadeRecomp DSP16A core.
 - ValleyBell/qsound-hle: `68e63be325ddce6288adc3f571a4647f634046fb`.
   The separate `core/third_party/qsound-hle/` HLE source carries its upstream
   BSD-3-Clause `LICENSE` and attribution to ValleyBell and Ian Karlsson.
@@ -39,13 +39,13 @@ Reference revisions inspected during this port:
   multiplies by YH only, and the sample phase YL is explicitly restored.
 - MAME's `dau_set_atx`/`dau_set_at` use PSW[4]/PSW[5] to decide whether an
   A0H/A1H write preserves the low word; JTDSP16 instead wires this to
-  AUC[4]/AUC[5]. MameRecomp now follows the RTL wiring. An A/B replay with
+  AUC[4]/AUC[5]. MultiArcadeRecomp now follows the RTL wiring. An A/B replay with
   identical NVRAM over 960 frames previously produced bit-identical QSound PCM
   under both rules (RMS 10,032.9; seven samples at the limit in both runs), so
   this semantic difference does not explain the current hiss in SFEX2PA.
 - MAME's F2=9 implementation also differs from JTDSP16: RTL increments the
   source's 21-bit high field and chooses low-word retention from the
-  destination's AUC bit, retaining the source low word. MameRecomp now follows
+  destination's AUC bit, retaining the source low word. MultiArcadeRecomp now follows
   that RTL behavior with explicit 37-bit wrapping. Regression vectors cover
   both mismatched AUC selector bits, the source low word, and high-field carry.
   In the observed DL-1425 sample loop AUC is `0x02`, making both AUC[4] and
@@ -100,9 +100,9 @@ rules, while its QSound SIO is also simplified. Neither implementation should
 be treated as a complete oracle for every subsystem.
 
 On 2026-11-07, a diagnostic MAME was rebuilt as
-`/home/luiz/git/MameRecomp/build/qsoundtest` with the
+`/home/luiz/git/MultiArcadeRecomp/build/qsoundtest` with the
 ZN, CPS-1, and CPS-2 drivers selected and `QSOUND_LLE` enabled for driver
-translation units. `/home/luiz/git/MameRecomp/build/qsoundtest -listdevices
+translation units. `/home/luiz/git/MultiArcadeRecomp/build/qsoundtest -listdevices
 sfex2pa` reports `QSound` with child `WE|AT&T DSP16A @ 60.00 MHz`; its
 `-listroms sfex2pa` reports
 `dl-1425.bin`, CRC `d6cf5ef5`. The installed `/usr/bin/mame` still reports
@@ -112,13 +112,13 @@ shows that the LLE has measurable host cost, but does not explain the local
 audio-level/noise divergence by itself.
 
 There are two similarly named executables: the LLE capture and device-list
-evidence above refer specifically to `/home/luiz/git/MameRecomp/build/qsoundtest`.
+evidence above refer specifically to `/home/luiz/git/MultiArcadeRecomp/build/qsoundtest`.
 The separate `/home/luiz/git/mame/qsoundtest` is an older HLE build with no
 DSP16A CPU; do not use it for DSP-state traces. The user's opened MAME instance
 and the project-local diagnostic binary were confirmed to expose the DSP16A.
 
 For a fresh NVRAM comparison, MAME's `at28c16_device::nvram_default()` fills
-the EEPROM with `0xff`. I repeated a 900-frame MameRecomp capture using the
+the EEPROM with `0xff`. I repeated a 900-frame MultiArcadeRecomp capture using the
 same erased image. The MAME `-wavwrite` capture is 48 kHz, 15 s, and runs at
 94.49% average speed; its audio begins around second 10, with per-second RMS
 about 1.5–2.0k through the active section and peak 8,207. The local raw QSound
@@ -126,14 +126,14 @@ capture is 24,038 Hz; it begins around second 8, with RMS about 14.1–15.2k
 through the active section, peak 32,767, and 20 samples reaching that peak.
 The host-speed difference therefore remains separate from the much higher
 local signal level. These files are `build/qsoundtest_sfex2pa.wav` and
-`build/mamerecomp_qsound_lle_sfex2pa_ff.pcm`; this is a level/timing comparison,
+`build/multiarcaderecomp_qsound_lle_sfex2pa_ff.pcm`; this is a level/timing comparison,
 not sample-aligned parity.
 
 The source also rules out copying the HLE's output clamp as a fix for LLE.
 `qsound_hle_device::state_normal_update` clamps its computed mixer output to
 `[-0x7fff, 0x7fff]`. The LLE instead captures each 16-bit serial word into
 `m_samples`, and `qsound_device::sound_stream_update` presents that DAC value
-directly, normalized by 32768. MameRecomp follows the LLE route and does not
+directly, normalized by 32768. MultiArcadeRecomp follows the LLE route and does not
 apply the HLE mixer clamp. Its high peaks are already present in recovered DSP
 words, before SDL/presentation, so output limiting would conceal an upstream
 DSP, timing, or serial-state error.
@@ -141,7 +141,7 @@ DSP, timing, or serial-state error.
 The source comparison also confirms the intended serial handshake: MAME starts
 a word when the prior OLD transition set `m_ready`, OSE is inactive, and no
 word is in progress; it selects the channel from PSEL, shifts DO on OCK, then
-updates the stream before replacing the left DAC value. MameRecomp models the
+updates the stream before replacing the left DAC value. MultiArcadeRecomp models the
 same OLD/OSE/PSEL/DO/OCK sequence and snapshots the preceding stereo pair at
 the left-word boundary. No source evidence supports a different sample
 polarity or an HLE-style saturation stage in the LLE path.
@@ -163,8 +163,8 @@ Fresh-NVRAM, 900-frame SFEX2PA captures after the product-alignment fix:
 
 | Path | RMS L/R | full-scale samples L/R | peak |
 | --- | ---: | ---: | ---: |
-| MameRecomp DSP16A LLE, raw 24,038 Hz PCM | 9,243.9 / 9,273.9 | 6 / 8 | 32,767 |
-| MameRecomp QSound HLE, raw 24,038 Hz PCM | 799.6 / 825.2 | 0 / 0 | 7,670 |
+| MultiArcadeRecomp DSP16A LLE, raw 24,038 Hz PCM | 9,243.9 / 9,273.9 | 6 / 8 | 32,767 |
+| MultiArcadeRecomp QSound HLE, raw 24,038 Hz PCM | 799.6 / 825.2 | 0 / 0 | 7,670 |
 
 Before the fix, LLE had RMS about 20,200 and roughly 34% full-scale samples.
 This confirms the product alignment bug was a major clipping source. It does
@@ -181,10 +181,10 @@ capture; do not tune output volume to conceal a DSP or serial-path mismatch.
 
 The first MAME WAV comparison was not QSound-only: MAME's ZN machine routes the
 PSX SPU and QSound independently to the shared speaker (`zn.cpp`, SPU gain
-0.35, QSound gain 1.0). MameRecomp likewise has separate SDL streams. A fresh
-16-second headless MameRecomp capture (`MAMERECOMP_ZN_DUMP_QSOUND_PCM`) contains
+0.35, QSound gain 1.0). MultiArcadeRecomp likewise has separate SDL streams. A fresh
+16-second headless MultiArcadeRecomp capture (`MULTIARCADERECOMP_ZN_DUMP_QSOUND_PCM`) contains
 385,725 QSound frames and has high-level PCM after ~8 s; the separate
-`MAMERECOMP_ZN_DUMP_SPU_PCM` file was empty in that run. Therefore the earlier
+`MULTIARCADERECOMP_ZN_DUMP_SPU_PCM` file was empty in that run. Therefore the earlier
 full-MAME-WAV RMS comparison is not evidence of QSound-level parity. The local
 SPU dump hook is now available for future stream-by-stream checks.
 
@@ -213,7 +213,7 @@ identify the first DSP instruction or state that diverges.
 An initial instruction trace appeared to diverge at a firmware DO/cache loop,
 but the local trace filter omitted PCs `0x05a5–0x05d1`, so it could not support
 that conclusion. A corrected continuous comparison found the first 500
-executed cache states identical between MAME and MameRecomp, including PC,
+executed cache states identical between MAME and MultiArcadeRecomp, including PC,
 opcode, cache pointer/limit/iteration count, C0-C2, flags, and R0-R3. This
 eliminates the cache loop as the cause for that boot segment; the first actual
 DSP or peripheral divergence remains to be located. The diagnostic MAME source
@@ -416,7 +416,7 @@ events leading into that command divergence.
 
 The focused `dsp16a_dau_test` covers RTL-derived rounding, upper accumulator
 loads, P alignment values 0–3, and YH/YL behavior. It does not yet provide
-aligned MAME-vs-MameRecomp architectural state/SDX vectors, nor broad vectors
+aligned MAME-vs-MultiArcadeRecomp architectural state/SDX vectors, nor broad vectors
 for signed multiplication, P, A0/A1 accumulation, and saturation. Keep QSound
 HLE selectable as a fallback while expanding that differential coverage.
 
@@ -428,8 +428,8 @@ the MAME HLE with the same firmware, commands, and clock stream as a shadow.
 
 The fresh-NVRAM captures in `/tmp/qsound_pair_yhfix4` contain a directly
 matched Z80-to-QSound command: command #100 is register `0x65`, data `0x53e3`
-on both MAME and MameRecomp. MAME reports D007 busy for 3.962125 ms (1,093
-polls); MameRecomp reports busy for 18.125 us (5 polls). This is a real
+on both MAME and MultiArcadeRecomp. MAME reports D007 busy for 3.962125 ms (1,093
+polls); MultiArcadeRecomp reports busy for 18.125 us (5 polls). This is a real
 ready-latch timing divergence, not a command-payload mismatch. In the MAME
 capture the DSP-visible PC/PR remain at `0x051e/0x04ff` while the Z80 polls,
 then change when ready is observed. The local status read calls `sync_qsound`,
@@ -463,7 +463,7 @@ show that.
 
 ### 2026-11-07: paired command/serial capture
 
-A new 1,000-frame MAME/LLE and MameRecomp/LLE pair uses absent initial NVRAM,
+A new 1,000-frame MAME/LLE and MultiArcadeRecomp/LLE pair uses absent initial NVRAM,
 the same coin/start frame events, and byte-identical final AT28C16 images
 (SHA-256 `980b498dd5eacfaaf4f4d2fb9047614277000a136d1059cd879c07871fde66bb`).
 The serial files are `/tmp/qsound_ready_pair_20261107/mame_lle/qsound.pcm`
@@ -536,7 +536,7 @@ DSP that continues running with incorrect, non-faulting results.
 
 ### Current build validation
 
-On 2026-11-06, the clean `mamerecomp` target and `dsp16a_dau_test` target built;
+On 2026-11-06, the clean `multiarcaderecomp` target and `dsp16a_dau_test` target built;
 `ctest --test-dir build -R '^dsp16a_dau_test$' --output-on-failure` passed.
 Separate headless SFEX2PA runs for 960 frames confirmed both launcher paths:
 `--qsound-mode=true` ran the DSP16A LLE for 387,760,559 instructions and
@@ -546,7 +546,7 @@ word peak of 32,767, while the HLE peak was 7,670 in these runs. This verifies
 that both modes execute, but also confirms the LLE audio mismatch/clipping is
 still unresolved; it is not a clean-audio parity result.
 
-A later rebuild of both `mamerecomp` and `mamerecomp_zn2_sfex2pa.so` was tested
+A later rebuild of both `multiarcaderecomp` and `multiarcaderecomp_zn2_sfex2pa.so` was tested
 with 960 headless frames, both a copied current NVRAM image and a new erased
 NVRAM image. Both completed with 771,448 serial words, 385,408 non-zero words,
 peak 32,767, and last SDX `0x966f` (non-zero A0/A1). This did not reproduce a
@@ -566,10 +566,10 @@ image completed in each mode. The LLE run received the six latch commands and
 produced 336,421 nonzero DSP serial words (peak 32,767); the HLE run loaded
 `qsound_hle.zip`, generated 289,294 audio samples at 24,038 Hz (peak 7,474),
 and reported no DSP16A execution. The DAU regression target passed, and
-`mamerecomp`, `mamerecomp_zn2_sfex2pa`, and `dsp16a_dau_test` built. These runs
+`multiarcaderecomp`, `multiarcaderecomp_zn2_sfex2pa`, and `dsp16a_dau_test` built. These runs
 confirm routing and sample production in both modes, not LLE sound fidelity.
 
-On 2026-11-07, the current `mamerecomp`, `mamerecomp_zn2_sfex2pa`, and
+On 2026-11-07, the current `multiarcaderecomp`, `multiarcaderecomp_zn2_sfex2pa`, and
 `dsp16a_dau_test` targets rebuilt, and `ctest -R '^dsp16a_dau_test$'` passed.
 Two 960-frame runs used separate copies of the same persisted MAME AT28C16
 image. `--qsound-mode=true` selected `qsound.zip`, executed 387,764,786 DSP16A
@@ -662,7 +662,7 @@ but RMS remains much higher; command history and DSP state still need alignment
 before assigning the remaining audio mismatch to a specific arithmetic, IRQ,
 or serial operation.
 
-Validation after these edits: `mamerecomp`, `dsp16a_dau_test`, and
+Validation after these edits: `multiarcaderecomp`, `dsp16a_dau_test`, and
 `qsound_mixed_fallback_test` built; both focused CTest cases passed, and
 `git diff --check` reported no whitespace errors. The HLE remains selectable
 with `--qsound-mode=hle`, while `true` selects LLE and `mixed` retains the
@@ -807,7 +807,7 @@ PIO yields or prove the LLE sample values are correct.
 ### 2026-11-07: LLE binary confirmed and raw-word byte order corrected
 
 The MAME reference executable for this comparison is
-`/home/luiz/git/MameRecomp/build/qsoundtest`. Its `-listdevices sfex2pa`
+`/home/luiz/git/MultiArcadeRecomp/build/qsoundtest`. Its `-listdevices sfex2pa`
 output includes `qsound` with a nested `WE|AT&T DSP16A`, confirming that this
 specific build is LLE. The separate `/home/luiz/git/mame/qsoundtest` binary is
 not the reference for this run.
@@ -872,7 +872,7 @@ D000, D002 write triplet shows matching QSound register payloads through
 one-based command 115. MAME's `qsound_w()` contract is D000=data high byte,
 D001=data low byte, and D002=register address. The first payload mismatch is
 one-based command 116 (zero-based index 115): MAME writes register `0x66`,
-data `0x0000`, from Z80 PC `0x29f3` at 16.290226750 s; MameRecomp writes
+data `0x0000`, from Z80 PC `0x29f3` at 16.290226750 s; MultiArcadeRecomp writes
 register `0x46`, data `0x0a01`, from PC `0x29e5` at Z80 cycle 129,319,002
 (16.164875250 s at 8 MHz). The previous command 115 is register/data
 `0x8f/0x012f` on both sides. Thus the first captured mismatch is already in
@@ -896,7 +896,7 @@ does not replace the required MAME-vs-local aligned DSP/command/serial trace.
 
 ### 2026-11-07: DSP16A AOT frequency profile
 
-`MAMERECOMP_QSOUND_DSP_AOT_MANIFEST` now writes `pc,opcode,executions`. The
+`MULTIARCADERECOMP_QSOUND_DSP_AOT_MANIFEST` now writes `pc,opcode,executions`. The
 manifest still records only instructions that reached the architectural
 instruction dispatcher; it does not scan operand reads or claim complete
 opcode-set coverage. `tools/dsp16a/build_aot.py --min-executions N` can emit
@@ -920,7 +920,7 @@ isolates the CPU execution path and does not rule out additional scheduling or
 presentation costs in windowed gameplay.
 
 The runtime profiler now reports QSound sync request count and DSP run-slice
-size when `MAMERECOMP_ZN_PROFILE_RUNTIME=1` is set. In a matched 1,200-frame
+size when `MULTIARCADERECOMP_ZN_PROFILE_RUNTIME=1` is set. In a matched 1,200-frame
 full-table replay, AoT and interpreter both made 26,735 sync requests and
 26,733 DSP slices, advancing exactly 1,203,488,190 DSP clocks. Average slice
 size was 45,018 clocks (minimum 82, maximum 1,003,073) in both runs. The

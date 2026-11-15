@@ -9,14 +9,14 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp::namco::system12 {
+namespace multiarcaderecomp::namco::system12 {
 
 // Namco System 12 COH700 main-board mappings from MAME's namcos12.cpp.
 // The PSX SoC is shared with ZN, while ROM banking, shared RAM and DMA ROM
 // source selection remain board-specific.
 class NamcoSystem12Board {
 public:
-    explicit NamcoSystem12Board(const mamerecomp::rom::RomRegions& roms);
+    explicit NamcoSystem12Board(const multiarcaderecomp::rom::RomRegions& roms);
     PsxBus make_bus();
     std::vector<uint32_t> dma_rom_read(size_t words);
     bool sub_read(uint32_t address, unsigned size, uint32_t *value);
@@ -39,8 +39,8 @@ private:
     static bool write_cb(void *, uint32_t, unsigned, uint32_t, uint32_t);
     bool read(uint32_t, unsigned, uint32_t *);
     bool write(uint32_t, unsigned, uint32_t);
-    const mamerecomp::rom::RomRegions* roms_;
-    mamerecomp::chips::C352 c352_;
+    const multiarcaderecomp::rom::RomRegions* roms_;
+    multiarcaderecomp::chips::C352 c352_;
     uint16_t bank_ = 0;
     uint32_t dma_offset_ = 0;
     std::vector<uint8_t> shared_ram_ = std::vector<uint8_t>(0x10000);
@@ -61,4 +61,4 @@ private:
 };
 
 
-} // namespace mamerecomp::namco::system12
+} // namespace multiarcaderecomp::namco::system12

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and compile CPS-1 sound Z80 AOT code using MameRecomp's backend.
+"""Generate and compile CPS-1 sound Z80 AOT code using MultiArcadeRecomp's backend.
 
 The other CPS recompiler checkouts are not used as Z80 runtimes or generators
 here. Their sound implementation is a reference only. ROM metadata is taken
@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def export_driver_roms(game: str, rom_zip: Path, work: Path, jobs: int) -> tuple[bytes, bytes, bytes, bytes]:
-    build = ROOT / "build" / "cps1" / "mamerecomp-host"
+    build = ROOT / "build" / "cps1" / "multiarcaderecomp-host"
     configure = ["cmake", "-S", str(ROOT), "-B", str(build), "-DCMAKE_BUILD_TYPE=Release"]
     result = subprocess.run(configure, cwd=ROOT)
     if result.returncode:
@@ -88,7 +88,7 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
     if not rom_zip.is_file():
         raise SystemExit(f"{game} ROM zip not found: {rom_zip}")
     work = ROOT / "build" / "cps1" / "work" / game
-    build = ROOT / "build" / "cps1" / "mamerecomp-host"
+    build = ROOT / "build" / "cps1" / "multiarcaderecomp-host"
     gen = work / "gen" / "z80"
     z80_dynamic_entries = work / "z80_dynamic_entries.txt"
     work.mkdir(parents=True, exist_ok=True)
@@ -99,7 +99,7 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
     program_path.write_bytes(program)
     initial_pc = int.from_bytes(program[4:8], "big")
     (work / "m68k_entry.txt").write_text(f"initial_pc=0x{initial_pc:06x}\n")
-    z80_args = ["-DMAMERECOMP_Z80_AOT_GENERATED_DIR="]
+    z80_args = ["-DMULTIARCADERECOMP_Z80_AOT_GENERATED_DIR="]
     z80_command = [sys.executable, str(ROOT / "tools/z80/recomp.py"),
                    "--program", str(work / "z80_program.bin"), "--out", str(gen),
                    "--list", str(work / "z80.lst"), "--precise-cycle-yield"]
@@ -116,7 +116,7 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
     result = subprocess.run(z80_command, cwd=ROOT)
     if result.returncode:
         return result.returncode
-    z80_args = [f"-DMAMERECOMP_Z80_AOT_GENERATED_DIR={gen}"]
+    z80_args = [f"-DMULTIARCADERECOMP_Z80_AOT_GENERATED_DIR={gen}"]
     print(f"Verified {game} sound ROMs against MAME.", flush=True)
 
     configure = ["cmake", "-S", str(ROOT), "-B", str(build), "-DCMAKE_BUILD_TYPE=Release",
@@ -163,8 +163,8 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
             if result.returncode:
                 return result.returncode
             configure_native = ["cmake", "-S", str(ROOT), "-B", str(build), "-DCMAKE_BUILD_TYPE=Release",
-                                *z80_args, f"-DMAMERECOMP_CPS1_M68K_GENERATED_DIR={m68k_gen}",
-                                f"-DMAMERECOMP_CPS1_GAME_ID={game}"]
+                                *z80_args, f"-DMULTIARCADERECOMP_CPS1_M68K_GENERATED_DIR={m68k_gen}",
+                                f"-DMULTIARCADERECOMP_CPS1_GAME_ID={game}"]
             result = subprocess.run(configure_native, cwd=ROOT)
             if result.returncode:
                 return result.returncode
@@ -172,7 +172,7 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
             result = subprocess.run(compile_m68k, cwd=ROOT)
             if result.returncode:
                 return result.returncode
-            command = [str(build / f"mamerecomp_{game}"), str(program_path), str(boot_cycles), str(misses),
+            command = [str(build / f"multiarcaderecomp_{game}"), str(program_path), str(boot_cycles), str(misses),
                        str(work / "z80_program.bin"), str(work / "z80_banked.bin"),
                        str(z80_misses), str(z80_fallbacks), str(work / "roms" / "gfx.bin"),
                        str(work / f"{game}-frame.ppm"),
@@ -227,11 +227,11 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
             if not new_entries and not new_z80_entries and not new_ram_entries and not ram_snapshot_changed:
                 print("Both CPU entry-discovery lists reached a fixed point for this run budget.", flush=True)
                 break
-    compile_native = ["cmake", "--build", str(build), "--target", "mamerecomp_z80_aot", "--parallel", str(jobs)]
+    compile_native = ["cmake", "--build", str(build), "--target", "multiarcaderecomp_z80_aot", "--parallel", str(jobs)]
     result = subprocess.run(compile_native, cwd=ROOT)
     if result.returncode == 0:
-        print(f"Shared native Z80 AOT library compiled: {build / 'libmamerecomp_z80_aot.a'}")
-        print("The sound CPU uses MameRecomp's shared Z80 AOT runtime.")
+        print(f"Shared native Z80 AOT library compiled: {build / 'libmultiarcaderecomp_z80_aot.a'}")
+        print("The sound CPU uses MultiArcadeRecomp's shared Z80 AOT runtime.")
     if result.returncode == 0 and program:
         board_sound = "QSound" if game == "dino" else "YM2151/OKI"
         print(f"CPU boot probe uses native 68000 and {board_sound}; --window enables live video and audio output.")
@@ -239,7 +239,7 @@ def generate(game: str, rom_zip: Path, jobs: int, boot_cycles: int, until_video:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate CPS-1 Z80 AOT code with the MameRecomp backend")
+    parser = argparse.ArgumentParser(description="Generate CPS-1 Z80 AOT code with the MultiArcadeRecomp backend")
     parser.add_argument("--game", required=True, choices=("sf2ce", "dino"))
     parser.add_argument("--rom-dir", type=Path, help="ROM zip file")
     parser.add_argument("--jobs", type=int, default=2)

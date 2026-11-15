@@ -7,7 +7,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 uint32_t read_le(const std::vector<uint8_t> &data, size_t offset, unsigned size)
 {
@@ -61,7 +61,7 @@ MachineMemory::MachineMemory(MemoryConfig config)
       cpu_cycle_hz_(config.cpu_cycle_hz),
       bios_window_bytes_(config.bios_window_bytes)
 {
-    profile_timing_ = std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
+    profile_timing_ = std::getenv("MULTIARCADERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
     (void)gpu_.advance_screen_timing(0, cpu_cycle_hz_);
     next_gpu_event_cycle_ = gpu_.cycles_until_screen_event(cpu_cycle_hz_);
     next_spu_irq_cycle_ = UINT64_MAX;
@@ -256,7 +256,7 @@ bool MachineMemory::read_cb(void *opaque, uint32_t address, unsigned size,
     const bool ok = self->read(address, size, value);
     if (!plain_ram && !plain_scratch && !plain_bios)
         self->update_event_deadline();
-    static const bool trace_gpu_status = std::getenv("MAMERECOMP_ZN_TRACE_GPU_STATUS") != nullptr;
+    static const bool trace_gpu_status = std::getenv("MULTIARCADERECOMP_ZN_TRACE_GPU_STATUS") != nullptr;
     if (ok && trace_gpu_status &&
         (address & 0x1fffffffu) == 0x1f801814) {
         static unsigned logged = 0;
@@ -270,9 +270,9 @@ bool MachineMemory::read_cb(void *opaque, uint32_t address, unsigned size,
 bool MachineMemory::write_cb(void *opaque, uint32_t address, unsigned size,
                              uint32_t value, uint32_t pc)
 {
-    static const bool trace_gpu_commands = std::getenv("MAMERECOMP_ZN_TRACE_GPU_COMMANDS") != nullptr;
-    static const bool trace_pointer_writes = std::getenv("MAMERECOMP_ZN_TRACE_POINTER_WRITES") != nullptr;
-    static const bool trace_sound_latch = std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS") != nullptr;
+    static const bool trace_gpu_commands = std::getenv("MULTIARCADERECOMP_ZN_TRACE_GPU_COMMANDS") != nullptr;
+    static const bool trace_pointer_writes = std::getenv("MULTIARCADERECOMP_ZN_TRACE_POINTER_WRITES") != nullptr;
+    static const bool trace_sound_latch = std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS") != nullptr;
     auto *self = static_cast<MachineMemory *>(opaque);
     if (self->cpu_state_) self->current_cpu_cycles_ = self->cpu_state_->cycles;
     const uint32_t physical = address & 0x1fffffffu;
@@ -300,7 +300,7 @@ bool MachineMemory::write_cb(void *opaque, uint32_t address, unsigned size,
     // Optional boot diagnostic: watch a RAM word while tracing BIOS state.
     if (trace_pointer_writes) {
         static const uint32_t watched_address = [] {
-            const char *text = std::getenv("MAMERECOMP_ZN_WATCH_WRITE_ADDRESS");
+            const char *text = std::getenv("MULTIARCADERECOMP_ZN_WATCH_WRITE_ADDRESS");
             return text ? static_cast<uint32_t>(std::strtoul(text, nullptr, 0)) : 0xffffffffu;
         }();
         const uint32_t physical = address & 0x1fffffffu;
@@ -796,4 +796,4 @@ bool MachineMemory::write(uint32_t address, unsigned size, uint32_t value, uint3
     return false;
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

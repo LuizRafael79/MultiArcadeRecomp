@@ -6,7 +6,7 @@
 #include <array>
 #include <stdexcept>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 constexpr bool bit(uint8_t value, unsigned index) { return ((value >> index) & 1) != 0; }
 uint16_t bitswap16(uint16_t value, std::array<uint8_t, 16> order) {
@@ -243,4 +243,4 @@ void Fd1094::decrypt_region(std::span<const uint8_t> encrypted, std::span<uint8_
         output[i + 1] = static_cast<uint8_t>(plain);
     }
 }
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

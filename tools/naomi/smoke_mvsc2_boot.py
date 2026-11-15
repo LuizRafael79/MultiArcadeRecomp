@@ -18,7 +18,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rom_zip", type=Path)
     parser.add_argument("bios_zip", type=Path)
-    parser.add_argument("--binary", type=Path, default=ROOT / "build/release/mamerecomp")
+    parser.add_argument("--binary", type=Path, default=ROOT / "build/release/multiarcaderecomp")
     parser.add_argument("--manifest", type=Path,
                         help="generated SH-4 manifest whose fingerprint is printed in heartbeats")
     parser.add_argument("--log-file", type=Path,
@@ -33,19 +33,19 @@ def main() -> int:
         str(args.instructions),
     ]
     environment = os.environ.copy()
-    environment["MAMERECOMP_NAOMI_TRACE_PROGRESS"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_AICA"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_CALLBACK_TABLE"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_VIDEO_SETUP"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_PVR"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_SQ"] = "1"
-    environment["MAMERECOMP_NAOMI_TRACE_TRAPA"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_PROGRESS"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_AICA"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_AOT_TABLE_WRITES"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_CALLBACK_TABLE"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_VIDEO_SETUP"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_PVR"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_SQ"] = "1"
+    environment["MULTIARCADERECOMP_NAOMI_TRACE_TRAPA"] = "1"
     if args.manifest:
         manifest = args.manifest.expanduser().resolve()
         digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
-        environment["MAMERECOMP_NAOMI_MANIFEST_SHA256"] = digest
+        environment["MULTIARCADERECOMP_NAOMI_MANIFEST_SHA256"] = digest
         print(f"AOT manifest SHA-256={digest}", flush=True)
     result = subprocess.run(command, text=True, capture_output=True, env=environment)
     output = result.stdout + result.stderr

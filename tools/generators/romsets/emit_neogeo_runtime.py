@@ -20,7 +20,7 @@ def emit(manifest: dict) -> str:
         "#pragma once",
         "#include <array>",
         "#include <cstdint>",
-        "namespace mamerecomp::neogeo::romset_data {",
+        "namespace multiarcaderecomp::neogeo::romset_data {",
         "struct Load { const char* name; const char* region; std::uint32_t source_offset, offset, length, stride, group_bytes, rom_size, crc; bool word_swap; };",
         "struct Region { const char* name; std::uint32_t size; };",
         "struct Bios { const char* name; std::uint32_t size, crc; bool word_swap; };",
@@ -60,7 +60,7 @@ def emit(manifest: dict) -> str:
     for rom in system_roms:
         lines.append("    {" + ", ".join((cpp(rom["file"]), hex(int(rom["size"])),
                       "0x" + rom["crc32"].lower())) + "},")
-    lines.extend(("}};", "} // namespace mamerecomp::neogeo::romset_data", ""))
+    lines.extend(("}};", "} // namespace multiarcaderecomp::neogeo::romset_data", ""))
     return "\n".join(lines)
 
 

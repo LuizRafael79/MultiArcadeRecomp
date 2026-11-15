@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 enum class SegaBoardFamily : std::uint8_t {
     System16A,
@@ -21,4 +21,4 @@ enum class System18RomBoard : std::uint8_t {
     Sega5874,
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

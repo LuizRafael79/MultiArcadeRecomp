@@ -44,7 +44,7 @@ def emit(manifests: list[dict]) -> str:
         '#include "runtime/sega/profiles/sega_profiles.hpp"',
         "#include <algorithm>",
         "#include <array>",
-        "namespace mamerecomp::romsets {",
+        "namespace multiarcaderecomp::romsets {",
     ]
 
     profile_items = []
@@ -143,8 +143,8 @@ def emit(manifests: list[dict]) -> str:
         profile_items.append(f"{profile_name}()")
 
     lines.extend((
-        "} // namespace mamerecomp::romsets",
-        "namespace mamerecomp {",
+        "} // namespace multiarcaderecomp::romsets",
+        "namespace multiarcaderecomp {",
         "namespace {",
         f"const std::array<GameProfile, {len(profile_items)}> profiles{{{{",
     ))
@@ -157,7 +157,7 @@ def emit(manifests: list[dict]) -> str:
         "    const auto found = std::find_if(profiles.begin(), profiles.end(), [id](const GameProfile& p) { return p.id == id; });",
         "    return found == profiles.end() ? nullptr : &*found;",
         "}",
-        "} // namespace mamerecomp",
+        "} // namespace multiarcaderecomp",
         "",
     ))
     return "\n".join(lines)

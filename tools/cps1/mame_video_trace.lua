@@ -1,4 +1,4 @@
--- MAME-side CPS-1 video trace for comparison with MameRecomp.
+-- MAME-side CPS-1 video trace for comparison with MultiArcadeRecomp.
 -- Run with: mame sf2ce -autoboot_script tools/cps1/mame_video_trace.lua
 -- Change TARGET_FRAME to capture a different frame.
 

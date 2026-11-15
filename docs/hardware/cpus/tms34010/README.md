@@ -55,7 +55,7 @@ diagnostic harness, not a complete MK runtime or proof of game compatibility.
 The runner always writes categorized fallback totals to
 `build/mk/work/tms34010_fallbacks.log` and a bounded instruction-by-instruction
 trace to `build/mk/work/tms34010_interpreter_steps.log`. The detailed log is
-capped at one million steps by default; set `MAMERECOMP_INTERPRETER_STEP_LIMIT`
+capped at one million steps by default; set `MULTIARCADERECOMP_INTERPRETER_STEP_LIMIT`
 to change the cap. `--interpreter-steps=PATH` changes its output path. The
 summary uses the shared fallback categories documented in
 `core/cpus/interpreter_trace.h`.
@@ -71,7 +71,7 @@ python3 tools/tms34010/recomp.py \
 ```
 
 Compile the generated source with the project root on the include path. It
-exports `lookup(bit_pc)` and `entry_pc()` in `mamerecomp::tms34010`; a board
+exports `lookup(bit_pc)` and `entry_pc()` in `multiarcaderecomp::tms34010`; a board
 dispatcher must provide `State`, `Bus`, and cycle deadlines when calling blocks.
 
 The compiler can also take known runtime-selected ROM PCs as extra AOT roots.

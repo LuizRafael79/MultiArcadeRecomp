@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 union GtePair {
     struct { uint8_t l, h, h2, h3; } b;
@@ -60,4 +60,4 @@ protected:
     int64_t m_mac0 = 0, m_mac1 = 0, m_mac2 = 0, m_mac3 = 0;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

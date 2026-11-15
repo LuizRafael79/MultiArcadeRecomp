@@ -6,9 +6,9 @@ The launcher selects hardware directly with `--board=aes` or `--board=mvs`.
 AES uses the original Japanese BIOS (`neo-po.bin`); MVS uses `sp-s2.sp1`.
 UniBIOS remains available through an explicit `--bios uni-bios_4_0.rom` after
 building its matching optional AoT module. KOF98 is loaded by
-the common `mamerecomp` host through `mamerecomp_neogeo_runtime.so` and the
-mode-specific `mamerecomp_game_kof98_aes.so` or
-`mamerecomp_game_kof98_mvs.so`; it is no longer a separate
+the common `multiarcaderecomp` host through `multiarcaderecomp_neogeo_runtime.so` and the
+mode-specific `multiarcaderecomp_game_kof98_aes.so` or
+`multiarcaderecomp_game_kof98_mvs.so`; it is no longer a separate
 `kof98recomp` runner.
 
 The local 68000 frontend prepares the transformed program image and emits
@@ -17,7 +17,7 @@ used by `--verify` for instruction-state comparison. The command below selects
 MVS hardware.
 
 ```sh
-build/mamerecomp run --machine=neogeo --board=mvs --game=kof98 \
+build/multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98 \
   --headless --frames=3600 --verify
 ```
 
@@ -82,7 +82,7 @@ section records the latest verified state.
 From the repository root, with the user's MAME ROM archives available:
 
 ```sh
-build/mamerecomp build --machine=neogeo --board=aes --game=kof98 \
+build/multiarcaderecomp build --machine=neogeo --board=aes --game=kof98 \
   --rom-dir /path/to/kof98.zip --bios-zip /path/to/aes.zip --jobs 2
 ```
 
@@ -98,13 +98,13 @@ The 68000 BIOS code is part of each generated AoT. To use UniBIOS, build its
 matching AES module and then run with the same `--bios` selection:
 
 ```sh
-build/mamerecomp build --machine=neogeo --board=aes --game=kof98 \
+build/multiarcaderecomp build --machine=neogeo --board=aes --game=kof98 \
   --bios=uni-bios_4_0.rom --rom-dir /path/to/kof98.zip
-build/mamerecomp run --machine=neogeo --board=aes --game=kof98 \
+build/multiarcaderecomp run --machine=neogeo --board=aes --game=kof98 \
   --bios=uni-bios_4_0.rom --rom-dir /path/to/kof98.zip
 ```
 
-That builds and selects `mamerecomp_game_kof98_aes_uni_bios_4_0.so` instead of
+That builds and selects `multiarcaderecomp_game_kof98_aes_uni_bios_4_0.so` instead of
 reusing the native-AES AoT. This optional module is generated on demand. The
 BIOS archive defaults to `aes.zip`; SM1 and other shared system ROMs still come
 from `neogeo.zip`.
@@ -124,7 +124,7 @@ generation pipeline used by every board. The stages are:
 Run a verified headless session with:
 
 ```sh
-build/mamerecomp run --machine=neogeo --board=mvs --game=kof98 \
+build/multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98 \
   --headless --frames=3600 --verify
 ```
 
@@ -248,7 +248,7 @@ mismatches. Full AES gameplay has not yet been revalidated.
 To explicitly request MVS mode with the MVS BIOS:
 
 ```sh
-build/mamerecomp run --machine=neogeo --board=mvs --game=kof98 \
+build/multiarcaderecomp run --machine=neogeo --board=mvs --game=kof98 \
   --bios-zip /home/luiz/git/mame/roms/neogeo.zip \
   --bios sp-s2.sp1 --headless --frames 1200
 ```
@@ -305,9 +305,9 @@ This dispatches to the Neo Geo/KOF98 backend. The selector also recognizes
 `system16`, `system16a`, `system16b`, `system18`, `cps1`, and `cps2`. CPS2 is
 forwarded to the local `cps2recomp` make pipeline, with generated work/build
 files redirected under this repository's `build/cps2/` tree. Override the
-source checkout with `MAMERECOMP_CPS2_SOURCE`; pass its ROM root via
+source checkout with `MULTIARCADERECOMP_CPS2_SOURCE`; pass its ROM root via
 `--rom-dir`. This is an integration bridge while the CPS2 runtime and
-frontend are adapted to MameRecomp's common module ABI.
+frontend are adapted to MultiArcadeRecomp's common module ABI.
 
 The CPS1 checkout is present at `/home/luiz/git/cps1recomp` and contains an MIT
 hardware runtime plus a Z80 interpreter, but it does not contain the ROM
@@ -541,7 +541,7 @@ models. KOF98's current scope includes no additional firmware CPU beyond its
 68000 and Z80.
 
 The historical KOF98 build and 12,000-frame MVS run passed with the generated 68000
-dispatch table loaded from `mamerecomp_game_kof98.so`; frame 11,999 shows a
+dispatch table loaded from `multiarcaderecomp_game_kof98.so`; frame 11,999 shows a
 live match. That run reports 7,715,041 native 68000 blocks and 8,369,210
 Musashi instructions, with zero uncovered entry points. The remaining
 interpreted work is 68000 execution from mutable work RAM, not Z80 coverage.
@@ -552,7 +552,7 @@ The current pipeline uses local files: `tools/z80/recomp.py` and
 `tools/z80/decoder.py` generate BIOS/cart C++ shards, while
 `core/third_party/z80-aot/` provides the native execution runtime and
 interpreter fallback. These files carry `GPL-3.0-only` SPDX identifiers, and
-the generated Z80 code is linked into `mamerecomp_game_kof98.so`. This does
+the generated Z80 code is linked into `multiarcaderecomp_game_kof98.so`. This does
 not meet the user's MIT-only distribution goal; a separately implemented,
 license-compatible Z80 frontend/runtime is still required before distribution.
 The local SuperZazu `z80_step()` implementation is MIT-licensed and remains a

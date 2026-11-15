@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp::video {
+namespace multiarcaderecomp::video {
 
 SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned height,
                                    unsigned display_aspect_width,
@@ -91,7 +91,7 @@ SdlVideoPresenter::SdlVideoPresenter(std::string title, unsigned width, unsigned
         throw std::runtime_error("SDL renderer creation failed: " + error);
     }
     const char* renderer_name = SDL_GetRendererName(renderer_);
-    SDL_Log("MameRecomp SDL video renderer: %s",
+    SDL_Log("MultiArcadeRecomp SDL video renderer: %s",
             renderer_name ? renderer_name : "unknown");
     if (!SDL_SetRenderVSync(renderer_, 1)) {
         const std::string error = SDL_GetError();
@@ -180,7 +180,7 @@ void SdlVideoPresenter::present(std::span<const std::uint8_t> rgb)
     present({width_, height_, static_cast<std::size_t>(width_) * 3, rgb});
 }
 
-void SdlVideoPresenter::present(mamerecomp::runtime::Rgb24FrameView frame)
+void SdlVideoPresenter::present(multiarcaderecomp::runtime::Rgb24FrameView frame)
 {
     if (native_opengl_window_)
         throw std::runtime_error("RGB upload is unavailable on a native OpenGL presenter window");
@@ -241,4 +241,4 @@ void SdlVideoPresenter::resize_texture(unsigned width, unsigned height)
     height_ = height;
 }
 
-} // namespace mamerecomp::video
+} // namespace multiarcaderecomp::video

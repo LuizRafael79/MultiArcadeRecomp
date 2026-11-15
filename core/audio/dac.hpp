@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::audio {
+namespace multiarcaderecomp::audio {
 
 // Sample-and-hold 8-bit DAC output, centered around the unsigned midpoint.
 class Dac8 {
@@ -35,4 +35,4 @@ private:
     std::int32_t m_previous_output = 0;
 };
 
-} // namespace mamerecomp::audio
+} // namespace multiarcaderecomp::audio

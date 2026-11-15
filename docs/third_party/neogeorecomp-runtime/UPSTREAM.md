@@ -11,7 +11,7 @@ The original MVS board model supplies the 68000 address map, LSPC, raster
 renderer, I/O, Z80/YM2610 runtime, BIOS boot, frame loop, screenshot output,
 and AOT dispatcher with Musashi fallback.
 
-MameRecomp changes also include module integration and KOF98 profile hooks,
+MultiArcadeRecomp changes also include module integration and KOF98 profile hooks,
 the PROGSF1 protection callbacks, and the KOF98 profile's ROM loader transform.
 MAME is not linked into the runtime. The BSD-derived sections are identified
 file by file in `NOTICE-MAME.md`; KOF98 protection is separately guided by

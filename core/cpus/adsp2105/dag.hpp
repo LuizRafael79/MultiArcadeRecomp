@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::adsp2105 {
+namespace multiarcaderecomp::adsp2105 {
 
 inline constexpr std::uint16_t mstat_reverse = 0x0002;
 
@@ -131,4 +131,4 @@ inline bool dag2_program_write(State& state, Bus& bus, std::uint32_t opcode,
                              4 + (opcode & 3), value);
 }
 
-} // namespace mamerecomp::adsp2105
+} // namespace multiarcaderecomp::adsp2105

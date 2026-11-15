@@ -1,2 +1,2 @@
-add_library(mamerecomp_chip_sega_315_5248 STATIC sega_315_5248.cpp)
-target_include_directories(mamerecomp_chip_sega_315_5248 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(multiarcaderecomp_chip_sega_315_5248 STATIC sega_315_5248.cpp)
+target_include_directories(multiarcaderecomp_chip_sega_315_5248 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

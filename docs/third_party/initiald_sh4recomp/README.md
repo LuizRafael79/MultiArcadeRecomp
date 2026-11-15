@@ -2,7 +2,7 @@
 
 `sh4recomp.py` and `codegen.py` were copied from the user's local
 Initial-D-Arcade-Stage-3-Native-SH-4-Recompilation-WIP checkout for reuse in
-MameRecomp. Their instruction decoder and C++ emitter are staged here without
+MultiArcadeRecomp. Their instruction decoder and C++ emitter are staged here without
 game-specific translation data. Keep upstream attribution and applicable
 license notices with these files and any derivative changes.
 

@@ -6,7 +6,7 @@ alongside the source. They are unmodified; TI copyright and notices remain in
 each PDF. The PDFs are reference material, not source code to copy into the
 runtime.
 
-| File | TI literature | Use in MameRecomp |
+| File | TI literature | Use in MultiArcadeRecomp |
 | --- | --- | --- |
 | `SPRU031F_User_Guide.pdf` | SPRU031F, *TMS320C3x User's Guide* | ISA authority: Appendix A opcode patterns, Chapter 13 instruction formats and effects, pipeline, memory, boot loader. Appendix B includes C31/VC33 boot-loader source. |
 | `TMS320C3x_Users_Guide_1994_SPRU031D.pdf` | SPRU031D, October 1994 | Historical comparison copy. Its revision notes highlight repeat/interrupt, serial-port, and DMA documentation updates. |

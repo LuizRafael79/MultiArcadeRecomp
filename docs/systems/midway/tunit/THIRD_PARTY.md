@@ -2,7 +2,7 @@
 
 The T-Unit board runtime in this directory is a local adaptation of hardware
 behavior documented and implemented by MAME. The MAME emulator framework and
-its device classes are not linked into MameRecomp.
+its device classes are not linked into MultiArcadeRecomp.
 
 Adapted/reference files:
 

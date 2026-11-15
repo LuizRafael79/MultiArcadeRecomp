@@ -18,7 +18,7 @@
 #include <stdexcept>
 #include <cstdio>
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 namespace {
 struct Load {
     const char* file;
@@ -747,14 +747,14 @@ TmntMainCpu::TmntMainCpu(TmntBoard& board, const ng_func_entry_t* entries, size_
 {
     if (!entries_ || entry_count_ == 0) throw std::runtime_error("TMNT 68000 AOT table is empty");
     const M68kBusCallbacks bus{&board_, tmnt_read8, tmnt_read16, tmnt_write8, tmnt_write16};
-    mamerecomp_m68k_bus_bind(&bus);
-    mame_recomp_m68k_set_exception_bus(tmnt_exception_read16, tmnt_exception_write16);
+    multiarcaderecomp_m68k_bus_bind(&bus);
+    multiarcade_recomp_m68k_set_exception_bus(tmnt_exception_read16, tmnt_exception_write16);
     reset();
 }
 
 TmntMainCpu::~TmntMainCpu()
 {
-    mamerecomp_m68k_bus_bind(nullptr);
+    multiarcaderecomp_m68k_bus_bind(nullptr);
 }
 
 void TmntMainCpu::reset()
@@ -785,8 +785,8 @@ int TmntMainCpu::execute_until(uint64_t cycle_deadline)
         const uint64_t instruction_count_before = ng_icount;
         const auto result = m68k_recomp_dispatch_once(entries_, entry_count_);
         if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
-            mamerecomp_m68k_bus_clear_fault();
-            const int consumed = mamerecomp_m68k_musashi_step();
+            multiarcaderecomp_m68k_bus_clear_fault();
+            const int consumed = multiarcaderecomp_m68k_musashi_step();
             ng_cycles += consumed > 0 ? consumed : 1;
             ++ng_icount;
             ++fallback_instructions_;
@@ -806,4 +806,4 @@ int TmntMainCpu::execute_until(uint64_t cycle_deadline)
 uint32_t TmntMainCpu::pc() const { return ng_cpu.pc; }
 uint64_t TmntMainCpu::cycles() const { return static_cast<uint64_t>(ng_cycles); }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

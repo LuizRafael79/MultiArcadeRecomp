@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 struct MemoryConfig {
     size_t ram_bytes = 2 * 1024 * 1024;
@@ -50,9 +50,9 @@ public:
     void set_board_bus(const PsxBus *bus) {
         board_bus_ = bus;
         board_memory_bus_ = bus
-            ? mamerecomp::runtime::AddressBus{this, board_read_adapter,
+            ? multiarcaderecomp::runtime::AddressBus{this, board_read_adapter,
                                                board_write_adapter}
-            : mamerecomp::runtime::AddressBus{};
+            : multiarcaderecomp::runtime::AddressBus{};
     }
 
     std::vector<uint8_t> &ram() { return ram_; }
@@ -134,7 +134,7 @@ private:
     std::array<uint32_t, 1024> icache_{};
     std::array<uint32_t, 256> dcache_{};
     const PsxBus *board_bus_ = nullptr;
-    mamerecomp::runtime::AddressBus board_memory_bus_{};
+    multiarcaderecomp::runtime::AddressBus board_memory_bus_{};
     PsxCpuState *cpu_state_ = nullptr;
 };
 
@@ -155,4 +155,4 @@ PsxAotExit execute_until(PsxCpuState *state, const PsxBus *bus,
                          const PsxAotEntry *entries, size_t entry_count,
                          RunCounters *counters, uint64_t target_cycle);
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

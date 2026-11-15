@@ -7,7 +7,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 
 class WilliamsAdpcmBoard;
 
@@ -56,4 +56,4 @@ private:
     TUnit m_tunit;
 };
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

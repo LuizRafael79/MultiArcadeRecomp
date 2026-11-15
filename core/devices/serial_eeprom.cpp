@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::devices {
+namespace multiarcaderecomp::devices {
 
 SerialEeprom::SerialEeprom(Protocol protocol, std::span<const std::uint8_t> image)
     : protocol_(protocol), cells_(128, 0xff)
@@ -137,4 +137,4 @@ void SerialEeprom::rising_clock()
     }
 }
 
-} // namespace mamerecomp::devices
+} // namespace multiarcaderecomp::devices

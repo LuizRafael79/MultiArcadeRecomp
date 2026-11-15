@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 struct BoardRuntimeContext {
     const GameProfile& profile;
@@ -109,4 +109,4 @@ std::vector<std::uint8_t> decode_board_tiles(const GameProfile& profile,
 std::vector<std::uint8_t> decrypt_board_initial_program(const GameProfile& profile,
     const std::filesystem::path& rom_path, std::span<const std::uint8_t> encrypted_program);
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

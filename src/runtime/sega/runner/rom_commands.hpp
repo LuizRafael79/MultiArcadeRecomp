@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 
 void print_game_profiles();
 const GameProfile& require_profile(std::string_view id);
@@ -22,4 +22,4 @@ void extract_graphics(const GameProfile& profile, const std::filesystem::path& z
 void print_memory_map(const GameProfile& profile, const std::vector<std::uint8_t>& maincpu);
 int run_rom_command(int argc, char** argv);
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

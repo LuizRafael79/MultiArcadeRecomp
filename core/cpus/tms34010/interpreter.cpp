@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace mamerecomp::tms34010 {
+namespace multiarcaderecomp::tms34010 {
 namespace {
 constexpr std::uint32_t kIoBase = 0xc0000000u;
 constexpr unsigned kControl = 11;
@@ -1674,12 +1674,12 @@ static BlockExit interpreter_step_partial(State& state, Bus& bus,
     return BlockExit::NeedsInterpreter;
 }
 
-MamerecompFallbackReason classify_unsupported_opcode(
+MultiArcadeRecompFallbackReason classify_unsupported_opcode(
     std::uint16_t opcode) noexcept {
     // A generated interpreter stub is emitted when static decode cannot find
     // a native emitter for this opcode.
     (void)opcode;
-    return MAMERECOMP_UNSUPPORTED_OPCODE;
+    return MULTIARCADERECOMP_UNSUPPORTED_OPCODE;
 }
 
 namespace {
@@ -1775,12 +1775,12 @@ bool opcode_causes_exception(std::uint16_t opcode) noexcept {
 BlockExit interpreter_step(State& state, Bus& bus,
                            std::uint64_t stop_cycle) noexcept {
     return interpreter_step(state, bus, stop_cycle,
-                           MAMERECOMP_UNSUPPORTED_OPCODE);
+                           MULTIARCADERECOMP_UNSUPPORTED_OPCODE);
 }
 
 BlockExit interpreter_step(State& state, Bus& bus,
                            std::uint64_t stop_cycle,
-                           MamerecompFallbackReason reason) noexcept {
+                           MultiArcadeRecompFallbackReason reason) noexcept {
     if (!bus.read16) return BlockExit::BusFault;
     const std::uint32_t pc = state.pc;
     const std::uint16_t opcode = bus.read16(bus.opaque, pc);
@@ -1790,26 +1790,26 @@ BlockExit interpreter_step(State& state, Bus& bus,
     if (!used_mame_backend)
         result = interpreter_step_partial(state, bus, stop_cycle);
 
-    MamerecompFallbackReason recorded_reason = reason;
+    MultiArcadeRecompFallbackReason recorded_reason = reason;
     if (result == BlockExit::BusFault) {
-        recorded_reason = MAMERECOMP_MEMORY_ACCESS;
+        recorded_reason = MULTIARCADERECOMP_MEMORY_ACCESS;
     } else if (result == BlockExit::NeedsInterpreter) {
         if (is_exception_opcode(opcode))
-            recorded_reason = MAMERECOMP_EXCEPTION_BOUNDARY;
+            recorded_reason = MULTIARCADERECOMP_EXCEPTION_BOUNDARY;
         else if (is_known_but_unhandled_variant(opcode))
-            recorded_reason = MAMERECOMP_UNSUPPORTED_VARIANT;
+            recorded_reason = MULTIARCADERECOMP_UNSUPPORTED_VARIANT;
         else
-            recorded_reason = MAMERECOMP_UNSUPPORTED_OPCODE;
+            recorded_reason = MULTIARCADERECOMP_UNSUPPORTED_OPCODE;
     } else if (result == BlockExit::Dispatch && opcode_causes_exception(opcode)) {
-        recorded_reason = MAMERECOMP_EXCEPTION_BOUNDARY;
+        recorded_reason = MULTIARCADERECOMP_EXCEPTION_BOUNDARY;
     }
     const char* backend = used_mame_backend
-        ? "MAME-TMS34010-fallback" : "MameRecomp-graphics-fallback";
-    mamerecomp_interpreter_trace_step("TMS34010", backend,
+        ? "MAME-TMS34010-fallback" : "MultiArcadeRecomp-graphics-fallback";
+    multiarcaderecomp_interpreter_trace_step("TMS34010", backend,
         recorded_reason, pc, opcode, 16, cycles, state.cycles, state.pc,
         used_mame_backend ? MameTMS34010::opcode_handler_name(opcode)
                           : fallback_instruction_name(opcode));
     return result;
 }
 
-} // namespace mamerecomp::tms34010
+} // namespace multiarcaderecomp::tms34010

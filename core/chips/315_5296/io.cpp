@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 Sega3155296::Sega3155296(Callbacks callbacks) : m_callbacks(std::move(callbacks)) {
     reset();
@@ -59,4 +59,4 @@ void Sega3155296::write(std::uint32_t offset, std::uint8_t data) {
     }
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

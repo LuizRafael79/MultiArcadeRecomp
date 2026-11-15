@@ -18,7 +18,7 @@
 #include <thread>
 #include <vector>
 
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
 #include <SDL3/SDL.h>
 #endif
 
@@ -32,7 +32,7 @@ std::vector<std::uint8_t> read_file(const std::filesystem::path& path) {
 }
 
 void load_nvram(const std::filesystem::path& path,
-                mamerecomp::vunit::Machine& machine) {
+                multiarcaderecomp::vunit::Machine& machine) {
     if (!std::filesystem::exists(path)) return;
     const auto bytes = read_file(path);
     constexpr std::size_t word_count = 0x2000;
@@ -124,9 +124,9 @@ void write_wav(const std::filesystem::path& path,
     if (!output) throw std::runtime_error("failed writing " + path.string());
 }
 
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
 struct LiveWindow {
-    mamerecomp::vunit::Video* video{};
+    multiarcaderecomp::vunit::Video* video{};
     SDL_Window* window{};
     SDL_Renderer* renderer{};
     SDL_Texture* texture{};
@@ -141,7 +141,7 @@ struct LiveWindow {
     bool running{true};
     bool fullscreen{};
 
-    explicit LiveWindow(mamerecomp::vunit::Video& video_ref) : video(&video_ref) {
+    explicit LiveWindow(multiarcaderecomp::vunit::Video& video_ref) : video(&video_ref) {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
             throw std::runtime_error(std::string("SDL video/audio init failed: ") + SDL_GetError());
         window = SDL_CreateWindow("Cruis'n USA - V-Unit (prototype)", 768, 600,
@@ -203,7 +203,7 @@ struct LiveWindow {
         SDL_Quit();
     }
 
-    void poll(mamerecomp::vunit::Machine& machine) {
+    void poll(multiarcaderecomp::vunit::Machine& machine) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT ||
@@ -301,7 +301,7 @@ struct LiveWindow {
 
 int main(int argc, char** argv) try {
     if (argc < 3) {
-        std::cerr << "usage: mamerecomp_vunit_trace main.bin dcs.bin "
+        std::cerr << "usage: multiarcaderecomp_vunit_trace main.bin dcs.bin "
                      "[--frames=N (0=until window closes)] [--frame=PATH.ppm] "
                      "[--nvram=PATH] [--audio=PATH.wav] [--window] [--profile] "
                      "[--interpreter-only | --c31-interpreter-only | "
@@ -314,7 +314,7 @@ int main(int argc, char** argv) try {
     std::filesystem::path frame_path = "crusnusa-frame.ppm";
     std::filesystem::path nvram_path;
     std::filesystem::path audio_path;
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
     bool window_requested = false;
     bool fullscreen_requested = false;
 #endif
@@ -331,7 +331,7 @@ int main(int argc, char** argv) try {
         else if (arg.starts_with("--frame=")) frame_path = arg.substr(8);
         else if (arg.starts_with("--nvram=")) nvram_path = arg.substr(8);
         else if (arg.starts_with("--audio=")) audio_path = arg.substr(8);
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
         else if (arg == "--window") window_requested = true;
         else if (arg == "--fullscreen") { window_requested = true; fullscreen_requested = true; }
 #else
@@ -358,7 +358,7 @@ int main(int argc, char** argv) try {
         }
         else throw std::runtime_error("unknown option: " + std::string(arg));
     }
-    mamerecomp_interpreter_trace_set_profile_enabled(profile_requested);
+    multiarcaderecomp_interpreter_trace_set_profile_enabled(profile_requested);
     auto main_bytes = read_file(argv[1]);
     auto dcs_bytes = read_file(argv[2]);
     if (main_bytes.size() != 0x1000000 || dcs_bytes.size() != 0x1000000)
@@ -371,7 +371,7 @@ int main(int argc, char** argv) try {
                         (std::uint32_t(main_bytes[j + 2]) << 16) |
                         (std::uint32_t(main_bytes[j + 3]) << 24);
     }
-    mamerecomp::vunit::Machine machine(main_words, dcs_bytes);
+    multiarcaderecomp::vunit::Machine machine(main_words, dcs_bytes);
     machine.set_interpreter_modes(c31_interpreter_only, adsp_interpreter_only);
     const char* execution_mode = c31_interpreter_only && adsp_interpreter_only
         ? "interpreter-only"
@@ -382,17 +382,17 @@ int main(int argc, char** argv) try {
               << execution_mode << '\n';
     machine.video().set_scanline_strength(scanline_strength);
     if (video_backend == VideoBackend::OpenGL) {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
         machine.video().enable_gpu_renderer();
 #else
         throw std::runtime_error("OpenGL V-Unit backend is not in this build; configure with "
-                                 "-DMAMERECOMP_ENABLE_VUNIT_OPENGL=ON");
+                                 "-DMULTIARCADERECOMP_ENABLE_VUNIT_OPENGL=ON");
 #endif
     }
     if (nvram_path.empty())
         nvram_path = std::filesystem::path(argv[1]).parent_path() / "crusnusa.nvram";
     load_nvram(nvram_path, machine);
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
     std::unique_ptr<LiveWindow> window;
     if (window_requested) window = std::make_unique<LiveWindow>(machine.video());
     if (window && fullscreen_requested) window->toggle_fullscreen();
@@ -425,11 +425,11 @@ int main(int argc, char** argv) try {
     bool logged_video_backend = false;
     auto next_present_deadline = SteadyClock::now();
     for (; (frames == 0 || completed < frames)
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
          && (!window || window->running)
 #endif
          ; ++completed) {
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
         if (window) window->poll(machine);
 #endif
         const auto machine_begin = performance_metrics_requested
@@ -446,7 +446,7 @@ int main(int argc, char** argv) try {
             captured_audio.insert(captured_audio.end(), audio_samples.begin(),
                                   audio_samples.end());
         bool need_framebuffer = frame_stats_requested;
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
         need_framebuffer = need_framebuffer || window != nullptr;
 #endif
         std::vector<std::uint8_t> rgb;
@@ -462,7 +462,7 @@ int main(int argc, char** argv) try {
                           << (renderer.empty() ? "initializing" : renderer) << '\n';
                 logged_video_backend = true;
             }
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
             if (window && performance_metrics_requested) {
                 framebuffer_time += framebuffer_end - framebuffer_begin;
                 fps_window_framebuffer_time += framebuffer_end - framebuffer_begin;
@@ -479,7 +479,7 @@ int main(int argc, char** argv) try {
                 have_previous_frame_hash = true;
             }
         }
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
         if (window) {
             const auto present_begin = performance_metrics_requested
                 ? std::chrono::steady_clock::now() : SteadyClock::time_point{};
@@ -551,9 +551,9 @@ int main(int argc, char** argv) try {
             }
         }
         const auto reason = machine.cpu().stop_reason;
-        if (reason == mamerecomp::tms320c31::StopReason::MameUnimplemented ||
-            reason == mamerecomp::tms320c31::StopReason::IllegalOpcode ||
-            reason == mamerecomp::tms320c31::StopReason::BusFault) {
+        if (reason == multiarcaderecomp::tms320c31::StopReason::MameUnimplemented ||
+            reason == multiarcaderecomp::tms320c31::StopReason::IllegalOpcode ||
+            reason == multiarcaderecomp::tms320c31::StopReason::BusFault) {
             ++completed;
             break;
         }
@@ -605,8 +605,8 @@ int main(int argc, char** argv) try {
                   << machine.cpu().last_uncovered_pc << " opcode=0x"
                   << machine.cpu().last_uncovered_opcode << std::dec;
     std::cout << '\n';
-    if (std::getenv("MAMERECOMP_C31_HOT_SITES")) {
-        std::vector<mamerecomp::tms320c31::State::HotPc> hot;
+    if (std::getenv("MULTIARCADERECOMP_C31_HOT_SITES")) {
+        std::vector<multiarcaderecomp::tms320c31::State::HotPc> hot;
         for (const auto& site : machine.cpu().interpreted_hot_pcs)
             if (site.count) hot.push_back(site);
         std::sort(hot.begin(), hot.end(), [](const auto& a, const auto& b) {
@@ -734,15 +734,15 @@ int main(int argc, char** argv) try {
               << " last-write=0x" << std::hex << dcs_diag.shared_ram_last_address
               << ":0x" << dcs_diag.shared_ram_last_value
               << "@PC=0x" << dcs_diag.shared_ram_last_pc << std::dec << '\n';
-    if (machine.cpu().stop_reason != mamerecomp::tms320c31::StopReason::None &&
-        machine.cpu().stop_reason != mamerecomp::tms320c31::StopReason::Budget) {
+    if (machine.cpu().stop_reason != multiarcaderecomp::tms320c31::StopReason::None &&
+        machine.cpu().stop_reason != multiarcaderecomp::tms320c31::StopReason::Budget) {
         std::cout << "TMS320C31 stopped at PC=0x" << std::hex
                   << machine.cpu().last_pc << " opcode=0x"
                   << machine.cpu().last_opcode << std::dec
                   << " reason=" << static_cast<unsigned>(machine.cpu().stop_reason) << '\n';
     }
     std::cout << "framebuffer=" << frame_path << " (512x400)"
-#ifdef MAMERECOMP_VUNIT_SDL
+#ifdef MULTIARCADERECOMP_VUNIT_SDL
               << (window_requested ? "; live SDL window was enabled" : "")
 #endif
               << '\n';

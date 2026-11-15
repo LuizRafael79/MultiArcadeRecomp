@@ -1,4 +1,4 @@
-# Áudio — MameRecomp
+# Áudio — MultiArcadeRecomp
 
 ## System 16B e Shinobi B — 2026-10-30
 
@@ -6,7 +6,7 @@ Foi criado runtime separado para o som da placa B: Z80 a 5 MHz, YM2151 a 4 MHz v
 
 Foi adicionado perfil de Shinobi 5, variante System 16B não protegida, com ROM board 171-5358 e ROMs de áudio correspondentes. Ainda faltam os outros sets Shinobi B e a variante 171-5521.
 
-Build `/tmp/mamerecomp-goldnaxe-test` passou. Execução headless de `goldnaxeud` por 200 milhões de ciclos com Coin/Start avançou cerca de 100 milhões de ciclos no Z80, produziu 1.250.000 amostras YM, 59.325 escritas, 744 key-ons, 150 bordas NMI do uPD7759 e pico PCM 12.961. O FIFO não recebeu byte nesse trecho, portanto ainda falta comprovar um sample real: teste audível no jogo e diagnóstico de quando o handler Z80 escreve no FIFO são a próxima validação. Compilar e observar pico PCM não provam fidelidade sonora.
+Build `/tmp/multiarcaderecomp-goldnaxe-test` passou. Execução headless de `goldnaxeud` por 200 milhões de ciclos com Coin/Start avançou cerca de 100 milhões de ciclos no Z80, produziu 1.250.000 amostras YM, 59.325 escritas, 744 key-ons, 150 bordas NMI do uPD7759 e pico PCM 12.961. O FIFO não recebeu byte nesse trecho, portanto ainda falta comprovar um sample real: teste audível no jogo e diagnóstico de quando o handler Z80 escreve no FIFO são a próxima validação. Compilar e observar pico PCM não provam fidelidade sonora.
 
 ## Investigação da ordem das vozes — 2026-10-30
 
@@ -24,7 +24,7 @@ YMFM (BSD-3-Clause) foi integrado para o YM2151 a 4 MHz: portas de endereço/dad
 
 O build do alvo SDL3/OpenGL terminou após a integração. Ainda falta executar Shinobi com `--audio`, conferir a contagem de escritas YM2151/comandos uPD7751 e comparar timing e áudio contra o MAME. A sincronização atual limita fatias a 1 ms e executa o Z80 em fronteiras de instrução.
 
-Execuções headless no build `build/debugger-build/mamerecomp` confirmaram que o Z80 avança aproximadamente 4 milhões de T-states por segundo e que o YMFM gera 62.500 amostras/s. Em 30 milhões de ciclos do 68000 com Coin+Start houve 820 operações nas portas YM2151, um comando para o uPD7751, nenhum key-on no registrador `0x08` e pico PCM igual a zero. Portanto, a síntese FM está conectada e avança, mas a sequência testada ainda não pediu uma nota; o teste com janela/saída de áudio é necessário para descobrir se a música começa após outra fase ou se falta um comando/NMI.
+Execuções headless no build `build/debugger-build/multiarcaderecomp` confirmaram que o Z80 avança aproximadamente 4 milhões de T-states por segundo e que o YMFM gera 62.500 amostras/s. Em 30 milhões de ciclos do 68000 com Coin+Start houve 820 operações nas portas YM2151, um comando para o uPD7751, nenhum key-on no registrador `0x08` e pico PCM igual a zero. Portanto, a síntese FM está conectada e avança, mas a sequência testada ainda não pediu uma nota; o teste com janela/saída de áudio é necessário para descobrir se a música começa após outra fase ou se falta um comando/NMI.
 
 A mesma execução imprimiu `Validated sound ROMs: Z80=0x8000 uPD7751=0x400 sample-data=0x8000`, confirmou uma borda NMI, uma leitura do latch (`0xb8`) e uma escrita de comando (`0xfc`) para a interface do uPD7751. Isso confirma que a ROM de áudio não está mais desabilitada quando `--audio` é passado. O MCU/DAC continua sem execução, e o YM ainda não recebeu key-on.
 
@@ -38,7 +38,7 @@ Uma execução headless de 300 milhões de ciclos do 68000, com Free Play, Coin/
 
 O clone `/home/luiz/git/ymfm` está no commit `81aec25`. O README do projeto lista o YM2151 na família **OPM** (`ymfm_opm.*`) e o YM2610 na família **OPN** (`ymfm_opn.*`): a biblioteca compartilha o mecanismo de operadores, mas implementa registradores e comportamento de cada família separadamente. Os dois projetos usam o núcleo emulado/interpretado chamando `generate()` segundo o clock externo; não há recompilação de instruções do Yamaha.
 
-Comparei o clone com `mame/3rdparty/ymfm` e com a cópia em `core/third_party/ymfm` do MameRecomp. `ymfm_opm.h/.cpp` é byte a byte igual nos três lugares. As diferenças encontradas entre o clone atual e a cópia vendorizada do MAME estão em auxiliares comuns: escrita WAV endian-safe em `ymfm.h` e uma guarda `if constexpr` em `ymfm_fm.ipp` para instâncias com menos de 18 operadores. Para o OPM do YM2151 (32 operadores), essa guarda toma o mesmo caminho e não altera o cálculo. A versão parcial do MameRecomp contém somente OPM e o motor comum; ela não usa o core OPN/YM2610 do Neo Geo.
+Comparei o clone com `mame/3rdparty/ymfm` e com a cópia em `core/third_party/ymfm` do MultiArcadeRecomp. `ymfm_opm.h/.cpp` é byte a byte igual nos três lugares. As diferenças encontradas entre o clone atual e a cópia vendorizada do MAME estão em auxiliares comuns: escrita WAV endian-safe em `ymfm.h` e uma guarda `if constexpr` em `ymfm_fm.ipp` para instâncias com menos de 18 operadores. Para o OPM do YM2151 (32 operadores), essa guarda toma o mesmo caminho e não altera o cálculo. A versão parcial do MultiArcadeRecomp contém somente OPM e o motor comum; ela não usa o core OPN/YM2610 do Neo Geo.
 
 O driver System 16A do MAME configura YM2151 a 4 MHz, rota FM com ganho 0,43, DAC discreto com ganho 0,4, e conecta a porta de controle do YM2151 ao reset/IRQ do uPD7751. Portanto, não encontrei diferença de versão no core YM2151 que explique a ausência de música. O diagnóstico atual aponta antes para o programa de som/estado dos canais: comando principal `0xa4`, zero canais ativos e nenhuma escrita de key-on `0x08`.
 

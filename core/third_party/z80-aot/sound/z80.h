@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 class Archive;
 
@@ -242,4 +242,4 @@ inline Z80InstructionBoundary Z80::InstructionBoundary(uint32_t instruction_cycl
     return Z80InstructionBoundary(*this, instruction_cycles);
 }
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80

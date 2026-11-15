@@ -8,14 +8,14 @@ extern "C" {
 extern const ng_func_entry_t tmnt_ng_recomp_table[];
 extern const size_t tmnt_ng_recomp_count;
 
-const ng_func_entry_t* mamerecomp_konami_tmnt_m68k_table(size_t* count)
+const ng_func_entry_t* multiarcaderecomp_konami_tmnt_m68k_table(size_t* count)
 {
     if (count) *count = tmnt_ng_recomp_count;
     return tmnt_ng_recomp_table;
 }
 }
 
-extern "C" const mamerecomp::z80::Z80Code* mamerecomp_konami_tmnt_z80_code()
+extern "C" const multiarcaderecomp::z80::Z80Code* multiarcaderecomp_konami_tmnt_z80_code()
 {
-    return &mamerecomp::z80::kZ80Code;
+    return &multiarcaderecomp::z80::kZ80Code;
 }

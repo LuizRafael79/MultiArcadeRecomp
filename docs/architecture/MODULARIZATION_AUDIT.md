@@ -1,19 +1,19 @@
 # Source modularization audit
 
-This is a working audit of the clean `mamerecomp` checkout. Update it after
+This is a working audit of the clean `multiarcaderecomp` checkout. Update it after
 moving a module or resolving an ownership question. A ROM manifest is not proof
 that a board runtime or game is implemented.
 
 ## Corrected boundary: shared 68000 core versus board runtime
 
-The old CMake target `mamerecomp_system16_runtime` held a callback bus bridge
+The old CMake target `multiarcaderecomp_system16_runtime` held a callback bus bridge
 and generated-code dispatcher that were consumed by unrelated Konami and
 Seibu boards. The Musashi fallback target also had a System 16 name, and
 TMNT/TMNT2/Toki included headers from `src/system16/`.
 
 The bridge, dispatcher, and Musashi fallback now live in
-`core/cpus/m68000/runtime/` and build as `mamerecomp_m68k_recomp_runtime` and
-`mamerecomp_m68k_musashi`. System 16, TMNT, TMNT2/Sunset Riders, and Toki bind
+`core/cpus/m68000/runtime/` and build as `multiarcaderecomp_m68k_recomp_runtime` and
+`multiarcaderecomp_m68k_musashi`. System 16, TMNT, TMNT2/Sunset Riders, and Toki bind
 their own memory callbacks to that generic CPU runtime. System 16 keeps
 FD1094 and its own address map. No Konami or Seibu source includes
 `src/system16/` now.
@@ -97,4 +97,4 @@ no longer contain project notes, upstream records, or license texts. License
 and notice files are under `docs/license/`, upstream provenance is under
 `docs/third_party/`, and [`docs/README.md`](../README.md) is the navigation
 index. License contents are retained, including the project GPL-2.0 text moved
-from the deleted root path to `docs/license/mamerecomp/LICENSE.md`.
+from the deleted root path to `docs/license/multiarcaderecomp/LICENSE.md`.

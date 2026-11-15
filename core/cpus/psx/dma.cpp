@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 DmaController::DmaController(std::vector<uint8_t> &ram, Irq irq)
     : ram_(ram), irq_(std::move(irq)) {}
@@ -51,13 +51,13 @@ uint32_t DmaController::ram_word(uint32_t address) const
 
 void DmaController::set_ram_word(uint32_t address, uint32_t value)
 {
-    static const bool trace_pointer_writes = std::getenv("MAMERECOMP_ZN_TRACE_POINTER_WRITES") != nullptr;
+    static const bool trace_pointer_writes = std::getenv("MULTIARCADERECOMP_ZN_TRACE_POINTER_WRITES") != nullptr;
     if (ram_.empty()) return;
     const size_t at = (address & (uint32_t(ram_.size()) - 1)) & ~size_t(3);
     if (at + 4 > ram_.size()) return;
     if (trace_pointer_writes) {
         static const uint32_t watched = [] {
-            const char *text = std::getenv("MAMERECOMP_ZN_WATCH_WRITE_ADDRESS");
+            const char *text = std::getenv("MULTIARCADERECOMP_ZN_WATCH_WRITE_ADDRESS");
             return text ? static_cast<uint32_t>(std::strtoul(text, nullptr, 0)) : 0xffffffffu;
         }();
         const size_t watched_at = watched & (uint32_t(ram_.size()) - 1);
@@ -102,7 +102,7 @@ void DmaController::update_irq()
 void DmaController::start(unsigned channel)
 {
     Channel &c = channels_[channel];
-    const bool trace_gpu_dma = channel == 2 && std::getenv("MAMERECOMP_ZN_TRACE_DMA");
+    const bool trace_gpu_dma = channel == 2 && std::getenv("MULTIARCADERECOMP_ZN_TRACE_DMA");
     if (trace_gpu_dma)
         std::cerr << "ZN DMA2 start base=0x" << std::hex << c.base
                   << " block=0x" << c.block << " control=0x" << c.control
@@ -279,4 +279,4 @@ void DmaController::write(unsigned offset, uint32_t value)
     }
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

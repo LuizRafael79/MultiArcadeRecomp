@@ -38,7 +38,7 @@ std::deque<u8> midiSendBuffer;
 namespace dsp { State state{}; }
 }
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 NaomiAicaVoices::NaomiAicaVoices() { aica::sgc::init(); }
 NaomiAicaVoices::~NaomiAicaVoices() { aica::sgc::term(); }
@@ -84,7 +84,7 @@ std::array<std::int32_t, 16> NaomiAicaVoices::sample(
     return mixs;
 }
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi
 
 #undef FAR
 

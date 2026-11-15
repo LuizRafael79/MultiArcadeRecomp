@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Naomi M1 ROM-board DMA stream. The caller supplies the assembled encrypted
 // region and board key; start_dma mirrors the board's DMA-address mode bit.
@@ -41,4 +41,4 @@ private:
     bool encrypted_ = false;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 uint32_t Sio0::read(unsigned reg)
 {
@@ -195,4 +195,4 @@ void Sio0::reschedule()
     next_event_cycle_ = elapsed_cycles_ + std::max<uint64_t>(1, cycles);
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

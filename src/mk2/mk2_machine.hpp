@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::mk2 {
+namespace multiarcaderecomp::mk2 {
 
 // Mortal Kombat II machine composition. It reuses the shared T-Unit hardware
 // while supplying the different DCS Audio 2K sound board used by MK2.
@@ -17,8 +17,8 @@ public:
                std::span<const std::uint8_t> graphics_rom,
                std::span<const std::uint8_t> dcs_sound_region);
 
-    mamerecomp::mk::TUnit& tunit() noexcept;
-    const mamerecomp::mk::TUnit& tunit() const noexcept;
+    multiarcaderecomp::mk::TUnit& tunit() noexcept;
+    const multiarcaderecomp::mk::TUnit& tunit() const noexcept;
     Dcs2K& dcs() noexcept;
     const Dcs2K& dcs() const noexcept;
     Protection& protection() noexcept;
@@ -27,7 +27,7 @@ public:
 private:
     Dcs2K m_dcs;
     Protection m_protection;
-    mamerecomp::mk::TUnit m_tunit;
+    multiarcaderecomp::mk::TUnit m_tunit;
 };
 
-} // namespace mamerecomp::mk2
+} // namespace multiarcaderecomp::mk2

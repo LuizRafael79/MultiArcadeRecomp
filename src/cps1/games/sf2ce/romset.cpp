@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 namespace {
 constexpr std::array<Cps1RomRegion, 4> kRegions{{
     {"maincpu", 0x400000, 0x180000, 0xff},

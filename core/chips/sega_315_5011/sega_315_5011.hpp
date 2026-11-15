@@ -1,6 +1,6 @@
 #pragma once
 
-namespace mamerecomp::chips::sega3155011 {
+namespace multiarcaderecomp::chips::sega3155011 {
 
 struct SpriteWindow {
     int first_line = 0;
@@ -16,4 +16,4 @@ public:
     bool active(const SpriteWindow& window, int line) const;
 };
 
-} // namespace mamerecomp::chips::sega3155011
+} // namespace multiarcaderecomp::chips::sega3155011

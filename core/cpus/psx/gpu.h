@@ -7,7 +7,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 class GpuHardwareRenderer;
 struct GpuHwState;
@@ -128,4 +128,4 @@ private:
     bool dither_enable_ = false;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

@@ -4,7 +4,7 @@ This directory contains the shared MIPS III/R4600 interpreter, disassembler,
 exception/delay-slot machinery, and AOT dispatcher/ABI adapted from
 UltraCombo. KI1 and KI2 use the same CPU implementation. The generated C from
 `tools/mips3/recomp.py` can be compiled into this backend by setting
-`MAMERECOMP_KI_MIPS_AOT_DIR` at CMake configure time; generated tables are
+`MULTIARCADERECOMP_KI_MIPS_AOT_DIR` at CMake configure time; generated tables are
 adapted by `linked_module.c`.
 
 Keep CPU instruction semantics, delay slots, exceptions, and compiled block

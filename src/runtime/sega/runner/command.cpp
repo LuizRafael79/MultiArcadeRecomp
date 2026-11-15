@@ -20,17 +20,17 @@
 #include <utility>
 #include <vector>
 
-#ifndef MAMERECOMP_SOURCE_DIR
-#define MAMERECOMP_SOURCE_DIR "."
+#ifndef MULTIARCADERECOMP_SOURCE_DIR
+#define MULTIARCADERECOMP_SOURCE_DIR "."
 #endif
-#ifndef MAMERECOMP_BINARY_DIR
-#define MAMERECOMP_BINARY_DIR "build"
+#ifndef MULTIARCADERECOMP_BINARY_DIR
+#define MULTIARCADERECOMP_BINARY_DIR "build"
 #endif
-#ifndef MAMERECOMP_PYTHON_EXECUTABLE
-#define MAMERECOMP_PYTHON_EXECUTABLE "python3"
+#ifndef MULTIARCADERECOMP_PYTHON_EXECUTABLE
+#define MULTIARCADERECOMP_PYTHON_EXECUTABLE "python3"
 #endif
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 
 class GameSettingsModule {
@@ -44,7 +44,7 @@ public:
                 + ": " + (error ? error : "unknown dynamic loader error"));
         }
         using ApiFn = const GameSettingsApi* (*)();
-        auto api_fn = reinterpret_cast<ApiFn>(dlsym(m_handle, "mamerecomp_game_settings_api"));
+        auto api_fn = reinterpret_cast<ApiFn>(dlsym(m_handle, "multiarcaderecomp_game_settings_api"));
         if (!api_fn || !(m_api = api_fn()) || m_api->abi_revision != 1
             || !m_api->create || !m_api->destroy
             || !m_api->draw_game_tab || !m_api->input_bindings || !m_api->dsw1 || !m_api->dsw2) {
@@ -102,9 +102,9 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
                          const std::optional<std::filesystem::path>& cpu_trace_out,
                          std::uint64_t cpu_trace_start, std::uint64_t cpu_trace_end,
     const std::function<int(const std::vector<std::string>&)>& launch_child) {
-    const auto* profile = mamerecomp::find_game_profile(game);
+    const auto* profile = multiarcaderecomp::find_game_profile(game);
     if (!profile) throw std::runtime_error("unknown Sega game profile: " + game);
-    const auto* registration = find_board(mamerecomp::board_family(*profile));
+    const auto* registration = find_board(multiarcaderecomp::board_family(*profile));
     if (!registration) throw std::runtime_error("Sega profile board family is not registered");
     const std::string expected_board(registration->id);
     if (board != expected_board) {
@@ -114,18 +114,18 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
 
     const auto rom_path = rom_arg ? std::filesystem::absolute(*rom_arg)
                                   : root.parent_path() / "mame/roms" / (game + ".zip");
-#ifdef MAMERECOMP_BINARY_DIR
-    const auto module_root = std::filesystem::path(MAMERECOMP_BINARY_DIR);
+#ifdef MULTIARCADERECOMP_BINARY_DIR
+    const auto module_root = std::filesystem::path(MULTIARCADERECOMP_BINARY_DIR);
 #else
     const auto module_root = root / "build";
 #endif
     const auto generated_root = module_root / "generated/sega";
     const auto game_output = generated_root / board / game;
-    const std::string target = "mamerecomp_" + board + "_" + game;
-    const std::string runtime_target = "mamerecomp_sega_runtime_" + board;
-    const std::string cache_var = board == "system16a" ? "MAMERECOMP_SYSTEM16A_GENERATED_DIRS"
-        : board == "system16b" ? "MAMERECOMP_SYSTEM16B_GENERATED_DIRS"
-                                : "MAMERECOMP_SYSTEM18_GENERATED_DIRS";
+    const std::string target = "multiarcaderecomp_" + board + "_" + game;
+    const std::string runtime_target = "multiarcaderecomp_sega_runtime_" + board;
+    const std::string cache_var = board == "system16a" ? "MULTIARCADERECOMP_SYSTEM16A_GENERATED_DIRS"
+        : board == "system16b" ? "MULTIARCADERECOMP_SYSTEM16B_GENERATED_DIRS"
+                                : "MULTIARCADERECOMP_SYSTEM18_GENERATED_DIRS";
 
     if (build_mode || audit_mode) {
         if (window || headless || frames || cycles || frame_out || video_state_out || audio_enabled
@@ -143,15 +143,15 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
                 audit_errors.emplace_back(std::string(region) + ": " + error.what());
             }
         };
-        audit_region("maincpu", [&] { (void)mamerecomp::load_maincpu_roms(*profile, rom_path); });
-        audit_region("graphics", [&] { (void)mamerecomp::load_graphics_roms(*profile, rom_path); });
-        audit_region("sound/sample ROMs", [&] { mamerecomp::validate_profile_sound_roms(*profile, rom_path); });
+        audit_region("maincpu", [&] { (void)multiarcaderecomp::load_maincpu_roms(*profile, rom_path); });
+        audit_region("graphics", [&] { (void)multiarcaderecomp::load_graphics_roms(*profile, rom_path); });
+        audit_region("sound/sample ROMs", [&] { multiarcaderecomp::validate_profile_sound_roms(*profile, rom_path); });
         if (profile->mcu_region_size != 0)
-            audit_region("mcu", [&] { (void)mamerecomp::load_mcu_roms(*profile, rom_path); });
+            audit_region("mcu", [&] { (void)multiarcaderecomp::load_mcu_roms(*profile, rom_path); });
         if (profile->fd1094_key_region_size != 0)
-            audit_region("maincpu:key", [&] { (void)mamerecomp::load_fd1094_key_roms(*profile, rom_path); });
+            audit_region("maincpu:key", [&] { (void)multiarcaderecomp::load_fd1094_key_roms(*profile, rom_path); });
         if (profile->pld_region_size != 0)
-            audit_region("plds", [&] { (void)mamerecomp::load_pld_roms(*profile, rom_path); });
+            audit_region("plds", [&] { (void)multiarcaderecomp::load_pld_roms(*profile, rom_path); });
         if (!audit_errors.empty()) {
             std::ostringstream message;
             message << "ROM audit failed for '" << game << "' (" << rom_path << ")";
@@ -165,7 +165,7 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         // Build only the selected board runtime first. FD1094 translation and
         // other board services are provided by this dynamically loaded module.
         const int runtime_configure_status = launch_child({"cmake", "-S", root.string(), "-B", module_root.string(),
-            "-DMAMERECOMP_GENERATED_DIR=", "-D" + cache_var + "="});
+            "-DMULTIARCADERECOMP_GENERATED_DIR=", "-D" + cache_var + "="});
         if (runtime_configure_status != 0) return runtime_configure_status;
         std::cout << "Building the " << board << " runtime module.\n" << std::flush;
         const int runtime_status = launch_child({"cmake", "--build", module_root.string(), "--target",
@@ -177,7 +177,7 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
                                     : "Generating Sega translation.\n") << std::flush;
         std::error_code ec;
         const auto executable = std::filesystem::canonical("/proc/self/exe", ec);
-        if (ec) throw std::runtime_error("could not resolve the running mamerecomp executable: " + ec.message());
+        if (ec) throw std::runtime_error("could not resolve the running multiarcaderecomp executable: " + ec.message());
         std::vector<std::string> translate_command{executable.string(), "translate-full", game,
             rom_path.string(), "--out", game_output.string(), "--files", "16"};
         const auto runtime_entries = game_output / "m68k_runtime_entries.txt";
@@ -189,7 +189,7 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         if (translate_status != 0) return translate_status;
 
         const auto z80_generated = game_output / "z80";
-        const auto z80_args = std::vector<std::string>{MAMERECOMP_PYTHON_EXECUTABLE,
+        const auto z80_args = std::vector<std::string>{MULTIARCADERECOMP_PYTHON_EXECUTABLE,
             (root / "tools/z80/recomp.py").string(), "--program",
             (game_output / "z80_input/sound.bin").string(), "--entries",
             (game_output / "z80_input/entries.txt").string(), "--out", z80_generated.string(),
@@ -198,24 +198,24 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         if (z80_status != 0) return z80_status;
 
         const int game_configure_status = launch_child({"cmake", "-S", root.string(), "-B", module_root.string(),
-            "-DMAMERECOMP_GENERATED_DIR=", "-D" + cache_var + "=" + game_output.string()});
+            "-DMULTIARCADERECOMP_GENERATED_DIR=", "-D" + cache_var + "=" + game_output.string()});
         if (game_configure_status != 0) return game_configure_status;
         std::cout << "Building the " << game << " AOT module for Sega " << board << ".\n" << std::flush;
         return launch_child({"cmake", "--build", module_root.string(), "--target", target,
             "-j", jobs});
     }
 
-    const auto runner = module_root / "mamerecomp";
-    const auto runtime_module = module_root / ("mamerecomp_" + board + "_runtime.so");
-    const auto module = module_root / ("mamerecomp_" + board + "_" + game + ".so");
+    const auto runner = module_root / "multiarcaderecomp";
+    const auto runtime_module = module_root / ("multiarcaderecomp_" + board + "_runtime.so");
+    const auto module = module_root / ("multiarcaderecomp_" + board + "_" + game + ".so");
     if (!std::filesystem::is_regular_file(runner) || !std::filesystem::is_regular_file(runtime_module) ||
         !std::filesystem::is_regular_file(module) ||
         !std::filesystem::is_regular_file(game_output / (game + "_recomp_table.c"))) {
-        throw std::runtime_error("Sega game build is missing; run `mamerecomp build --machine=sega --board=" +
+        throw std::runtime_error("Sega game build is missing; run `multiarcaderecomp build --machine=sega --board=" +
             board + " --game=" + game + "` first");
     }
     std::cout << "Launching " << game << " on Sega " << board << ".\n" << std::flush;
-#ifdef MAMERECOMP_HAS_GENERATED_RECOMP
+#ifdef MULTIARCADERECOMP_HAS_GENERATED_RECOMP
     std::uint64_t cycle_budget = cycles.value_or(1000000);
     const bool show_window = !headless && (window || (!frames && !cycles));
     if (!cycles && frames) {
@@ -225,17 +225,17 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         cycle_budget = static_cast<std::uint64_t>(INT64_MAX);
     }
     std::filesystem::path settings_path;
-    mamerecomp::SegaVideoBackend video_backend = mamerecomp::SegaVideoBackend::Software;
+    multiarcaderecomp::SegaVideoBackend video_backend = multiarcaderecomp::SegaVideoBackend::Software;
     if (video_backend_option) {
-        if (*video_backend_option == "software") video_backend = mamerecomp::SegaVideoBackend::Software;
-        else if (*video_backend_option == "opengl") video_backend = mamerecomp::SegaVideoBackend::OpenGL;
+        if (*video_backend_option == "software") video_backend = multiarcaderecomp::SegaVideoBackend::Software;
+        else if (*video_backend_option == "opengl") video_backend = multiarcaderecomp::SegaVideoBackend::OpenGL;
         else throw std::runtime_error("--video-backend must be software or opengl");
     }
-    if (video_backend == mamerecomp::SegaVideoBackend::OpenGL && !registration->supports_opengl_video)
+    if (video_backend == multiarcaderecomp::SegaVideoBackend::OpenGL && !registration->supports_opengl_video)
         throw std::runtime_error("OpenGL tilemap video is not available for board " + board);
-    if (compare_video && video_backend != mamerecomp::SegaVideoBackend::OpenGL)
+    if (compare_video && video_backend != multiarcaderecomp::SegaVideoBackend::OpenGL)
         throw std::runtime_error("--compare-video requires --video-backend=opengl");
-    mamerecomp::SegaDisplayMode display_mode = mamerecomp::SegaDisplayMode::Windowed;
+    multiarcaderecomp::SegaDisplayMode display_mode = multiarcaderecomp::SegaDisplayMode::Windowed;
     std::uint8_t window_scale = 3;
     std::uint8_t audio_volume = 100;
     std::optional<std::uint8_t> dsw1_override;
@@ -243,27 +243,27 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
     std::unique_ptr<GameSettingsModule> game_settings;
     std::vector<GameInputBinding> game_input_bindings;
     if (show_window && profile->has_interactive_configuration) {
-        auto game_settings_path = mamerecomp::sega_settings_path(profile->id.data());
+        auto game_settings_path = multiarcaderecomp::sega_settings_path(profile->id.data());
         game_settings_path.replace_extension(".game.ini");
-        const auto legacy_settings_path = mamerecomp::sega_settings_path(profile->id.data());
+        const auto legacy_settings_path = multiarcaderecomp::sega_settings_path(profile->id.data());
         game_settings = std::make_unique<GameSettingsModule>(module, game_settings_path, legacy_settings_path);
         game_input_bindings = game_settings->input_bindings();
     }
     if (show_window && !cycles) {
-        mamerecomp::SegaSharedSettings settings;
+        multiarcaderecomp::SegaSharedSettings settings;
         settings.audio_enabled = true;
         settings.audio_stereo_spread = audio_stereo_spread;
-        settings_path = mamerecomp::sega_settings_path(profile->id.data());
+        settings_path = multiarcaderecomp::sega_settings_path(profile->id.data());
         bool shared_settings_found = std::filesystem::exists(settings_path);
-        settings = mamerecomp::load_sega_settings(settings_path, settings);
+        settings = multiarcaderecomp::load_sega_settings(settings_path, settings);
         if (!shared_settings_found) {
-            const mamerecomp::GameProfile* parent = profile;
+            const multiarcaderecomp::GameProfile* parent = profile;
             while (!parent->parent_id.empty()) {
-                parent = mamerecomp::find_game_profile(parent->parent_id);
+                parent = multiarcaderecomp::find_game_profile(parent->parent_id);
                 if (!parent) break;
-                const auto parent_settings_path = mamerecomp::sega_settings_path(parent->id.data());
+                const auto parent_settings_path = multiarcaderecomp::sega_settings_path(parent->id.data());
                 if (!std::filesystem::exists(parent_settings_path)) continue;
-                settings = mamerecomp::load_sega_settings(parent_settings_path, settings);
+                settings = multiarcaderecomp::load_sega_settings(parent_settings_path, settings);
                 shared_settings_found = true;
                 std::cout << "Using shared Sega settings from parent profile " << parent->id << '\n';
                 break;
@@ -274,7 +274,7 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         if (audio_enabled) settings.audio_enabled = true;
         if (audio_pan_option_set) settings.audio_stereo_spread = audio_stereo_spread;
         if (profile->has_interactive_configuration) {
-            mamerecomp::SegaPresenter configuration_presenter(std::string(profile->title) + " - MameRecomp",
+            multiarcaderecomp::SegaPresenter configuration_presenter(std::string(profile->title) + " - MultiArcadeRecomp",
                 {}, true, false, registration->refresh_rate_num, registration->refresh_rate_den);
             if (!configuration_presenter.show_configuration_menu(settings, settings_path,
                     std::string(profile->title), game_settings ? game_settings->api() : nullptr,
@@ -286,8 +286,8 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         display_mode = settings.display_mode;
         window_scale = settings.window_scale;
         video_backend = video_backend_option
-            ? (*video_backend_option == "opengl" ? mamerecomp::SegaVideoBackend::OpenGL
-                                                  : mamerecomp::SegaVideoBackend::Software)
+            ? (*video_backend_option == "opengl" ? multiarcaderecomp::SegaVideoBackend::OpenGL
+                                                  : multiarcaderecomp::SegaVideoBackend::Software)
             : settings.video_backend;
         if (game_settings) {
             dsw1_override = game_settings->dsw1();
@@ -295,7 +295,7 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         }
     }
     const auto runtime_entries = game_output / "m68k_runtime_entries.txt";
-    return mamerecomp::sega::run_game(*profile, rom_path, cycle_budget, frame_out, std::nullopt, video_state_out,
+    return multiarcaderecomp::sega::run_game(*profile, rom_path, cycle_budget, frame_out, std::nullopt, video_state_out,
         runtime_entries,
         std::nullopt, false, video_profile_enabled, aot_profile_enabled, frame_limit_enabled, video_backend, compare_video,
         {}, dsw1_override, dsw2_override, false, cpu_trace_out, cpu_trace_start, cpu_trace_end,
@@ -305,8 +305,8 @@ int run_machine_command(const std::filesystem::path& root, const std::string& bo
         arranged_bgm,
         game_input_bindings);
 #else
-    throw std::runtime_error("this mamerecomp executable was built without a System 16/18 AOT module; run the build command first");
+    throw std::runtime_error("this multiarcaderecomp executable was built without a System 16/18 AOT module; run the build command first");
 #endif
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

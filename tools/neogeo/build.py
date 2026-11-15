@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and build the Neo Geo KOF98 game module using local MameRecomp tools."""
+"""Generate and build the Neo Geo KOF98 game module using local MultiArcadeRecomp tools."""
 from __future__ import annotations
 
 import argparse
@@ -59,7 +59,7 @@ def main() -> int:
         help="hardware mode and mode-specific AoT module to build (default: aes)")
     parser.add_argument("--bios", help="system BIOS ROM to include in this mode's AoT build")
     parser.add_argument("--build-dir", type=Path, default=Path("build"),
-        help="shared MameRecomp build root (default: build)")
+        help="shared MultiArcadeRecomp build root (default: build)")
     parser.add_argument("--cmake", default="cmake")
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--rebuild", action="store_true",
@@ -97,16 +97,16 @@ def main() -> int:
     mode_build=build/"neogeo/kof98"/module_id
     generated=mode_build/"generated"
     z80_generated=build/"neogeo/kof98/z80_generated"
-    module_target=f"mamerecomp_game_kof98_{module_id}"
-    module_path=build/f"mamerecomp_game_kof98_{module_id}.so"
+    module_target=f"multiarcaderecomp_game_kof98_{module_id}"
+    module_path=build/f"multiarcaderecomp_game_kof98_{module_id}.so"
 
     # The generator executable is part of the normal project build graph.
     # Generated shard sources are discovered by the second CMake configure
     # after ROM analysis emits them into the deterministic build directories.
     run([args.cmake,"-S",str(root),"-B",str(build),
-         f"-DMAMERECOMP_NEOGEO_HARDWARE_MODE={args.hardware_mode}",
-         f"-DMAMERECOMP_NEOGEO_MODULE_ID={module_id}",
-         f"-DMAMERECOMP_NEOGEO_GENERATED_DIR={generated}"],root,build_env)
+         f"-DMULTIARCADERECOMP_NEOGEO_HARDWARE_MODE={args.hardware_mode}",
+         f"-DMULTIARCADERECOMP_NEOGEO_MODULE_ID={module_id}",
+         f"-DMULTIARCADERECOMP_NEOGEO_GENERATED_DIR={generated}"],root,build_env)
     run([args.cmake,"--build",str(build),"--target","kof98_aot","--parallel",str(args.jobs)],root,build_env)
     command=[str(build/"kof98_aot"),"--rom-zip",str(game_zip.resolve()),
              "--bios-zip",str(bios.resolve()),"--bios",bios_name,
@@ -119,7 +119,7 @@ def main() -> int:
         command.extend(["--entries",str(entry_file.resolve())])
     run(command,root,build_env)
 
-    # Use the shared MameRecomp Z80 frontend for the KOF98 static sound-CPU pass.
+    # Use the shared MultiArcadeRecomp Z80 frontend for the KOF98 static sound-CPU pass.
     # Generated output stays in the build tree and is compiled into the same
     # per-game module as the 68000 table.
     z80_inputs=build/"neogeo/kof98/z80_inputs"
@@ -149,15 +149,15 @@ def main() -> int:
     # shards. The directories are the deterministic defaults from CMake; this
     # adapter no longer clears or injects cache paths itself.
     run([args.cmake,"-S",str(root),"-B",str(build),
-         f"-DMAMERECOMP_NEOGEO_HARDWARE_MODE={args.hardware_mode}",
-         f"-DMAMERECOMP_NEOGEO_MODULE_ID={module_id}",
-         f"-DMAMERECOMP_NEOGEO_GENERATED_DIR={generated}"],root,build_env)
-    run([args.cmake,"--build",str(build),"--target","mamerecomp",
-         "mamerecomp_neogeo_runtime",module_target,
+         f"-DMULTIARCADERECOMP_NEOGEO_HARDWARE_MODE={args.hardware_mode}",
+         f"-DMULTIARCADERECOMP_NEOGEO_MODULE_ID={module_id}",
+         f"-DMULTIARCADERECOMP_NEOGEO_GENERATED_DIR={generated}"],root,build_env)
+    run([args.cmake,"--build",str(build),"--target","multiarcaderecomp",
+         "multiarcaderecomp_neogeo_runtime",module_target,
          "--parallel",str(args.jobs)],root,build_env)
-    print(f"Built Neo Geo runtime: {build/'mamerecomp_neogeo_runtime.so'}")
+    print(f"Built Neo Geo runtime: {build/'multiarcaderecomp_neogeo_runtime.so'}")
     print(f"Built KOF98 {args.hardware_mode.upper()} game module: {module_path}")
-    print(f"Run with: {build/'mamerecomp'} run --machine=neogeo --board={args.hardware_mode} --game=kof98 --rom-dir {game_zip} --headless --frames 300")
+    print(f"Run with: {build/'multiarcaderecomp'} run --machine=neogeo --board={args.hardware_mode} --game=kof98 --rom-dir {game_zip} --headless --frames 300")
     return 0
 
 

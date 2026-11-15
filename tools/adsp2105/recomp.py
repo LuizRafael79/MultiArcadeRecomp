@@ -60,7 +60,7 @@ def emit_aot(data: bytes, output_path: Path, entry_pc: int = 0,
         '#include "core/cpus/adsp2105/adsp2105.hpp"',
         '#include "core/cpus/adsp2105/dag.hpp"',
         '#include "core/cpus/adsp2105/interpreter.hpp"',
-        'namespace mamerecomp::adsp2105 {',
+        'namespace multiarcaderecomp::adsp2105 {',
         'static void native_write_reg0(State& s, unsigned r, std::uint16_t v) {',
         '    auto& c = s.core;',
         '    switch (r & 15) {',
@@ -186,7 +186,7 @@ def emit_aot(data: bytes, output_path: Path, entry_pc: int = 0,
         output += ['        default: return nullptr;', '        }']
     output += ['    default: return nullptr;', '    }', '}',
                f'std::uint16_t entry_pc() noexcept {{ return 0x{entry_pc & 0x3fff:04x}; }}',
-               '} // namespace mamerecomp::adsp2105', '']
+               '} // namespace multiarcaderecomp::adsp2105', '']
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text('\n'.join(output), encoding='utf-8')
     return len(words), len(entries)

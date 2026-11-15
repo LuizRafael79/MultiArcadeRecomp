@@ -16,7 +16,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 template <typename RomRecord>
@@ -95,7 +95,7 @@ std::unordered_map<std::string, std::vector<std::uint8_t>> read_one_zip(
             const auto* rom = records.at(target);
             const std::size_t expected_size = rom_size(*rom);
             const auto actual_crc = static_cast<std::uint32_t>(crc32(0L, bytes.data(), static_cast<uInt>(bytes.size())));
-            const auto actual_sha1 = mamerecomp::roms::sha1_hex(bytes);
+            const auto actual_sha1 = multiarcaderecomp::roms::sha1_hex(bytes);
             if (bytes.size() != expected_size || actual_crc != rom->crc32 ||
                 (!rom->sha1.empty() && actual_sha1 != rom->sha1)) {
                 if (filename == target) {
@@ -212,7 +212,7 @@ std::vector<std::uint8_t> load_maincpu_roms(const GameProfile& profile, const st
             throw std::runtime_error(std::string(rom.filename) + " has unexpected size " + std::to_string(bytes.size()));
         }
         const uLong crc = crc32(0L, bytes.data(), static_cast<uInt>(bytes.size()));
-        const auto sha1 = mamerecomp::roms::sha1_hex(bytes);
+        const auto sha1 = multiarcaderecomp::roms::sha1_hex(bytes);
         if (crc != rom.crc32 || (!rom.sha1.empty() && sha1 != rom.sha1)) {
             throw std::runtime_error(std::string("ROM audit failed for ") + std::string(rom.filename)
                 + ": CRC32 expected=" + [&] { std::ostringstream out; out << std::hex << rom.crc32; return out.str(); }()
@@ -250,7 +250,7 @@ std::vector<std::uint8_t> load_rom_region(const std::filesystem::path& zip_path,
         }
         if (!verified[filename]) {
             const uLong crc = crc32(0L, bytes.data(), static_cast<uInt>(bytes.size()));
-            const auto sha1 = mamerecomp::roms::sha1_hex(bytes);
+            const auto sha1 = multiarcaderecomp::roms::sha1_hex(bytes);
             if (crc != load.crc32 || (!load.sha1.empty() && sha1 != load.sha1)) {
                 std::ostringstream message;
                 message << "ROM audit failed for " << filename << ": CRC32 expected=" << std::hex << load.crc32
@@ -335,4 +335,4 @@ void validate_profile_sound_roms(const GameProfile& profile, const std::filesyst
     }
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

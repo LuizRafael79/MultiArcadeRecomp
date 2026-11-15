@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 Sega3155313::Sega3155313(Callbacks callbacks) : m_callbacks(std::move(callbacks)) {
     reset();
@@ -538,4 +538,4 @@ void Sega3155313::dma_vram_fill(std::uint16_t value) {
     m_regs[0x13] = m_regs[0x14] = 0;
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

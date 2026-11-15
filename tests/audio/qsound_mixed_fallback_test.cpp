@@ -8,8 +8,8 @@
 int main() {
     std::array<std::uint16_t, 0x1000> firmware{};
 
-    mamerecomp::chips::QSound lle({60'000'000,
-        mamerecomp::chips::QSoundMode::Lle, firmware});
+    multiarcaderecomp::chips::QSound lle({60'000'000,
+        multiarcaderecomp::chips::QSoundMode::Lle, firmware});
     assert(lle.read_status() == 0x80);
     lle.begin_command_write();
     // MAME clears DSP-ready in qsound_w before scheduler().synchronize()
@@ -20,12 +20,12 @@ int main() {
     // the synchronized HLE state and switch paths instead of aborting the run.
     firmware[0] = 0xf000;
 
-    mamerecomp::chips::QSound qsound({60'000'000,
-        mamerecomp::chips::QSoundMode::Mixed, firmware});
-    assert(qsound.mode() == mamerecomp::chips::QSoundMode::Lle);
+    multiarcaderecomp::chips::QSound qsound({60'000'000,
+        multiarcaderecomp::chips::QSoundMode::Mixed, firmware});
+    assert(qsound.mode() == multiarcaderecomp::chips::QSoundMode::Lle);
 
     qsound.run_clocks(2 * 1248);
-    assert(qsound.mode() == mamerecomp::chips::QSoundMode::Hle);
+    assert(qsound.mode() == multiarcaderecomp::chips::QSoundMode::Hle);
     assert(qsound.pcm_frames_produced() == 1);
 
     qsound.write(0, 0x00);

@@ -18,11 +18,11 @@
 #include <utility>
 #include <vector>
 
-#ifndef MAMERECOMP_BINARY_DIR
-#define MAMERECOMP_BINARY_DIR "build"
+#ifndef MULTIARCADERECOMP_BINARY_DIR
+#define MULTIARCADERECOMP_BINARY_DIR "build"
 #endif
-#ifndef MAMERECOMP_SOURCE_DIR
-#define MAMERECOMP_SOURCE_DIR "."
+#ifndef MULTIARCADERECOMP_SOURCE_DIR
+#define MULTIARCADERECOMP_SOURCE_DIR "."
 #endif
 
 namespace {
@@ -35,16 +35,16 @@ public:
             throw std::runtime_error("could not load KOF98 game module " + path.string() + ": " + dlerror());
         m_path = path;
 
-        const auto abi = symbol<unsigned (*)()>("mamerecomp_neogeo_game_module_abi");
-        const auto id = symbol<const char* (*)()>("mamerecomp_neogeo_game_module_id");
-        const auto revision = symbol<unsigned (*)()>("mamerecomp_neogeo_game_module_revision");
-        const auto descriptor = symbol<const ng_game_t* (*)()>("mamerecomp_neogeo_game_descriptor");
-        m_reset = symbol<void (*)()>("mamerecomp_neogeo_game_reset");
-        const auto table = symbol<TableFn>("mamerecomp_neogeo_game_recomp_table");
-        const auto z80_bios = symbol<const void* (*)()>("mamerecomp_neogeo_game_z80_bios_code");
-        const auto z80_cart = symbol<const void* (*)()>("mamerecomp_neogeo_game_z80_cart_code");
+        const auto abi = symbol<unsigned (*)()>("multiarcaderecomp_neogeo_game_module_abi");
+        const auto id = symbol<const char* (*)()>("multiarcaderecomp_neogeo_game_module_id");
+        const auto revision = symbol<unsigned (*)()>("multiarcaderecomp_neogeo_game_module_revision");
+        const auto descriptor = symbol<const ng_game_t* (*)()>("multiarcaderecomp_neogeo_game_descriptor");
+        m_reset = symbol<void (*)()>("multiarcaderecomp_neogeo_game_reset");
+        const auto table = symbol<TableFn>("multiarcaderecomp_neogeo_game_recomp_table");
+        const auto z80_bios = symbol<const void* (*)()>("multiarcaderecomp_neogeo_game_z80_bios_code");
+        const auto z80_cart = symbol<const void* (*)()>("multiarcaderecomp_neogeo_game_z80_cart_code");
         if (!abi || !id || !revision || !descriptor || !m_reset || !table ||
-            abi() != MAMERECOMP_NEOGEO_GAME_MODULE_ABI || std::string(id()) != "kof98" || revision() != 98)
+            abi() != MULTIARCADERECOMP_NEOGEO_GAME_MODULE_ABI || std::string(id()) != "kof98" || revision() != 98)
             fail("KOF98 game module ABI/profile mismatch");
 
         m_game = descriptor();
@@ -94,9 +94,9 @@ private:
 };
 
 std::filesystem::path module_directory() {
-    if (const char* configured = std::getenv("MAMERECOMP_MODULE_DIR"); configured && *configured)
+    if (const char* configured = std::getenv("MULTIARCADERECOMP_MODULE_DIR"); configured && *configured)
         return configured;
-    return std::filesystem::absolute(MAMERECOMP_BINARY_DIR);
+    return std::filesystem::absolute(MULTIARCADERECOMP_BINARY_DIR);
 }
 
 struct RunOptions {
@@ -114,10 +114,10 @@ struct RunOptions {
 
 RunOptions parse_options(int argc, char** argv) {
     RunOptions out;
-    const auto root = std::filesystem::path(MAMERECOMP_SOURCE_DIR);
+    const auto root = std::filesystem::path(MULTIARCADERECOMP_SOURCE_DIR);
     const auto roms = root.parent_path() / "mame/roms";
     out.game_zip = roms / "kof98.zip";
-    out.nvram = std::filesystem::path(MAMERECOMP_BINARY_DIR) / "neogeo/kof98/run-assets/kof98/kof98.nvram";
+    out.nvram = std::filesystem::path(MULTIARCADERECOMP_BINARY_DIR) / "neogeo/kof98/run-assets/kof98/kof98.nvram";
     bool bios_zip_selected = false;
     bool bios_selected = false;
 
@@ -180,10 +180,10 @@ RunOptions parse_options(int argc, char** argv) {
 
 } // namespace
 
-extern "C" unsigned mamerecomp_board_module_abi(void) { return 1; }
-extern "C" const char* mamerecomp_board_module_id(void) { return "neogeo"; }
+extern "C" unsigned multiarcaderecomp_board_module_abi(void) { return 1; }
+extern "C" const char* multiarcaderecomp_board_module_id(void) { return "neogeo"; }
 
-extern "C" int mamerecomp_board_run(int argc, char** argv) {
+extern "C" int multiarcaderecomp_board_run(int argc, char** argv) {
     try {
         const auto options = parse_options(argc, argv);
         if (!std::filesystem::is_regular_file(options.game_zip))
@@ -192,11 +192,11 @@ extern "C" int mamerecomp_board_run(int argc, char** argv) {
             throw std::runtime_error("Neo Geo BIOS ZIP not found: " + options.bios_zip.string());
 
         const auto modules = module_directory();
-        const auto cache = std::filesystem::path(MAMERECOMP_BINARY_DIR) / "neogeo/kof98/run-assets";
+        const auto cache = std::filesystem::path(MULTIARCADERECOMP_BINARY_DIR) / "neogeo/kof98/run-assets";
         const auto game_dir = cache / "kof98";
         const auto bios_dir = cache / "bios";
         const auto common_bios_zip = options.game_zip.parent_path() / "neogeo.zip";
-        mamerecomp::neogeo::extract_kof98_inputs(
+        multiarcaderecomp::neogeo::extract_kof98_inputs(
             options.game_zip, options.bios_zip, game_dir, bios_dir, common_bios_zip);
 
         std::string module_id = options.system;
@@ -208,15 +208,15 @@ extern "C" int mamerecomp_board_run(int argc, char** argv) {
                 if (!((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))) ch = '_';
             module_id += "_" + bios_variant;
         }
-        const auto game_module_path = modules / ("mamerecomp_game_kof98_" + module_id + ".so");
+        const auto game_module_path = modules / ("multiarcaderecomp_game_kof98_" + module_id + ".so");
         if (!std::filesystem::is_regular_file(game_module_path))
             throw std::runtime_error("KOF98 AoT module for " + options.system + " BIOS " + options.bios +
-                " is missing; build it with `mamerecomp build --machine=neogeo --board=" + options.system +
+                " is missing; build it with `multiarcaderecomp build --machine=neogeo --board=" + options.system +
                 " --game=kof98 --bios=" + options.bios + "`");
         Kof98GameModule game_module(game_module_path);
         ng_z80_recomp_set_codes(game_module.z80_bios(), game_module.z80_cart());
 
-        std::vector<std::string> args{"mamerecomp-neogeo", "--rom-path", game_dir.string(),
+        std::vector<std::string> args{"multiarcaderecomp-neogeo", "--rom-path", game_dir.string(),
             "--bios-path", bios_dir.string(), "--bios", options.bios, "--system", options.system,
             "--nvram", options.nvram.string()};
         args.insert(args.end(), options.runtime_args.begin(), options.runtime_args.end());
@@ -224,7 +224,7 @@ extern "C" int mamerecomp_board_run(int argc, char** argv) {
         cargs.reserve(args.size() + 1);
         for (auto& arg : args) cargs.push_back(arg.data());
         game_module.reset();
-        std::cerr << "[mamerecomp] Neo Geo KOF98 module AoT 68000 entries=" << game_module.count()
+        std::cerr << "[multiarcaderecomp] Neo Geo KOF98 module AoT 68000 entries=" << game_module.count()
                   << "; launching through the registered board runtime\n";
         return ng_main(static_cast<int>(args.size()), cargs.data(), game_module.game(),
                        game_module.table(), game_module.count());

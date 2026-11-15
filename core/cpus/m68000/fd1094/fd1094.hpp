@@ -2,7 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <span>
-namespace mamerecomp {
+namespace multiarcaderecomp {
 // FD1094 separates encrypted opcode reads from plain data reads.
 class Fd1094 {
 public:
@@ -18,4 +18,4 @@ private:
     uint8_t state_ = 0;
     bool irq_mode_ = false;
 };
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 enum class SegaBusFault {
     None,
@@ -106,4 +106,4 @@ bool sega_bus_write16_callback(void* context, std::uint32_t address, std::uint16
 bool sega_bus_read8_callback(void* context, std::uint32_t address, std::uint8_t* value);
 bool sega_bus_read16_callback(void* context, std::uint32_t address, std::uint16_t* value);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -10,7 +10,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#ifdef MAMERECOMP_KI_SDL3
+#ifdef MULTIARCADERECOMP_KI_SDL3
 #include <SDL3/SDL.h>
 #endif
 
@@ -113,9 +113,9 @@ fs::path find_chd(const fs::path& rom_root, const fs::path& zip, const fs::path&
 }
 
 void save_ppm(const fs::path& path) {
-    std::vector<std::uint8_t> rgb(mamerecomp::ki::seattle::frame_width *
-                                  mamerecomp::ki::seattle::frame_height * 3);
-    mamerecomp::ki::seattle::copy_rgb(rgb);
+    std::vector<std::uint8_t> rgb(multiarcaderecomp::ki::seattle::frame_width *
+                                  multiarcaderecomp::ki::seattle::frame_height * 3);
+    multiarcaderecomp::ki::seattle::copy_rgb(rgb);
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     if (!out) throw std::runtime_error("cannot create framebuffer output: " + path.string());
     out << "P6\n320 240\n255\n";
@@ -151,7 +151,7 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
     if (const char* sha1 = ide_chd_sha1(); !sha1 || lowercase(sha1) != lowercase(game.chd_sha1))
         throw std::runtime_error("CHD SHA1 does not match the selected MAME parent-set declaration");
 
-    mamerecomp::ki::seattle::power_on();
+    multiarcaderecomp::ki::seattle::power_on();
     rec_expect_game(game.id);
     rec_init();
     if (interpreter_only) rec_enabled = false;
@@ -160,11 +160,11 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
     const auto fallback_path = work / (std::string(game.id) + "-interpreter-summary.log");
     std::error_code directory_error;
     fs::create_directories(work, directory_error);
-    mamerecomp_interpreter_trace_set_summary_log(fallback_path.c_str());
+    multiarcaderecomp_interpreter_trace_set_summary_log(fallback_path.c_str());
     std::cout << game.title << ": runtime started; R4600 AOT=" << (rec_enabled ? "active" : "interpreter")
               << ", CHD=" << chd << ", NVRAM=" << nvram << '\n' << std::flush;
 
-#ifdef MAMERECOMP_KI_SDL3
+#ifdef MULTIARCADERECOMP_KI_SDL3
     SDL_Window* display = nullptr;
     SDL_Renderer* renderer = nullptr;
     SDL_Texture* texture = nullptr;
@@ -175,7 +175,7 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
         if (!display) throw std::runtime_error(SDL_GetError());
         renderer = SDL_CreateRenderer(display, "software");
         if (!renderer) throw std::runtime_error(SDL_GetError());
-        SDL_Log("MameRecomp KI SDL video renderer: %s",
+        SDL_Log("MultiArcadeRecomp KI SDL video renderer: %s",
                 SDL_GetRendererName(renderer) ? SDL_GetRendererName(renderer) : "unknown");
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24,
                                     SDL_TEXTUREACCESS_STREAMING, 320, 240);
@@ -202,8 +202,8 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
     std::uint64_t presented_frames = 0;
     std::uint16_t audio_output_peak = 0;
     const auto host_run_begin = std::chrono::steady_clock::now();
-    while (alive && (window || mamerecomp::ki::seattle::frame_number() < frame_limit)) {
-#ifdef MAMERECOMP_KI_SDL3
+    while (alive && (window || multiarcaderecomp::ki::seattle::frame_number() < frame_limit)) {
+#ifdef MULTIARCADERECOMP_KI_SDL3
         if (window) {
             // Pace at the start of each emulated frame. This makes each
             // run_frame() advance at most once per host-frame interval.
@@ -243,13 +243,13 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
             press(p2, 0x0800, keys[SDL_SCANCODE_6]);
         }
 #endif
-        mamerecomp::ki::seattle::set_inputs(p1, p2);
+        multiarcaderecomp::ki::seattle::set_inputs(p1, p2);
         const auto frame_begin = std::chrono::steady_clock::now();
-        mamerecomp::ki::seattle::run_frame();
+        multiarcaderecomp::ki::seattle::run_frame();
         const auto frame_end = std::chrono::steady_clock::now();
         const double compute_ms = std::chrono::duration<double, std::milli>(frame_end - frame_begin).count();
         frame_compute_ms += compute_ms;
-        if (compute_ms > 1000.0 / mamerecomp::ki::seattle::frame_rate) ++late_frames;
+        if (compute_ms > 1000.0 / multiarcaderecomp::ki::seattle::frame_rate) ++late_frames;
         std::array<std::int16_t, 4096> audio_samples{};
         const int audio_count = sound_fetch(audio_samples.data(), audio_samples.size());
         for (int sample_index = 0; sample_index < audio_count; ++sample_index) {
@@ -258,13 +258,13 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
                 ? -static_cast<std::int32_t>(sample) : sample);
             audio_output_peak = std::max(audio_output_peak, magnitude);
         }
-#ifdef MAMERECOMP_KI_SDL3
+#ifdef MULTIARCADERECOMP_KI_SDL3
         if (window) {
             if (audio && audio_count > 0) {
                 SDL_PutAudioStreamData(audio, audio_samples.data(), audio_count * sizeof(std::int16_t));
                 audio_submitted_samples += static_cast<std::uint64_t>(audio_count);
             }
-            mamerecomp::ki::seattle::copy_rgb(rgb);
+            multiarcaderecomp::ki::seattle::copy_rgb(rgb);
             SDL_UpdateTexture(texture, nullptr, rgb.data(), 320 * 3);
             SDL_RenderClear(renderer);
             SDL_RenderTexture(renderer, texture, nullptr, nullptr);
@@ -277,7 +277,7 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
         }
 #endif
     }
-#ifdef MAMERECOMP_KI_SDL3
+#ifdef MULTIARCADERECOMP_KI_SDL3
     if (window) {
         if (audio) SDL_DestroyAudioStream(audio);
         SDL_DestroyTexture(texture); SDL_DestroyRenderer(renderer); SDL_DestroyWindow(display); SDL_Quit();
@@ -292,17 +292,17 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
     {
         std::ofstream summary(summary_path, std::ios::trunc);
         if (summary) {
-            summary << game.id << " frames=" << mamerecomp::ki::seattle::frame_number() << '\n'
+            summary << game.id << " frames=" << multiarcaderecomp::ki::seattle::frame_number() << '\n'
                     << "MIPS III instructions: native/recompiled=" << cpu_native_count
                     << " interpreted=" << cpu_interp_count << " total=" << mips_total << '\n'
                     << "avg-frame-compute-ms="
-                    << (mamerecomp::ki::seattle::frame_number()
-                            ? frame_compute_ms / mamerecomp::ki::seattle::frame_number() : 0.0)
+                    << (multiarcaderecomp::ki::seattle::frame_number()
+                            ? frame_compute_ms / multiarcaderecomp::ki::seattle::frame_number() : 0.0)
                     << " late-frames=" << late_frames
                     << " presented-fps=" << presented_fps << '\n'
                     << "audio-output: submitted-samples=" << audio_submitted_samples
                     << " peak=" << audio_output_peak << " SDL="
-#ifdef MAMERECOMP_KI_SDL3
+#ifdef MULTIARCADERECOMP_KI_SDL3
                     << (window ? (audio ? "opened" : "unavailable") : "not-requested")
 #else
                     << "not-built"
@@ -311,12 +311,12 @@ int run(const fs::path& rom_arg, const fs::path& work, std::uint64_t frame_limit
         }
     }
     sound_report_file(summary_path.c_str());
-    std::cout << game.id << " frames=" << mamerecomp::ki::seattle::frame_number()
+    std::cout << game.id << " frames=" << multiarcaderecomp::ki::seattle::frame_number()
               << " MIPS III instructions: native/recompiled=" << cpu_native_count
               << " interpreted=" << cpu_interp_count << " total=" << mips_total
               << " avg-frame-compute-ms="
-              << (mamerecomp::ki::seattle::frame_number()
-                    ? frame_compute_ms / mamerecomp::ki::seattle::frame_number() : 0.0)
+              << (multiarcaderecomp::ki::seattle::frame_number()
+                    ? frame_compute_ms / multiarcaderecomp::ki::seattle::frame_number() : 0.0)
               << " late-frames=" << late_frames
               << " presented-fps=" << presented_fps << '\n'
               << game.id << " audio output: submitted-samples=" << audio_submitted_samples
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
         fs::create_directories(work);
         return run(rom_dir, work, frames, window, interpreter_only, frame_out, game_id);
     } catch (const std::exception& error) {
-        std::cerr << "mamerecomp_ki: " << error.what() << '\n';
+        std::cerr << "multiarcaderecomp_ki: " << error.what() << '\n';
         return 1;
     }
 }

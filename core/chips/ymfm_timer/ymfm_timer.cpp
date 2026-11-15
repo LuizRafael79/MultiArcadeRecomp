@@ -1,6 +1,6 @@
 #include "ymfm_timer.hpp"
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 void YmfmTimerBank::set_timer(std::uint32_t timer, std::int32_t duration, std::uint64_t now) {
     if (timer >= timer_count) return;
@@ -29,4 +29,4 @@ void YmfmTimerBank::expire_due(std::uint64_t now,
     }
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

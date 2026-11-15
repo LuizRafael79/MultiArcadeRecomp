@@ -11,7 +11,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 // System 18 bus for supported 171-SHADOW and 171-5874 ROM boards. The VDP has
 // a built-in behavioral model; callbacks can override the VDP or I/O endpoints.
@@ -105,4 +105,4 @@ private:
     mutable std::vector<SegaMemoryRegionInfo> m_region_info;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

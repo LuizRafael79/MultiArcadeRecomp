@@ -10,9 +10,9 @@ int main(int argc, char** argv) {
         return 2;
     }
     try {
-        const auto* driver = mamerecomp::cps1::find_game_driver(argv[1]);
+        const auto* driver = multiarcaderecomp::cps1::find_game_driver(argv[1]);
         if (!driver || !driver->romset) throw std::runtime_error("no CPS-1 game driver for " + std::string(argv[1]));
-        mamerecomp::cps1::export_romset(*driver->romset, argv[2], argv[3]);
+        multiarcaderecomp::cps1::export_romset(*driver->romset, argv[2], argv[3]);
         std::cout << "Validated " << driver->romset->loads.size() << " load segments from "
                   << driver->romset->game << " ROM driver.\n";
     } catch (const std::exception& error) {

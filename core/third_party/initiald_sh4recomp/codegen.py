@@ -575,11 +575,11 @@ def recompile_function(name, base_addr, raw_bytes, unresolved_ctr=None, resolved
     if out and out[-1].endswith(":") and not out[-1].startswith("//"):
         out.append(";")  # a label can't be immediately followed by a closing brace pre-C++23
     out.append("}")
-    # Bind memory operations to MameRecomp's per-CPU bus instead of relying on
+    # Bind memory operations to MultiArcadeRecomp's per-CPU bus instead of relying on
     # the original game's global MEMxx macros. This keeps generated code
     # board-neutral and permits separate CPU/bus instances.
     for i, line in enumerate(out):
-        line = line.replace("SH4Context& ctx", "mamerecomp::naomi::Sh4Context& ctx")
+        line = line.replace("SH4Context& ctx", "multiarcaderecomp::naomi::Sh4Context& ctx")
         line = line.replace("MEM8_WRITE(", "ctx.write8(")
         line = line.replace("MEM16_WRITE(", "ctx.write16(")
         line = line.replace("MEM32_WRITE(", "ctx.write32(")

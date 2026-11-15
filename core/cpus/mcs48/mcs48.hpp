@@ -5,7 +5,7 @@
 #include <functional>
 #include <span>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 // Intel MCS-48 / 8048 execution core used by the NEC uPD7751. One returned
 // cycle is one 15-clock MCS-48 machine cycle.
@@ -72,4 +72,4 @@ private:
     std::uint64_t m_cycles = 0;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

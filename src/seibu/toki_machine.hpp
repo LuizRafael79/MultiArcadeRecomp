@@ -12,7 +12,7 @@
 #include "ymfm_opl.h"
 #include "chips/oki6295.hpp"
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 
 struct TokiRomSet {
     std::unordered_map<std::string, std::vector<uint8_t>> regions;
@@ -168,7 +168,7 @@ private:
     uint16_t input_system_ = 0x001f;
     uint8_t coin_inputs_ = 0;
     Ym3812 ym3812_;
-    mamerecomp::chips::Oki6295 oki_;
+    multiarcaderecomp::chips::Oki6295 oki_;
     uint64_t ym_clock_ = 0;
     uint64_t ym_generated_samples_ = 0;
     uint64_t ym_busy_until_ = 0;
@@ -194,4 +194,4 @@ private:
     uint64_t sound_high_lane_nonzero_ = 0;
 };
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

@@ -1,12 +1,12 @@
 # Sony ZN modules
 
-Sony ZN runs through the single `mamerecomp` executable. It owns the CLI and
+Sony ZN runs through the single `multiarcaderecomp` executable. It owns the CLI and
 runtime dispatch, and loads game CPU translations from board/game `.so`
 modules.
 
-SFEX2PA uses `mamerecomp_zn2_sfex2pa.so` for its Z80 and R3000A AOT tables.
+SFEX2PA uses `multiarcaderecomp_zn2_sfex2pa.so` for its Z80 and R3000A AOT tables.
 The ZN build recipe generates the Z80 translation first, profiles live RAM
-code through `mamerecomp run`, then adds the captured R3000A translation to
+code through `multiarcaderecomp run`, then adds the captured R3000A translation to
 the same game module. It builds that module without rebuilding the all-system
 launcher.
 

@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Naomi's SH-4-facing interrupt concentrator and Maple DMA channel.
 // Register behavior is based on the MAME Naomi map and Flycast's Holly
@@ -115,4 +115,4 @@ private:
     std::uint32_t m_cycles_until_irq = 0;
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

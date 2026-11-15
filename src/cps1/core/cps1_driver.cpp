@@ -1,6 +1,6 @@
 #include "cps1_driver.hpp"
 
-namespace mamerecomp::cps1 {
+namespace multiarcaderecomp::cps1 {
 const Cps1GameDriver& sf2ce_driver();
 
 const Cps1GameDriver* find_game_driver(std::string_view id) {
@@ -9,4 +9,4 @@ const Cps1GameDriver* find_game_driver(std::string_view id) {
     return nullptr;
 }
 
-} // namespace mamerecomp::cps1
+} // namespace multiarcaderecomp::cps1

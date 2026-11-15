@@ -10,7 +10,7 @@
 #include <chrono>
 #include <cstdlib>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 namespace {
 constexpr uint64_t kRefreshScale = 1'000'000;
 constexpr uint64_t kRefreshNtsc240 = 59'826'098;
@@ -186,7 +186,7 @@ bool is_gp0_polyline_terminator(uint32_t value)
 Gpu::Gpu(std::vector<uint8_t> &vram, unsigned gpu_type)
     : vram_(vram), gpu_type_(gpu_type)
 {
-    profile_timing_ = std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
+    profile_timing_ = std::getenv("MULTIARCADERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
     vram_height_ = std::max<size_t>(1, vram_.size() / (1024 * 2));
     vram_height_power_of_two_ =
         (vram_height_ & (vram_height_ - 1)) == 0;
@@ -202,14 +202,14 @@ Gpu::~Gpu() = default;
 void Gpu::enable_hardware_renderer(void* native_window, void* native_context)
 {
     if (hardware_renderer_) return;
-#ifdef MAMERECOMP_PSX_GPU_OPENGL
+#ifdef MULTIARCADERECOMP_PSX_GPU_OPENGL
     hardware_renderer_ = std::make_unique<GpuHardwareRenderer>(
         vram_, native_window, native_context);
     hardware_vram_shadow_valid_ = true;
     std::cout << "PSX GPU OpenGL rasterizer: "
               << hardware_renderer_->renderer_name() << '\n';
 #else
-    throw std::runtime_error("--gpu-hw requested, but this build has no SDL3/OpenGL PSX rasterizer; configure with -DMAMERECOMP_ENABLE_PSX_GPU_OPENGL=ON");
+    throw std::runtime_error("--gpu-hw requested, but this build has no SDL3/OpenGL PSX rasterizer; configure with -DMULTIARCADERECOMP_ENABLE_PSX_GPU_OPENGL=ON");
 #endif
 }
 
@@ -924,7 +924,7 @@ void Gpu::gp0(uint32_t value)
         const unsigned op = value >> 24;
         const unsigned words = gp0_packet_words(op);
         ++gp0_command_counts_[op];
-        static const bool trace_gp0 = std::getenv("MAMERECOMP_ZN_TRACE_GP0") != nullptr;
+        static const bool trace_gp0 = std::getenv("MULTIARCADERECOMP_ZN_TRACE_GP0") != nullptr;
         if (trace_gp0 &&
             (op == 0x02 || (op >= 0x20 && op <= 0x7f) || op == 0x80 ||
              op == 0xa0 || op == 0xc0 || op >= 0xe1)) {
@@ -961,7 +961,7 @@ void Gpu::execute_packet()
     const unsigned op = opword >> 24;
     const uint16_t color = rgb24_to_15(opword);
     static const bool trace_gp0_packets =
-        std::getenv("MAMERECOMP_ZN_TRACE_GP0_PACKETS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_ZN_TRACE_GP0_PACKETS") != nullptr;
     if (op == 0x65 && trace_gp0_packets) {
         static unsigned traced_sprite_packets = 0;
         if (traced_sprite_packets++ < 16) {
@@ -1260,7 +1260,7 @@ void Gpu::write_status(uint32_t value)
 {
     const unsigned op = value >> 24;
     static const bool trace_commands =
-        std::getenv("MAMERECOMP_ZN_TRACE_GPU_COMMANDS") != nullptr;
+        std::getenv("MULTIARCADERECOMP_ZN_TRACE_GPU_COMMANDS") != nullptr;
     static unsigned traced_commands = 0;
     auto trace_command = [&] {
         if (trace_commands && traced_commands++ < 512)
@@ -1367,9 +1367,9 @@ GpuFrame Gpu::framebuffer_rgb() const
     frame.display_enabled = (status_ & (1u << 23)) == 0;
     static unsigned summary_frame = 0;
     static const bool summary_enabled =
-        std::getenv("MAMERECOMP_ZN_TRACE_GP0_SUMMARY") != nullptr;
+        std::getenv("MULTIARCADERECOMP_ZN_TRACE_GP0_SUMMARY") != nullptr;
     static const bool summary_all =
-        std::getenv("MAMERECOMP_ZN_TRACE_GP0_SUMMARY_ALL") != nullptr;
+        std::getenv("MULTIARCADERECOMP_ZN_TRACE_GP0_SUMMARY_ALL") != nullptr;
     const bool report_summary = summary_enabled &&
         (summary_all || ((summary_frame++ % 60) == 0));
     // Diagnostic summaries inspect the host VRAM mirror. Keep that opt-in
@@ -1380,7 +1380,7 @@ GpuFrame Gpu::framebuffer_rgb() const
     }
     auto report_gpu_summary = [&] {
         if (report_summary) {
-            if (const char *dump_path = std::getenv("MAMERECOMP_ZN_DUMP_VRAM")) {
+            if (const char *dump_path = std::getenv("MULTIARCADERECOMP_ZN_DUMP_VRAM")) {
                 std::ofstream dump(dump_path, std::ios::binary | std::ios::trunc);
                 if (dump) {
                     constexpr unsigned dump_width = 1024, dump_height = 512;

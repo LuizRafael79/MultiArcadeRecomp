@@ -6,7 +6,7 @@
 
 #include "cps1_driver.hpp"
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 extern std::array<uint8_t, 0x400000> g_program;
 extern std::array<uint8_t, 0x10000> g_workram;
@@ -34,4 +34,4 @@ void configure_game(const Cps1GameDriver& driver);
 std::int64_t cps1_frame_cycles();
 std::int64_t cps1_vblank_cycles();
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class System16ASound final : private ymfm::ymfm_interface {
 public:
@@ -120,4 +120,4 @@ private:
     SegaAudioSink m_audio_sink;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <string>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 enum class SegaDisplayMode : std::uint8_t {
     Windowed,
@@ -28,4 +28,4 @@ std::filesystem::path sega_settings_path(const char* profile_id);
 SegaSharedSettings load_sega_settings(const std::filesystem::path& path, SegaSharedSettings defaults = {});
 bool save_sega_settings(const std::filesystem::path& path, const SegaSharedSettings& settings, std::string* error = nullptr);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

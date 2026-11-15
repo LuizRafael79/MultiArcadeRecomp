@@ -14,7 +14,7 @@ Prime, and Zsolt Vasvari as copyright holders.
   `src/mame/snk/neogeo_spr.cpp` and `src/mame/snk/neogeo_v.cpp`.
 
 The corresponding MAME source files are available at `/home/luiz/git/mame` in
-this development environment. MAME is not linked into MameRecomp. The complete
+this development environment. MAME is not linked into MultiArcadeRecomp. The complete
 BSD-3-Clause text is in [`docs/license/mame-neogeo/BSD-3-Clause`](../../../docs/license/mame-neogeo/BSD-3-Clause).
 
 These portions are not relicensed under the NeoGeoRecomp MIT license. Preserve

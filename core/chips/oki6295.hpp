@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Clocked OKIM6295 command/status and four-voice ADPCM device. The board owns
 // ROM banking and supplies the chip's current sample-ROM address view.
@@ -42,4 +42,4 @@ private:
     int pending_sample_ = -1;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

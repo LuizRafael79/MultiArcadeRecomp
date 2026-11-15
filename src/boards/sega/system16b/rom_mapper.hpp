@@ -12,7 +12,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 // Standard 171-5797 region wiring used by Golden Axe (including goldnaxeud).
 std::array<chips::Mapper3155195::Wiring, 8> system16b_5797_mapper_wiring(std::uint32_t workram_size = 0x4000);
@@ -85,4 +85,4 @@ private:
     chips::Sega3155250CompareTimer m_compare_timer_2;
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

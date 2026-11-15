@@ -7,7 +7,7 @@ Selected Flycast AICA sources staged for the Naomi AICA DSP interpreter port.
 - License: GNU GPL version 2; see [`LICENSE`](../../license/flycast-aica/LICENSE).
 - Reference files: `dsp_interp.cpp`, `dsp.cpp`, `aica_mem.cpp`, and the
   channel/voice generator in `sgc_if.cpp` with its AICA interfaces.
-- MameRecomp adapter: `src/naomi/naomi_aica_voices.cpp` compiles the upstream
+- MultiArcadeRecomp adapter: `src/naomi/naomi_aica_voices.cpp` compiles the upstream
   SG channel engine with `src/naomi/naomi_aica_voice_shims.hpp`; the separate
   `src/naomi/naomi_aica_dsp.cpp` implements the DSP interpreter. Register,
   wave RAM and sample integration live in `src/naomi/naomi_address_space.cpp`.

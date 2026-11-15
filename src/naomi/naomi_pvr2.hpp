@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 struct NaomiPvrFramebuffer {
     std::uint32_t width = 0;
@@ -245,4 +245,4 @@ private:
     void advanceScanline(const std::function<void(unsigned)>& raise_normal_irq);
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

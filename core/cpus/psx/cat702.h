@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 // CAT702 serial security IC used by Sony ZN boards. Algorithm and pin behavior
 // follow MAME's BSD-3-Clause src/devices/machine/cat702.cpp.
@@ -30,4 +30,4 @@ private:
     uint8_t bit_ = 0;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

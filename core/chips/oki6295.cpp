@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 namespace {
 constexpr std::array<int, 49> kStepTable{
     16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50, 55, 60, 66,
@@ -103,4 +103,4 @@ std::int16_t Oki6295::output() const
     return static_cast<std::int16_t>(std::clamp(mix, -2048, 2047));
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

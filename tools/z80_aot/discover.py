@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Control-flow discovery for MameRecomp's Z80 static recompiler."""
+"""Control-flow discovery for MultiArcadeRecomp's Z80 static recompiler."""
 
 from __future__ import annotations
 

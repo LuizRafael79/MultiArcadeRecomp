@@ -1,7 +1,7 @@
 # Naomi runtime port audit
 
 This is the active implementation checklist for the Naomi runtime. The target
-is Marvel vs. Capcom 2 booting from the official Naomi BIOS with MameRecomp's
+is Marvel vs. Capcom 2 booting from the official Naomi BIOS with MultiArcadeRecomp's
 SH-4 AOT path and a complete Flycast-derived interpreter fallback. REIOS is
 excluded. Do not treat an isolated CPU probe, the REIOS diagnostic path, or a
 post-run VRAM dump as a successful system boot or rendered frame.
@@ -17,7 +17,7 @@ mappings.
 
 ### CPU interpreter fallback contract
 
-For every Naomi CPU that has an AOT path in MameRecomp, the Flycast
+For every Naomi CPU that has an AOT path in MultiArcadeRecomp, the Flycast
 interpreter is the semantic fallback at an unregistered or invalid AOT entry.
 The handoff is instruction-boundary transparent: interpret until control reaches
 a valid AOT entry, then resume AOT without changing guest state or the Naomi
@@ -29,7 +29,7 @@ dispatcher, but matching opcode-table masks is only an opcode-family coverage
 check. It does not establish complete Flycast behavior: register variants,
 exceptions, MMU/cache effects, cycle accounting and scheduler interaction still
 need source-by-source parity work. Port Flycast interpreter semantics into the
-SH-4 fallback and keep the existing MameRecomp AOT path intact.
+SH-4 fallback and keep the existing MultiArcadeRecomp AOT path intact.
 
 The fallback's basic floating-point arithmetic, comparisons, sign/absolute,
 square root and FMAC now use a dedicated Flycast-derived path. Single-precision
@@ -45,7 +45,7 @@ afterward. DN flushes subnormal inputs and results in the arithmetic, compare,
 square-root, FMAC and vector handlers currently ported. Conversion/transfer DN
 coverage and detailed floating-point exception state remain incomplete.
 
-The Naomi ARM7 has no MameRecomp AOT dispatcher today. Its Flycast
+The Naomi ARM7 has no MultiArcadeRecomp AOT dispatcher today. Its Flycast
 ARM7TDMI interpreter runs directly as the AICA auxiliary CPU; it must remain a
 Flycast interpreter port, not be replaced with an AOT or Dynarec backend. The
 AICA DSP microprogram interpreter is another processor interpreter and is
@@ -53,7 +53,7 @@ already adapted from Flycast, while AICA voice generation, mixing, timing and
 register behavior remain runtime work. Neither the ARM7 CPU nor AICA DSP
 interpreter makes the rest of the AICA runtime complete.
 
-| Layer | Present in MameRecomp | Upstream comparison | Port still required |
+| Layer | Present in MultiArcadeRecomp | Upstream comparison | Port still required |
 | --- | --- | --- | --- |
 | PVR2 / TA / framebuffer | Register window, SPG counters/field number, 16 MiB VRAM, store queues, TA packet capture/framing, decoded scene primitives for all 15 vertex formats, sprites and modifier triangles. PVR DMA, interleaved VRAM and FB_R scanout are present. `STARTRENDER` latches FB_W control/SOF1, stride from `0x4c`, surface dimensions from `TA_GLOB_TILE_CLIP`/`SCALER_CTL`, FB pixel clipping from `FB_X_CLIP`/`FB_Y_CLIP`, and the Flycast region-array tile bounding rectangle. TA FIFO writes are ignored until `TA_LIST_INIT`/`TA_LIST_CONT` opens a context; list init seeds OPB pointers and initializes `TA_NEXT_OPB`/`TA_ITP_CURRENT`; STARTRENDER resolves context addresses from opaque/translucent/punch-through OPBs using Flycast's first-tile walk. The active parser decodes PCW fields from their Flycast bit positions (`ListType` 24..26, `User_Clip` 16..17, object control 0..7) and follows the TA continuation FSM. A software geometry pass is connected to the Flycast `WriteFramebuffer` adapter: it rasterizes strips and sprites with region scissoring, per-primitive user/tile clipping and PVR depth comparison. Texture sampling reads VRAM and palette RAM for twiddled and planar RGB/YUV, VQ, Pal4/Pal8, 1555/565/4444, nearest, bilinear and mipmapped/trilinear sampling. LOD comes from perspective-correct UV derivatives; mip offsets and square mip dimensions follow Flycast `TexCache.cpp`. Triangle commands retain pass/list ordering, apply region-header Z-clear and use Flycast's translucent autosort rule when requested: each polygon parameter receives its key from the minimum Z word across all its vertices, and stable sorting preserves triangle order inside each strip. This still decodes the FIFO directly into custom scene primitives; it does not yet reproduce Flycast TA contexts and their complete per-list geometry/material state. Remaining gaps include full TA-context construction, OPB/pass-chain semantics, perspective/depth precision, exact shader/fog/blend behavior and modifier-volume operations. | Flycast `core/hw/pvr/`, `core/rend/{sorter,texconv,TexCache}.cpp`, and renderer shaders | Port the full Flycast-derived context/parser path, all render passes and OPB-selected contexts; complete shader semantics, depth/blending, fog and modifier-volume effects. Feed all supported scene passes into FB_W, then scan out via FB_R/SPG. |
 | SH-4 AOT + interpreter | `Sh4Dispatcher` uses generated-code byte guards and runs the Flycast adapter on AOT misses, then rejoins at a registered entry. Static audit matched opcode masks against all 212 Flycast opcode-table entries. MMU-enabled data translation consults the UTLB; instruction fetches use the ITLB with Flycast LRUI replacement; TLB/address faults update TEA/PTEH and unwind to the exception vector. Interpreter FIPR/FTRV/FSRRA/FSCA now use Flycast handlers and its exact FSCA coefficient table. | Flycast `core/hw/sh4/interpr/{sh4_interpreter,sh4_opcodes,sh4_fpu}.cpp` and `core/hw/sh4/modules/mmu.cpp`; MAME `src/devices/cpu/sh/` only for targeted comparison | Complete MMU corner cases and register side effects, cache semantics, exception/interrupt entry, address-dependent waits and full scheduler/cycle behavior. Preserve each Flycast handler's exact variant behavior, including `SR.S` restrictions for `MAC.L` and `MAC.W`. Consult MAME only when a specific semantic discrepancy is demonstrated. |

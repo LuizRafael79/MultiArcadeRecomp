@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 // PSX SIO0 byte-wide serial controller subset, timed from R3000A cycles.
 // Register/shift behavior follows MAME's BSD-3-Clause PSX SIO device.
@@ -45,4 +45,4 @@ private:
     unsigned irq_source_ = 7;
 };
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

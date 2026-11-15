@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 std::vector<std::uint8_t> decode_sega_tiles_3bpp(std::span<const std::uint8_t> region) {
     if (region.empty() || region.size() % 3 != 0)
         throw std::invalid_argument("Sega 3bpp tile region must contain three equal bitplanes");
@@ -31,4 +31,4 @@ std::vector<std::uint8_t> decode_sega_tiles_3bpp(std::span<const std::uint8_t> r
     return pixels;
 }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

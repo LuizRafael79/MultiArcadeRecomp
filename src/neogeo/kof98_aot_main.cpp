@@ -27,7 +27,7 @@ void write_image(const std::filesystem::path& path, const std::vector<std::uint8
 }
 
 void write_roots(const std::filesystem::path& path,
-                 const mamerecomp::neogeo::RomSetInfo& roms) {
+                 const multiarcaderecomp::neogeo::RomSetInfo& roms) {
     std::ofstream out(path, std::ios::trunc);
     if (!out) throw std::runtime_error("could not write Neo Geo 68000 roots " + path.string());
     // Match the Neo Geo board entry discovery used by the former frontend:
@@ -61,8 +61,8 @@ int main(int argc, char** argv) {
         if (game_zip.empty()) throw std::runtime_error("--rom-zip is required");
         if (bios_zip.empty()) bios_zip = game_zip.parent_path() / "neogeo.zip";
 
-        auto roms = mamerecomp::neogeo::load_kof98(game_zip, bios_zip, bios_name);
-        mamerecomp_kof98_decrypt(roms.maincpu.data(), roms.maincpu.size());
+        auto roms = multiarcaderecomp::neogeo::load_kof98(game_zip, bios_zip, bios_name);
+        multiarcaderecomp_kof98_decrypt(roms.maincpu.data(), roms.maincpu.size());
         if (roms.maincpu.size() < 0x200000)
             throw std::runtime_error("KOF98 decrypted program image is smaller than its fixed and bank windows");
 
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
         const int result = rc_raw_main(static_cast<int>(args.size()), cargs.data());
         if (result) return result;
         std::cout << "KOF98 AOT source generated in " << std::filesystem::absolute(generated)
-                  << " by the shared MameRecomp 68000 frontend.\n";
+                  << " by the shared MultiArcadeRecomp 68000 frontend.\n";
         return 0;
     } catch (const std::exception& e) {
         std::cerr << "kof98_aot: " << e.what() << '\n';

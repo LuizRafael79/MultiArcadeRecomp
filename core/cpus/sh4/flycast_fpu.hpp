@@ -2,28 +2,28 @@
 
 #include <cstdint>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 struct Sh4Context;
 }
 
-namespace mamerecomp::cpus::sh4::flycast::fpu {
+namespace multiarcaderecomp::cpus::sh4::flycast::fpu {
 
-void fadd(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fsub(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fmul(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fdiv(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fcmp_eq(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fcmp_gt(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void fneg(mamerecomp::naomi::Sh4Context& context, unsigned n);
-void fabs(mamerecomp::naomi::Sh4Context& context, unsigned n);
-void fsqrt(mamerecomp::naomi::Sh4Context& context, unsigned n);
-void fmac(mamerecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
-void load_fpscr(mamerecomp::naomi::Sh4Context& context, std::uint32_t value);
-void toggle_fr(mamerecomp::naomi::Sh4Context& context);
-void toggle_sz(mamerecomp::naomi::Sh4Context& context);
-void fipr(mamerecomp::naomi::Sh4Context& context, unsigned m, unsigned n);
-void ftrv(mamerecomp::naomi::Sh4Context& context, unsigned n);
-void fsrra(mamerecomp::naomi::Sh4Context& context, unsigned n);
-void fsca(mamerecomp::naomi::Sh4Context& context, unsigned n);
+void fadd(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fsub(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fmul(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fdiv(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fcmp_eq(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fcmp_gt(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void fneg(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
+void fabs(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
+void fsqrt(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
+void fmac(multiarcaderecomp::naomi::Sh4Context& context, unsigned n, unsigned m);
+void load_fpscr(multiarcaderecomp::naomi::Sh4Context& context, std::uint32_t value);
+void toggle_fr(multiarcaderecomp::naomi::Sh4Context& context);
+void toggle_sz(multiarcaderecomp::naomi::Sh4Context& context);
+void fipr(multiarcaderecomp::naomi::Sh4Context& context, unsigned m, unsigned n);
+void ftrv(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
+void fsrra(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
+void fsca(multiarcaderecomp::naomi::Sh4Context& context, unsigned n);
 
-} // namespace mamerecomp::cpus::sh4::flycast::fpu
+} // namespace multiarcaderecomp::cpus::sh4::flycast::fpu

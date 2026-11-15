@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace mamerecomp::cpus::sh4::flycast {
+namespace multiarcaderecomp::cpus::sh4::flycast {
 namespace {
 enum class Unit : std::uint8_t { MT, EX, BR, LS, FE, CO };
 struct Pattern {
@@ -74,4 +74,4 @@ std::uint32_t instruction_cycles(std::uint16_t opcode, CycleState& state) {
     return cycles * 2u; // Flycast CPU_RATIO for Naomi's 200 MHz SH-4.
 }
 
-} // namespace mamerecomp::cpus::sh4::flycast
+} // namespace multiarcaderecomp::cpus::sh4::flycast

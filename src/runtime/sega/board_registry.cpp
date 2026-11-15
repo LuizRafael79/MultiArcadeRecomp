@@ -2,9 +2,9 @@
 
 #include <array>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
-#ifdef MAMERECOMP_SEGA_OPENGL_VIDEO_AVAILABLE
+#ifdef MULTIARCADERECOMP_SEGA_OPENGL_VIDEO_AVAILABLE
 constexpr bool system16_opengl_video = true;
 #else
 constexpr bool system16_opengl_video = false;
@@ -29,4 +29,4 @@ const BoardRegistration* find_board(SegaBoardFamily family) {
     return nullptr;
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega

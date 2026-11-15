@@ -7,11 +7,11 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace mamerecomp::adsp2105 {
+namespace multiarcaderecomp::adsp2105 {
 namespace {
 void trace_dcs_audio_step(const State& state, std::uint16_t pc,
                           std::uint32_t opcode) noexcept {
-    static const bool enabled = std::getenv("MAMERECOMP_ADSP_TRACE_AUDIO") != nullptr;
+    static const bool enabled = std::getenv("MULTIARCADERECOMP_ADSP_TRACE_AUDIO") != nullptr;
     static std::uint32_t lines = 0;
     // Focus this opt-in diagnostic on the sample-buffer writer. The old wide
     // range filled the cap in a busy wait before reaching the writes at 0x147.
@@ -1267,7 +1267,7 @@ bool native_execute_instruction(State& state, Bus& bus,
 
 BlockExit interpreter_step(State& state, Bus& bus,
                            std::uint64_t stop_cycle,
-                           MamerecompFallbackReason reason) noexcept {
+                           MultiArcadeRecompFallbackReason reason) noexcept {
     if (!bus.read_program24) return BlockExit::BusFault;
     if (state.cycles >= stop_cycle) return BlockExit::Budget;
 
@@ -1283,7 +1283,7 @@ BlockExit interpreter_step(State& state, Bus& bus,
         (void)execute_misc(state, opcode);
         advance_clock(state, bus);
         ++state.interpreted_instructions;
-        mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
+        multiarcaderecomp_interpreter_trace_step("ADSP-2105", "MultiArcadeRecomp-interpreter",
             reason, pc, opcode, 24, cycles_before, state.cycles, state.pc,
             instruction_name(opcode));
         return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
@@ -1296,7 +1296,7 @@ BlockExit interpreter_step(State& state, Bus& bus,
         }
         advance_clock(state, bus);
         ++state.interpreted_instructions;
-        mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
+        multiarcaderecomp_interpreter_trace_step("ADSP-2105", "MultiArcadeRecomp-interpreter",
             reason, pc, opcode, 24, cycles_before, state.cycles, state.pc,
             instruction_name(opcode));
         return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
@@ -1309,7 +1309,7 @@ BlockExit interpreter_step(State& state, Bus& bus,
         }
         advance_clock(state, bus);
         ++state.interpreted_instructions;
-        mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
+        multiarcaderecomp_interpreter_trace_step("ADSP-2105", "MultiArcadeRecomp-interpreter",
             reason, pc, opcode, 24, cycles_before, state.cycles, state.pc,
             instruction_name(opcode));
         return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
@@ -1693,9 +1693,9 @@ BlockExit interpreter_step(State& state, Bus& bus,
         break;
     default:
         state.pc = pc;
-        mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
-            group == 0x01 ? MAMERECOMP_UNSUPPORTED_VARIANT :
-                            MAMERECOMP_UNSUPPORTED_OPCODE,
+        multiarcaderecomp_interpreter_trace_step("ADSP-2105", "MultiArcadeRecomp-interpreter",
+            group == 0x01 ? MULTIARCADERECOMP_UNSUPPORTED_VARIANT :
+                            MULTIARCADERECOMP_UNSUPPORTED_OPCODE,
             pc, opcode, 24, cycles_before, state.cycles, pc,
             instruction_name(opcode));
         return BlockExit::NeedsInterpreter;
@@ -1703,7 +1703,7 @@ BlockExit interpreter_step(State& state, Bus& bus,
 
     advance_clock(state, bus);
     ++state.interpreted_instructions;
-    mamerecomp_interpreter_trace_step("ADSP-2105", "MameRecomp-interpreter",
+    multiarcaderecomp_interpreter_trace_step("ADSP-2105", "MultiArcadeRecomp-interpreter",
         reason, pc, opcode, 24, cycles_before, state.cycles, state.pc,
         instruction_name(opcode));
     return state.cycles >= stop_cycle ? BlockExit::Budget : BlockExit::Dispatch;
@@ -1775,13 +1775,13 @@ bool service_interrupt(State& state) noexcept {
             state.imask &= static_cast<std::uint16_t>(~(0x3fu >> source.priority));
         else
             state.imask &= static_cast<std::uint16_t>(~0x3fu);
-        mamerecomp_interpreter_trace_event(
-            "ADSP-2105", "MameRecomp-interpreter",
-            MAMERECOMP_EXCEPTION_BOUNDARY, old_pc, state.pc,
+        multiarcaderecomp_interpreter_trace_event(
+            "ADSP-2105", "MultiArcadeRecomp-interpreter",
+            MULTIARCADERECOMP_EXCEPTION_BOUNDARY, old_pc, state.pc,
             state.cycles, state.cycles);
         return true;
     }
     return false;
 }
 
-} // namespace mamerecomp::adsp2105
+} // namespace multiarcaderecomp::adsp2105

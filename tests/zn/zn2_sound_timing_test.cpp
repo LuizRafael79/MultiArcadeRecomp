@@ -4,7 +4,7 @@
 
 int main()
 {
-    using mamerecomp::zn::qsound_target_frames;
+    using multiarcaderecomp::zn::qsound_target_frames;
     assert(qsound_target_frames(0) == 0);
     assert(qsound_target_frames(8'000'000) == 24'038);
     // Preserve the 60 MHz / 2496 fractional cadence: truncating the rate to

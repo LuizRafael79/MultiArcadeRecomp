@@ -18,7 +18,7 @@ runtime profiles.
 
 ### CPS-2 / per-game module checkpoint (2026-11-04)
 
-The public command now accepts `mamerecomp build/run --machine=cps
+The public command now accepts `multiarcaderecomp build/run --machine=cps
 --board=cps2 --game=sfa3`; the build delegates to the external CPS2Recomp
 checkout and the run launches its standalone executable. SFA3 was built from
 `/home/luiz/git/mame/roms/sfa3.zip` and the public headless command completed
@@ -35,7 +35,7 @@ comparison, the local generator covered all 349 CPS2Recomp instruction
 addresses and emitted three additional boundaries for precise cycle yielding.
 
 SFA3, SFZ2A and SFZ2AL now build as separate loaded board modules through
-`mamerecomp build --machine=cps --board=cps2 --game=<game>`, and run in-process
+`multiarcaderecomp build --machine=cps --board=cps2 --game=<game>`, and run in-process
 through the same host entry point. Each game has its own build/work tree and
 `.so`; shared CPS-2 runtime and game-family sources are reused. `sfz2a` is a
 local profile that shares SFA2 gameplay sources, while `sfz2al` uses the
@@ -47,11 +47,11 @@ and F1 menu remain available.
 HSF2 (Hyper Street Fighter II: The Anniversary Edition, USA 040202) now uses
 the recipe added to the current CPS2Recomp checkout. MAME verifies the local
 `hsf2.zip` set and its key CRC `fc9b18c9`; this is HSF2, not Super Street
-Fighter II Turbo. The MameRecomp module includes the shared CPS2 board runtime
+Fighter II Turbo. The MultiArcadeRecomp module includes the shared CPS2 board runtime
 and generated program-ROM AOT, while `runtime/no_game.cpp` registers no
 CPS2Recomp game-specific rewrites or modes. The generator reported 115,646
 68000 instructions in 80 C++ units and 1,358 Z80 instructions. The resulting
-`libmamerecomp_cps2_hsf2.so` is 15,714,264 bytes. A headless 1,800-frame run
+`libmultiarcaderecomp_cps2_hsf2.so` is 15,714,264 bytes. A headless 1,800-frame run
 completed: 68000 AOT 42,140,651 / fallback 4,804,835; Z80 AOT 34,512,997 /
 fallback 196,061. The extra entries found during the run were saved to HSF2's
 own work tree. This validates execution for that run length, not full-game
@@ -72,7 +72,7 @@ at SFA2 address `0x13CE`, where SFZ2A has an unrelated `moveq`; the matching
 SFZ2A routine begins at `0x13D2`. `--check-rewrites` exposed the mismatch in
 all 199,363 calls. SFZ2A's profile now excludes only the shared `input.cpp`
 rewrite and runs the original ROM routine through AOT. A fresh 1,800-frame
-MameRecomp run completed without the illegal-opcode message: 48.94M native
+MultiArcadeRecomp run completed without the illegal-opcode message: 48.94M native
 68000 instructions, 29K fallback; 32.82M native Z80 instructions, 229K
 fallback. This confirms the immediate boot-loop cause, not full gameplay
 parity. The per-game `family.h` mapping is still a follow-up: CPS2Recomp's
@@ -95,7 +95,7 @@ do not claim the cross-board CPU-sharing goal is met for CPS2 until then.
 
 The runtime is not wholesale MAME code. CPS2Recomp marks most machine/board
 code GPL-3.0-only and credits MAME-derived portions such as the CPS-2 cipher
-and QSound rewrite under BSD-3-Clause. The project license at `docs/license/mamerecomp/LICENSE.md` is
+and QSound rewrite under BSD-3-Clause. The project license at `docs/license/multiarcaderecomp/LICENSE.md` is
 GPL-2.0-only, so the combined module must not be treated as distributable
 under the current license. The user has authorized local integration and will
 provide a license; preserve upstream attribution and resolve the final license
@@ -145,14 +145,14 @@ capture showed the inverse made the player disappear behind the foreground.
 The normal sprite-list traversal (entry 0 forward) also matches MAME, but the
 pixel write rule was incomplete: MAME's `prio_transpen` marks each opaque
 sprite pixel with priority 31, and its implicit mask bit 31 prevents later
-objects from overwriting it. MameRecomp previously overwrote those pixels,
+objects from overwriting it. MultiArcadeRecomp previously overwrote those pixels,
 which put the 1P marker behind Hannah. The CPS1 compositor now preserves the
 first opaque sprite pixel, while still honoring the preceding tilemap's high
 priority mask.
 
 An automated MAME run (one coin + 1P start + one right tap) captured the Dino
 character-select screen at frames 400 and 500. The object list is identical in
-MAME and MameRecomp at frame 500, as are `control=06d6`, order `3,2,1,0`, video
+MAME and MultiArcadeRecomp at frame 500, as are `control=06d6`, order `3,2,1,0`, video
 control `000e` and priority words `0000,7e01,00ff,01ff`. With the per-pixel
 sprite priority behavior restored, the 1P marker appears over Hannah's arm as
 in MAME. References are `/tmp/dino-mame-select-0500.png` and
@@ -162,7 +162,7 @@ SF2CE composition mismatch still need validation.
 
 Earlier MAME select capture frame 400 reports
 `control=06d6`, order `3,2,1,0`, video control `000e` and priority words
-`0000,7e01,00ff,01ff`; MameRecomp reports the same values.
+`0000,7e01,00ff,01ff`; MultiArcadeRecomp reports the same values.
 
 ## Street Fighter II: Champion Edition (`sf2ce`)
 
@@ -206,8 +206,8 @@ Z80 instructions through the respective interpreter.
 The CPS-1 tilemap details were cross-checked against the local `cps1recomp`
 video implementation: SF2CE Scroll 1 `$40xx` entries are 16x16 glyphs built
 from four 8x8 graphics tiles, and the title/test text uses an unscrolled
-Scroll-1 view. That behavior is now implemented in the MameRecomp renderer;
-the board bus and CPU execution remain MameRecomp code.
+Scroll-1 view. That behavior is now implemented in the MultiArcadeRecomp renderer;
+the board bus and CPU execution remain MultiArcadeRecomp code.
 
 `cps1_boot` has an optional SDL3 live presenter. Passing `--window` after the
 frame path updates a 768x448 window from the same 384x224 framebuffer used for
@@ -218,7 +218,7 @@ reference path while CPS-A/CPS-B is being completed.
 The CPS-1 pipeline source is `tools/generators/cps1/build.py`; `tools/recompile.py`
 dispatches to it, while the old `tools/cps1/build.py` path remains a thin
 compatibility entry point. It validates/extracts the main and audio ROM regions, generates
-an entry-reachable 68000 prototype, and statically translates the fixed Z80 program using the shared MameRecomp Z80
+an entry-reachable 68000 prototype, and statically translates the fixed Z80 program using the shared MultiArcadeRecomp Z80
 recompiler (`tools/z80/recomp.py`). It does not use a CPS1Recomp/CPS2Recomp Z80
 runtime. ROM sizes and CRC32 values are checked against MAME before generation.
 
@@ -226,9 +226,9 @@ The 68000 translator consumes the MAME program ROMs and starts from the reset
 PC. Pointer scanning remains disabled because broad scanning can interpret data
 as code. Dynamic entries discovered by the runner are fed into subsequent
 generation passes. Generated 68000 routines/table and the generated Z80 code
-are compiled into `libmamerecomp_game_<game>.so`, with a small game ABI adapter.
-The board runtime is `libmamerecomp_cps1.so`; both depend on shared CPU runtime
-libraries. `mamerecomp_<game>` remains a small runner that uses those modules.
+are compiled into `libmultiarcaderecomp_game_<game>.so`, with a small game ABI adapter.
+The board runtime is `libmultiarcaderecomp_cps1.so`; both depend on shared CPU runtime
+libraries. `multiarcaderecomp_<game>` remains a small runner that uses those modules.
 ROM bytes stay external. The CPS-1 runtime adapts the imported `ng_*` ABI
 without linking the Neo Geo board runtime. Musashi remains the fallback for
 uncovered instructions and code reached dynamically in RAM.
@@ -251,7 +251,7 @@ discovery did not itself fix the independent layer-order issue.
 The first run generated 1,448 Z80 instructions (2,898 bytes) in 244 blocks and
 37 routines, with zero instructions delegated to the Z80 interpreter. Sources
 are under `build/cps1/work/sf2ce/gen/z80/`; the shared target is
-`mamerecomp_z80_aot`, with no system-specific CPU target. The Z80 ROM's second 0x8000 bytes
+`multiarcaderecomp_z80_aot`, with no system-specific CPU target. The Z80 ROM's second 0x8000 bytes
 are bank data mapped through the CPS-1 sound program's bank window; they are
 preserved separately at `build/cps1/work/sf2ce/z80_banked.bin`. The two 0x20000
 sample ROMs are concatenated in board order at `build/cps1/work/sf2ce/oki_samples.bin`.
@@ -358,7 +358,7 @@ differences are concentrated around the animated fighters, crowd, and temporary
 `INSERT COIN` overlay. At 600M cycles it reaches the fight; 34 new 68000 entry
 points were uncovered and 30,406 instructions used Musashi. The user's title
 camera/building transition and reported fighter/crowd depth still need a direct
-frame-by-frame comparison. `MAMERECOMP_CPS1_DUMP_LAYERS=/tmp/prefix` writes the
+frame-by-frame comparison. `MULTIARCADERECOMP_CPS1_DUMP_LAYERS=/tmp/prefix` writes the
 four intermediate compositor layers for diagnosis. SDL window pacing is tied
 to the 59.637 Hz hardware frame cadence rather than host speed.
 
@@ -378,7 +378,7 @@ from code at `$671a`; subsequent code copies that word to CPS-B `$26`. MAME's
 frame-900 sample remains at `$12ce`, so the next investigation is why the
 native CPU path reaches the alternate layer setup. The normal MAME sprite-list
 walk itself is forward in both implementations. Set
-`MAMERECOMP_CPS1_TRACE_LAYER_CONTROL=1` to log CPS-B `$26` writes and the
+`MULTIARCADERECOMP_CPS1_TRACE_LAYER_CONTROL=1` to log CPS-B `$26` writes and the
 work-RAM writes that supply the layer-control word.
 
 The CPS-1 board renderer exposes three tilemaps plus sprites, so the Russia and

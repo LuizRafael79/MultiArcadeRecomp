@@ -9,7 +9,7 @@ local maps = {
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 14, 15 },
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
 }
-local log_path = os.getenv("MAMERECOMP_MK2_DMA_LOG") or
+local log_path = os.getenv("MULTIARCADERECOMP_MK2_DMA_LOG") or
     "build/mk2/work/mk2-mame-dma.log"
 local out = assert(io.open(log_path, "w"))
 out:write("# seq cmd config source x y width height palette color xstep ystep r12 r13 r16 r17 cpu_pc emulated_seconds A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 B0 B1 B2 B3 B4 B5 B6 B7 B8 B9 B10 B11 B12 B13 B14\n")
@@ -68,7 +68,7 @@ emu.register_periodic(function()
     end
 end)
 
-if os.getenv("MAMERECOMP_MK2_AUTOPLAY") == "1" then
+if os.getenv("MULTIARCADERECOMP_MK2_AUTOPLAY") == "1" then
     local ports = manager.machine.ioport.ports
     local function field(tag, mask)
         local port = assert(ports[tag], "missing MK2 input port " .. tag)
@@ -81,7 +81,7 @@ if os.getenv("MAMERECOMP_MK2_AUTOPLAY") == "1" then
         p1_left = field(":IN0", 0x0004), p1_right = field(":IN0", 0x0008),
     }
     local input_log
-    local input_log_path = os.getenv("MAMERECOMP_MK2_INPUT_LOG")
+    local input_log_path = os.getenv("MULTIARCADERECOMP_MK2_INPUT_LOG")
     if input_log_path then
         input_log = assert(io.open(input_log_path, "w"))
         input_log:write("# emulated_seconds IN0 IN1 IN2 DSW\n")

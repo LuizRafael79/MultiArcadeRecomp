@@ -7,7 +7,7 @@
 #include <chrono>
 #include <stdexcept>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 void draw_16a_sprites(System16AFrame& frame, std::span<const std::uint8_t> sprite_rom,
     std::span<const std::uint8_t> sprite_ram, const System16ARenderOptions& options,
@@ -155,7 +155,7 @@ System16AFrame render_system16a_frame(std::span<const std::uint8_t> decoded_tile
     return frame;
 }
 
-#ifndef MAMERECOMP_HAS_OPENGL_VIDEO
+#ifndef MULTIARCADERECOMP_HAS_OPENGL_VIDEO
 bool system16a_opengl_backend_available() { return false; }
 System16AFrame render_system16a_tilemaps_opengl(std::span<const std::uint8_t>, std::span<const std::uint8_t>,
     std::span<const std::uint8_t>, System16ARenderOptions, System16AVideoProfile*) {
@@ -163,4 +163,4 @@ System16AFrame render_system16a_tilemaps_opengl(std::span<const std::uint8_t>, s
 }
 #endif
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

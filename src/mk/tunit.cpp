@@ -1,6 +1,6 @@
 // T-Unit board behavior adapted from MAME's midtunit.cpp and midtunit_v.cpp.
 // The MAME files are BSD-3-Clause; this implementation is a local rework for
-// MameRecomp's bit-addressed TMS34010 bus and does not include MAME framework
+// MultiArcadeRecomp's bit-addressed TMS34010 bus and does not include MAME framework
 // code. Keep the upstream attribution with the board module's license record.
 
 #include "mk/tunit.hpp"
@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 namespace {
 constexpr std::uint32_t kVideoBase = 0x00000000u;
 constexpr std::uint32_t kVideoEnd = 0x00400000u;
@@ -123,7 +123,7 @@ TUnit::TUnit(std::span<const std::uint8_t> main_rom,
     m_palette_rgb.fill(0xff000000u);
 }
 
-mamerecomp::tms34010::Bus TUnit::cpu_bus() noexcept {
+multiarcaderecomp::tms34010::Bus TUnit::cpu_bus() noexcept {
     return {this, &bus_read16, &bus_write16, &bus_read_pixel,
             &bus_write_pixel, &bus_convert_src_xy, &bus_convert_dst_xy,
             &bus_window_checking,
@@ -762,7 +762,7 @@ void TUnit::note_cpu_pc(std::uint32_t pc, std::uint64_t cycles) noexcept {
     m_debug_cpu_cycles = cycles;
 }
 
-void TUnit::note_cpu_state(mamerecomp::tms34010::State& state) noexcept {
+void TUnit::note_cpu_state(multiarcaderecomp::tms34010::State& state) noexcept {
     m_active_cpu_state = &state;
     note_cpu_pc(state.pc, state.cycles);
     std::copy(std::begin(state.a), std::end(state.a),
@@ -1057,4 +1057,4 @@ bool TUnit::bus_is_mutable_code(void*, std::uint32_t bit_address) noexcept {
            (address >= kPaletteBase && address < kPaletteEnd);
 }
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

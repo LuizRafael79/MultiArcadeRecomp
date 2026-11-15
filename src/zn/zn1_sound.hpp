@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 // Raizing ZN-1's separate MC68000 audio CPU, MAME-defined address map and
 // clock-synchronized YMF271. A nonzero audio peak still needs verification in
@@ -40,7 +40,7 @@ private:
     Ymf271 ymf_;
     std::vector<uint8_t> ram_ = std::vector<uint8_t>(0x80000);
     std::vector<uint8_t> context_;
-    mamerecomp_m68k_bus bus_{};
+    multiarcaderecomp_m68k_bus bus_{};
     uint64_t cycles_ = 0;
     uint64_t run_base_cycles_ = 0;
     uint64_t ymf_master_cycles_ = 0;
@@ -48,4 +48,4 @@ private:
     uint64_t ymf_writes_ = 0;
 };
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

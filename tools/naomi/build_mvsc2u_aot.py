@@ -457,8 +457,8 @@ def main() -> int:
         # until a real runtime snapshot is supplied.
         bios_ram_irq_source_path.write_text(
             '#include "naomi/naomi_sh4_context.hpp"\n'
-            'namespace mamerecomp::naomi {\n'
-            'void mamerecomp_register_sh4_naomi_bios_ram_irq(Sh4Dispatcher&) {}\n'
+            'namespace multiarcaderecomp::naomi {\n'
+            'void multiarcaderecomp_register_sh4_naomi_bios_ram_irq(Sh4Dispatcher&) {}\n'
             '}\n', encoding="utf-8")
     if bios_ram_irq_image_path.exists():
         run([sys.executable, str(ROOT / "tools/naomi/analyze_sh4.py"),
@@ -688,20 +688,20 @@ def main() -> int:
         verify_generated_rom_roots(manifest_path, source_path_for_root, entry)
         translated_sources.append(source_path_for_root)
     run(["cmake", "-S", str(ROOT), "-B", str(build_dir),
-         f"-DMAMERECOMP_NAOMI_TRANSLATED_SOURCES={';'.join(map(str, translated_sources))}",
-         f"-DMAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION={'ON' if args.boot_ram_image else 'OFF'}",
-         f"-DMAMERECOMP_NAOMI_HAS_MAIN_ROM_TRANSLATION={'ON' if args.boot_ram_image else 'OFF'}",
-         "-DMAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS=ON"])
+         f"-DMULTIARCADERECOMP_NAOMI_TRANSLATED_SOURCES={';'.join(map(str, translated_sources))}",
+         f"-DMULTIARCADERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION={'ON' if args.boot_ram_image else 'OFF'}",
+         f"-DMULTIARCADERECOMP_NAOMI_HAS_MAIN_ROM_TRANSLATION={'ON' if args.boot_ram_image else 'OFF'}",
+         "-DMULTIARCADERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS=ON"])
     run(["nice", "-n", "19", "cmake", "--build", str(build_dir), "-j4", "--target",
-         "mamerecomp_naomi", "mamerecomp"])
-    print(f"Built {build_dir / 'mamerecomp_naomi.so'}")
+         "multiarcaderecomp_naomi", "multiarcaderecomp"])
+    print(f"Built {build_dir / 'multiarcaderecomp_naomi.so'}")
     print("The game, Naomi BIOS reset entry, and BIOS service entries are translated. Hardware startup and PVR rendering remain runtime work.")
     if args.smoke_instructions:
         if args.smoke_instructions < 1:
             raise SystemExit("--smoke-instructions must be positive")
         try:
             run([sys.executable, str(ROOT / "tools/naomi/smoke_mvsc2_boot.py"),
-                 str(rom_zip), str(bios_zip), "--binary", str(build_dir / "mamerecomp"),
+                 str(rom_zip), str(bios_zip), "--binary", str(build_dir / "multiarcaderecomp"),
                  "--manifest", str(boot_ram_manifest_path), "--instructions",
                  str(args.smoke_instructions)])
         except subprocess.CalledProcessError as exc:

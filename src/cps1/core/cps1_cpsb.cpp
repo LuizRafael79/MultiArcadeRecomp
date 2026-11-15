@@ -10,7 +10,7 @@
 
 extern "C" std::uint32_t g_current_guest_pc;
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 std::uint16_t cpsb_read(unsigned offset) {
     const auto* profile = g_active_cps_b_profile;
@@ -31,7 +31,7 @@ void cpsb_write(unsigned offset, std::uint16_t value) {
     if (offset >= g_cps_b.size()) return;
     g_cps_b[offset] = value;
     if (!g_active_cps_b_profile || offset != g_active_cps_b_profile->layer_control_register
-        || !std::getenv("MAMERECOMP_CPS1_TRACE_LAYER_CONTROL")) return;
+        || !std::getenv("MULTIARCADERECOMP_CPS1_TRACE_LAYER_CONTROL")) return;
     static std::uint16_t previous = 0xffff;
     if (value == previous) return;
     std::cerr << "[cps1] layer-control cycle=" << ng_cycles << " PC=$" << std::hex
@@ -42,4 +42,4 @@ void cpsb_write(unsigned offset, std::uint16_t value) {
 
 void cpsb_reset() { g_cps_b.fill(0); }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

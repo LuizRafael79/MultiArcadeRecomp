@@ -11,7 +11,7 @@
 
 #include <utility>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 namespace {
     enum : uint8_t { kC = 0x01, kN = 0x02, kPV = 0x04, kX = 0x08, kH = 0x10, kY = 0x20, kZ = 0x40, kS = 0x80 };
@@ -882,4 +882,4 @@ void Z80::Serialize(Archive &ar) {
     ar.Pod(cycles);
 }
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80

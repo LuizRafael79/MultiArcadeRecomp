@@ -15,7 +15,7 @@ System16A, System16B and System18 each have an independent board library under
 versioned C factory and is loaded by the generic Sega runner only after the
 selected board has been resolved. The launcher loads the selected runtime
 dynamically instead of statically linking the board runtimes. Build one runtime
-with its CMake target, for example `mamerecomp_sega_runtime_system16b`.
+with its CMake target, for example `multiarcaderecomp_sega_runtime_system16b`.
 
 System16A and System16B also have separate OpenGL backend sources and targets:
 `system16a_video_gl.cpp` and `system16b_video_gl.cpp`. Their renderer
@@ -28,7 +28,7 @@ through `BoardRuntimeHardware` callbacks and the runtime module ABI.
 The main CPU uses the shared generated 68000 ABI and the common
 `core/cpus/m68000/runtime/` bridge and Musashi fallback. System 16 bus callbacks
 and FD1094 behavior stay in the System 16 integration. The common bridge no
-longer has a `mamerecomp_system16_runtime` target; unrelated 68000 boards use
+longer has a `multiarcaderecomp_system16_runtime` target; unrelated 68000 boards use
 the generic M68000 targets.
 
 System 16A/B sound adapters use the shared Z80 backend. AOT coverage is

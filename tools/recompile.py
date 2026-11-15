@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""System-selecting entry point for the MameRecomp build backends."""
+"""System-selecting entry point for the MultiArcadeRecomp build backends."""
 from __future__ import annotations
 
 import argparse

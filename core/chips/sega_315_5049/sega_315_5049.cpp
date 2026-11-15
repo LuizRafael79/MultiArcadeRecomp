@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace mamerecomp::chips::sega3155049 {
+namespace multiarcaderecomp::chips::sega3155049 {
 namespace {
 
 std::uint16_t read_be16(std::span<const std::uint8_t> bytes, std::size_t offset) {
@@ -119,4 +119,4 @@ TilemapOutput render_layer(std::span<const std::uint8_t> decoded_tiles,
     return output;
 }
 
-} // namespace mamerecomp::chips::sega3155049
+} // namespace multiarcaderecomp::chips::sega3155049

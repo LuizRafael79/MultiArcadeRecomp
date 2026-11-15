@@ -1,6 +1,6 @@
 #include "cps1_inputs.hpp"
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
 std::uint16_t player_port = 0xffff;
 std::array<std::uint8_t, 4> dip_ports{0xff, 0xff, 0xfc, 0x9c};
@@ -73,4 +73,4 @@ void cps1_coin_lockout_write(unsigned slot, bool locked) {
     if (slot < coin_locked.size()) coin_locked[slot] = locked;
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

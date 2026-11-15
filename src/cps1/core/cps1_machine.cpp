@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 void configure_game(const Cps1GameDriver& driver) {
     if (!driver.machine || !driver.inputs || !driver.cps_b)
@@ -37,4 +37,4 @@ std::int64_t cps1_vblank_cycles() {
     return static_cast<std::int64_t>(g_main_clock_hz) * g_htotal * g_vblank_start / g_pixel_clock_hz;
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

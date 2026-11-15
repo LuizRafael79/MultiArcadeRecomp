@@ -11,7 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace mamerecomp::sega {
+namespace multiarcaderecomp::sega {
 namespace {
 
 struct System16ASoundRoms {
@@ -149,30 +149,30 @@ BoardRuntimeHardware make_system16a_runtime(const BoardRuntimeContext& context) 
     return runtime;
 }
 
-} // namespace mamerecomp::sega
+} // namespace multiarcaderecomp::sega
 
-extern "C" unsigned mamerecomp_runtime_abi() { return 1; }
-extern "C" unsigned mamerecomp_runtime_revision() { return 16; }
-extern "C" mamerecomp::sega::BoardRuntimeHardware* mamerecomp_create_runtime(
-    const mamerecomp::sega::BoardRuntimeContext* context) {
-    return context ? new mamerecomp::sega::BoardRuntimeHardware(
-        mamerecomp::sega::make_system16a_runtime(*context)) : nullptr;
+extern "C" unsigned multiarcaderecomp_runtime_abi() { return 1; }
+extern "C" unsigned multiarcaderecomp_runtime_revision() { return 16; }
+extern "C" multiarcaderecomp::sega::BoardRuntimeHardware* multiarcaderecomp_create_runtime(
+    const multiarcaderecomp::sega::BoardRuntimeContext* context) {
+    return context ? new multiarcaderecomp::sega::BoardRuntimeHardware(
+        multiarcaderecomp::sega::make_system16a_runtime(*context)) : nullptr;
 }
-extern "C" void mamerecomp_destroy_runtime(mamerecomp::sega::BoardRuntimeHardware* runtime) {
+extern "C" void multiarcaderecomp_destroy_runtime(multiarcaderecomp::sega::BoardRuntimeHardware* runtime) {
     delete runtime;
 }
-extern "C" bool mamerecomp_runtime_memory_map(const mamerecomp::GameProfile* profile,
+extern "C" bool multiarcaderecomp_runtime_memory_map(const multiarcaderecomp::GameProfile* profile,
     const std::uint8_t* rom, std::size_t size,
     void (*visit)(void*, const char*, std::uint32_t, std::uint32_t, std::uint32_t, bool, bool), void* user) {
     if (!profile || (!rom && size) || !visit) return false;
-    const auto bus = mamerecomp::make_system16a_address_space(std::span<const std::uint8_t>(rom, size));
+    const auto bus = multiarcaderecomp::make_system16a_address_space(std::span<const std::uint8_t>(rom, size));
     for (const auto& region : bus.regions())
         visit(user, region.name.c_str(), region.start, region.size, region.mirror_mask, region.writable, region.device);
     return true;
 }
 
-extern "C" std::vector<std::uint8_t> mamerecomp_runtime_decode_tiles(
+extern "C" std::vector<std::uint8_t> multiarcaderecomp_runtime_decode_tiles(
     const std::uint8_t* data, std::size_t size) {
     if (!data && size) throw std::invalid_argument("null tile ROM data");
-    return mamerecomp::decode_sega_tiles_3bpp(std::span<const std::uint8_t>(data, size));
+    return multiarcaderecomp::decode_sega_tiles_3bpp(std::span<const std::uint8_t>(data, size));
 }

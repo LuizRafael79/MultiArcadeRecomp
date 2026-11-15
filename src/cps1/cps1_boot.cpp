@@ -30,23 +30,23 @@
 #include <unordered_set>
 #include <vector>
 
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
 #include <SDL3/SDL.h>
 #endif
 
 extern "C" {
-unsigned mamerecomp_board_module_abi();
-const char* mamerecomp_board_id();
-unsigned mamerecomp_game_abi();
-const char* mamerecomp_game_id();
-const char* mamerecomp_game_board_id();
-const ng_func_entry_t* mamerecomp_cps1_game_m68k_table(size_t* count);
-const uint8_t* mamerecomp_cps1_game_ram_snapshot(size_t* size);
-const mamerecomp::z80::Z80Code* mamerecomp_cps1_game_z80_code();
-const mamerecomp::cps1::Cps1GameDriver* mamerecomp_cps1_game_driver();
+unsigned multiarcaderecomp_board_module_abi();
+const char* multiarcaderecomp_board_id();
+unsigned multiarcaderecomp_game_abi();
+const char* multiarcaderecomp_game_id();
+const char* multiarcaderecomp_game_board_id();
+const ng_func_entry_t* multiarcaderecomp_cps1_game_m68k_table(size_t* count);
+const uint8_t* multiarcaderecomp_cps1_game_ram_snapshot(size_t* size);
+const multiarcaderecomp::z80::Z80Code* multiarcaderecomp_cps1_game_z80_code();
+const multiarcaderecomp::cps1::Cps1GameDriver* multiarcaderecomp_cps1_game_driver();
 }
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 // The CPU exposes 0x30000 bytes, while CPS-A base registers select from a
 // 0x40000-byte aperture (MAME masks the address with 0x3ffff).
 // CPS1 main_map exposes the player port across $800000-$800007 and the
@@ -62,20 +62,20 @@ bool load_file(const std::string& path, std::vector<uint8_t>& out) {
     return !out.empty();
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail
 
-using namespace mamerecomp::cps1::detail;
+using namespace multiarcaderecomp::cps1::detail;
 
 int main(int argc, char** argv) {
-    if (mamerecomp_board_module_abi() != 1 || std::strcmp(mamerecomp_board_id(), "cps1") != 0
-        || mamerecomp_game_abi() != 1
-        || std::strcmp(mamerecomp_game_id(), MAMERECOMP_CPS1_GAME_ID) != 0
-        || std::strcmp(mamerecomp_game_board_id(), mamerecomp_board_id()) != 0) {
+    if (multiarcaderecomp_board_module_abi() != 1 || std::strcmp(multiarcaderecomp_board_id(), "cps1") != 0
+        || multiarcaderecomp_game_abi() != 1
+        || std::strcmp(multiarcaderecomp_game_id(), MULTIARCADERECOMP_CPS1_GAME_ID) != 0
+        || std::strcmp(multiarcaderecomp_game_board_id(), multiarcaderecomp_board_id()) != 0) {
         std::cerr << "incompatible CPS-1 board/game AOT modules\n";
         return 1;
     }
-    const auto* game_driver = mamerecomp_cps1_game_driver();
-    if (!game_driver || game_driver->id != MAMERECOMP_CPS1_GAME_ID || !game_driver->machine) {
+    const auto* game_driver = multiarcaderecomp_cps1_game_driver();
+    if (!game_driver || game_driver->id != MULTIARCADERECOMP_CPS1_GAME_ID || !game_driver->machine) {
         std::cerr << "CPS-1 game module has no matching C++ driver profile\n";
         return 1;
     }
@@ -128,18 +128,18 @@ int main(int argc, char** argv) {
             std::cerr << "cannot read CPS-1 OKI sample ROM: " << oki_path << '\n';
             return 1;
         }
-        if (game_driver->machine->sound_board == mamerecomp::cps1::Cps1SoundBoard::QSound) {
+        if (game_driver->machine->sound_board == multiarcaderecomp::cps1::Cps1SoundBoard::QSound) {
             std::vector<std::uint8_t> qsound_program, qsound_samples;
             if (qsound_program_path.empty() || qsound_samples_path.empty()
                 || !load_file(qsound_program_path, qsound_program)
                 || !load_file(qsound_samples_path, qsound_samples)
                 || !initialize_qsound(std::move(qsound_program), std::move(qsound_samples),
-                    mamerecomp_cps1_game_z80_code(), live_window)) {
+                    multiarcaderecomp_cps1_game_z80_code(), live_window)) {
                 std::cerr << "invalid CPS-1 QSound ROM images or audio initialization failed\n";
                 return 1;
             }
         } else if (!initialize_sound(std::move(fixed_rom), std::move(banked_rom), std::move(oki_samples),
-                       mamerecomp_cps1_game_z80_code(), live_window)) {
+                       multiarcaderecomp_cps1_game_z80_code(), live_window)) {
             std::cerr << "invalid CPS-1 sound ROM sizes or sound device initialization failed\n";
             return 1;
         } else if (oki_path.empty()) {
@@ -159,11 +159,11 @@ int main(int argc, char** argv) {
         }
     }
     if (argc > 9) frame_path = argv[9];
- #ifdef MAMERECOMP_CPS1_SDL
+ #ifdef MULTIARCADERECOMP_CPS1_SDL
     set_live_window_enabled(live_window);
  #endif
-    const char* frame_dump_dir_env = std::getenv("MAMERECOMP_CPS1_FRAME_DUMP_DIR");
-    const char* frame_dump_every_env = std::getenv("MAMERECOMP_CPS1_FRAME_DUMP_EVERY");
+    const char* frame_dump_dir_env = std::getenv("MULTIARCADERECOMP_CPS1_FRAME_DUMP_DIR");
+    const char* frame_dump_every_env = std::getenv("MULTIARCADERECOMP_CPS1_FRAME_DUMP_EVERY");
     const std::filesystem::path frame_dump_dir = frame_dump_dir_env ? frame_dump_dir_env : "";
     const uint64_t frame_dump_every = frame_dump_every_env
         ? std::strtoull(frame_dump_every_env, nullptr, 0) : 60;
@@ -178,26 +178,26 @@ int main(int argc, char** argv) {
                   << " VBlanks to " << frame_dump_dir << '\n';
     }
     bool video_found = false;
-    const bool force_trap_fallback = std::getenv("MAMERECOMP_CPS1_FORCE_TRAP_FALLBACK") != nullptr;
-    const bool force_all_fallback = std::getenv("MAMERECOMP_CPS1_FORCE_ALL_FALLBACK") != nullptr;
-    g_trace_vblank = std::getenv("MAMERECOMP_CPS1_TRACE_VBLANK") != nullptr;
+    const bool force_trap_fallback = std::getenv("MULTIARCADERECOMP_CPS1_FORCE_TRAP_FALLBACK") != nullptr;
+    const bool force_all_fallback = std::getenv("MULTIARCADERECOMP_CPS1_FORCE_ALL_FALLBACK") != nullptr;
+    g_trace_vblank = std::getenv("MULTIARCADERECOMP_CPS1_TRACE_VBLANK") != nullptr;
     initialize_bus(image);
     if (!eeprom_path.empty()) cps1_eeprom_set_path(eeprom_path);
     cps1_eeprom_reset();
-    configure_m68k_diagnostics(std::getenv("MAMERECOMP_CPS1_PC_PROFILE") != nullptr,
-        std::getenv("MAMERECOMP_CPS1_TRACE_TRAP") != nullptr
-            || std::getenv("MAMERECOMP_CPS1_TRACE_LAYER_CONTROL") != nullptr);
+    configure_m68k_diagnostics(std::getenv("MULTIARCADERECOMP_CPS1_PC_PROFILE") != nullptr,
+        std::getenv("MULTIARCADERECOMP_CPS1_TRACE_TRAP") != nullptr
+            || std::getenv("MULTIARCADERECOMP_CPS1_TRACE_LAYER_CONTROL") != nullptr);
     size_t m68k_entry_count = 0;
-    const ng_func_entry_t* m68k_entries = mamerecomp_cps1_game_m68k_table(&m68k_entry_count);
+    const ng_func_entry_t* m68k_entries = multiarcaderecomp_cps1_game_m68k_table(&m68k_entry_count);
     size_t ram_snapshot_size = 0;
-    const uint8_t* ram_snapshot = mamerecomp_cps1_game_ram_snapshot(&ram_snapshot_size);
+    const uint8_t* ram_snapshot = multiarcaderecomp_cps1_game_ram_snapshot(&ram_snapshot_size);
     if (!m68k_entries || m68k_entry_count == 0) {
         std::cerr << "CPS-1 game module has no generated 68000 entries\n";
         return 1;
     }
     initialize_m68k(m68k_entries, m68k_entry_count, ram_snapshot, ram_snapshot_size);
 
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     while (live_window || static_cast<uint64_t>(ng_cycles) < budget) {
 #else
     while (static_cast<uint64_t>(ng_cycles) < budget) {
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
         sync_sound_to_main_clock();
         while (ng_cycles >= g_next_vblank) {
             ++g_vblank_count;
-            if (std::getenv("MAMERECOMP_CPS1_AUTOPLAY_SELECT")) {
+            if (std::getenv("MULTIARCADERECOMP_CPS1_AUTOPLAY_SELECT")) {
                 const std::uint8_t system_inputs =
                     ((g_vblank_count >= 300 && g_vblank_count < 310) ? 0x01 : 0)
                     | ((g_vblank_count >= 360 && g_vblank_count < 370) ? 0x10 : 0);
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
                     return 1;
                 }
             }
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
             if (live_window) write_frame("");
 #endif
         }
@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
         dispatch_m68k_instruction(false, force_all_fallback, g_next_vblank);
         if (ng_cpu.stopped) ng_cycles += 4;
     }
-    if (const char* dump_path = std::getenv("MAMERECOMP_CPS1_DUMP_BUFFERED_OBJ")) {
+    if (const char* dump_path = std::getenv("MULTIARCADERECOMP_CPS1_DUMP_BUFFERED_OBJ")) {
         std::ofstream dump(dump_path, std::ios::binary);
         if (dump)
             dump.write(reinterpret_cast<const char*>(g_buffered_obj.data()),

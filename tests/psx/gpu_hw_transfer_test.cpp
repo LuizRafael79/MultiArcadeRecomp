@@ -30,7 +30,7 @@ uint32_t bus_read(const PsxBus& bus, uint32_t address)
     return value;
 }
 
-void dma_ram_to_gpu(mamerecomp::psx::MachineMemory& memory,
+void dma_ram_to_gpu(multiarcaderecomp::psx::MachineMemory& memory,
                     const PsxBus& bus, uint32_t list_address,
                     const std::vector<uint32_t>& packet)
 {
@@ -48,10 +48,10 @@ void dma_ram_to_gpu(mamerecomp::psx::MachineMemory& memory,
         !bus_write(bus, kDma2Base + 4, 0) ||
         !bus_write(bus, kDma2Base + 8, kDma2LinkedList))
         throw std::runtime_error("failed to start GPU linked-list DMA");
-    memory.dma().advance_to(1000, mamerecomp::psx::kZn2MemoryConfig.cpu_cycle_hz);
+    memory.dma().advance_to(1000, multiarcaderecomp::psx::kZn2MemoryConfig.cpu_cycle_hz);
 }
 
-std::vector<uint32_t> dma_gpu_to_ram(mamerecomp::psx::MachineMemory& memory,
+std::vector<uint32_t> dma_gpu_to_ram(multiarcaderecomp::psx::MachineMemory& memory,
                                      const PsxBus& bus, uint32_t list_address,
                                      uint32_t result_address,
                                      unsigned x, unsigned y,
@@ -122,7 +122,7 @@ int main()
 
     bool passed = false;
     try {
-        using namespace mamerecomp::psx;
+        using namespace multiarcaderecomp::psx;
         MachineMemory memory(kZn2MemoryConfig);
         const PsxBus bus = memory.make_bus();
         memory.gpu().enable_hardware_renderer(window, context);

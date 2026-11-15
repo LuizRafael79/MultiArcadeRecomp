@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 std::uint16_t Sega3155250CompareTimer::read(std::uint32_t offset) const {
     switch (offset & 0x0fU) {
@@ -59,4 +59,4 @@ void Sega3155250CompareTimer::write(std::uint32_t offset, std::uint16_t data, st
     }
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

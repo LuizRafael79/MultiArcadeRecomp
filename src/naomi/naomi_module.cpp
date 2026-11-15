@@ -18,26 +18,26 @@
 #include <span>
 #include <cstdio>
 
-namespace mamerecomp::naomi {
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
-void mamerecomp_register_sh4_mvsc2u_bios(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_reset(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_reset_p1(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bootstrap(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_ram_shadow(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_ram_vector(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_ram_irq(Sh4Dispatcher& dispatcher);
-void mamerecomp_register_sh4_naomi_bios_copied_code(Sh4Dispatcher& dispatcher);
-std::uint32_t mamerecomp_sh4_entry_naomi_bios_reset();
-#if defined(MAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
-void mamerecomp_register_sh4_mvsc2u_boot_ram(Sh4Dispatcher& dispatcher);
-std::uint32_t mamerecomp_sh4_entry_mvsc2u_boot_ram();
+namespace multiarcaderecomp::naomi {
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_TRANSLATED_SH4)
+void multiarcaderecomp_register_sh4_mvsc2u_bios(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_reset(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_reset_p1(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bootstrap(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_ram_shadow(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_ram_vector(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_ram_irq(Sh4Dispatcher& dispatcher);
+void multiarcaderecomp_register_sh4_naomi_bios_copied_code(Sh4Dispatcher& dispatcher);
+std::uint32_t multiarcaderecomp_sh4_entry_naomi_bios_reset();
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
+void multiarcaderecomp_register_sh4_mvsc2u_boot_ram(Sh4Dispatcher& dispatcher);
+std::uint32_t multiarcaderecomp_sh4_entry_mvsc2u_boot_ram();
 #else
-void mamerecomp_register_sh4_mvsc2u(Sh4Dispatcher& dispatcher);
-std::uint32_t mamerecomp_sh4_entry_mvsc2u();
+void multiarcaderecomp_register_sh4_mvsc2u(Sh4Dispatcher& dispatcher);
+std::uint32_t multiarcaderecomp_sh4_entry_mvsc2u();
 #endif
-#if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
-void mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(Sh4Dispatcher& dispatcher);
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
+void multiarcaderecomp_register_sh4_mvsc2u_draw_pref_207adc(Sh4Dispatcher& dispatcher);
 #endif
 #endif
 
@@ -91,7 +91,7 @@ struct Sh4Probe {
                       return true;
                   }
                   if (!pvr.handles(address)) return false;
-                  if (std::getenv("MAMERECOMP_NAOMI_TRACE_PVR_PC") &&
+                  if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PVR_PC") &&
                       address >= 0x005f8000u && address < 0x005fa000u) {
                       const auto reg = address & ~3u;
                       if (reg == 0x005f8044u || reg == 0x005f8050u ||
@@ -159,27 +159,27 @@ struct Sh4Probe {
                 }},
             make_jvs_maple_endpoint(g_naomiJvs13551()), holly);
         wireCpu();
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
-#if defined(MAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
-        mamerecomp_register_sh4_mvsc2u_boot_ram(dispatcher);
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_TRANSLATED_SH4)
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
+        multiarcaderecomp_register_sh4_mvsc2u_boot_ram(dispatcher);
 #else
-        mamerecomp_register_sh4_mvsc2u(dispatcher);
+        multiarcaderecomp_register_sh4_mvsc2u(dispatcher);
 #endif
-#if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
         // The dynamic ROM set contains only entries whose bytes are verified
         // as ROM-backed; 0x0c04b88c remains supplied by the RAM snapshot.
-        mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(dispatcher);
+        multiarcaderecomp_register_sh4_mvsc2u_draw_pref_207adc(dispatcher);
 #endif
-        mamerecomp_register_sh4_mvsc2u_bios(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_reset(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_reset_p1(dispatcher);
-        mamerecomp_register_sh4_naomi_bootstrap(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_ram_shadow(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_ram_vector(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_ram_irq(dispatcher);
-        mamerecomp_register_sh4_naomi_bios_copied_code(dispatcher);
-        entry = mamerecomp_sh4_entry_naomi_bios_reset();
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
+        multiarcaderecomp_register_sh4_mvsc2u_bios(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_reset(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_reset_p1(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bootstrap(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_ram_shadow(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_ram_vector(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_ram_irq(dispatcher);
+        multiarcaderecomp_register_sh4_naomi_bios_copied_code(dispatcher);
+        entry = multiarcaderecomp_sh4_entry_naomi_bios_reset();
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
             std::fprintf(stderr,
                          "SH-4 task trace armed entry=%08x callback-aot=%u\n",
                          entry, dispatcher.contains(0x0c04b88cu) ? 1u : 0u);
@@ -194,7 +194,7 @@ struct Sh4Probe {
         cpu.bus = &bus;
         cpu.interpreter_only = interpreter_only;
         cpu.interpreter_step = [](Sh4Context& context) {
-            return mamerecomp::cpus::sh4::flycast::step(context);
+            return multiarcaderecomp::cpus::sh4::flycast::step(context);
         };
         cpu.cycle_sink = [this](unsigned cycles) {
             memory.advanceSh4Cycles(cycles);
@@ -213,7 +213,7 @@ struct Sh4Probe {
                                      ((qacr & 0x1cu) << 24);
             const bool goes_to_pvr = pvr.handles(destination);
 
-            if (std::getenv("MAMERECOMP_NAOMI_TRACE_SQ")) {
+            if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_SQ")) {
                 static unsigned trace_events = 0;
                 if (trace_events++ < 128)
                     std::fprintf(stderr,
@@ -239,7 +239,7 @@ struct Sh4Probe {
         };
     }
 };
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi
 
 namespace {
 
@@ -257,38 +257,38 @@ constexpr NaomiProfileRecord kProfiles[]{
 
 } // namespace
 
-extern "C" std::uint32_t mamerecomp_naomi_abi() {
+extern "C" std::uint32_t multiarcaderecomp_naomi_abi() {
     return 6;
 }
 
-extern "C" const NaomiProfileRecord* mamerecomp_naomi_profiles(std::size_t* count) {
+extern "C" const NaomiProfileRecord* multiarcaderecomp_naomi_profiles(std::size_t* count) {
     if (count) *count = sizeof(kProfiles) / sizeof(kProfiles[0]);
     return kProfiles;
 }
 
-extern "C" int mamerecomp_naomi_register_sh4(const char* set_id,
+extern "C" int multiarcaderecomp_naomi_register_sh4(const char* set_id,
                                                void* dispatcher,
                                                std::uint32_t* entry) {
     if (!set_id || !dispatcher || !entry)
         return 0;
-#if defined(MAMERECOMP_NAOMI_HAS_TRANSLATED_SH4)
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_TRANSLATED_SH4)
     if (std::strcmp(set_id, "mvsc2u") == 0) {
-        auto& sh4 = *static_cast<mamerecomp::naomi::Sh4Dispatcher*>(dispatcher);
-#if defined(MAMERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
-        mamerecomp::naomi::mamerecomp_register_sh4_mvsc2u_boot_ram(sh4);
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
+        auto& sh4 = *static_cast<multiarcaderecomp::naomi::Sh4Dispatcher*>(dispatcher);
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_BOOT_RAM_TRANSLATION)
+        multiarcaderecomp::naomi::multiarcaderecomp_register_sh4_mvsc2u_boot_ram(sh4);
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
             std::fprintf(stderr, "SH-4 task callback registration stage=boot_ram contains=%u\n",
                          sh4.contains(0x0c04b88cu) ? 1u : 0u);
-        *entry = mamerecomp::naomi::mamerecomp_sh4_entry_mvsc2u_boot_ram();
+        *entry = multiarcaderecomp::naomi::multiarcaderecomp_sh4_entry_mvsc2u_boot_ram();
 #else
-        mamerecomp::naomi::mamerecomp_register_sh4_mvsc2u(sh4);
-        *entry = mamerecomp::naomi::mamerecomp_sh4_entry_mvsc2u();
+        multiarcaderecomp::naomi::multiarcaderecomp_register_sh4_mvsc2u(sh4);
+        *entry = multiarcaderecomp::naomi::multiarcaderecomp_sh4_entry_mvsc2u();
 #endif
-#if defined(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
-        mamerecomp::naomi::mamerecomp_register_sh4_mvsc2u_draw_pref_207adc(sh4);
+#if defined(MULTIARCADERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS)
+        multiarcaderecomp::naomi::multiarcaderecomp_register_sh4_mvsc2u_draw_pref_207adc(sh4);
 #endif
-        mamerecomp::naomi::mamerecomp_register_sh4_mvsc2u_bios(sh4);
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
+        multiarcaderecomp::naomi::multiarcaderecomp_register_sh4_mvsc2u_bios(sh4);
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_TASK_CALLBACKS"))
             std::fprintf(stderr, "SH-4 task callback registration stage=game_bios contains=%u\n",
                          sh4.contains(0x0c04b88cu) ? 1u : 0u);
         return 1;
@@ -303,8 +303,8 @@ extern "C" int mamerecomp_naomi_register_sh4(const char* set_id,
 
 namespace {
 void copy_probe_result(NaomiSh4ProbeResult* output,
-                       mamerecomp::naomi::Sh4Probe& probe,
-                       const mamerecomp::naomi::Sh4RunResult* run = nullptr) {
+                       multiarcaderecomp::naomi::Sh4Probe& probe,
+                       const multiarcaderecomp::naomi::Sh4RunResult* run = nullptr) {
     if (!output) return;
     *output = {};
     output->entry = probe.entry;
@@ -327,9 +327,9 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
     std::copy(probe.pvr.taListPacketCounts().begin(), probe.pvr.taListPacketCounts().end(),
               output->pvr_ta_list_packet_counts);
     output->holly_normal_status = probe.holly.normalStatusWithSummary();
-    output->holly_level2_mask = probe.holly.mask(2, mamerecomp::naomi::HollyInterrupts::Group::normal);
-    output->holly_level4_mask = probe.holly.mask(4, mamerecomp::naomi::HollyInterrupts::Group::normal);
-    output->holly_level6_mask = probe.holly.mask(6, mamerecomp::naomi::HollyInterrupts::Group::normal);
+    output->holly_level2_mask = probe.holly.mask(2, multiarcaderecomp::naomi::HollyInterrupts::Group::normal);
+    output->holly_level4_mask = probe.holly.mask(4, multiarcaderecomp::naomi::HollyInterrupts::Group::normal);
+    output->holly_level6_mask = probe.holly.mask(6, multiarcaderecomp::naomi::HollyInterrupts::Group::normal);
     output->interrupts_accepted = probe.cpu.interrupts_accepted;
     output->indirect_calls = probe.cpu.indirect_calls;
     output->last_indirect_target = probe.cpu.last_indirect_target;
@@ -344,7 +344,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
     output->r14 = probe.cpu.r[14];
     output->r13 = probe.cpu.r[13];
     output->r15 = probe.cpu.r[15];
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_STATE")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT_STATE")) {
         std::fprintf(stderr,
                      "Naomi BIOS state pc=%08x pr=%08x sr=%08x T=%u Q=%u M=%u VBR=%08x IRLN=%u\n",
                      probe.cpu.pc, probe.cpu.pr, probe.cpu.sr,
@@ -368,9 +368,9 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
                      "Naomi SH-4 interrupt state sr=%08x vbr=%08x irln=%u intevt=%08x Holly={ISTNRM:%08x,IML2:%08x,IML4:%08x,IML6:%08x}\n",
                      probe.cpu.sr, probe.cpu.vbr, probe.cpu.irln, probe.cpu.intevt,
                      probe.holly.normalStatusWithSummary(),
-                     probe.holly.mask(2, mamerecomp::naomi::HollyInterrupts::Group::normal),
-                     probe.holly.mask(4, mamerecomp::naomi::HollyInterrupts::Group::normal),
-                     probe.holly.mask(6, mamerecomp::naomi::HollyInterrupts::Group::normal));
+                     probe.holly.mask(2, multiarcaderecomp::naomi::HollyInterrupts::Group::normal),
+                     probe.holly.mask(4, multiarcaderecomp::naomi::HollyInterrupts::Group::normal),
+                     probe.holly.mask(6, multiarcaderecomp::naomi::HollyInterrupts::Group::normal));
         std::fprintf(stderr,
                      "Naomi SH-4 INTC={ICR:%04x,IPRA:%04x,IPRB:%04x,IPRC:%04x} TMU={TSTR:%02x,TCOR0:%08x,TCNT0:%08x,TCR0:%04x,TCOR1:%08x,TCNT1:%08x,TCR1:%04x,TCOR2:%08x,TCNT2:%08x,TCR2:%04x}\n",
                      probe.memory.read16(0xffd00000), probe.memory.read16(0xffd00004),
@@ -381,7 +381,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
                      probe.memory.read16(0xffd8001c), probe.memory.read32(0xffd80020),
                      probe.memory.read32(0xffd80024), probe.memory.read16(0xffd80028));
     }
-    if (std::getenv("MAMERECOMP_NAOMI_TRACE_PC_BYTES")) {
+    if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_PC_BYTES")) {
         std::fprintf(stderr, "Naomi SH-4 code bytes pc=%08x:", probe.cpu.pc);
         for (unsigned offset = 0; offset < 32; offset += 2)
             std::fprintf(stderr, " %04x", probe.memory.read16(probe.cpu.pc + offset));
@@ -393,7 +393,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
             std::fputc('\n', stderr);
         }
     }
-    if (const char* path = std::getenv("MAMERECOMP_NAOMI_DUMP_BOOT_RAM");
+    if (const char* path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_BOOT_RAM");
         path && *path && probe.cpu.instructions_executed != 0) {
         std::ofstream dump(path, std::ios::binary | std::ios::trunc);
         constexpr std::uint32_t start = 0x0c020000u;
@@ -404,7 +404,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
             std::fprintf(stderr, "Naomi SH-4 dumped boot RAM [%08x,%08x) to %s\n",
                          start, start + size, path);
     }
-    if (const char* path = std::getenv("MAMERECOMP_NAOMI_DUMP_MAIN_RAM");
+    if (const char* path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_MAIN_RAM");
         path && *path && probe.cpu.instructions_executed != 0) {
         std::ofstream dump(path, std::ios::binary | std::ios::trunc);
         const auto& ram = probe.memory.mainRam();
@@ -417,7 +417,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
         else
             std::fprintf(stderr, "ERROR: failed writing main RAM dump path %s\n", path);
     }
-    if (const char* path = std::getenv("MAMERECOMP_NAOMI_DUMP_LOW_RAM");
+    if (const char* path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_LOW_RAM");
         path && *path && probe.cpu.instructions_executed != 0) {
         std::ofstream dump(path, std::ios::binary | std::ios::trunc);
         constexpr std::uint32_t start = 0x0c000000u;
@@ -428,7 +428,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
             std::fprintf(stderr, "Naomi SH-4 dumped low RAM [%08x,%08x) to %s\n",
                          start, start + size, path);
     }
-    if (const char* path = std::getenv("MAMERECOMP_NAOMI_DUMP_TA");
+    if (const char* path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_TA");
         path && *path) {
         const auto& stream = probe.pvr.taStream();
         std::ofstream dump(path, std::ios::binary | std::ios::trunc);
@@ -444,7 +444,7 @@ void copy_probe_result(NaomiSh4ProbeResult* output,
                              stream.size(), path);
         }
     }
-    if (const char* path = std::getenv("MAMERECOMP_NAOMI_DUMP_VRAM");
+    if (const char* path = std::getenv("MULTIARCADERECOMP_NAOMI_DUMP_VRAM");
         path && *path) {
         const auto& vram = probe.pvr.vram();
         std::ofstream dump(path, std::ios::binary | std::ios::trunc);
@@ -488,21 +488,21 @@ void copy_error(NaomiSh4ProbeResult* output, const char* message) {
 }
 }
 
-extern "C" void* mamerecomp_naomi_sh4_probe_create(const char* set_id,
+extern "C" void* multiarcaderecomp_naomi_sh4_probe_create(const char* set_id,
                                                        int interpreter_only) {
     if (!set_id || std::strcmp(set_id, "mvsc2u") != 0) return nullptr;
     try {
-        return new mamerecomp::naomi::Sh4Probe(interpreter_only != 0);
+        return new multiarcaderecomp::naomi::Sh4Probe(interpreter_only != 0);
     } catch (...) {
         return nullptr;
     }
 }
 
-extern "C" void mamerecomp_naomi_sh4_probe_destroy(void* probe) {
-    delete static_cast<mamerecomp::naomi::Sh4Probe*>(probe);
+extern "C" void multiarcaderecomp_naomi_sh4_probe_destroy(void* probe) {
+    delete static_cast<multiarcaderecomp::naomi::Sh4Probe*>(probe);
 }
 
-extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
+extern "C" int multiarcaderecomp_naomi_sh4_probe_start(void* opaque,
                                                   const std::uint8_t* rom,
                                                   std::size_t rom_size,
                                                   const std::uint8_t* board_id_eeprom,
@@ -510,17 +510,17 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
                                                   const std::uint8_t* bios,
                                                   std::size_t bios_size,
                                                   NaomiSh4ProbeResult* result) {
-    auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
+    auto* probe = static_cast<multiarcaderecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !rom || rom_size == 0 || !board_id_eeprom ||
         board_id_eeprom_size == 0 || !bios || bios_size == 0) {
         copy_error(result, "invalid Naomi probe, ROM, board-ID EEPROM, or BIOS image");
         return 0;
     }
     try {
-        const bool eeprom_configured = mamerecomp::naomi::g_naomiJvs13551().configureSystemEeprom(
+        const bool eeprom_configured = multiarcaderecomp::naomi::g_naomiJvs13551().configureSystemEeprom(
             std::span<const std::uint8_t>(rom, rom_size));
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_ID")) {
-            const auto& eeprom = mamerecomp::naomi::g_naomiJvs13551().eeprom;
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT_ID")) {
+            const auto& eeprom = multiarcaderecomp::naomi::g_naomiJvs13551().eeprom;
             std::fprintf(stderr,
                          "Naomi BootID EEPROM configured=%u game-id=%02x%02x%02x%02x cabinet=%02x vertical=%02x\n",
                          eeprom_configured ? 1u : 0u, eeprom[3], eeprom[4], eeprom[5], eeprom[6],
@@ -531,7 +531,7 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
         probe->memory.loadM2RomBoard(
             std::span<const std::uint8_t>(rom, rom_size), 0x0002c840u,
             std::span<const std::uint8_t>(board_id_eeprom, board_id_eeprom_size));
-        if (std::getenv("MAMERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE"))
+        if (std::getenv("MULTIARCADERECOMP_NAOMI_TRACE_BOOT_RAM_PROVENANCE"))
             std::fprintf(stderr,
                          "Naomi boot RAM initial [0c020000]=%08x [0c020004]=%08x [0c020008]=%08x\n",
                          probe->memory.read32(0x0c020000u),
@@ -554,10 +554,10 @@ extern "C" int mamerecomp_naomi_sh4_probe_start(void* opaque,
     }
 }
 
-extern "C" int mamerecomp_naomi_sh4_probe_run(void* opaque,
+extern "C" int multiarcaderecomp_naomi_sh4_probe_run(void* opaque,
                                                 std::uint64_t budget,
                                                 NaomiSh4ProbeResult* result) {
-    auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
+    auto* probe = static_cast<multiarcaderecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !probe->started || budget == 0) {
         copy_error(result, "Naomi SH-4 probe must be started with a nonzero budget");
         return 0;
@@ -567,11 +567,11 @@ extern "C" int mamerecomp_naomi_sh4_probe_run(void* opaque,
     return 1;
 }
 
-extern "C" int mamerecomp_naomi_sh4_probe_frame(void* opaque,
+extern "C" int multiarcaderecomp_naomi_sh4_probe_frame(void* opaque,
                                                    NaomiPvrFrameInfo* frame_info,
                                                    std::uint8_t* rgb,
                                                    std::size_t rgb_capacity) {
-    auto* probe = static_cast<mamerecomp::naomi::Sh4Probe*>(opaque);
+    auto* probe = static_cast<multiarcaderecomp::naomi::Sh4Probe*>(opaque);
     if (!probe || !frame_info) return 0;
     const auto frame = probe->pvr.captureFramebuffer();
     frame_info->width = frame.width;

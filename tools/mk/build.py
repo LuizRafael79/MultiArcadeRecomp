@@ -71,7 +71,7 @@ def interleave_lanes(archive: zipfile.ZipFile, roms: tuple,
 
 def load_recompiler():
     path = Path(__file__).resolve().parents[1] / "tms34010" / "recomp.py"
-    spec = importlib.util.spec_from_file_location("mamerecomp_tms34010_recomp", path)
+    spec = importlib.util.spec_from_file_location("multiarcaderecomp_tms34010_recomp", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load TMS34010 compiler at {path}")
     module = importlib.util.module_from_spec(spec)
@@ -82,7 +82,7 @@ def load_recompiler():
 
 def load_m6809_recompiler():
     path = Path(__file__).resolve().parents[1] / "m6809" / "recomp.py"
-    spec = importlib.util.spec_from_file_location("mamerecomp_m6809_recomp", path)
+    spec = importlib.util.spec_from_file_location("multiarcaderecomp_m6809_recomp", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load MC6809 compiler at {path}")
     module = importlib.util.module_from_spec(spec)

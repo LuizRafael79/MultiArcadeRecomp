@@ -16,12 +16,12 @@ constexpr uint32_t kReadbackWidth = 1024;
 constexpr uint32_t kReadbackHeight = 512;
 constexpr size_t kReadbackWords = size_t(kReadbackWidth) * kReadbackHeight / 2;
 
-void send(mamerecomp::psx::Gpu& gpu, const std::vector<uint32_t>& commands)
+void send(multiarcaderecomp::psx::Gpu& gpu, const std::vector<uint32_t>& commands)
 {
     for (const uint32_t command : commands) gpu.write_data(command);
 }
 
-std::vector<uint16_t> read_vram(mamerecomp::psx::Gpu& gpu)
+std::vector<uint16_t> read_vram(multiarcaderecomp::psx::Gpu& gpu)
 {
     gpu.write_data(0xc0000000u);
     gpu.write_data(0u);
@@ -65,7 +65,7 @@ int main()
 
     bool passed = false;
     try {
-        using mamerecomp::psx::Gpu;
+        using multiarcaderecomp::psx::Gpu;
         std::vector<uint8_t> software_vram(kReadbackWidth * kReadbackHeight * 2);
         std::vector<uint8_t> hardware_vram(software_vram.size());
         Gpu software(software_vram, 2);

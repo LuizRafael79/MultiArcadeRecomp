@@ -1,6 +1,6 @@
 #include "sega_315_5248.hpp"
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 std::uint16_t Sega3155248Multiplier::read(std::uint32_t offset) const {
     const auto reg = offset & 3U;
@@ -18,4 +18,4 @@ void Sega3155248Multiplier::write(std::uint32_t offset, std::uint16_t data, std:
     if (lanes & 1U) operand = static_cast<std::uint16_t>((operand & 0xff00U) | (data & 0x00ffU));
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

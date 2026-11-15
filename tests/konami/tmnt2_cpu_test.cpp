@@ -6,7 +6,7 @@
 
 int main()
 {
-    mamerecomp::konami::Tmnt2RomSet roms;
+    multiarcaderecomp::konami::Tmnt2RomSet roms;
     roms.regions.emplace("maincpu", std::vector<uint8_t>(0x100000, 0xff));
     roms.regions.emplace("audiocpu", std::vector<uint8_t>(0x10000, 0xff));
     roms.regions.emplace("k052109", std::vector<uint8_t>(0x100000, 0xff));
@@ -34,15 +34,15 @@ int main()
     sound_program[5] = 0x76; // HALT
     sound_program[0x66] = 0xed; sound_program[0x67] = 0x45; // RETN
 
-    mamerecomp::konami::Tmnt2Board board("tmnt2", std::move(roms));
-    mamerecomp::konami::Tmnt2MainCpu cpu(board, nullptr, 0);
+    multiarcaderecomp::konami::Tmnt2Board board("tmnt2", std::move(roms));
+    multiarcaderecomp::konami::Tmnt2MainCpu cpu(board, nullptr, 0);
     assert(cpu.pc() == 8);
     cpu.execute_until(200); // Musashi accounts for reset cycles on its first execute call.
     cpu.execute_until(220);
     assert(cpu.data_register(0) == 0x42);
     assert(cpu.pc() >= 8 && cpu.pc() <= 12);
 
-    mamerecomp::konami::Tmnt2SoundCpu sound(board);
+    multiarcaderecomp::konami::Tmnt2SoundCpu sound(board);
     sound.run(64);
     assert(board.sound_read(0xf000) == 0x42);
     assert(sound.pc() == 6);

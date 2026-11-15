@@ -1,6 +1,6 @@
 // Williams ADPCM board behavior adapted from MAME's
 // src/mame/shared/williamssound.cpp. The upstream implementation is
-// BSD-3-Clause; this file reworks its address map and banking for MameRecomp.
+// BSD-3-Clause; this file reworks its address map and banking for MultiArcadeRecomp.
 
 #include "mk/williams_adpcm.hpp"
 
@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <iterator>
 
-namespace mamerecomp::mk {
+namespace multiarcaderecomp::mk {
 namespace {
 constexpr std::array<std::uint32_t, 8> kOkiBankOffsets{
     0x40000, 0x40000, 0x20000, 0x00000,
@@ -314,4 +314,4 @@ void WilliamsAdpcmBoard::render_audio_to(std::uint64_t sound_cycle) noexcept {
     m_ym_clock = target_ym_clock;
 }
 
-} // namespace mamerecomp::mk
+} // namespace multiarcaderecomp::mk

@@ -5,7 +5,7 @@ gamename = "Golden Axe PC Edition"
 parent = "goldnaxeud"
 romof = "goldnaxeud"
 runtime_profile = true
-romset_source = "MameRecomp PC Edition patch"
+romset_source = "MultiArcadeRecomp PC Edition patch"
 
 [mame]
 name = "goldnaxepc"

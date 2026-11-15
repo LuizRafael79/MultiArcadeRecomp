@@ -7,21 +7,21 @@
 #include <iostream>
 #include <utility>
 
-namespace mamerecomp::zn {
+namespace multiarcaderecomp::zn {
 
 Zn2SoundCpu::Zn2SoundCpu(CapcomZn2Board &board,
-                         const mamerecomp::z80::Z80Code *aot_code,
-                         mamerecomp::chips::QSoundMode qsound_mode,
+                         const multiarcaderecomp::z80::Z80Code *aot_code,
+                         multiarcaderecomp::chips::QSoundMode qsound_mode,
                          std::span<const std::uint16_t> qsound_firmware,
-                         std::span<const mamerecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program,
-                         mamerecomp::dsp16::Dsp16ARunHandler dsp_aot_run)
+                         std::span<const multiarcaderecomp::dsp16::Dsp16ACompiledEntry> dsp_aot_program,
+                         multiarcaderecomp::dsp16::Dsp16ARunHandler dsp_aot_run)
     : board_(board), cpu_(*this),
-      aot_code_(std::getenv("MAMERECOMP_ZN2_Z80_INTERPRETER_ONLY") ? nullptr : aot_code),
-      qsound_(mamerecomp::chips::QSoundConfig{60'000'000, qsound_mode, qsound_firmware})
+      aot_code_(std::getenv("MULTIARCADERECOMP_ZN2_Z80_INTERPRETER_ONLY") ? nullptr : aot_code),
+      qsound_(multiarcaderecomp::chips::QSoundConfig{60'000'000, qsound_mode, qsound_firmware})
 {
     cpu_.Reset();
-    profile_timing_ = std::getenv("MAMERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
-    mamerecomp::z80::SetZ80Code(aot_code_);
+    profile_timing_ = std::getenv("MULTIARCADERECOMP_ZN_PROFILE_RUNTIME") != nullptr;
+    multiarcaderecomp::z80::SetZ80Code(aot_code_);
     samples_ = board_.qsound_samples();
     qsound_.set_sample_rom(samples_);
     qsound_.reset();
@@ -35,11 +35,11 @@ uint8_t Zn2SoundCpu::Read(uint16_t address)
         // passive ready latch, matching the cooperative MAME scheduler path.
         sync_qsound(cpu_.BusCallbackCycles());
         const std::uint8_t value = qsound_.read_status();
-        if (std::getenv("MAMERECOMP_ZN_TRACE_QSOUND_STATUS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_QSOUND_STATUS")) {
             static std::uint64_t traced = 0;
             static const std::uint64_t after_cycles = [] {
                 const char *text = std::getenv(
-                    "MAMERECOMP_ZN_TRACE_QSOUND_STATUS_AFTER_CYCLES");
+                    "MULTIARCADERECOMP_ZN_TRACE_QSOUND_STATUS_AFTER_CYCLES");
                 return text ? std::strtoull(text, nullptr, 0) : 0ull;
             }();
             const std::uint64_t cycle = cpu_.BusCallbackCycles();
@@ -72,7 +72,7 @@ void Zn2SoundCpu::Write(uint16_t address, uint8_t value)
             // synchronize the stream or advance the DSP.
             qsound_.write(static_cast<uint8_t>(address - 0xd000), value);
         }
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 4096)
                 std::cerr << "ZN2 QSound write offset=0x" << std::hex
@@ -100,7 +100,7 @@ uint8_t Zn2SoundCpu::In(uint16_t port)
 {
     const uint8_t value = board_.sound_port_read(static_cast<uint8_t>(port));
     if ((port & 0xff) == 0) {
-        if (std::getenv("MAMERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
+        if (std::getenv("MULTIARCADERECOMP_ZN_TRACE_SOUND_COMMANDS")) {
             static unsigned traced = 0;
             if (traced++ < 512)
                 std::cerr << "ZN2 sound latch read value=0x" << std::hex
@@ -187,9 +187,9 @@ void Zn2SoundCpu::run_to_main_cycles(uint64_t psx_cycles)
     constexpr uint64_t psx_cycle_hz = 25'000'000;
     constexpr uint64_t sound_clock = 8'000'000;
     constexpr uint64_t irq_period = sound_clock / 250;
-    const auto mode = mamerecomp::z80::HasZ80Code()
-        ? mamerecomp::z80::Z80::Mode::Native
-        : mamerecomp::z80::Z80::Mode::Interpreter;
+    const auto mode = multiarcaderecomp::z80::HasZ80Code()
+        ? multiarcaderecomp::z80::Z80::Mode::Native
+        : multiarcaderecomp::z80::Z80::Mode::Interpreter;
     const uint64_t target = (psx_cycles * sound_clock) / psx_cycle_hz;
     const auto run_z80_to = [&](uint64_t cycle) {
         if (cycle <= cpu_.cycles) return;
@@ -244,4 +244,4 @@ uint64_t Zn2SoundCpu::next_main_event_cycle() const
     return std::min(next_sample_main_cycle, next_irq_main_cycle);
 }
 
-} // namespace mamerecomp::zn
+} // namespace multiarcaderecomp::zn

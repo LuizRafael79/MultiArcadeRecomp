@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 {
     assert(argc == 2);
     const auto key = read_key(argv[1]);
-    mamerecomp::Fd1094 fd1094(key);
+    multiarcaderecomp::Fd1094 fd1094(key);
 
     // MAME's FD1094 vector table documents the encrypted and expected reset
     // vectors for ESWAT (317-0130): SP 0, PC 0x400.

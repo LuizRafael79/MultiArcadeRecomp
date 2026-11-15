@@ -22,7 +22,7 @@ extern "C" {
 uint32_t g_current_guest_pc = 0;
 }
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
 constexpr uint32_t kAddressMask = 0x00ffffff;
 struct NativeEntry { ng_func_t fn; std::uint16_t instruction_size; };
@@ -227,9 +227,9 @@ bool save_m68k_ram_artifacts(const std::string& entries_path, const std::string&
     return true;
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail
 
-using namespace mamerecomp::cps1::detail;
+using namespace multiarcaderecomp::cps1::detail;
 extern "C" {
 void ng_bad_dispatch(uint32_t pc) {
     std::cerr << "[cps1] generated routine received mismatched PC=$" << std::hex << pc << std::dec << '\n';

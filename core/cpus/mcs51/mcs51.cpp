@@ -1,4 +1,4 @@
-// Copyright (c) 2026 MameRecomp contributors.
+// Copyright (c) 2026 MultiArcadeRecomp contributors.
 // The instruction semantics in mcs51_ops.cpp are adapted from MAME's
 // BSD-3-Clause MCS-51 implementation; see docs/license/mame-mcs51/LICENSE.md.
 #include "mcs51.hpp"
@@ -7,7 +7,7 @@
 #include <cstring>
 #include <utility>
 
-namespace mamerecomp::mcs51 {
+namespace multiarcaderecomp::mcs51 {
 
 Core::Core(std::span<const u8> program) : Core(program, Bus{}) {}
 
@@ -305,4 +305,4 @@ u32 Core::step() {
     return cycles;
 }
 
-} // namespace mamerecomp::mcs51
+} // namespace multiarcaderecomp::mcs51

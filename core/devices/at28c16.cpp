@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::devices {
+namespace multiarcaderecomp::devices {
 
 At28c16::At28c16(uint64_t clock_hz, std::span<const uint8_t> image)
     : write_delay_cycles_(std::max<uint64_t>(1, clock_hz / 5000))
@@ -42,4 +42,4 @@ void At28c16::write(size_t offset, uint8_t value, uint64_t cycles)
     ready_cycle_ = cycles + write_delay_cycles_;
 }
 
-} // namespace mamerecomp::devices
+} // namespace multiarcaderecomp::devices

@@ -15,11 +15,11 @@
 #include <thread>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 namespace {
 
 bool presenter_opengl_available() {
-#ifdef MAMERECOMP_HAS_OPENGL_VIDEO
+#ifdef MULTIARCADERECOMP_HAS_OPENGL_VIDEO
     return true;
 #else
     return false;
@@ -44,10 +44,10 @@ struct SegaPresenter::Impl {
     SegaDisplayMode display_mode = SegaDisplayMode::Windowed;
     std::uint8_t window_scale = 3;
     SegaLiveInputs inputs;
-    std::vector<mamerecomp::sega::GameInputBinding> input_bindings;
+    std::vector<multiarcaderecomp::sega::GameInputBinding> input_bindings;
 
     explicit Impl(const std::string& title,
-        std::vector<mamerecomp::sega::GameInputBinding> bindings, bool limit_frames, bool profile,
+        std::vector<multiarcaderecomp::sega::GameInputBinding> bindings, bool limit_frames, bool profile,
         std::uint32_t rate_num, std::uint32_t rate_den)
         : frame_limit_enabled(limit_frames), profile_enabled(profile), refresh_num(rate_num), refresh_den(rate_den),
           input_bindings(std::move(bindings)) {
@@ -59,7 +59,7 @@ struct SegaPresenter::Impl {
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
             throw std::runtime_error(std::string("SDL video init failed: ") + SDL_GetError());
         const char* video_driver = SDL_GetCurrentVideoDriver();
-        SDL_Log("MameRecomp SDL video driver: %s", video_driver ? video_driver : "unknown");
+        SDL_Log("MultiArcadeRecomp SDL video driver: %s", video_driver ? video_driver : "unknown");
         window = SDL_CreateWindow(title.c_str(), 960, 672, SDL_WINDOW_RESIZABLE);
         if (!window) { SDL_QuitSubSystem(SDL_INIT_VIDEO); throw std::runtime_error(std::string("SDL window creation failed: ") + SDL_GetError()); }
         // Let SDL select the best available renderer. Forcing "software" here
@@ -68,7 +68,7 @@ struct SegaPresenter::Impl {
         renderer = SDL_CreateRenderer(window, nullptr);
         if (!renderer) renderer = SDL_CreateRenderer(window, "software");
         if (!renderer) { SDL_DestroyWindow(window); SDL_QuitSubSystem(SDL_INIT_VIDEO); throw std::runtime_error(std::string("SDL renderer creation failed: ") + SDL_GetError()); }
-        SDL_Log("MameRecomp System16 SDL video renderer: %s",
+        SDL_Log("MultiArcadeRecomp System16 SDL video renderer: %s",
             SDL_GetRendererName(renderer) ? SDL_GetRendererName(renderer) : "unknown");
         int actual_vsync = 0;
         // Wayland's compositor presents on its own cadence. Combining an EGL
@@ -77,9 +77,9 @@ struct SegaPresenter::Impl {
         const bool wayland = video_driver && std::string_view(video_driver) == "wayland";
         const bool vsync_configured = SDL_SetRenderVSync(renderer, frame_limit_enabled && !wayland ? 1 : 0);
         renderer_vsync_enabled = SDL_GetRenderVSync(renderer, &actual_vsync) && actual_vsync != 0;
-        SDL_Log("MameRecomp System16 SDL renderer VSync: %s", renderer_vsync_enabled ? "on" : "off");
+        SDL_Log("MultiArcadeRecomp System16 SDL renderer VSync: %s", renderer_vsync_enabled ? "on" : "off");
         if (!vsync_configured)
-            SDL_Log("MameRecomp System16 SDL renderer could not change VSync: %s", SDL_GetError());
+            SDL_Log("MultiArcadeRecomp System16 SDL renderer could not change VSync: %s", SDL_GetError());
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING,
             SegaVideoFrame::width, SegaVideoFrame::height);
         if (!texture) { SDL_DestroyRenderer(renderer); SDL_DestroyWindow(window); SDL_QuitSubSystem(SDL_INIT_VIDEO); throw std::runtime_error(std::string("SDL texture creation failed: ") + SDL_GetError()); }
@@ -94,7 +94,7 @@ struct SegaPresenter::Impl {
 };
 
 SegaPresenter::SegaPresenter(std::string title,
-    std::vector<mamerecomp::sega::GameInputBinding> input_bindings, bool frame_limit_enabled, bool profile_enabled,
+    std::vector<multiarcaderecomp::sega::GameInputBinding> input_bindings, bool frame_limit_enabled, bool profile_enabled,
     std::uint32_t refresh_num, std::uint32_t refresh_den)
     : impl_(std::make_unique<Impl>(title, std::move(input_bindings), frame_limit_enabled, profile_enabled,
         refresh_num, refresh_den)) {}
@@ -136,7 +136,7 @@ bool SegaPresenter::configure_display(SegaDisplayMode mode, std::uint8_t window_
 
 bool SegaPresenter::show_configuration_menu(SegaSharedSettings& settings,
     const std::filesystem::path& settings_path, const std::string& game_title,
-    const mamerecomp::sega::GameSettingsApi* game_api, void* game_state) {
+    const multiarcaderecomp::sega::GameSettingsApi* game_api, void* game_state) {
     if (!configure_display(settings.display_mode, settings.window_scale))
         throw std::runtime_error(std::string("SDL fullscreen configuration failed: ") + SDL_GetError());
     IMGUI_CHECKVERSION();
@@ -202,11 +202,11 @@ bool SegaPresenter::show_configuration_menu(SegaSharedSettings& settings,
         SDL_GetWindowSize(impl_->window, &width, &height);
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2(static_cast<float>(width), static_cast<float>(height)));
-        ImGui::Begin("##MameRecompSetup", nullptr,
+        ImGui::Begin("##MultiArcadeRecompSetup", nullptr,
             ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize
             | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-        ImGui::TextColored(ImVec4(0.20f, 0.82f, 0.91f, 1.0f), "MAMERECOMP  /  SYSTEM 16A");
+        ImGui::TextColored(ImVec4(0.20f, 0.82f, 0.91f, 1.0f), "MULTIARCADERECOMP  /  SYSTEM 16A");
         ImGui::SameLine();
         ImGui::TextDisabled("%s", game_title.c_str());
         ImGui::Separator();
@@ -357,19 +357,19 @@ bool SegaPresenter::present(const SegaVideoFrame& frame, std::span<const std::ui
     }
     const bool* keys = SDL_GetKeyboardState(nullptr);
     impl_->inputs = {};
-    const auto fallback = std::array<mamerecomp::sega::GameInputBinding, 13>{
-        {{mamerecomp::sega::GameInputPort::Service, 0, "5", "Ficha 1"}, {mamerecomp::sega::GameInputPort::Service, 1, "6", "Ficha 2"},
-         {mamerecomp::sega::GameInputPort::Service, 2, "F2", "Servico"}, {mamerecomp::sega::GameInputPort::Service, 4, "1", "Iniciar 1"},
-         {mamerecomp::sega::GameInputPort::Service, 5, "2", "Iniciar 2"}, {mamerecomp::sega::GameInputPort::Player1, 1, "K", "Botao 1"},
-         {mamerecomp::sega::GameInputPort::Player1, 2, "L", "Botao 2"}, {mamerecomp::sega::GameInputPort::Player1, 0, "J", "Botao 3"},
-         {mamerecomp::sega::GameInputPort::Player1, 4, "S", "Baixo"}, {mamerecomp::sega::GameInputPort::Player1, 5, "W", "Cima"},
-         {mamerecomp::sega::GameInputPort::Player1, 6, "D", "Direita"}, {mamerecomp::sega::GameInputPort::Player1, 7, "A", "Esquerda"},
-         {mamerecomp::sega::GameInputPort::Player2, 0, "KP_3", "P2 Botao 3"}}};
+    const auto fallback = std::array<multiarcaderecomp::sega::GameInputBinding, 13>{
+        {{multiarcaderecomp::sega::GameInputPort::Service, 0, "5", "Ficha 1"}, {multiarcaderecomp::sega::GameInputPort::Service, 1, "6", "Ficha 2"},
+         {multiarcaderecomp::sega::GameInputPort::Service, 2, "F2", "Servico"}, {multiarcaderecomp::sega::GameInputPort::Service, 4, "1", "Iniciar 1"},
+         {multiarcaderecomp::sega::GameInputPort::Service, 5, "2", "Iniciar 2"}, {multiarcaderecomp::sega::GameInputPort::Player1, 1, "K", "Botao 1"},
+         {multiarcaderecomp::sega::GameInputPort::Player1, 2, "L", "Botao 2"}, {multiarcaderecomp::sega::GameInputPort::Player1, 0, "J", "Botao 3"},
+         {multiarcaderecomp::sega::GameInputPort::Player1, 4, "S", "Baixo"}, {multiarcaderecomp::sega::GameInputPort::Player1, 5, "W", "Cima"},
+         {multiarcaderecomp::sega::GameInputPort::Player1, 6, "D", "Direita"}, {multiarcaderecomp::sega::GameInputPort::Player1, 7, "A", "Esquerda"},
+         {multiarcaderecomp::sega::GameInputPort::Player2, 0, "KP_3", "P2 Botao 3"}}};
     const auto apply = [&](const auto& binding) {
         const SDL_Scancode key = SDL_GetScancodeFromName(binding.key_name);
         if (key == SDL_SCANCODE_UNKNOWN || !keys[key]) return;
-        auto* port = binding.port == mamerecomp::sega::GameInputPort::Service ? &impl_->inputs.service
-            : binding.port == mamerecomp::sega::GameInputPort::Player1 ? &impl_->inputs.p1 : &impl_->inputs.p2;
+        auto* port = binding.port == multiarcaderecomp::sega::GameInputPort::Service ? &impl_->inputs.service
+            : binding.port == multiarcaderecomp::sega::GameInputPort::Player1 ? &impl_->inputs.p1 : &impl_->inputs.p2;
         *port = static_cast<std::uint8_t>(*port & ~(1U << binding.bit));
     };
     if (impl_->input_bindings.empty()) for (const auto& binding : fallback) apply(binding);
@@ -430,4 +430,4 @@ bool SegaPresenter::has_input_focus() const {
 }
 SegaPresenterTiming SegaPresenter::timing() const { return impl_->timing; }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

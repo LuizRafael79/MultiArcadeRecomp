@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 void load_sr(Sh4Context& ctx, std::uint32_t value);
 std::uint32_t host_store_sr(const Sh4Context& ctx);
@@ -45,4 +45,4 @@ void host_fsca(Sh4Context& ctx, unsigned n);
 void host_pref(Sh4Context& ctx, std::uint32_t address);
 void host_trapa(Sh4Context& ctx, std::uint32_t immediate);
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

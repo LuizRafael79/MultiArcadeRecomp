@@ -3,7 +3,7 @@
 #include <cassert>
 
 int main() {
-    mamerecomp::chips::Rf5c68 chip;
+    multiarcaderecomp::chips::Rf5c68 chip;
     chip.write_sample_ram(0, 0x81); // positive magnitude 1
     chip.write_sample_ram(1, 0x01); // negative magnitude 1
     chip.write_register(0x07, 0xc0); // enable chip, select channel 0

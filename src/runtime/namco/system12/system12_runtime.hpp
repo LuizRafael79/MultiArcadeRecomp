@@ -8,13 +8,13 @@
 #include <memory>
 #include <vector>
 
-namespace mamerecomp::namco::system12 {
+namespace multiarcaderecomp::namco::system12 {
 
 // System 12 board session: board bus and H8/3002 auxiliary CPU scheduling.
 // The PSX-derived SoC remains in the shared CPU/machine runtime.
 class System12Runtime {
 public:
-    explicit System12Runtime(const mamerecomp::rom::RomRegions& roms);
+    explicit System12Runtime(const multiarcaderecomp::rom::RomRegions& roms);
 
     PsxBus make_bus() { return m_board.make_bus(); }
     std::vector<std::uint32_t> dma_rom_read(std::size_t words) {
@@ -39,8 +39,8 @@ public:
 
 private:
     NamcoSystem12Board m_board;
-    mamerecomp::h8::H8Advanced m_h8;
+    multiarcaderecomp::h8::H8Advanced m_h8;
     std::uint64_t m_maincpu_cycles = 0;
 };
 
-} // namespace mamerecomp::namco::system12
+} // namespace multiarcaderecomp::namco::system12

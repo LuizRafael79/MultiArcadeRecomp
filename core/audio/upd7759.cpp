@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace mamerecomp::audio {
+namespace multiarcaderecomp::audio {
 namespace {
 constexpr std::int16_t step[16][16] = {
     {0,0,1,2,3,5,7,10,0,0,-1,-2,-3,-5,-7,-10},
@@ -160,4 +160,4 @@ void Upd7759::advance_one()
     }
 }
 
-} // namespace mamerecomp::audio
+} // namespace multiarcaderecomp::audio

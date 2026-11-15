@@ -1,5 +1,5 @@
 #include "midway/vunit/core/vunit_video.hpp"
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
 #include "midway/vunit/core/vunit_video_gpu.hpp"
 #endif
 
@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <stdexcept>
 
-namespace mamerecomp::vunit {
+namespace multiarcaderecomp::vunit {
 namespace {
 constexpr std::size_t kPageWords = 0x40000;
 // MAME exposes 0x200000 32-bit words to the board, but the renderer addresses
@@ -25,7 +25,7 @@ Video::Video() : m_vram(0x80000), m_texture(kTextureBytes),
 Video::~Video() = default;
 
 void Video::enable_gpu_renderer() {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     if (!m_gpu_renderer) {
         auto renderer = std::make_unique<VUnitGpuRenderer>();
         std::string error;
@@ -35,12 +35,12 @@ void Video::enable_gpu_renderer() {
     }
 #else
     throw std::runtime_error("V-Unit OpenGL raster backend was not built; configure with "
-                             "-DMAMERECOMP_ENABLE_VUNIT_OPENGL=ON");
+                             "-DMULTIARCADERECOMP_ENABLE_VUNIT_OPENGL=ON");
 #endif
 }
 
 void Video::disable_gpu_renderer() noexcept {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     flush_gpu_commands(0x3);
     m_gpu_renderer.reset();
     m_gpu_commands.clear();
@@ -49,7 +49,7 @@ void Video::disable_gpu_renderer() noexcept {
 }
 
 bool Video::gpu_renderer_enabled() const noexcept {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     return m_gpu_renderer != nullptr;
 #else
     return false;
@@ -57,7 +57,7 @@ bool Video::gpu_renderer_enabled() const noexcept {
 }
 
 const std::string& Video::gpu_renderer_name() const noexcept {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     static const std::string empty;
     return m_gpu_renderer ? m_gpu_renderer->renderer_name() : empty;
 #else
@@ -182,7 +182,7 @@ const std::vector<std::uint16_t>& Video::visible_frame() const noexcept {
 }
 
 std::vector<std::uint8_t> Video::visible_rgb() const {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     auto* self = const_cast<Video*>(this);
     if (self->m_gpu_renderer) {
         self->flush_gpu_commands();
@@ -271,7 +271,7 @@ void Video::process_command() noexcept {
     render_command.texture_base = m_dma_data[14] * 256;
     render_command.mode = static_cast<std::uint8_t>(mode);
     render_command.dither = dither;
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     if (m_gpu_renderer) {
         try {
             m_gpu_commands.push_back(render_command);
@@ -308,7 +308,7 @@ void Video::raster_command(const GpuCommand& command) noexcept {
 }
 
 void Video::flush_gpu_commands(std::uint8_t readback_pages) noexcept {
-#ifdef MAMERECOMP_VUNIT_OPENGL
+#ifdef MULTIARCADERECOMP_VUNIT_OPENGL
     if (!m_gpu_renderer) return;
     readback_pages &= m_gpu_dirty_pages;
     if (m_gpu_commands.empty() && readback_pages == 0) return;
@@ -397,4 +397,4 @@ void Video::draw_pixel(int x, int y, float u, float v, std::uint16_t base,
     (void)flat;
 }
 
-} // namespace mamerecomp::vunit
+} // namespace multiarcaderecomp::vunit

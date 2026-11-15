@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-namespace mamerecomp::chips::sega3155197 {
+namespace multiarcaderecomp::chips::sega3155197 {
 
 enum class TileFormat {
     Tile,
@@ -87,4 +87,4 @@ TilemapOutput render_tilemaps(std::span<const std::uint8_t> decoded_tiles,
     std::span<const std::uint8_t> tile_ram, std::span<const std::uint8_t> text_ram,
     TilemapState state = {}, const StageHook& after_stage = {});
 
-} // namespace mamerecomp::chips::sega3155197
+} // namespace multiarcaderecomp::chips::sega3155197

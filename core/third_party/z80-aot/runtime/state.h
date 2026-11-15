@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace mamerecomp::z80 {
+namespace multiarcaderecomp::z80 {
 
 class Archive {
 public:
@@ -77,4 +77,4 @@ private:
     bool m_saving, m_ok = true;
 };
 
-} // namespace mamerecomp::z80
+} // namespace multiarcaderecomp::z80

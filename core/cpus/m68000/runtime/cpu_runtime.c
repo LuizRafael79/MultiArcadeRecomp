@@ -16,11 +16,11 @@ int64_t ng_next_event;
 uint64_t ng_icount;
 ng_debug_instruction_hook_t ng_debug_instruction_hook;
 
-static mame_recomp_m68k_read16_fn s_exception_read16;
-static mame_recomp_m68k_write16_fn s_exception_write16;
+static multiarcade_recomp_m68k_read16_fn s_exception_read16;
+static multiarcade_recomp_m68k_write16_fn s_exception_write16;
 
-void mame_recomp_m68k_set_exception_bus(mame_recomp_m68k_read16_fn read16,
-    mame_recomp_m68k_write16_fn write16) {
+void multiarcade_recomp_m68k_set_exception_bus(multiarcade_recomp_m68k_read16_fn read16,
+    multiarcade_recomp_m68k_write16_fn write16) {
     s_exception_read16 = read16;
     s_exception_write16 = write16;
 }

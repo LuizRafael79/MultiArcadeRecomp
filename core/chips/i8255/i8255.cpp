@@ -1,6 +1,6 @@
 #include "chips/i8255/i8255.hpp"
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 std::uint8_t I8255::read(unsigned register_index) const {
     switch (register_index & 3U) {
@@ -68,4 +68,4 @@ void I8255::acknowledge_port_a() {
     if (m_port_a_mode2) m_port_c |= 0x80U; // ACK releases OBF high
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

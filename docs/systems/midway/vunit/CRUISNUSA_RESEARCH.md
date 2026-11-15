@@ -34,9 +34,9 @@ Select and audit the installed parent ROM set before designing the ROM profile.
 - Board notes, clocks, and ROM declarations: comments and machine config in
   `midvunit.cpp`
 
-# Current MameRecomp port
+# Current MultiArcadeRecomp port
 
-The new `mamerecomp_vunit` shared library is wired as a board module. Its
+The new `multiarcaderecomp_vunit` shared library is wired as a board module. Its
 interpreter path consists of the MAME-derived C31 opcode handlers in
 `core/cpus/tms320c31/`, the V-Unit map/control runtime in
 `src/midway/vunit/vunit_machine.*`, and the DMA/video path in

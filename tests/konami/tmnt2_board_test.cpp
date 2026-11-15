@@ -6,7 +6,7 @@
 
 int main()
 {
-    mamerecomp::konami::Tmnt2RomSet roms;
+    multiarcaderecomp::konami::Tmnt2RomSet roms;
     roms.regions.emplace("maincpu", std::vector<uint8_t>(0x100000, 0xff));
     roms.regions.emplace("audiocpu", std::vector<uint8_t>(0x10000, 0xff));
     roms.regions.emplace("k052109", std::vector<uint8_t>(0x100000, 0xff));
@@ -18,7 +18,7 @@ int main()
     roms.regions["audiocpu"][0xe123] = 0x5a;
     roms.regions["k053260"][1] = 0x87;
 
-    mamerecomp::konami::Tmnt2Board board("tmnt2", std::move(roms));
+    multiarcaderecomp::konami::Tmnt2Board board("tmnt2", std::move(roms));
     assert(board.main_read(0) == 0x1234);
     assert(board.main_read(0x100000) == 0xffff);
 
@@ -133,6 +133,6 @@ int main()
     assert(!board.sound_nmi_pending());
 
     auto ssriders_roms = board.roms();
-    mamerecomp::konami::Tmnt2Board ssriders("ssriders", std::move(ssriders_roms));
+    multiarcaderecomp::konami::Tmnt2Board ssriders("ssriders", std::move(ssriders_roms));
     assert(ssriders.render_tile_layers().width == 288);
 }

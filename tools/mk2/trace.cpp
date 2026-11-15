@@ -23,7 +23,7 @@
 #include <chrono>
 #include <unordered_map>
 
-#ifdef MAMERECOMP_MK2_SDL
+#ifdef MULTIARCADERECOMP_MK2_SDL
 #include <SDL3/SDL.h>
 #endif
 
@@ -90,8 +90,8 @@ void save_cmos_file(const std::filesystem::path& path,
 
 void write_ppm(std::span<const std::uint32_t> frame,
                const std::filesystem::path& path) {
-    constexpr auto width = mamerecomp::mk::TUnit::frame_width;
-    constexpr auto height = mamerecomp::mk::TUnit::frame_height;
+    constexpr auto width = multiarcaderecomp::mk::TUnit::frame_width;
+    constexpr auto height = multiarcaderecomp::mk::TUnit::frame_height;
     std::ofstream out(path, std::ios::binary);
     if (!out) throw std::runtime_error("cannot write " + path.string());
     out << "P6\n" << width << ' ' << height << "\n255\n";
@@ -103,7 +103,7 @@ void write_ppm(std::span<const std::uint32_t> frame,
     }
 }
 
-#ifdef MAMERECOMP_MK2_SDL
+#ifdef MULTIARCADERECOMP_MK2_SDL
 struct LiveWindow {
     static constexpr auto frame_period = std::chrono::nanoseconds(18'279'250);
     SDL_Window* window{};
@@ -125,8 +125,8 @@ struct LiveWindow {
         renderer = SDL_CreateRenderer(window, "software");
         if (!renderer) throw std::runtime_error(std::string("SDL renderer failed: ") + SDL_GetError());
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
-            SDL_TEXTUREACCESS_STREAMING, mamerecomp::mk::TUnit::frame_width,
-            mamerecomp::mk::TUnit::frame_height);
+            SDL_TEXTUREACCESS_STREAMING, multiarcaderecomp::mk::TUnit::frame_width,
+            multiarcaderecomp::mk::TUnit::frame_height);
         if (!texture) throw std::runtime_error(std::string("SDL texture failed: ") + SDL_GetError());
         const SDL_AudioSpec audio_spec{SDL_AUDIO_S16, 1, 31'250};
         audio_stream = SDL_OpenAudioDeviceStream(
@@ -145,7 +145,7 @@ struct LiveWindow {
         SDL_Quit();
     }
 
-    void poll_inputs(mamerecomp::mk::TUnit& board, bool scripted_start,
+    void poll_inputs(multiarcaderecomp::mk::TUnit& board, bool scripted_start,
                      std::uint64_t start_cycle, std::uint64_t cpu_cycles) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -189,14 +189,14 @@ struct LiveWindow {
     }
 
     void present(std::span<const std::uint32_t> frame,
-                 const mamerecomp::mk::TUnit::DisplayParams& display,
+                 const multiarcaderecomp::mk::TUnit::DisplayParams& display,
                  std::span<const std::int16_t> audio_samples) {
         if (!audio_samples.empty() &&
             !SDL_PutAudioStreamData(audio_stream, audio_samples.data(),
                 static_cast<int>(audio_samples.size_bytes())))
             throw std::runtime_error(std::string("SDL audio queue failed: ") + SDL_GetError());
-        constexpr int width = mamerecomp::mk::TUnit::frame_width;
-        constexpr int height = mamerecomp::mk::TUnit::frame_height;
+        constexpr int width = multiarcaderecomp::mk::TUnit::frame_width;
+        constexpr int height = multiarcaderecomp::mk::TUnit::frame_height;
         SDL_UpdateTexture(texture, nullptr, frame.data(), width * sizeof(std::uint32_t));
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -236,7 +236,7 @@ struct LiveWindow {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "usage: mamerecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--input-replay=PATH] [--press-continue-at=CYCLES] [--press-coin-at=CYCLES ...] [--press-start-at=CYCLES] [--nvram=PATH] [--summary-log=PATH] [--adsp-overlay-snapshot=PATH] [--dma-boundary-log=PATH] [--dma-command-log=PATH] [--tms-interpreter-only|--interpreter-only|--recompiler-only]\n";
+        std::cerr << "usage: multiarcaderecomp_mk2_trace <work-dir> [cycles] [frame.ppm] [--window] [--input-replay=PATH] [--press-continue-at=CYCLES] [--press-coin-at=CYCLES ...] [--press-start-at=CYCLES] [--nvram=PATH] [--summary-log=PATH] [--adsp-overlay-snapshot=PATH] [--dma-boundary-log=PATH] [--dma-command-log=PATH] [--tms-interpreter-only|--interpreter-only|--recompiler-only]\n";
         return 2;
     }
     try {
@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
         }
         if (interpreter_only && recompiler_only)
             throw std::runtime_error("--interpreter-only and --recompiler-only are mutually exclusive");
-#ifndef MAMERECOMP_MK2_SDL
+#ifndef MULTIARCADERECOMP_MK2_SDL
         if (window_requested)
             throw std::runtime_error("--window requires an SDL3-enabled build");
 #endif
@@ -317,35 +317,35 @@ int main(int argc, char** argv) {
         const auto main = read_file(work / "maincpu.bin");
         const auto graphics = read_file(work / "video.bin");
         const auto sound = read_file(work / "dcs_sound.bin");
-        mamerecomp::mk2::MK2Machine machine(main, graphics, sound);
+        multiarcaderecomp::mk2::MK2Machine machine(main, graphics, sound);
         if (nvram_path.empty()) nvram_path = work / "mk2.nvram";
         if (std::filesystem::exists(nvram_path)) {
             const auto saved_cmos = read_file(nvram_path);
             if (!machine.tunit().load_cmos(saved_cmos))
                 throw std::runtime_error("NVRAM has wrong size: " + nvram_path.string());
         }
-        mamerecomp_interpreter_trace_set_summary_log(summary_path.c_str());
+        multiarcaderecomp_interpreter_trace_set_summary_log(summary_path.c_str());
         auto& board = machine.tunit();
         if (!dma_boundary_log.empty() || !dma_command_log.empty())
             board.enable_dma_history(true);
         auto tms_bus = board.cpu_bus();
-        mamerecomp::tms34010::State cpu{};
-        cpu.pc = mamerecomp::tms34010::entry_pc();
+        multiarcaderecomp::tms34010::State cpu{};
+        cpu.pc = multiarcaderecomp::tms34010::entry_pc();
         cpu.st = 0x10;
         std::uint64_t native = 0, interpreted = 0, interrupts = 0;
         std::unordered_map<std::uint32_t, std::uint64_t> native_pc_hits;
-        MamerecompFallbackReason reason = MAMERECOMP_UNCOVERED_ENTRY;
+        MultiArcadeRecompFallbackReason reason = MULTIARCADERECOMP_UNCOVERED_ENTRY;
         auto& adsp = machine.dcs();
         adsp.set_reset(true);
         bool recompiler_only_stop = false;
         auto next_sound_cycle = std::uint64_t{0};
         std::uint64_t sound_ratio_remainder = 0;
-#ifdef MAMERECOMP_MK2_SDL
+#ifdef MULTIARCADERECOMP_MK2_SDL
         std::unique_ptr<LiveWindow> live;
         if (window_requested) live = std::make_unique<LiveWindow>();
 #endif
         while (cpu.cycles < limit) {
-#ifdef MAMERECOMP_MK2_SDL
+#ifdef MULTIARCADERECOMP_MK2_SDL
             if (live && !live->running) break;
 #endif
             if (!input_replay.empty()) {
@@ -387,34 +387,34 @@ int main(int argc, char** argv) {
             const auto before = cpu.cycles;
             const auto instruction_pc = cpu.pc;
             board.note_cpu_state(cpu);
-            auto result = mamerecomp::tms34010::BlockExit::NeedsInterpreter;
+            auto result = multiarcaderecomp::tms34010::BlockExit::NeedsInterpreter;
             bool native_candidate = false;
             if (!tms_interpreter_only) {
-                if (const auto block = mamerecomp::tms34010::lookup(cpu.pc)) {
+                if (const auto block = multiarcaderecomp::tms34010::lookup(cpu.pc)) {
                     native_candidate = true;
                     result = block(cpu, tms_bus, limit);
                 }
             }
-            if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter &&
+            if (result == multiarcaderecomp::tms34010::BlockExit::NeedsInterpreter &&
                 !recompiler_only) {
-                result = mamerecomp::tms34010::execute_mame_interpreter(
+                result = multiarcaderecomp::tms34010::execute_mame_interpreter(
                     cpu, tms_bus, limit);
-                if (result == mamerecomp::tms34010::BlockExit::NeedsInterpreter)
-                    result = mamerecomp::tms34010::interpreter_step(
+                if (result == multiarcaderecomp::tms34010::BlockExit::NeedsInterpreter)
+                    result = multiarcaderecomp::tms34010::interpreter_step(
                         cpu, tms_bus, limit, reason);
-                if (result == mamerecomp::tms34010::BlockExit::Dispatch)
+                if (result == multiarcaderecomp::tms34010::BlockExit::Dispatch)
                     ++interpreted;
-            } else if (result == mamerecomp::tms34010::BlockExit::Dispatch) {
+            } else if (result == multiarcaderecomp::tms34010::BlockExit::Dispatch) {
                 ++native;
                 if (native_candidate) ++native_pc_hits[instruction_pc];
             }
-            if (result != mamerecomp::tms34010::BlockExit::Dispatch &&
-                result != mamerecomp::tms34010::BlockExit::Budget) {
+            if (result != multiarcaderecomp::tms34010::BlockExit::Dispatch &&
+                result != multiarcaderecomp::tms34010::BlockExit::Budget) {
                 const auto stop_pc = cpu.pc;
                 const auto stop_opcode = tms_bus.read16
                     ? tms_bus.read16(tms_bus.opaque, stop_pc) : 0;
                 const bool has_aot_block =
-                    mamerecomp::tms34010::lookup(stop_pc) != nullptr;
+                    multiarcaderecomp::tms34010::lookup(stop_pc) != nullptr;
                 std::cerr << "TMS stopped at PC=0x" << std::hex << stop_pc
                           << " opcode=0x" << stop_opcode << " reason="
                           << static_cast<int>(result)
@@ -427,8 +427,8 @@ int main(int argc, char** argv) {
             const auto already_advanced = board.take_pre_advanced_cycles();
             if (already_advanced < elapsed)
                 board.advance_cycles(elapsed - already_advanced);
-            if (result != mamerecomp::tms34010::BlockExit::Budget &&
-                mamerecomp::tms34010::service_interrupt(cpu, tms_bus))
+            if (result != multiarcaderecomp::tms34010::BlockExit::Budget &&
+                multiarcaderecomp::tms34010::service_interrupt(cpu, tms_bus))
                 ++interrupts;
             sound_ratio_remainder += elapsed * 8;
             next_sound_cycle += sound_ratio_remainder / 5; // 6.25 MHz : 10 MHz.
@@ -437,12 +437,12 @@ int main(int argc, char** argv) {
                 const auto adsp_exit = adsp.run_until(
                     next_sound_cycle, interpreter_only, recompiler_only);
                 if (recompiler_only &&
-                    adsp_exit == mamerecomp::adsp2105::BlockExit::NeedsInterpreter) {
-                    const auto pc = adsp.cpu().pc & mamerecomp::adsp2105::pc_mask;
+                    adsp_exit == multiarcaderecomp::adsp2105::BlockExit::NeedsInterpreter) {
+                    const auto pc = adsp.cpu().pc & multiarcaderecomp::adsp2105::pc_mask;
                     const auto stop_opcode = adsp.diagnostics().stopped_opcode;
-                    const bool has_aot_address = mamerecomp::adsp2105::lookup(pc) != nullptr;
+                    const bool has_aot_address = multiarcaderecomp::adsp2105::lookup(pc) != nullptr;
                     const bool has_exact_aot_block =
-                        mamerecomp::adsp2105::lookup(pc, stop_opcode) != nullptr;
+                        multiarcaderecomp::adsp2105::lookup(pc, stop_opcode) != nullptr;
                     const bool dynamic_code = machine.dcs().program_word_was_written(pc);
                     std::cerr << "ADSP-2105 stopped at PC=0x" << std::hex
                               << pc << " opcode=0x" << stop_opcode
@@ -457,7 +457,7 @@ int main(int argc, char** argv) {
                     recompiler_only_stop = true;
                 }
             }
-#ifdef MAMERECOMP_MK2_SDL
+#ifdef MULTIARCADERECOMP_MK2_SDL
             if (live && board.take_completed_frames()) {
                 if (input_replay.empty())
                     live->poll_inputs(board, start_scheduled, start_cycle, cpu.cycles);
@@ -466,7 +466,7 @@ int main(int argc, char** argv) {
             }
 #endif
             if (recompiler_only_stop) break;
-            if (result == mamerecomp::tms34010::BlockExit::Budget) break;
+            if (result == multiarcaderecomp::tms34010::BlockExit::Budget) break;
         }
         write_ppm(board.framebuffer(), frame_path);
         const auto d = adsp.diagnostics();
@@ -481,7 +481,7 @@ int main(int argc, char** argv) {
                   << adsp_cpu.native_instructions << " interpreted="
                   << adsp_cpu.interpreted_instructions << " total="
                   << adsp_total << '\n';
-        mamerecomp_interpreter_trace_flush();
+        multiarcaderecomp_interpreter_trace_flush();
         std::vector<std::pair<std::uint32_t, std::uint64_t>> hot_native(
             native_pc_hits.begin(), native_pc_hits.end());
         std::sort(hot_native.begin(), hot_native.end(),

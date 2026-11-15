@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 namespace {
 constexpr std::uint16_t kNoiseFeedback = 0x8000;
 constexpr std::uint16_t kNoiseTap0 = 0x0001;
@@ -87,4 +87,4 @@ void SegaPsg::clock_divided_tick() noexcept {
     }
 }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

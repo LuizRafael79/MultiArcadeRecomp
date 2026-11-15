@@ -34,14 +34,14 @@ cmake --build build -j1
 List available game profiles:
 
 ```sh
-./build/mamerecomp list-games
+./build/multiarcaderecomp list-games
 ```
 
 Build and run the CPS1 `sf2ce` profile:
 
 ```sh
-build/mamerecomp build --machine=cps --board=cps1 --game=sf2ce
-build/mamerecomp run --machine=cps --board=cps1 --game=sf2ce \
+build/multiarcaderecomp build --machine=cps --board=cps1 --game=sf2ce
+build/multiarcaderecomp run --machine=cps --board=cps1 --game=sf2ce \
   --rom-dir /path/to/roms
 ```
 

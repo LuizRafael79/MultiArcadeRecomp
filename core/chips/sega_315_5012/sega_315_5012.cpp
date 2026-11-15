@@ -1,6 +1,6 @@
 #include "chips/sega_315_5012/sega_315_5012.hpp"
 
-namespace mamerecomp::chips::sega3155012 {
+namespace multiarcaderecomp::chips::sega3155012 {
 namespace {
 constexpr unsigned kWidth = 320;
 constexpr unsigned kHeight = 224;
@@ -77,4 +77,4 @@ Output rasterize(const sega3155011::Comparator& line_comparator,
     return output;
 }
 
-} // namespace mamerecomp::chips::sega3155012
+} // namespace multiarcaderecomp::chips::sega3155012

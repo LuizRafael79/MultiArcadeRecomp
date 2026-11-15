@@ -13,7 +13,7 @@ int main()
     rom[0x201] = 0x40; // 256-nibble block, fastest rate
     rom[0x202] = 0x77;
 
-    mamerecomp::audio::Upd7759 standalone(mamerecomp::audio::Upd7759::Mode::Rom);
+    multiarcaderecomp::audio::Upd7759 standalone(multiarcaderecomp::audio::Upd7759::Mode::Rom);
     standalone.set_rom(rom);
     standalone.write_port(0);
     standalone.start();
@@ -24,7 +24,7 @@ int main()
     assert(standalone.idle());
     assert(standalone.pcm_sample() == 0);
 
-    mamerecomp::audio::Upd7759 fifo(mamerecomp::audio::Upd7759::Mode::Fifo);
+    multiarcaderecomp::audio::Upd7759 fifo(multiarcaderecomp::audio::Upd7759::Mode::Fifo);
     unsigned requests = 0;
     fifo.set_request_callback([&] { ++requests; });
     fifo.start();

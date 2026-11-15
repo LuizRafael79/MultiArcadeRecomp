@@ -6,7 +6,7 @@
 #include <optional>
 #include <string_view>
 
-namespace mamerecomp::games::sega::system16a::shinobi {
+namespace multiarcaderecomp::games::sega::system16a::shinobi {
 
 struct LivesSetting {
     std::uint8_t dip_bits = 0x0c;
@@ -21,6 +21,6 @@ const char* lives_mode_name(std::uint8_t dsw2, bool infinite);
 
 // Exported through the selected game's shared module and consumed by the
 // generic Sega presenter; Shinobi DIP meaning stays in this game module.
-const mamerecomp::sega::GameSettingsApi* game_settings_api();
+const multiarcaderecomp::sega::GameSettingsApi* game_settings_api();
 
-} // namespace mamerecomp::games::sega::system16a::shinobi
+} // namespace multiarcaderecomp::games::sega::system16a::shinobi

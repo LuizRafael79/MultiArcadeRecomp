@@ -14,7 +14,7 @@
 #include <stdexcept>
 
 namespace {
-using mamerecomp::konami::Tmnt2Board;
+using multiarcaderecomp::konami::Tmnt2Board;
 
 bool bus_read8(void* context, uint32_t address, uint8_t* value)
 {
@@ -41,21 +41,21 @@ uint16_t exception_read16(uint32_t address) { return ng_r16(address); }
 void exception_write16(uint32_t address, uint16_t value) { ng_w16(address, value); }
 }
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 
 Tmnt2MainCpu::Tmnt2MainCpu(Tmnt2Board& board, const ng_func_entry_t* entries, size_t entry_count)
     : board_(board), entries_(entries), entry_count_(entry_count)
 {
     if (!entries_ || entry_count_ == 0) throw std::runtime_error("TMNT2-family 68000 AOT table is empty");
     const M68kBusCallbacks bus{&board_, bus_read8, bus_read16, bus_write8, bus_write16};
-    mamerecomp_m68k_bus_bind(&bus);
-    mame_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
+    multiarcaderecomp_m68k_bus_bind(&bus);
+    multiarcade_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
     reset();
 }
 
 Tmnt2MainCpu::~Tmnt2MainCpu()
 {
-    mamerecomp_m68k_bus_bind(nullptr);
+    multiarcaderecomp_m68k_bus_bind(nullptr);
 }
 
 void Tmnt2MainCpu::reset()
@@ -85,7 +85,7 @@ int Tmnt2MainCpu::execute_until(uint64_t cycle_deadline)
         if (ng_cpu.stopped) { ng_cycles = target; break; }
         ng_next_event = target;
         const uint32_t instruction_pc = pc();
-        static const bool trace_bad_pc = std::getenv("MAMERECOMP_TMNT2_TRACE_BAD_PC") != nullptr;
+        static const bool trace_bad_pc = std::getenv("MULTIARCADERECOMP_TMNT2_TRACE_BAD_PC") != nullptr;
         const uint32_t sp = ng_cpu.a[7];
         const uint32_t stack_top = trace_bad_pc
             ? ((uint32_t(board_.main_read(sp)) << 16) | board_.main_read(sp + 2)) : 0;
@@ -108,8 +108,8 @@ int Tmnt2MainCpu::execute_until(uint64_t cycle_deadline)
                               board_.main_read(ng_cpu.a[7] + 2)) << '\n'
                           << disassembly_before_pc();
             }
-            mamerecomp_m68k_bus_clear_fault();
-            const int consumed = mamerecomp_m68k_musashi_step();
+            multiarcaderecomp_m68k_bus_clear_fault();
+            const int consumed = multiarcaderecomp_m68k_musashi_step();
             ng_cycles += consumed > 0 ? consumed : 1;
             ++ng_icount;
             ++fallback_instructions_;
@@ -183,4 +183,4 @@ uint32_t Tmnt2MainCpu::address_register(unsigned index) const
 
 uint64_t Tmnt2MainCpu::cycles() const { return static_cast<uint64_t>(ng_cycles); }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

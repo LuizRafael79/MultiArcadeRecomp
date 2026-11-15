@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 namespace {
 struct RomLoad {
     const char* name;
@@ -60,7 +60,7 @@ bool bit(uint16_t value, unsigned index) { return (value >> index) & 1; }
 void trace_sound_port(char width, uint32_t address, uint16_t value)
 {
     static unsigned count = 0;
-    const char* path = std::getenv("MAMERECOMP_TOKI_SOUND_TRACE");
+    const char* path = std::getenv("MULTIARCADERECOMP_TOKI_SOUND_TRACE");
     if (!path || !*path || count >= 256) return;
     std::fprintf(stderr, "TOKI_SOUND_BUS %c addr=%06x data=%04x\n", width, address, value);
     ++count;
@@ -69,7 +69,7 @@ void trace_sound_port(char width, uint32_t address, uint16_t value)
 void trace_sound_cpu_port(char access, uint16_t address, uint8_t value)
 {
     static unsigned count = 0;
-    const char* path = std::getenv("MAMERECOMP_TOKI_SOUND_TRACE");
+    const char* path = std::getenv("MULTIARCADERECOMP_TOKI_SOUND_TRACE");
     if (!path || !*path || count >= 160) return;
     std::fprintf(stderr, "TOKI_SOUND_CPU %c addr=%04x data=%02x\n", access, address, value);
     ++count;
@@ -619,4 +619,4 @@ size_t TokiBoard::active_sprite_entries() const
     return count;
 }
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

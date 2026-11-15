@@ -13,7 +13,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-namespace mamerecomp::app {
+namespace multiarcaderecomp::app {
 
 inline std::vector<std::uint8_t> read_binary_file(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary | std::ios::ate);
@@ -50,4 +50,4 @@ inline int run_child_process(const std::vector<std::string>& arguments) {
     return 1;
 }
 
-} // namespace mamerecomp::app
+} // namespace multiarcaderecomp::app

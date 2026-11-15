@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp::naomi {
+namespace multiarcaderecomp::naomi {
 
 // Flycast's 64 channel AICA generator, with host audio output detached. The
 // generated channel MIXS values are consumed by NaomiAicaDsp.
@@ -30,4 +30,4 @@ private:
               std::vector<std::uint8_t>& wave_ram);
 };
 
-} // namespace mamerecomp::naomi
+} // namespace multiarcaderecomp::naomi

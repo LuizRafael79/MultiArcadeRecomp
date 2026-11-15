@@ -1,12 +1,12 @@
-# MameRecomp repository restart and source reorganization
+# MultiArcadeRecomp repository restart and source reorganization
 
 This document records the new repository's origin and the staged migration of
 supported games. Update it after each completed migration and validation.
 
 ## Goal
 
-Preserve the former working repository as `mamerecomp_dev`, create a clean
-`mamerecomp`, then migrate supported games incrementally, by hardware and game.
+Preserve the former working repository as `multiarcaderecomp_dev`, create a clean
+`multiarcaderecomp`, then migrate supported games incrementally, by hardware and game.
 Start with Sega System 16A, System 16B, and System 18. Build and validate after
 each small step so the new tree does not become a second tangled source tree.
 
@@ -23,27 +23,27 @@ boundary.
 
 ## Repository setup completed — 2026-11-09
 
-1. Confirmed `/home/luiz/git/MameRecomp` was the official repository. The
-   directory `/home/luiz/.codex/worktrees/7c98/MameRecomp` is a linked,
+1. Confirmed `/home/luiz/git/MultiArcadeRecomp` was the official repository. The
+   directory `/home/luiz/.codex/worktrees/7c98/MultiArcadeRecomp` is a linked,
    detached Codex worktree, not a second official source checkout.
-2. Renamed the official checkout to `/home/luiz/git/mamerecomp_dev`. This was a
+2. Renamed the official checkout to `/home/luiz/git/multiarcaderecomp_dev`. This was a
    filesystem rename, preserving tracked edits and untracked files there.
 3. Repaired the Codex worktree's Git metadata to point to
-   `/home/luiz/git/mamerecomp_dev/.git/worktrees/MameRecomp`. Its pre-existing
+   `/home/luiz/git/multiarcaderecomp_dev/.git/worktrees/MultiArcadeRecomp`. Its pre-existing
    local edits remain in that worktree.
-4. Created `/home/luiz/git/mamerecomp` as a separate local clone of the last
+4. Created `/home/luiz/git/multiarcaderecomp` as a separate local clone of the last
    committed revision, `9b695046a8decf84fbe50b8441922af626a606a0`
    (`Reuse PSX texture cache across ABR modes`). The new checkout starts clean;
-   uncommitted work from `mamerecomp_dev` was deliberately not copied into it.
-5. Removed the clone's local `origin` pointing at `mamerecomp_dev`; no hosted
+   uncommitted work from `multiarcaderecomp_dev` was deliberately not copied into it.
+5. Removed the clone's local `origin` pointing at `multiarcaderecomp_dev`; no hosted
    remote was supplied. The new repo retains history through the baseline
    commit, but future changes are independent of the preservation checkout.
 
 ## Migration rules
 
-- Keep `mamerecomp_dev` as the reference for the former working tree. Do not
+- Keep `multiarcaderecomp_dev` as the reference for the former working tree. Do not
   build there or silently copy its dirty state into the new repository.
-- Establish a clean Release build and test baseline in `mamerecomp` before
+- Establish a clean Release build and test baseline in `multiarcaderecomp` before
   moving source. After each small source move, rebuild and run relevant tests
   before continuing.
 - Migrate one board/game slice at a time. Record source ownership, dependencies,
@@ -131,8 +131,8 @@ multiply definitions solely for visual directory symmetry.
 
 ### 2026-11-09 — repository creation and first System 16/18 slice
 
-- Preserved the official working tree as `~/git/mamerecomp_dev`.
-- Created a clean `~/git/mamerecomp` clone at baseline commit `9b69504`.
+- Preserved the official working tree as `~/git/multiarcaderecomp_dev`.
+- Created a clean `~/git/multiarcaderecomp` clone at baseline commit `9b69504`.
 - Removed the clone's local origin; the new repository has no remote configured.
 - Added `CMakePresets.json` with distinct Linux x64 and Windows x64 `dev`,
   `debug`, and `release` build/test presets. Linux uses Ninja + GCC; Windows
@@ -235,7 +235,7 @@ until it can be built and exercised on macOS.
   `docs/hardware/cpus/z80/README.md` and updated its README/CPS progress links.
 - Source inspection confirms Neo Geo `NG_Z80_MODE=legacy` runs Superzazu's
   `z80_step` interpreter for the whole sound CPU. Normal mode runs the shared
-  `mamerecomp::z80` backend, which has its own interpreter mode and AOT/native
+  `multiarcaderecomp::z80` backend, which has its own interpreter mode and AOT/native
   execution modes. Superzazu is therefore not currently the AOT fallback.
 - The user wants the shared interpreter choice evaluated between the current
   implementation and Superzazu. No winner has been selected and no Neo Geo
@@ -257,7 +257,7 @@ Project-authored notes under `core/cpus/`, `src/`, and `tools/` moved under
 `docs/references/mame/`. License texts and notices are under `docs/license/`,
 and all vendored provenance and package documentation are under
 `docs/third_party/`. The deleted root GPL-2.0 text was preserved as
-`docs/license/mamerecomp/LICENSE.md`. Link checks report no broken relative
+`docs/license/multiarcaderecomp/LICENSE.md`. Link checks report no broken relative
 Markdown links. No Neo Geo source/runtime was changed.
 
 
@@ -265,7 +265,7 @@ Markdown links. No Neo Geo source/runtime was changed.
 
 - Moved the generated-code bus bridge, dispatcher, and Musashi fallback from
   `src/system16/` into `core/cpus/m68000/runtime/` and renamed their targets
-  to `mamerecomp_m68k_recomp_runtime` and `mamerecomp_m68k_musashi`.
+  to `multiarcaderecomp_m68k_recomp_runtime` and `multiarcaderecomp_m68k_musashi`.
 - Updated TMNT, TMNT2/Sunset Riders, and Toki to bind their own board callbacks
   to the shared 68000 runtime. Their source no longer includes System 16
   headers or links System 16 runtime targets. System 16 still provides its own
@@ -312,7 +312,7 @@ Markdown links. No Neo Geo source/runtime was changed.
 ### 2026-11-11 — Sega module aggregation
 
 - Added parent CMake modules at `src/boards/sega/` and `src/runtime/sega/`.
-  The root now adds those parents and links the `mamerecomp_sega_runtime`
+  The root now adds those parents and links the `multiarcaderecomp_sega_runtime`
   aggregate instead of enumerating each Sega board target.
 - Moved Sega ROM-profile generation into the System 16 runtime module and
   assigned FD1094, the M68000 debugger, and System 16 presentation/video
@@ -323,7 +323,7 @@ Markdown links. No Neo Geo source/runtime was changed.
   video implementation is still combined. These are explicit ownership items
   for a later code split, not hidden by the CMake aggregation.
 - `cmake --preset linux-x64-release` configured successfully, and
-  `cmake --build --preset linux-x64-release --target mamerecomp -j2` linked
+  `cmake --build --preset linux-x64-release --target multiarcaderecomp -j2` linked
   the application successfully. No tests or game boot were run.
 
 ### 2026-11-11 — shared Sega address-space contract
@@ -334,7 +334,7 @@ Markdown links. No Neo Geo source/runtime was changed.
   System 18 derive from the neutral Sega address-space contract. System 18 no
   longer includes System 16 bus headers or links the System 16 runtime target.
 - `cmake --preset linux-x64-release` configured successfully, and
-  `cmake --build --preset linux-x64-release --target mamerecomp -j2` linked
+  `cmake --build --preset linux-x64-release --target multiarcaderecomp -j2` linked
   the application successfully. No tests or game boot were run.
 
 ### 2026-11-11 — neutral Sega profile module
@@ -353,7 +353,7 @@ Markdown links. No Neo Geo source/runtime was changed.
   modules, and moving the system runners and their family selection out of
   `main.cpp`.
 - `cmake --preset linux-x64-release` configured successfully, and
-  `cmake --build --preset linux-x64-release --target mamerecomp -j2` linked
+  `cmake --build --preset linux-x64-release --target multiarcaderecomp -j2` linked
   the application successfully. No tests or game boot were run.
 
 ### 2026-11-11 — shared 315-5197 chip and CPU boundary
@@ -384,7 +384,7 @@ Markdown links. No Neo Geo source/runtime was changed.
 - Naomi remains built as an experimental loadable module while it is not
   bootable. Removing experimental systems from the production target is a
   future production/build split, separate from the Sega work in this step.
-- The Release configure and `mamerecomp` build completed successfully after
+- The Release configure and `multiarcaderecomp` build completed successfully after
   this extraction. No tests or game boot were run.
 - Remaining Sega ownership work: separate OpenGL backend ownership where it
   can be done cleanly, move each board session runner and family selection out

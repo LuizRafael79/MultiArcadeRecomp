@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 
 // Behavioral model of Sega's 315-5296 eight-port I/O device.
 class Sega3155296 {
@@ -32,4 +32,4 @@ private:
     std::uint8_t m_direction_override = 0xff;
 };
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips

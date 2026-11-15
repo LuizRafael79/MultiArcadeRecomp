@@ -5,7 +5,7 @@
 
 struct SDL_AudioStream;
 
-namespace mamerecomp::seibu {
+namespace multiarcaderecomp::seibu {
 
 class TokiAudioPresenter {
 public:
@@ -18,4 +18,4 @@ private:
     SDL_AudioStream* stream_ = nullptr;
 };
 
-} // namespace mamerecomp::seibu
+} // namespace multiarcaderecomp::seibu

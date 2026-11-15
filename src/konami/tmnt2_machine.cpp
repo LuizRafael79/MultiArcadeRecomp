@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace mamerecomp::konami {
+namespace multiarcaderecomp::konami {
 namespace {
 struct Load {
     const char* file;
@@ -160,7 +160,7 @@ Tmnt2RomSet load_tmnt2_romset(std::string_view game,
 Tmnt2Board::Tmnt2Board(std::string_view game, Tmnt2RomSet roms)
     : tmnt2_(game == "tmnt2"), screen_width_(game == "tmnt2" ? 304 : 288),
       visible_x_(game == "tmnt2" ? 8 : 16), roms_(std::move(roms)),
-      eeprom_(mamerecomp::devices::SerialEeprom::Protocol::Er5911_8Bit,
+      eeprom_(multiarcaderecomp::devices::SerialEeprom::Protocol::Er5911_8Bit,
               roms_.at("eeprom")),
       ym2151_(*this)
 {
@@ -1114,4 +1114,4 @@ std::vector<uint8_t> Tmnt2Board::frame_rgb(const Tmnt2Frame& frame) const
     return rgb;
 }
 
-} // namespace mamerecomp::konami
+} // namespace multiarcaderecomp::konami

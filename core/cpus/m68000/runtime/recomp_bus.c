@@ -26,7 +26,7 @@ static void record_fault(M68kBusAccess access, uint32_t address)
     }
 }
 
-void mamerecomp_m68k_bus_bind(const M68kBusCallbacks *callbacks)
+void multiarcaderecomp_m68k_bus_bind(const M68kBusCallbacks *callbacks)
 {
     memset(&s_callbacks, 0, sizeof(s_callbacks));
     s_read_observer = 0;
@@ -36,27 +36,27 @@ void mamerecomp_m68k_bus_bind(const M68kBusCallbacks *callbacks)
     if (callbacks != NULL) {
         s_callbacks = *callbacks;
     }
-    mame_recomp_m68k_set_exception_bus(ng_r16_slow, ng_w16_slow);
-    mamerecomp_m68k_bus_clear_fault();
+    multiarcade_recomp_m68k_set_exception_bus(ng_r16_slow, ng_w16_slow);
+    multiarcaderecomp_m68k_bus_clear_fault();
 }
 
-void mamerecomp_m68k_bus_set_write_observer(M68kBusWriteObserver observer)
+void multiarcaderecomp_m68k_bus_set_write_observer(M68kBusWriteObserver observer)
 {
     s_write_observer = observer;
 }
 
-void mamerecomp_m68k_bus_set_read_observer(M68kBusReadObserver observer)
+void multiarcaderecomp_m68k_bus_set_read_observer(M68kBusReadObserver observer)
 {
     s_read_observer = observer;
 }
 
-void mamerecomp_m68k_bus_clear_fault(void)
+void multiarcaderecomp_m68k_bus_clear_fault(void)
 {
     s_fault.access = M68K_BUS_ACCESS_NONE;
     s_fault.address = 0;
 }
 
-M68kBusFault mamerecomp_m68k_bus_fault(void)
+M68kBusFault multiarcaderecomp_m68k_bus_fault(void)
 {
     return s_fault;
 }

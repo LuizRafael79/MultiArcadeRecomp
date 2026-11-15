@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a deterministic C31 AOT overlay from one or more hot-site logs.
 
-Each input is captured with MAMERECOMP_C31_HOT_SITES=1. The tool unions PCs
+Each input is captured with MULTIARCADERECOMP_C31_HOT_SITES=1. The tool unions PCs
 across runs but refuses to emit an address if its observed opcode changes.
 """
 from __future__ import annotations

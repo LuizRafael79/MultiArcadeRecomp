@@ -1,6 +1,6 @@
 #include "sega_315_5196.hpp"
 
-namespace mamerecomp::chips::sega3155196 {
+namespace multiarcaderecomp::chips::sega3155196 {
 namespace {
 std::uint16_t read_be16(std::span<const std::uint8_t> bytes, std::size_t offset) {
     if (offset + 1 >= bytes.size()) return 0;
@@ -113,4 +113,4 @@ std::vector<std::uint16_t> rasterize_sprites(std::span<const std::uint8_t> sprit
 }
 
 
-} // namespace mamerecomp::chips::sega3155196
+} // namespace multiarcaderecomp::chips::sega3155196

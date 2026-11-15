@@ -4,7 +4,7 @@
 #include <span>
 #include <cstdint>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 class System16ASound;
 
@@ -19,4 +19,4 @@ SegaAddressSpace make_system16a_address_space(std::span<const std::uint8_t> main
     System16AVideoSignals* video_signals = nullptr, SegaInputState* input_state = nullptr,
     System16ASound* sound = nullptr);
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

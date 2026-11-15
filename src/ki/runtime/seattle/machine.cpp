@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace mamerecomp::ki::seattle {
+namespace multiarcaderecomp::ki::seattle {
 namespace {
 constexpr int cpu_hz = 100000000;
 constexpr int total_lines = 261;
@@ -73,4 +73,4 @@ void copy_rgb(std::span<std::uint8_t> output) noexcept {
     }
 }
 
-} // namespace mamerecomp::ki::seattle
+} // namespace multiarcaderecomp::ki::seattle

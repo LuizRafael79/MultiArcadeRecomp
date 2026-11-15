@@ -3,11 +3,11 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 struct SegaPresenter::Impl {};
 
 SegaPresenter::SegaPresenter(std::string,
-    std::vector<mamerecomp::sega::GameInputBinding>, bool, bool, std::uint32_t, std::uint32_t)
+    std::vector<multiarcaderecomp::sega::GameInputBinding>, bool, bool, std::uint32_t, std::uint32_t)
     : impl_(std::make_unique<Impl>()) {
     throw std::runtime_error("SDL3 live window presentation was not built");
 }
@@ -25,6 +25,6 @@ SegaLiveInputs SegaPresenter::live_inputs() const { return {}; }
 bool SegaPresenter::has_input_focus() const { return false; }
 SegaPresenterTiming SegaPresenter::timing() const { return {}; }
 bool SegaPresenter::show_configuration_menu(SegaSharedSettings&, const std::filesystem::path&,
-    const std::string&, const mamerecomp::sega::GameSettingsApi*, void*) { return false; }
+    const std::string&, const multiarcaderecomp::sega::GameSettingsApi*, void*) { return false; }
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

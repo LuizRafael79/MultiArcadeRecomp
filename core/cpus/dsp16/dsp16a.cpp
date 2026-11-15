@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:Vas Crabb, MameRecomp contributors
+// copyright-holders:Vas Crabb, MultiArcadeRecomp contributors
 // DSP16A interpreter semantics ported from MAME's BSD-3-Clause DSP16 core.
 
 #include "dsp16a.hpp"
@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace mamerecomp::dsp16 {
+namespace multiarcaderecomp::dsp16 {
 namespace {
 constexpr std::uint8_t flag_old = 0x02;
 constexpr std::uint8_t sio_flags_none = 0;
@@ -809,4 +809,4 @@ unsigned Dsp16A::dispatch_instruction(std::uint16_t op, bool from_cache)
     return execute_instruction(op, from_cache);
 }
 
-} // namespace mamerecomp::dsp16
+} // namespace multiarcaderecomp::dsp16

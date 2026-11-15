@@ -9,7 +9,7 @@ import re
 
 BLOCK = re.compile(r"^\s*(?:BLOCK|ZBLOCK)\s*\(")
 INSN = re.compile(r"^\s*//\s+[0-9A-Fa-f]{4,6}:\s+\S")
-INCLUDE = '#include "mamerecomp_cps2_coverage.h"'
+INCLUDE = '#include "multiarcaderecomp_cps2_coverage.h"'
 
 
 def instrument(path: Path, kind: str) -> None:
@@ -26,7 +26,7 @@ def instrument(path: Path, kind: str) -> None:
         nonlocal marker_index, instruction_count
         if marker_index is not None and instruction_count:
             output.insert(marker_index + 1,
-                f"    mamerecomp_cps2_coverage::{counter} += {instruction_count}ULL;")
+                f"    multiarcaderecomp_cps2_coverage::{counter} += {instruction_count}ULL;")
         marker_index = None
         instruction_count = 0
 
@@ -55,7 +55,7 @@ def patch_runtime(source: Path, destination: Path, kind: str) -> None:
     if text.count(marker) != 1:
         raise SystemExit(f"expected one interpreter counter in {source}")
     counter = "m68k_fallback_instructions" if kind == "m68k" else "z80_fallback_instructions"
-    text = text.replace(marker, marker + f"\n            mamerecomp_cps2_coverage::{counter}++;", 1)
+    text = text.replace(marker, marker + f"\n            multiarcaderecomp_cps2_coverage::{counter}++;", 1)
     first_include_end = text.find("\n", text.find("#include"))
     text = text[:first_include_end + 1] + INCLUDE + "\n" + text[first_include_end + 1:]
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -77,7 +77,7 @@ def main() -> int:
     for path in z80:
         instrument(path, "z80")
 
-    runtime = args.work / "mamerecomp_runtime"
+    runtime = args.work / "multiarcaderecomp_runtime"
     patch_runtime(args.source / "runtime/recomp.cpp", runtime / "recomp.cpp", "m68k")
     patch_runtime(args.source / "runtime/recomp_z80.cpp", runtime / "recomp_z80.cpp", "z80")
     return 0

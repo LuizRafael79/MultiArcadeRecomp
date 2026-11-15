@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace mamerecomp {
+namespace multiarcaderecomp {
 
 enum class SegaVideoBackend { Software, OpenGL };
 
@@ -27,4 +27,4 @@ struct SegaVideoFrame {
     std::array<std::uint32_t, 64> vdp_palette_rgb{};
 };
 
-} // namespace mamerecomp
+} // namespace multiarcaderecomp

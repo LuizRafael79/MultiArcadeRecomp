@@ -17,11 +17,11 @@
 #include <iostream>
 #include <utility>
 
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
 #include <SDL3/SDL.h>
 #endif
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 namespace {
 constexpr std::uint32_t kYmClocksPerSample = 64;
 constexpr std::uint32_t kOkiClockHz = 1'000'000;
@@ -75,7 +75,7 @@ public:
         m_audio_output = audio_output;
         m_initialized = true;
         if (!audio_output) return true;
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
         if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
             std::cerr << "[cps1-audio] SDL audio init failed: " << SDL_GetError() << '\n';
             return false;
@@ -100,14 +100,14 @@ public:
         m_audio_buffer.reserve(kFlushFrames * 2);
         return true;
 #else
-        std::cerr << "[cps1-audio] this build has no SDL3 audio support; rebuild with MAMERECOMP_ENABLE_WINDOW=ON\n";
+        std::cerr << "[cps1-audio] this build has no SDL3 audio support; rebuild with MULTIARCADERECOMP_ENABLE_WINDOW=ON\n";
         return false;
 #endif
     }
 
     void shutdown() {
         flush_audio();
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
         if (m_audio_stream) {
             SDL_DestroyAudioStream(m_audio_stream);
             m_audio_stream = nullptr;
@@ -254,7 +254,7 @@ private:
         return std::clamp(mix, -2048, 2047);
     }
     void flush_audio() {
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
         if (m_audio_stream && !m_audio_buffer.empty()) {
             const int bytes = static_cast<int>(m_audio_buffer.size() * sizeof(std::int16_t));
             if (!SDL_PutAudioStreamData(m_audio_stream, m_audio_buffer.data(), bytes))
@@ -284,12 +284,12 @@ private:
     bool m_oki_pin7 = true;
     bool m_audio_output = false;
     bool m_initialized = false;
-#ifdef MAMERECOMP_CPS1_SDL
+#ifdef MULTIARCADERECOMP_CPS1_SDL
     SDL_AudioStream* m_audio_stream = nullptr;
 #endif
 };
 
-mamerecomp::z80::Z80* g_z80_cpu_ptr = nullptr;
+multiarcaderecomp::z80::Z80* g_z80_cpu_ptr = nullptr;
 Cps1SoundDevices g_devices;
 std::vector<std::uint8_t> g_fixed_rom, g_banked_rom;
 std::array<std::uint8_t, 0x800> g_ram{};
@@ -297,9 +297,9 @@ std::uint8_t g_command = 0xff;
 std::uint8_t g_timer_command = 0xff;
 std::uint8_t g_bank = 0;
 bool g_active = false;
-extern mamerecomp::z80::Z80 g_cpu;
+extern multiarcaderecomp::z80::Z80 g_cpu;
 
-class Cps1SoundBus final : public mamerecomp::z80::Z80Bus {
+class Cps1SoundBus final : public multiarcaderecomp::z80::Z80Bus {
 public:
     std::uint8_t Read(std::uint16_t address) override {
         if (address < 0x8000) return address < g_fixed_rom.size() ? g_fixed_rom[address] : 0xff;
@@ -333,7 +333,7 @@ public:
 };
 
 Cps1SoundBus g_bus;
-mamerecomp::z80::Z80 g_cpu(g_bus);
+multiarcaderecomp::z80::Z80 g_cpu(g_bus);
 
 void Cps1SoundDevices::ymfm_update_irq(bool asserted) {
     if (g_z80_cpu_ptr) g_z80_cpu_ptr->SetInterruptLine(asserted);
@@ -341,13 +341,13 @@ void Cps1SoundDevices::ymfm_update_irq(bool asserted) {
 } // namespace
 
 bool initialize_sound(std::vector<std::uint8_t> fixed_rom, std::vector<std::uint8_t> banked_rom,
-    std::vector<std::uint8_t> oki_samples, const mamerecomp::z80::Z80Code* code, bool audio_output) {
+    std::vector<std::uint8_t> oki_samples, const multiarcaderecomp::z80::Z80Code* code, bool audio_output) {
     if (fixed_rom.size() != 0x8000 || banked_rom.size() != 0x8000) return false;
     g_fixed_rom = std::move(fixed_rom);
     g_banked_rom = std::move(banked_rom);
     g_ram.fill(0);
     g_bank = 0;
-    mamerecomp::z80::SetZ80Code(code);
+    multiarcaderecomp::z80::SetZ80Code(code);
     g_cpu.Reset();
     g_z80_cpu_ptr = &g_cpu;
     if (!g_devices.initialize(std::move(oki_samples), audio_output)) return false;
@@ -360,7 +360,7 @@ void sync_sound_to_main_clock() {
     if (qsound_is_active()) { qsound_sync_to_main_clock(); return; }
     if (!g_active || ng_cycles <= 0) return;
     const std::uint64_t target = static_cast<std::uint64_t>(ng_cycles) * g_sound_clock_hz / g_main_clock_hz;
-    if (target > g_cpu.cycles) g_cpu.Run(target, mamerecomp::z80::Z80::Mode::Native);
+    if (target > g_cpu.cycles) g_cpu.Run(target, multiarcaderecomp::z80::Z80::Mode::Native);
     g_devices.sync(std::max(target, g_cpu.cycles));
 }
 
@@ -394,8 +394,8 @@ bool save_sound_artifacts(const std::string& entry_path, const std::string& fall
     for (std::uint16_t pc : g_cpu.newEntries)
         entries << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << pc << '\n';
     if (!entries) return false;
-    mamerecomp::z80::z80native::ReportInterpreterProfile();
-    mamerecomp::z80::z80native::PersistFallbackLog(fallback_path.c_str());
+    multiarcaderecomp::z80::z80native::ReportInterpreterProfile();
+    multiarcaderecomp::z80::z80native::PersistFallbackLog(fallback_path.c_str());
     return true;
 }
 
@@ -405,4 +405,4 @@ void shutdown_sound() {
     g_active = false;
 }
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

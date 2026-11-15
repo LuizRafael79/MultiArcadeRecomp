@@ -50,9 +50,9 @@ the final object marker, then its normal data pointer draws entries from 0
 forward; some bootlegs reverse this order. These details are shared by SF2CE
 and Dino and need gameplay validation.
 
-For a gameplay run, set `MAMERECOMP_CPS1_TRACE_COMPOSITION=1` to log changes
+For a gameplay run, set `MULTIARCADERECOMP_CPS1_TRACE_COMPOSITION=1` to log changes
 to the CPS-B layer-control word, decoded order/enables, CPS-A video control and
-the four active priority registers. `MAMERECOMP_CPS1_DUMP_LAYERS=/tmp/cps1`
+the four active priority registers. `MULTIARCADERECOMP_CPS1_DUMP_LAYERS=/tmp/cps1`
 also writes one PPM per source layer at each framebuffer capture.
 
 Scroll 2 row-scroll indexing follows MAME's `screen_update_cps1`: MAME assigns
@@ -87,7 +87,7 @@ Sprite overlap follows MAME's `prio_transpen` behavior: an opaque pixel sets
 the priority bitmap to 31, so the first opaque object in normal list order owns
 that pixel and later sprites cannot overwrite it. This fixes the Dino
 character-select 1P marker being hidden behind Hannah; the frame-500 MAME and
-MameRecomp captures now agree on that overlap.
+MultiArcadeRecomp captures now agree on that overlap.
 
 An equal-cycle comparison against MAME frame 3240 currently has about 1.55%
 different pixels overall. The static background and aircraft are nearly
@@ -168,9 +168,9 @@ recording the game, board/PAL profile, frame and source register/RAM state:
 ## Build and run
 
 ```sh
-build/mamerecomp build --machine=cps --board=cps1 --game=sf2ce \
+build/multiarcaderecomp build --machine=cps --board=cps1 --game=sf2ce \
   --rom-dir /path/to/sf2ce.zip --jobs 4
-build/mamerecomp run --machine=cps --board=cps1 --game=sf2ce \
+build/multiarcaderecomp run --machine=cps --board=cps1 --game=sf2ce \
   --rom-dir /path/to/sf2ce.zip
 ```
 
@@ -178,7 +178,7 @@ build/mamerecomp run --machine=cps --board=cps1 --game=sf2ce \
 game and refuses to run if the source or selected ROM ZIP made the build stale.
 Add `--rebuild` to `build` to force a fresh translation.
 
-For a direct live Dino run, use the generated `mamerecomp_dino` runner with
+For a direct live Dino run, use the generated `multiarcaderecomp_dino` runner with
 `--window`; the SDL window keeps running until Escape or the window close event.
 The positional cycle budget is ignored while the live window is active.
 
@@ -209,18 +209,18 @@ active-low input ports as follows:
 Coin keys send a one-frame pulse and remain active while held; start and action
 keys stay active while held. The SF2 six-button layout follows the MAME input
 definition; the extra kick buttons are read from the CPS-B C-board input port.
-Set `MAMERECOMP_CPS1_TRACE_INPUT=1` to log detected keyboard changes and input
+Set `MULTIARCADERECOMP_CPS1_TRACE_INPUT=1` to log detected keyboard changes and input
 port values observed by the 68000.
 
 The positional `frame.ppm` argument writes one still image when the run ends.
-For a sequence of snapshots, set `MAMERECOMP_CPS1_FRAME_DUMP_DIR` to an output
+For a sequence of snapshots, set `MULTIARCADERECOMP_CPS1_FRAME_DUMP_DIR` to an output
 directory. The runner writes one PPM every 60 VBlanks by default; override the
-interval with `MAMERECOMP_CPS1_FRAME_DUMP_EVERY`. For example:
+interval with `MULTIARCADERECOMP_CPS1_FRAME_DUMP_EVERY`. For example:
 
 ```sh
-MAMERECOMP_CPS1_FRAME_DUMP_DIR=build/cps1/work/sf2ce/frames \
-MAMERECOMP_CPS1_FRAME_DUMP_EVERY=60 \
-build/cps1/mamerecomp-host/mamerecomp_sf2ce \
+MULTIARCADERECOMP_CPS1_FRAME_DUMP_DIR=build/cps1/work/sf2ce/frames \
+MULTIARCADERECOMP_CPS1_FRAME_DUMP_EVERY=60 \
+build/cps1/multiarcaderecomp-host/multiarcaderecomp_sf2ce \
   build/cps1/work/sf2ce/program.bin 1200000000 \
   build/cps1/work/sf2ce/m68k_dynamic_entries.txt \
   build/cps1/work/sf2ce/z80_program.bin \
@@ -232,6 +232,6 @@ build/cps1/mamerecomp-host/mamerecomp_sf2ce \
   --window --oki build/cps1/work/sf2ce/roms/oki.bin
 ```
 
-For live-window pacing diagnostics, set `MAMERECOMP_CPS1_TRACE_PACING=1`.
+For live-window pacing diagnostics, set `MULTIARCADERECOMP_CPS1_TRACE_PACING=1`.
 The runner reports measured presentation FPS in 120-frame windows alongside
 the CPS1 refresh target computed from the machine profile.

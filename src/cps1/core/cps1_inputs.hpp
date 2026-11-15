@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <array>
 
-namespace mamerecomp::cps1::detail {
+namespace multiarcaderecomp::cps1::detail {
 
 std::uint16_t read_player_inputs();
 std::uint8_t read_system_dip(unsigned offset);
@@ -19,4 +19,4 @@ void cps1_coin_counter_write(unsigned slot, bool level);
 void cps1_coin_lockout_write(unsigned slot, bool locked);
 void pulse_coin(unsigned slot);
 
-} // namespace mamerecomp::cps1::detail
+} // namespace multiarcaderecomp::cps1::detail

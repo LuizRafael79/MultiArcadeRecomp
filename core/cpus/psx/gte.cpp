@@ -7,7 +7,7 @@
 
 #define GTELOG(...) ((void)0)
 
-namespace mamerecomp::psx {
+namespace multiarcaderecomp::psx {
 
 Gte::int44 Gte::int44::operator+(int64_t add)
 {
@@ -921,4 +921,4 @@ int Gte::docop2( uint32_t pc, int gteop )
 	return 0;
 }
 
-} // namespace mamerecomp::psx
+} // namespace multiarcaderecomp::psx

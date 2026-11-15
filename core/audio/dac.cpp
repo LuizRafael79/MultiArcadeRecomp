@@ -1,6 +1,6 @@
 #include "dac.hpp"
 
-namespace mamerecomp::audio {
+namespace multiarcaderecomp::audio {
 
 DcBlocker::DcBlocker(std::int32_t feedback_numerator, std::int32_t feedback_denominator,
     std::int32_t initial_input) noexcept
@@ -21,4 +21,4 @@ void DcBlocker::reset(std::int32_t initial_input) noexcept {
     m_previous_output = 0;
 }
 
-} // namespace mamerecomp::audio
+} // namespace multiarcaderecomp::audio

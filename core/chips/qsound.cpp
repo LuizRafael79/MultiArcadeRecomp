@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// Copyright (c) 2026 MameRecomp contributors.
+// Copyright (c) 2026 MultiArcadeRecomp contributors.
 // Peripheral model adapted from MAME src/devices/sound/qsound.cpp and
 // qsoundhle.cpp. MAME attribution: Vas Crabb (LLE), superctr and Valley Bell
 // (HLE); see core/third_party/qsound-hle/qsound.c for the HLE source notice.
@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 
-namespace mamerecomp::chips {
+namespace multiarcaderecomp::chips {
 using dsp16::Dsp16A;
 using dsp16::Dsp16ABus;
 
@@ -193,40 +193,40 @@ struct QSound::Impl {
     explicit Impl(QSoundConfig cfg)
         : config(cfg), active_mode(cfg.mode == QSoundMode::Mixed ? QSoundMode::Lle : cfg.mode),
           dsp(make_dsp_bus()) {
-        trace_qsound = std::getenv("MAMERECOMP_QSOUND_TRACE") != nullptr;
-        trace_word = std::getenv("MAMERECOMP_QSOUND_WORD_TRACE") != nullptr;
+        trace_qsound = std::getenv("MULTIARCADERECOMP_QSOUND_TRACE") != nullptr;
+        trace_word = std::getenv("MULTIARCADERECOMP_QSOUND_WORD_TRACE") != nullptr;
         force_alternating_channel = std::getenv(
-            "MAMERECOMP_QSOUND_FORCE_ALTERNATING_CHANNEL") != nullptr;
-        dsp_trace_full = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE_FULL") != nullptr;
-        if (const char* path = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE")) {
+            "MULTIARCADERECOMP_QSOUND_FORCE_ALTERNATING_CHANNEL") != nullptr;
+        dsp_trace_full = std::getenv("MULTIARCADERECOMP_QSOUND_DSP_TRACE_FULL") != nullptr;
+        if (const char* path = std::getenv("MULTIARCADERECOMP_QSOUND_DSP_TRACE")) {
             dsp_trace.open(path, std::ios::out | std::ios::trunc);
             if (!dsp_trace)
                 throw std::runtime_error("could not create QSound DSP trace " + std::string(path));
             dsp_trace << "phase,cycle,command_index,command_address,command_data,sdx,pc,opcode,auc,psw,pt,pr,pi,r0,r1,r2,r3,x,y,p,a0,a1\n";
         }
-        if (const char* path = std::getenv("MAMERECOMP_QSOUND_COMMAND_TRACE")) {
+        if (const char* path = std::getenv("MULTIARCADERECOMP_QSOUND_COMMAND_TRACE")) {
             command_trace.open(path, std::ios::out | std::ios::trunc);
             if (!command_trace)
                 throw std::runtime_error("could not create QSound command trace " + std::string(path));
             command_trace << "event_index,dsp_cycles,address,data,pc,pr,pi,pt,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx\n";
         }
-        if (const char* path = std::getenv("MAMERECOMP_QSOUND_PIO_TRACE")) {
+        if (const char* path = std::getenv("MULTIARCADERECOMP_QSOUND_PIO_TRACE")) {
             pio_trace.open(path, std::ios::out | std::ios::trunc);
             if (!pio_trace)
                 throw std::runtime_error("could not create QSound PIO trace " + std::string(path));
             pio_trace << "pio_index,dsp_cycles,value,pc,pr,pi,pt,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx\n";
         }
-        if (const char* path = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE")) {
+        if (const char* path = std::getenv("MULTIARCADERECOMP_QSOUND_BIT_TRACE")) {
             bit_trace.open(path, std::ios::out | std::ios::trunc);
             if (!bit_trace)
                 throw std::runtime_error("could not create QSound bit trace " + std::string(path));
             bit_trace << "edge,dsp_cycles,ready_edge,old_load,shift_remaining,shift_register,channel,psel,do,ose,old,word_loads,dsp_obuf,dsp_osr,dsp_ofsr,pc,pr,pt,pi,auc,psw,r0,r1,r2,r3,x,y,p,a0,a1,last_sdx,last_sdx_pc,last_sdx_opcode\n";
         }
-        if (const char* value = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE_FROM"))
+        if (const char* value = std::getenv("MULTIARCADERECOMP_QSOUND_BIT_TRACE_FROM"))
             bit_trace_from = std::strtoull(value, nullptr, 0);
-        if (const char* value = std::getenv("MAMERECOMP_QSOUND_BIT_TRACE_TO"))
+        if (const char* value = std::getenv("MULTIARCADERECOMP_QSOUND_BIT_TRACE_TO"))
             bit_trace_to = std::strtoull(value, nullptr, 0);
-        if (const char* value = std::getenv("MAMERECOMP_QSOUND_DSP_TRACE_AFTER_CYCLES"))
+        if (const char* value = std::getenv("MULTIARCADERECOMP_QSOUND_DSP_TRACE_AFTER_CYCLES"))
             dsp_trace_after_cycles = std::strtoull(value, nullptr, 0);
         mame_hle.init_map();
         if (!config.firmware.empty()) {
@@ -239,13 +239,13 @@ struct QSound::Impl {
                     Dsp16A::internal_program_words)));
             dsp.reset();
         }
-        if (std::getenv("MAMERECOMP_QSOUND_DSP_AOT_MANIFEST"))
+        if (std::getenv("MULTIARCADERECOMP_QSOUND_DSP_AOT_MANIFEST"))
             dsp.enable_instruction_manifest();
     }
 
     ~Impl()
     {
-        const char* path = std::getenv("MAMERECOMP_QSOUND_DSP_AOT_MANIFEST");
+        const char* path = std::getenv("MULTIARCADERECOMP_QSOUND_DSP_AOT_MANIFEST");
         if (!path || !*path)
             return;
         std::ofstream manifest(path, std::ios::out | std::ios::trunc);
@@ -325,7 +325,7 @@ struct QSound::Impl {
             scheduler_barrier_pending = false;
             return yield;
         };
-        if (std::getenv("MAMERECOMP_QSOUND_DSP_TRACE")) {
+        if (std::getenv("MULTIARCADERECOMP_QSOUND_DSP_TRACE")) {
             bus.instruction_trace = [this](dsp16::Dsp16ATracePhase phase,
                                            std::uint16_t pc,
                                            std::uint16_t opcode,
@@ -441,7 +441,7 @@ struct QSound::Impl {
                     static bool trace_started = false;
                     static const std::uint64_t after_cycles = [] {
                         const char *value = std::getenv(
-                            "MAMERECOMP_QSOUND_WORD_TRACE_AFTER_CYCLES");
+                            "MULTIARCADERECOMP_QSOUND_WORD_TRACE_AFTER_CYCLES");
                         return value ? std::strtoull(value, nullptr, 0) : 0ull;
                     }();
                     if (dsp.cycles() >= after_cycles &&
@@ -562,7 +562,7 @@ void QSound::set_sample_rom(std::span<const std::uint8_t> bytes) {
 
 void QSound::set_dsp_aot_program(std::span<const dsp16::Dsp16ACompiledEntry> entries,
                                  dsp16::Dsp16ARunHandler run_handler) {
-    if (!std::getenv("MAMERECOMP_DSP16A_INTERPRETER_ONLY")) {
+    if (!std::getenv("MULTIARCADERECOMP_DSP16A_INTERPRETER_ONLY")) {
         impl_->dsp.set_compiled_program(entries);
         impl_->dsp_aot_run = entries.empty() ? nullptr : run_handler;
     }
@@ -730,4 +730,4 @@ std::int16_t QSound::dsp_last_sdx_x() const { return impl_->dsp.last_sdx_x(); }
 std::int32_t QSound::dsp_last_sdx_y() const { return impl_->dsp.last_sdx_y(); }
 std::int32_t QSound::dsp_last_sdx_p() const { return impl_->dsp.last_sdx_p(); }
 
-} // namespace mamerecomp::chips
+} // namespace multiarcaderecomp::chips
