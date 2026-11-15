@@ -1,4 +1,10 @@
-## This project is a WIP (Work-in-progress) eternal status
+## This project is a WIP (Work-in-progress)
+
+This project does not claim to be "NATIVE"—in fact, no static recompilation 
+project truly is. It is a hybrid system that combines static recompilation 
+with a fallback mechanism, which remains in place until the platform or system 
+is fully covered—meaning that every single opcode instruction is accounted for
+without any gaps or reliance on interpreted fallback.
 
 # Multi Arcade Recomp
 
