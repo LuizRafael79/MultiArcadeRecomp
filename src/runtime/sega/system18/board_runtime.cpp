@@ -120,7 +120,8 @@ BoardRuntimeHardware make_system18_runtime(const BoardRuntimeContext& context) {
     auto scanline_clock = std::make_shared<VdpScanlineClock>();
     bus.vdp().set_scanline(0);
     const std::uint64_t scanline_denominator = context.registration.refresh_rate_num * 262U;
-    const std::uint64_t scanline_numerator_base = context.registration.maincpu_clock_hz
+    const std::uint64_t scanline_numerator_base =
+        static_cast<std::uint64_t>(context.registration.maincpu_clock_hz)
         * context.registration.refresh_rate_den;
     const auto schedule_scanline = [scanline_clock, scanline_numerator_base, scanline_denominator] {
         const std::uint64_t numerator = scanline_numerator_base + scanline_clock->remainder;
