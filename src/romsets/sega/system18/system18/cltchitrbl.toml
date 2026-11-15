@@ -1,0 +1,203 @@
+module = "system18"
+board = "system18"
+game = "cltchitrbl"
+gamename = "Clutch Hitter (bootleg)"
+parent = "cltchitr"
+romof = "cltchitr"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "cltchitrbl"
+description = "Clutch Hitter (bootleg)"
+cloneof = "cltchitr"
+romof = "cltchitr"
+year = "1990"
+manufacturer = "bootleg"
+sourcefile = "sega/system16.cpp"
+machine_config = "ddcrewbl"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "5.prg"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "78c7a606"
+sha1 = "788604eadd29810071411dad8537aab2d68caeb7"
+
+[[regions.maincpu.roms]]
+file = "7.prg"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "dd7062a2"
+sha1 = "6ddd686ece17840d69c7bdc1305f2ff25f88fc3d"
+
+[[regions.maincpu.roms]]
+file = "6.prg"
+size = 65536
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "d62845fc"
+sha1 = "92bd3b2a6f9e78c1a1e93e6f8ea887ab2fd440c3"
+
+[[regions.maincpu.roms]]
+file = "8.prg"
+size = 65536
+offset = 2097153
+status = "good"
+optional = false
+crc32 = "bd0d1c7d"
+sha1 = "6a3d2740e0547ad634dc5cac5e00b5ad877d0b55"
+
+[regions.pic]
+
+[[regions.pic.roms]]
+file = "pic16c57"
+size = 4096
+offset = 0
+status = "nodump"
+optional = false
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "3.gfx1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "0451f5f3"
+sha1 = "5069edddf29a8190a73dc467b91ffcb80348aff6"
+
+[[regions.tiles.roms]]
+file = "2.gfx1"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "d7bd63fe"
+sha1 = "ea5cf70db1303dd4564215fde824305637b97d05"
+
+[[regions.tiles.roms]]
+file = "1.gfx1"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "3b961344"
+sha1 = "9eda23942cf809a520b555cf5ef4bead5850d66e"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "9.gfx2"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "c707f416"
+sha1 = "e6a9d89849f7f1c303a3ca29a629f81397945a2d"
+merge = "mpr-13779.c10"
+
+[[regions.sprites.roms]]
+file = "12.gfx2"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "f05c68c6"
+sha1 = "b6a0535b6c734a0c89fdb6506c32ffe6ab3aa8cd"
+merge = "mpr-13787.a10"
+
+[[regions.sprites.roms]]
+file = "10.gfx2"
+size = 524288
+offset = 2097153
+status = "good"
+optional = false
+crc32 = "a4c341e0"
+sha1 = "15a0b5a42b56465a7b7df98968cc2ed177ce6f59"
+merge = "mpr-13780.c11"
+
+[[regions.sprites.roms]]
+file = "13.gfx2"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "0106fea6"
+sha1 = "e16e2a469ecbbc704021dee6264db30aa0898368"
+merge = "mpr-13788.a11"
+
+[[regions.sprites.roms]]
+file = "11.gfx2"
+size = 524288
+offset = 4194305
+status = "good"
+optional = false
+crc32 = "f33b13af"
+sha1 = "d3eb64dcf12d532454bf3cd6c86528c0f11ee316"
+merge = "mpr-13781.c12"
+
+[[regions.sprites.roms]]
+file = "14.gfx2"
+size = 524288
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "09ba8835"
+sha1 = "72e83dd1793a7f4b2b881e71f262493e3d4992b3"
+merge = "mpr-13789.a12"
+
+[regions.oki]
+
+[[regions.oki.roms]]
+file = "4.oki"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "f8108a95"
+sha1 = "404824169d1a226bcb2c5837cfd3036568f6cd38"
+
+[regions.proms]
+
+[[regions.proms.roms]]
+file = "82s123.bin"
+size = 32
+offset = 0
+status = "nodump"
+optional = false
+
+[[regions.proms.roms]]
+file = "82s129.bin"
+size = 256
+offset = 32
+status = "nodump"
+optional = false
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "gal16v8-1.bin"
+size = 279
+offset = 0
+status = "nodump"
+optional = false
+
+[[regions.plds.roms]]
+file = "gal16v8-2.bin"
+size = 279
+offset = 512
+status = "nodump"
+optional = false
+
+[properties]
+protection = "none"

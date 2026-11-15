@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import zipfile
 import zlib
+
+from manifest_io import load_manifest_file
 
 
 def load_manifest(path: Path, *, module: str | None = None, board: str | None = None,
                   game: str | None = None) -> dict:
     try:
-        manifest = json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"cannot read ROM-set manifest {path}: {exc}") from exc
+        manifest = load_manifest_file(path)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
     for key, expected in (("module", module), ("board", board), ("game", game)):
         if expected is not None and manifest.get(key) != expected:
             raise ValueError(f"{path}: expected {key}={expected!r}, got {manifest.get(key)!r}")
@@ -20,10 +21,10 @@ def load_manifest(path: Path, *, module: str | None = None, board: str | None = 
 
 def _manifest_catalog(root: Path, module: str | None) -> dict[str, dict]:
     result = {}
-    for path in root.rglob("*.json"):
+    for path in sorted(root.rglob("*.toml")):
         try:
-            manifest = json.loads(path.read_text())
-        except (OSError, json.JSONDecodeError):
+            manifest = load_manifest_file(path)
+        except ValueError:
             continue
         if manifest.get("game") and (module is None or manifest.get("module") == module):
             result[manifest["game"]] = manifest

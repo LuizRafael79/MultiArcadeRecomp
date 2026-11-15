@@ -1,0 +1,231 @@
+module = "system16"
+board = "system16b"
+game = "bayroute1"
+gamename = "Bay Route (set 1, US) (unprotected)"
+parent = "bayroute"
+romof = "bayroute"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "bayroute1"
+description = "Bay Route (set 1, US) (unprotected)"
+cloneof = "bayroute"
+romof = "bayroute"
+year = "1989"
+manufacturer = "Sunsoft / Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "br.a4"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "91c6424b"
+sha1 = "79a968ade7690d5944ee815e19586cb82c3aa562"
+
+[[regions.maincpu.roms]]
+file = "br.a1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "76954bf3"
+sha1 = "bd617c6ddaf1e7760479b17205388c201fb67662"
+
+[[regions.maincpu.roms]]
+file = "br.a5"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "9d6fd183"
+sha1 = "5ae78d33c0e929886d84a25c0fbd62ab45dcbff4"
+
+[[regions.maincpu.roms]]
+file = "br.a2"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "5ca1e3d2"
+sha1 = "51ce67ed0a0054f9c9c4ac56c5775716c44d74b1"
+
+[[regions.maincpu.roms]]
+file = "br.a6"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "ed97ad4c"
+sha1 = "6c7d671c3046f1adb486f053acdd2be0c981c68b"
+
+[[regions.maincpu.roms]]
+file = "br.a3"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "0d362905"
+sha1 = "04cb35aa44cc1d9ead44c5a7b4f838efec453c85"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "opr-12462.a14"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "a19943b5"
+sha1 = "95cd95223ea76677227b807a7c4eff120e690d37"
+merge = "opr-12462.a14"
+
+[[regions.tiles.roms]]
+file = "opr-12463.a15"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "62f8200d"
+sha1 = "a5a0035249f339396b33f8a908d393777e8951c4"
+merge = "opr-12463.a15"
+
+[[regions.tiles.roms]]
+file = "opr-12464.a16"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "c8c59703"
+sha1 = "3a4f45b88990d27c55ddfde5fc93496954868200"
+merge = "opr-12464.a16"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "br_obj0o.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "098a5e82"
+sha1 = "c5922f418773bc3629071e584457839d67a370e9"
+
+[[regions.sprites.roms]]
+file = "br_obj0e.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "85238af9"
+sha1 = "39989a8d9b60c6d55272b5e2c213341a563dd993"
+
+[[regions.sprites.roms]]
+file = "br_obj1o.b2"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "cc641da1"
+sha1 = "28f8a6502702cb9e2cc7f3e98f6c5d201f462fa3"
+
+[[regions.sprites.roms]]
+file = "br_obj1e.b6"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "d3123315"
+sha1 = "16a87caed1cabb080d4f35935910b38797344ca5"
+
+[[regions.sprites.roms]]
+file = "br_obj2o.b3"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "84efac1f"
+sha1 = "41c43d70dc7ae7e361d6fa12c5790ea7ebf13ca8"
+
+[[regions.sprites.roms]]
+file = "br_obj2e.b7"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "b73b12cb"
+sha1 = "e8265ae90aabf1ee0522dbc6541a0f82fec97c7a"
+
+[[regions.sprites.roms]]
+file = "br_obj3o.b4"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "a2e238ac"
+sha1 = "c854774c0ffd1ccf6e46591a8fa3c80a4630e007"
+
+[[regions.sprites.roms]]
+file = "br.b8"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "d8de78ff"
+sha1 = "110661ab8008543b47629722b98d0470f73a48c5"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "sound.a7"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "e91e55cb"
+sha1 = "857242ab355736d7d77877bcf1d093c15c69992b"
+
+[[regions.soundcpu.roms]]
+file = "sound.a8"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "077e9981"
+sha1 = "877c2ce9757410938e42b9bf512089bd2045d04e"
+
+[[regions.soundcpu.roms]]
+file = "sound.a9"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "3c3f5f41"
+sha1 = "f1b2e01586e65c542514c0a846ffc79767ff2166"
+
+[[regions.soundcpu.roms]]
+file = "sound.a10"
+size = 65536
+offset = 196608
+status = "baddump"
+optional = false
+crc32 = "7c251347"
+sha1 = "2b66365b2480e2852f930ddbed23d2ed80f2afaa"
+
+[[regions.soundcpu.roms]]
+file = "sound.a11"
+size = 65536
+offset = 262144
+status = "baddump"
+optional = false
+crc32 = "a602ea2d"
+sha1 = "37a4d05c416e8d65c4a2d73096edcfd456a0b70e"
+
+[properties]
+protection = "none"

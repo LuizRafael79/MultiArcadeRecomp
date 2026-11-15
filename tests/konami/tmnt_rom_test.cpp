@@ -30,11 +30,11 @@ int main(int argc, char** argv)
     board.video_vblank();
     assert(board.irq5_pending());
 
-    mamerecomp::konami::TmntMainCpu cpu(board);
+    mamerecomp::konami::TmntMainCpu cpu(board, nullptr, 0);
     const uint32_t reset_pc = (uint32_t(board.main_read(4)) << 16) | board.main_read(6);
     assert(cpu.pc() == reset_pc);
     assert(reset_pc < 0x60000);
-    cpu.execute(10000);
+    cpu.execute_until(10000);
     assert(cpu.pc() != reset_pc);
     const auto frame = board.render_frame();
     assert(frame.width == 320 && frame.height == 224);

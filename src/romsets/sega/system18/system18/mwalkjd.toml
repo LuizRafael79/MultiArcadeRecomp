@@ -1,0 +1,211 @@
+module = "system18"
+board = "system18"
+game = "mwalkjd"
+gamename = "Michael Jackson's Moonwalker (Japan) (bootleg of FD1094/8751 317-0157 set)"
+parent = "mwalk"
+romof = "mwalk"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "mwalkjd"
+description = "Michael Jackson's Moonwalker (Japan) (bootleg of FD1094/8751 317-0157 set)"
+cloneof = "mwalk"
+romof = "mwalk"
+year = "1990"
+manufacturer = "bootleg"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18_i8751"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13227.a6"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "d8e00521"
+sha1 = "a53cdf7e359b25527f4a39ae1a5d0a461ac73242"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13226.a5"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "cb0ba822"
+sha1 = "c2db762525e7cc65a7272e7a732ba9e3cee29c5d"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "mpr-13216.b1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "862d2c03"
+sha1 = "3c5446d702a639b62a602c6d687f9875d8450218"
+merge = "mpr-13216.b1"
+
+[[regions.tiles.roms]]
+file = "mpr-13217.b2"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "7d1ac3ec"
+sha1 = "8495357304f1df135bba77ef3b96e79a883b8ff0"
+merge = "mpr-13217.b2"
+
+[[regions.tiles.roms]]
+file = "mpr-13218.b3"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "56d3393c"
+sha1 = "50a2d065060692c9ecaa56046a781cb21d93e554"
+merge = "mpr-13218.b3"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-13224.b11"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "c59f107b"
+sha1 = "10fa60fca6e34eda277c483bb1c0e81bb88c8a47"
+merge = "mpr-13224.b11"
+
+[[regions.sprites.roms]]
+file = "mpr-13231.a11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "a5e96346"
+sha1 = "a854f4dd5dc16975373255110fdb8ab3d121b1af"
+merge = "mpr-13231.a11"
+
+[[regions.sprites.roms]]
+file = "mpr-13223.b10"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "364f60ff"
+sha1 = "9ac887ec0b2e32b504b7c6a5f3bb1ce3fe41a15a"
+merge = "mpr-13223.b10"
+
+[[regions.sprites.roms]]
+file = "mpr-13230.a10"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "9550091f"
+sha1 = "bb6e898f7b540e130fd338c10f74609a7604cef4"
+merge = "mpr-13230.a10"
+
+[[regions.sprites.roms]]
+file = "mpr-13222.b9"
+size = 262144
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "523df3ed"
+sha1 = "2e496125e75decd674c3a08404fbdb53791a965d"
+merge = "mpr-13222.b9"
+
+[[regions.sprites.roms]]
+file = "mpr-13229.a9"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "f40dc45d"
+sha1 = "e9468cef428f52ecdf6837c6d9a9fea934e7676c"
+merge = "mpr-13229.a9"
+
+[[regions.sprites.roms]]
+file = "epr-13221.b8"
+size = 262144
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "9ae7546a"
+sha1 = "5413b0131881b0b32bac8de51da9a299835014bb"
+merge = "epr-13221.b8"
+
+[[regions.sprites.roms]]
+file = "epr-13228.a8"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "de3786be"
+sha1 = "2279bb390aa3efab9aeee0a643e5cb6a4f5933b6"
+merge = "epr-13228.a8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13225.a4"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "56c2e82b"
+sha1 = "d5755a1bb6e889d274dc60e883d4d65f12fdc877"
+merge = "epr-13225.a4"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13219.b4"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "19e2061f"
+sha1 = "2dcf1718a43dab4da53b4f67722664e70ddd2169"
+merge = "mpr-13219.b4"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13220.b5"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "58d4d9ce"
+sha1 = "725e73a656845b02702ef131b4c0aa2a73cdd02e"
+merge = "mpr-13220.b5"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13249.b6"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "623edc5d"
+sha1 = "c32d9f818d40f311877fbe6532d9e95b6045c3c4"
+merge = "mpr-13249.b6"
+
+[regions.mcu]
+
+[[regions.mcu.roms]]
+file = "315-5437.ic4"
+size = 4096
+offset = 0
+status = "baddump"
+optional = false
+crc32 = "4bf63bc1"
+sha1 = "2766ab30b466b079febb30c488adad9ea56813f7"
+merge = "315-5437.ic4"
+
+[properties]
+protection = "i8751"

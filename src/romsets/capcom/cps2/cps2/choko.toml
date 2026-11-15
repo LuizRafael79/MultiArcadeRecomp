@@ -1,0 +1,589 @@
+module = "cps2"
+board = "cps2"
+game = "choko"
+gamename = "Janpai Puzzle Choukou (Japan 010820)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "choko"
+description = "Janpai Puzzle Choukou (Japan 010820)"
+year = "2001"
+manufacturer = "Mitchell (Capcom license)"
+sourcefile = "capcom/cps2.cpp"
+isbios = false
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "tkoj.03"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "11f5452f"
+sha1 = "1575729cdbb857a3a780df6e3e0efd6968926fb8"
+
+[[regions.maincpu.roms]]
+file = "tkoj.04"
+size = 524288
+offset = 524288
+status = "good"
+optional = false
+crc32 = "68655378"
+sha1 = "a2d82996394cc28622e93f6c338f9b78aa798775"
+
+[regions.gfx]
+
+[[regions.gfx.roms]]
+file = "tkoj1_d.simm1"
+size = 2097152
+offset = 0
+status = "good"
+optional = false
+crc32 = "6933377d"
+sha1 = "a79e129e5faaadd401379905ac76a24fa616d736"
+
+[[regions.gfx.roms]]
+file = "tkoj1_c.simm1"
+size = 2097152
+offset = 1
+status = "good"
+optional = false
+crc32 = "7f668950"
+sha1 = "247b2b3fa24afd43b0fe6cfb3df987a38c7385cf"
+
+[[regions.gfx.roms]]
+file = "tkoj1_b.simm1"
+size = 2097152
+offset = 2
+status = "good"
+optional = false
+crc32 = "cfb68ca9"
+sha1 = "36460724b8df36a4ccf88228d9d5f027714c6628"
+
+[[regions.gfx.roms]]
+file = "tkoj1_a.simm1"
+size = 2097152
+offset = 3
+status = "good"
+optional = false
+crc32 = "437e21c5"
+sha1 = "2c4ace6fa421c91effab8ab8db931b8451b8e6b1"
+
+[[regions.gfx.roms]]
+file = "tkoj3_d.simm3"
+size = 2097152
+offset = 4
+status = "good"
+optional = false
+crc32 = "a9e32b57"
+sha1 = "0ddbfefa0cc110e46297ecbfbf4b8bc87ce43c95"
+
+[[regions.gfx.roms]]
+file = "tkoj3_c.simm3"
+size = 2097152
+offset = 5
+status = "good"
+optional = false
+crc32 = "b7ab9338"
+sha1 = "0bb57640eed167e672b5f40cdff0a7b177ff2507"
+
+[[regions.gfx.roms]]
+file = "tkoj3_b.simm3"
+size = 2097152
+offset = 6
+status = "good"
+optional = false
+crc32 = "4d3f919a"
+sha1 = "eb7f90415a263f0a2b94d9699d72c1d14b4fdaad"
+
+[[regions.gfx.roms]]
+file = "tkoj3_a.simm3"
+size = 2097152
+offset = 7
+status = "good"
+optional = false
+crc32 = "cfef17ab"
+sha1 = "1de738c1e537c3df80171e82bc1cc05a25d9cc13"
+
+[regions.audiocpu]
+
+[[regions.audiocpu.roms]]
+file = "tko.01"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "6eda50c2"
+sha1 = "7e67c104094a3ced8b3fdd81f52ee42483b30fc5"
+
+[regions.qsound]
+
+[[regions.qsound.roms]]
+file = "tkoj5_a.simm5"
+size = 2097152
+offset = 0
+status = "good"
+optional = false
+crc32 = "ab45d509"
+sha1 = "c58cf87d3828dfe0643cf4c58615f3352bd45508"
+
+[[regions.qsound.roms]]
+file = "tkoj5_b.simm5"
+size = 2097152
+offset = 1
+status = "good"
+optional = false
+crc32 = "fa905c3d"
+sha1 = "3eae65b01d50ec4ec4aeff49f434b9b88a50463c"
+
+[regions.key]
+
+[[regions.key.roms]]
+file = "choko.key"
+size = 20
+offset = 0
+status = "good"
+optional = false
+crc32 = "08505e8b"
+sha1 = "5c481ffaa93faec57d0b80b678c8c0cca1a699c0"
+
+[properties]
+protection = "cps2-cipher"
+
+[runtime]
+
+[runtime.properties]
+
+[driver_layout]
+source = "cps2.cpp"
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x0400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "ROMREGION_ERASEFF"
+source_line = 2730
+
+[[driver_layout.regions]]
+name = "gfx"
+size_expression = "0x1000000"
+size = 16777216
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2734
+
+[[driver_layout.regions]]
+name = "audiocpu"
+size_expression = "0x50000"
+size = 327680
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2744
+
+[[driver_layout.regions]]
+name = "qsound"
+size_expression = "0x400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2748
+
+[[driver_layout.regions]]
+name = "key"
+size_expression = "0x20"
+size = 32
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2752
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "maincpu"
+size_expression = "0x0400000"
+flags_expression = "ROMREGION_ERASEFF"
+source_line = 2730
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "tkoj.03"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 2731
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "11f5452f"
+sha1 = "1575729cdbb857a3a780df6e3e0efd6968926fb8"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "tkoj.04"
+offset_expression = "0x080000"
+offset = 524288
+length_expression = "0x80000"
+length = 524288
+source_line = 2732
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "68655378"
+sha1 = "a2d82996394cc28622e93f6c338f9b78aa798775"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 524288
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "gfx"
+size_expression = "0x1000000"
+flags_expression = "0"
+source_line = 2734
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj1_d.simm1"
+offset_expression = "0x0000000"
+offset = 0
+length_expression = "0x200000"
+length = 2097152
+source_line = 2735
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "6933377d"
+sha1 = "a79e129e5faaadd401379905ac76a24fa616d736"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj1_c.simm1"
+offset_expression = "0x0000001"
+offset = 1
+length_expression = "0x200000"
+length = 2097152
+source_line = 2736
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "7f668950"
+sha1 = "247b2b3fa24afd43b0fe6cfb3df987a38c7385cf"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj1_b.simm1"
+offset_expression = "0x0000002"
+offset = 2
+length_expression = "0x200000"
+length = 2097152
+source_line = 2737
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "cfb68ca9"
+sha1 = "36460724b8df36a4ccf88228d9d5f027714c6628"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj1_a.simm1"
+offset_expression = "0x0000003"
+offset = 3
+length_expression = "0x200000"
+length = 2097152
+source_line = 2738
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "437e21c5"
+sha1 = "2c4ace6fa421c91effab8ab8db931b8451b8e6b1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj3_d.simm3"
+offset_expression = "0x0000004"
+offset = 4
+length_expression = "0x200000"
+length = 2097152
+source_line = 2739
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "a9e32b57"
+sha1 = "0ddbfefa0cc110e46297ecbfbf4b8bc87ce43c95"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj3_c.simm3"
+offset_expression = "0x0000005"
+offset = 5
+length_expression = "0x200000"
+length = 2097152
+source_line = 2740
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "b7ab9338"
+sha1 = "0bb57640eed167e672b5f40cdff0a7b177ff2507"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 5
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj3_b.simm3"
+offset_expression = "0x0000006"
+offset = 6
+length_expression = "0x200000"
+length = 2097152
+source_line = 2741
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "4d3f919a"
+sha1 = "eb7f90415a263f0a2b94d9699d72c1d14b4fdaad"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_BYTE"
+region = "gfx"
+file = "tkoj3_a.simm3"
+offset_expression = "0x0000007"
+offset = 7
+length_expression = "0x200000"
+length = 2097152
+source_line = 2742
+group_bytes = 1
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "cfef17ab"
+sha1 = "1de738c1e537c3df80171e82bc1cc05a25d9cc13"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 7
+length = 2097152
+group_bytes = 1
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "audiocpu"
+size_expression = "0x50000"
+flags_expression = "0"
+source_line = 2744
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "audiocpu"
+file = "tko.01"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x08000"
+length = 32768
+source_line = 2745
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "6eda50c2"
+sha1 = "7e67c104094a3ced8b3fdd81f52ee42483b30fc5"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 32768
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.segments]]
+source_offset = 32768
+destination = 65536
+length = 98304
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2746
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2746
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "qsound"
+size_expression = "0x400000"
+flags_expression = "0"
+source_line = 2748
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "qsound"
+file = "tkoj5_a.simm5"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x200000"
+length = 2097152
+source_line = 2749
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "ab45d509"
+sha1 = "c58cf87d3828dfe0643cf4c58615f3352bd45508"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 2097152
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "qsound"
+file = "tkoj5_b.simm5"
+offset_expression = "0x000001"
+offset = 1
+length_expression = "0x200000"
+length = 2097152
+source_line = 2750
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "fa905c3d"
+sha1 = "3eae65b01d50ec4ec4aeff49f434b9b88a50463c"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 2097152
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "key"
+size_expression = "0x20"
+flags_expression = "0"
+source_line = 2752
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "key"
+file = "choko.key"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x000014"
+length = 20
+source_line = 2753
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 20
+crc32 = "08505e8b"
+sha1 = "5c481ffaa93faec57d0b80b678c8c0cca1a699c0"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 20
+group_bytes = 1
+stride = 1

@@ -1,0 +1,110 @@
+module = "system16"
+board = "system16a"
+game = "tetris"
+gamename = "Tetris (set 4, Japan, System 16A) (FD1094 317-0093)"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "tetris"
+description = "Tetris (set 4, Japan, System 16A) (FD1094 317-0093)"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a_fd1094_no7751"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-12201.rom"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "338e9b51"
+sha1 = "f56a1124c963d4ad72a806b26f9aa906aaa37d2b"
+
+[[regions.maincpu.roms]]
+file = "epr-12200.rom"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "fb058779"
+sha1 = "0045985ea943ebc7e44bd95127c5e5212c2821e8"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0093.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "e0064442"
+sha1 = "cc70b1a2c66729c4540dabd6a24a5f5615beedcd"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-12202.rom"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "2f7da741"
+sha1 = "51a685673b4a57a13818eca65d122230f20bd9a0"
+
+[[regions.gfx1.roms]]
+file = "epr-12203.rom"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "a6e58ec5"
+sha1 = "5a6c43c989768270e0ab61cfaa5ef86d4607fe20"
+
+[[regions.gfx1.roms]]
+file = "epr-12204.rom"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0ae98e23"
+sha1 = "f067b81b85f9e03a6373c7c53ff52d5395b8a985"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-12169.b1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "dacc6165"
+sha1 = "87b1a7643e3630ff73b2b117752496e1ea5da23d"
+
+[[regions.sprites.roms]]
+file = "epr-12170.b5"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "87354e42"
+sha1 = "e7fd55aee59b51d82cb9b619fbb815ad6839560c"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12205.rom"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "6695dc99"
+sha1 = "08123aa24c302bc9243329384bd9c2545a4d50c3"
+
+[properties]
+protection = "fd1094"

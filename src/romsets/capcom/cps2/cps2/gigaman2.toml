@@ -1,0 +1,286 @@
+module = "cps2"
+board = "cps2"
+game = "gigaman2"
+gamename = "Giga Man 2: The Power Fighters (bootleg of Mega Man 2: The Power Fighters)"
+parent = "megaman2"
+romof = "megaman2"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "gigaman2"
+description = "Giga Man 2: The Power Fighters (bootleg of Mega Man 2: The Power Fighters)"
+cloneof = "megaman2"
+romof = "megaman2"
+year = "1996"
+manufacturer = "bootleg"
+sourcefile = "capcom/cps2.cpp"
+isbios = false
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "sys_rom1.bin"
+size = 4194304
+offset = 0
+status = "good"
+optional = false
+crc32 = "2eaa5e10"
+sha1 = "79f9a137bf5b3317579c548f346c1dc1cccdb771"
+
+[regions.mcu]
+
+[[regions.mcu.roms]]
+file = "89c4051.bin"
+size = 65536
+offset = 0
+status = "nodump"
+optional = false
+
+[regions.gfx]
+
+[[regions.gfx.roms]]
+file = "cg_rom1.bin"
+size = 8388608
+offset = 0
+status = "good"
+optional = false
+crc32 = "ed55a641"
+sha1 = "fa798779a3787317937a646047620b1c0dbe102a"
+
+[[regions.gfx.roms]]
+file = "cg_rom2.bin"
+size = 8388608
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "63918c05"
+sha1 = "3a7fdf88e87bdbc622504276287740c08df38f6f"
+
+[regions.oki]
+
+[[regions.oki.roms]]
+file = "pcm_rom1.bin"
+size = 8388608
+offset = 0
+status = "good"
+optional = false
+crc32 = "41a854ab"
+sha1 = "206448c3e27d260d0650c28a9cd524854ce0b64d"
+
+[properties]
+protection = "cps2-cipher"
+
+[runtime]
+
+[runtime.properties]
+
+[driver_layout]
+source = "cps2.cpp"
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x0400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 4853
+
+[[driver_layout.regions]]
+name = "mcu"
+size_expression = "0x10000"
+size = 65536
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 4856
+
+[[driver_layout.regions]]
+name = "gfx"
+size_expression = "0x800000"
+size = 8388608
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 4859
+
+[[driver_layout.regions]]
+name = "oki"
+size_expression = "0x800000"
+size = 8388608
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 4865
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "maincpu"
+size_expression = "0x0400000"
+flags_expression = "0"
+source_line = 4853
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "sys_rom1.bin"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x400000"
+length = 4194304
+source_line = 4854
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 4194304
+transform = "word_swap"
+crc32 = "2eaa5e10"
+sha1 = "79f9a137bf5b3317579c548f346c1dc1cccdb771"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 4194304
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "mcu"
+size_expression = "0x10000"
+flags_expression = "0"
+source_line = 4856
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "mcu"
+file = "89c4051.bin"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x10000"
+length = 65536
+source_line = 4857
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 65536
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 65536
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "gfx"
+size_expression = "0x800000"
+flags_expression = "0"
+source_line = 4859
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "gfx"
+file = "cg_rom1.bin"
+offset_expression = "0x0000000"
+offset = 0
+length_expression = "0x400000"
+length = 4194304
+source_line = 4860
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "ed55a641"
+sha1 = "fa798779a3787317937a646047620b1c0dbe102a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 4194304
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_IGNORE"
+region = "gfx"
+arguments = ["0x400000"]
+source_line = 4861
+length_expression = "0x400000"
+length = 4194304
+
+[[driver_layout.operations]]
+macro = "ROM_IGNORE"
+region = "gfx"
+arguments = ["0x400000"]
+source_line = 4861
+length_expression = "0x400000"
+length = 4194304
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "gfx"
+file = "cg_rom2.bin"
+offset_expression = "0x0400000"
+offset = 4194304
+length_expression = "0x400000"
+length = 4194304
+source_line = 4862
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "63918c05"
+sha1 = "3a7fdf88e87bdbc622504276287740c08df38f6f"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194304
+length = 4194304
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_IGNORE"
+region = "gfx"
+arguments = ["0x400000"]
+source_line = 4863
+length_expression = "0x400000"
+length = 4194304
+
+[[driver_layout.operations]]
+macro = "ROM_IGNORE"
+region = "gfx"
+arguments = ["0x400000"]
+source_line = 4863
+length_expression = "0x400000"
+length = 4194304
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "oki"
+size_expression = "0x800000"
+flags_expression = "0"
+source_line = 4865
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "oki"
+file = "pcm_rom1.bin"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x800000"
+length = 8388608
+source_line = 4867
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 8388608
+crc32 = "41a854ab"
+sha1 = "206448c3e27d260d0650c28a9cd524854ce0b64d"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 8388608
+group_bytes = 1
+stride = 1

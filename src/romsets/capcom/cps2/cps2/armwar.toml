@@ -1,0 +1,821 @@
+module = "cps2"
+board = "cps2"
+game = "armwar"
+gamename = "Armored Warriors (Europe 941024)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "armwar"
+description = "Armored Warriors (Europe 941024)"
+year = "1994"
+manufacturer = "Capcom"
+sourcefile = "capcom/cps2.cpp"
+isbios = false
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "pwge.03c"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "31f74931"
+sha1 = "66150fc9896acca1691c9d586abeb2c7299bb9ad"
+
+[[regions.maincpu.roms]]
+file = "pwge.04c"
+size = 524288
+offset = 524288
+status = "good"
+optional = false
+crc32 = "16f34f5f"
+sha1 = "b831e3915d8cbffdfe4720d356e5196cdebdb6e7"
+
+[[regions.maincpu.roms]]
+file = "pwge.05b"
+size = 524288
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "4403ed08"
+sha1 = "cc78c84105a58e43e7a6429281397d68b91e86e5"
+
+[[regions.maincpu.roms]]
+file = "pwg.06"
+size = 524288
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "87a60ce8"
+sha1 = "e2085c7c8c6792d055dbbb023c7f4e4aa38ae924"
+
+[[regions.maincpu.roms]]
+file = "pwg.07"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "f7b148df"
+sha1 = "f369669713cf647222094c570a2eacd48a8637cf"
+
+[[regions.maincpu.roms]]
+file = "pwg.08"
+size = 524288
+offset = 2621440
+status = "good"
+optional = false
+crc32 = "cc62823e"
+sha1 = "edaf9bebdfc65ae5414090abd6844176eec39a00"
+
+[[regions.maincpu.roms]]
+file = "pwg.09a"
+size = 524288
+offset = 3145728
+status = "good"
+optional = false
+crc32 = "4c26baee"
+sha1 = "685f050206b9b904ce6a1ae9a8e8f019012cea43"
+
+[[regions.maincpu.roms]]
+file = "pwg.10"
+size = 524288
+offset = 3670016
+status = "good"
+optional = false
+crc32 = "07c4fb28"
+sha1 = "58a1ff3d105be7df833dd4f32973766649efcbcf"
+
+[regions.gfx]
+
+[[regions.gfx.roms]]
+file = "pwg.13m"
+size = 4194304
+offset = 0
+status = "good"
+optional = false
+crc32 = "ae8fe08e"
+sha1 = "b6f09663dcda69b5d7ac13e4afaf1efd692fb61e"
+
+[[regions.gfx.roms]]
+file = "pwg.15m"
+size = 4194304
+offset = 2
+status = "good"
+optional = false
+crc32 = "db560f58"
+sha1 = "0c3716b32eb24544ff5d16b5dcadce195cd10d00"
+
+[[regions.gfx.roms]]
+file = "pwg.17m"
+size = 4194304
+offset = 4
+status = "good"
+optional = false
+crc32 = "bc475b94"
+sha1 = "a157664450895a146a532581dd6f4b63dff21c86"
+
+[[regions.gfx.roms]]
+file = "pwg.19m"
+size = 4194304
+offset = 6
+status = "good"
+optional = false
+crc32 = "07439ff7"
+sha1 = "f71e07c6d77c32828f5e319268b24b13a1a4b0c2"
+
+[[regions.gfx.roms]]
+file = "pwg.14m"
+size = 1048576
+offset = 16777216
+status = "good"
+optional = false
+crc32 = "c3f9ba63"
+sha1 = "66191a52c39daa89b17ede5804ee41c028036f14"
+
+[[regions.gfx.roms]]
+file = "pwg.16m"
+size = 1048576
+offset = 16777218
+status = "good"
+optional = false
+crc32 = "815b0e7b"
+sha1 = "549785daac3122253fb94f6541bc7016147f5306"
+
+[[regions.gfx.roms]]
+file = "pwg.18m"
+size = 1048576
+offset = 16777220
+status = "good"
+optional = false
+crc32 = "0109c71b"
+sha1 = "eb51284ee0c85ff8f605fe1d166b7aa202be1344"
+
+[[regions.gfx.roms]]
+file = "pwg.20m"
+size = 1048576
+offset = 16777222
+status = "good"
+optional = false
+crc32 = "eb75ffbe"
+sha1 = "e9d1deca60be696ac5bff2017fb5de3525e5239a"
+
+[regions.audiocpu]
+
+[[regions.audiocpu.roms]]
+file = "pwg.01"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "18a5c0e4"
+sha1 = "bb1353dd74884aaeec9b5f1d0b284d9cad53c0ff"
+
+[[regions.audiocpu.roms]]
+file = "pwg.02"
+size = 131072
+offset = 163840
+status = "good"
+optional = false
+crc32 = "c9dfffa6"
+sha1 = "64e71028befe9a2514074be765dd020e1d2ea70b"
+
+[regions.qsound]
+
+[[regions.qsound.roms]]
+file = "pwg.11m"
+size = 2097152
+offset = 0
+status = "good"
+optional = false
+crc32 = "a78f7433"
+sha1 = "e47ffba7b9dac9d0dda985c5d966194be18260f7"
+
+[[regions.qsound.roms]]
+file = "pwg.12m"
+size = 2097152
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "77438ed0"
+sha1 = "733ca6c6a792e66e2aa12c5fc06dd459527afe4b"
+
+[regions.key]
+
+[[regions.key.roms]]
+file = "armwar.key"
+size = 20
+offset = 0
+status = "good"
+optional = false
+crc32 = "fe979382"
+sha1 = "ec4e0b24d6de9660221e63063fba04df48682e1a"
+
+[properties]
+protection = "cps2-cipher"
+
+[runtime]
+
+[runtime.properties]
+
+[driver_layout]
+source = "cps2.cpp"
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x0400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2192
+
+[[driver_layout.regions]]
+name = "gfx"
+size_expression = "0x1400000"
+size = 20971520
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2202
+
+[[driver_layout.regions]]
+name = "audiocpu"
+size_expression = "0x50000"
+size = 327680
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2212
+
+[[driver_layout.regions]]
+name = "qsound"
+size_expression = "0x400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2217
+
+[[driver_layout.regions]]
+name = "key"
+size_expression = "0x20"
+size = 32
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2221
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "maincpu"
+size_expression = "0x0400000"
+flags_expression = "0"
+source_line = 2192
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwge.03c"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 2193
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "31f74931"
+sha1 = "66150fc9896acca1691c9d586abeb2c7299bb9ad"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwge.04c"
+offset_expression = "0x080000"
+offset = 524288
+length_expression = "0x80000"
+length = 524288
+source_line = 2194
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "16f34f5f"
+sha1 = "b831e3915d8cbffdfe4720d356e5196cdebdb6e7"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 524288
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwge.05b"
+offset_expression = "0x100000"
+offset = 1048576
+length_expression = "0x80000"
+length = 524288
+source_line = 2195
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "4403ed08"
+sha1 = "cc78c84105a58e43e7a6429281397d68b91e86e5"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1048576
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwg.06"
+offset_expression = "0x180000"
+offset = 1572864
+length_expression = "0x80000"
+length = 524288
+source_line = 2196
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "87a60ce8"
+sha1 = "e2085c7c8c6792d055dbbb023c7f4e4aa38ae924"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1572864
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwg.07"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x80000"
+length = 524288
+source_line = 2197
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "f7b148df"
+sha1 = "f369669713cf647222094c570a2eacd48a8637cf"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwg.08"
+offset_expression = "0x280000"
+offset = 2621440
+length_expression = "0x80000"
+length = 524288
+source_line = 2198
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "cc62823e"
+sha1 = "edaf9bebdfc65ae5414090abd6844176eec39a00"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2621440
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwg.09a"
+offset_expression = "0x300000"
+offset = 3145728
+length_expression = "0x80000"
+length = 524288
+source_line = 2199
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "4c26baee"
+sha1 = "685f050206b9b904ce6a1ae9a8e8f019012cea43"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3145728
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "pwg.10"
+offset_expression = "0x380000"
+offset = 3670016
+length_expression = "0x80000"
+length = 524288
+source_line = 2200
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "07c4fb28"
+sha1 = "58a1ff3d105be7df833dd4f32973766649efcbcf"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3670016
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "gfx"
+size_expression = "0x1400000"
+flags_expression = "0"
+source_line = 2202
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.13m"
+offset_expression = "0x0000000"
+offset = 0
+length_expression = "0x400000"
+length = 4194304
+source_line = 2203
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "ae8fe08e"
+sha1 = "b6f09663dcda69b5d7ac13e4afaf1efd692fb61e"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 4194304
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.15m"
+offset_expression = "0x0000002"
+offset = 2
+length_expression = "0x400000"
+length = 4194304
+source_line = 2204
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "db560f58"
+sha1 = "0c3716b32eb24544ff5d16b5dcadce195cd10d00"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2
+length = 4194304
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.17m"
+offset_expression = "0x0000004"
+offset = 4
+length_expression = "0x400000"
+length = 4194304
+source_line = 2205
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "bc475b94"
+sha1 = "a157664450895a146a532581dd6f4b63dff21c86"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4
+length = 4194304
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.19m"
+offset_expression = "0x0000006"
+offset = 6
+length_expression = "0x400000"
+length = 4194304
+source_line = 2206
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 4194304
+crc32 = "07439ff7"
+sha1 = "f71e07c6d77c32828f5e319268b24b13a1a4b0c2"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6
+length = 4194304
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.14m"
+offset_expression = "0x1000000"
+offset = 16777216
+length_expression = "0x100000"
+length = 1048576
+source_line = 2207
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "c3f9ba63"
+sha1 = "66191a52c39daa89b17ede5804ee41c028036f14"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 16777216
+length = 1048576
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.16m"
+offset_expression = "0x1000002"
+offset = 16777218
+length_expression = "0x100000"
+length = 1048576
+source_line = 2208
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "815b0e7b"
+sha1 = "549785daac3122253fb94f6541bc7016147f5306"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 16777218
+length = 1048576
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.18m"
+offset_expression = "0x1000004"
+offset = 16777220
+length_expression = "0x100000"
+length = 1048576
+source_line = 2209
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "0109c71b"
+sha1 = "eb51284ee0c85ff8f605fe1d166b7aa202be1344"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 16777220
+length = 1048576
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "pwg.20m"
+offset_expression = "0x1000006"
+offset = 16777222
+length_expression = "0x100000"
+length = 1048576
+source_line = 2210
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "eb75ffbe"
+sha1 = "e9d1deca60be696ac5bff2017fb5de3525e5239a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 16777222
+length = 1048576
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "audiocpu"
+size_expression = "0x50000"
+flags_expression = "0"
+source_line = 2212
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "audiocpu"
+file = "pwg.01"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x08000"
+length = 32768
+source_line = 2213
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "18a5c0e4"
+sha1 = "bb1353dd74884aaeec9b5f1d0b284d9cad53c0ff"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 32768
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.segments]]
+source_offset = 32768
+destination = 65536
+length = 98304
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2214
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2214
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "audiocpu"
+file = "pwg.02"
+offset_expression = "0x28000"
+offset = 163840
+length_expression = "0x20000"
+length = 131072
+source_line = 2215
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "c9dfffa6"
+sha1 = "64e71028befe9a2514074be765dd020e1d2ea70b"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 163840
+length = 131072
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "qsound"
+size_expression = "0x400000"
+flags_expression = "0"
+source_line = 2217
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "qsound"
+file = "pwg.11m"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x200000"
+length = 2097152
+source_line = 2218
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 2097152
+transform = "word_swap"
+crc32 = "a78f7433"
+sha1 = "e47ffba7b9dac9d0dda985c5d966194be18260f7"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 2097152
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "qsound"
+file = "pwg.12m"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x200000"
+length = 2097152
+source_line = 2219
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 2097152
+transform = "word_swap"
+crc32 = "77438ed0"
+sha1 = "733ca6c6a792e66e2aa12c5fc06dd459527afe4b"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 2097152
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "key"
+size_expression = "0x20"
+flags_expression = "0"
+source_line = 2221
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "key"
+file = "armwar.key"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x000014"
+length = 20
+source_line = 2222
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 20
+crc32 = "fe979382"
+sha1 = "ec4e0b24d6de9660221e63063fba04df48682e1a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 20
+group_bytes = 1
+stride = 1

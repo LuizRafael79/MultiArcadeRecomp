@@ -1,0 +1,182 @@
+module = "system16"
+board = "system16a"
+game = "shinoblda"
+gamename = "Shinobi (Datsu bootleg, set 2)"
+parent = "shinobi"
+romof = "shinobi"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "shinoblda"
+description = "Shinobi (Datsu bootleg, set 2)"
+cloneof = "shinobi"
+romof = "shinobi"
+year = "1988"
+manufacturer = "bootleg (Datsu)"
+sourcefile = "sega/system16.cpp"
+machine_config = "shinobi_datsu"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "12.bin"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "68c91fd5"
+sha1 = "54dc1d26711c73b30cbb5387dde27ba21cc102f4"
+
+[[regions.maincpu.roms]]
+file = "14.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "9e887c80"
+sha1 = "798a3dc499ef14b362bc37ff91b247e367f42ab9"
+
+[[regions.maincpu.roms]]
+file = "13.bin"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "c4334bcd"
+sha1 = "ea1dd23ca6fbf632d8e10bbb9ced6515a69bd14a"
+
+[[regions.maincpu.roms]]
+file = "15.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "b70a6ec1"
+sha1 = "79db41c36d6a053bcdc355b46b19ae938a7755a9"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "9.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "565e11c6"
+sha1 = "e063400b3d0470b932d75da0be9cd4b446189dea"
+
+[[regions.tiles.roms]]
+file = "10.bin"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "7cc40b6c"
+sha1 = "ffad7eef7ab2ff9a2e49a8d71b5785a61fa3c675"
+
+[[regions.tiles.roms]]
+file = "11.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0f6c7b1c"
+sha1 = "defc76592c285b3396e89a3cff7a73f3a948117f"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "5.bin"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "611f413a"
+sha1 = "180f83216e2dfbfd77b0fb3be83c3042954d12df"
+merge = "epr-11290.10"
+
+[[regions.sprites.roms]]
+file = "3.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "5eb00fc1"
+sha1 = "97e02eee74f61fabcad2a9e24f1868cafaac1d51"
+merge = "epr-11294.11"
+
+[[regions.sprites.roms]]
+file = "8.bin"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "3c0797c0"
+sha1 = "df18c7987281bd9379026c6cf7f96f6ae49fd7f9"
+merge = "epr-11291.17"
+
+[[regions.sprites.roms]]
+file = "2.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "25307ef8"
+sha1 = "91ffbe436f80d583524ee113a8b7c0cf5d8ab286"
+merge = "epr-11295.18"
+
+[[regions.sprites.roms]]
+file = "6.bin"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "c29ac34e"
+sha1 = "b5e9b8c3233a7d6797f91531a0d9123febcf1660"
+merge = "epr-11292.23"
+
+[[regions.sprites.roms]]
+file = "4.bin"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "04a437f8"
+sha1 = "ea5fed64443236e3404fab243761e60e2e48c84c"
+merge = "epr-11296.24"
+
+[[regions.sprites.roms]]
+file = "7.bin"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "41f41063"
+sha1 = "5cc461e9738dddf9eea06831fce3702d94674163"
+merge = "epr-11293.29"
+
+[[regions.sprites.roms]]
+file = "1.bin"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "b6e1fd72"
+sha1 = "eb86e4bf880bd1a1d9bcab3f2f2e917bcaa06172"
+merge = "epr-11297.30"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "16.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "52c8364e"
+sha1 = "01d30b82f92498d155d2e31d43d58dff0285cce3"
+
+[properties]
+protection = "none"

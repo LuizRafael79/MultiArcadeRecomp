@@ -1142,11 +1142,6 @@ void Gpu::execute_packet()
                 }
               }
             }
-        } else if (packet_.size() >= 3) {
-            vertices.reserve(packet_.size() - 1);
-            for (size_t i = 1; i < packet_.size(); ++i)
-                vertices.push_back({coord_x(packet_[i]), coord_y(packet_[i]),
-                                    0, 0, opword});
         }
     } else if (op == 0x80) {
         uint32_t sx = packet_[1] & 0x3ff, sy = (packet_[1] >> 16) & 0x3ff;

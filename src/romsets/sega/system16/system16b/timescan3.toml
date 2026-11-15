@@ -1,0 +1,226 @@
+module = "system16"
+board = "system16b"
+game = "timescan3"
+gamename = "Time Scanner (set 3, Japan, System 16B) (FD1089B 317-0024)"
+parent = "timescan"
+romof = "timescan"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "timescan3"
+description = "Time Scanner (set 3, Japan, System 16B) (FD1089B 317-0024)"
+cloneof = "timescan"
+romof = "timescan"
+year = "1987"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_fd1089b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-10559.a4"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "7be282cf"
+sha1 = "e95a3e9edf5a5db10197fa4f8e0cdf8ed2da5071"
+
+[[regions.maincpu.roms]]
+file = "epr-10556.a1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "f8bc7db8"
+sha1 = "efa6ecb9b377e6def2e24c450014db13f00a1297"
+
+[[regions.maincpu.roms]]
+file = "epr-10560.a5"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "f4c38aa1"
+sha1 = "d5b35e6343f342de5cf45c0c1569927b68ad5818"
+
+[[regions.maincpu.roms]]
+file = "epr-10557.a2"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "cbf8dbea"
+sha1 = "5caa36be75f3cfedbeb814d1e570ad15157478ec"
+
+[[regions.maincpu.roms]]
+file = "epr-10561.a6"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "cb45981f"
+sha1 = "17e950cf5e108c34d6cdb25d7c182bc0575f770e"
+
+[[regions.maincpu.roms]]
+file = "epr-10558.a3"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "d63c8eb7"
+sha1 = "233b05cf24d675193ed11ef75a26af231dc8c13f"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-10543.b9"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "07dccc37"
+sha1 = "544cc6a3b3ef64727ecf5098b84ade2dd5330614"
+merge = "epr-10543.b9"
+
+[[regions.tiles.roms]]
+file = "epr-10544.b10"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "84fb9a3a"
+sha1 = "efde54cc9582f68e58cae05f717a4fc8f620c0fc"
+merge = "epr-10544.b10"
+
+[[regions.tiles.roms]]
+file = "epr-10545.b11"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "c8694bc0"
+sha1 = "e48fc349ef454ded86141937f70b006e64da6b6b"
+merge = "epr-10545.b11"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-10548.b1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "aa150735"
+sha1 = "b6e6ff9229c641e196fc7a0a2cf7aa362f554676"
+merge = "epr-10548.b1"
+
+[[regions.sprites.roms]]
+file = "epr-10552.b5"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "6fcbb9f7"
+sha1 = "0a0fab930477d8b79e500263bbc80d3bf73778f8"
+merge = "epr-10552.b5"
+
+[[regions.sprites.roms]]
+file = "epr-10549.b2"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "2f59f067"
+sha1 = "1fb64cce2f98ddcb5ecb662e63ea636a8da08bcd"
+merge = "epr-10549.b2"
+
+[[regions.sprites.roms]]
+file = "epr-10553.b6"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "8a220a9f"
+sha1 = "c17547d85721fa19e5f445b5be30b3fbf5e8cc6e"
+merge = "epr-10553.b6"
+
+[[regions.sprites.roms]]
+file = "epr-10550.b3"
+size = 32768
+offset = 262145
+status = "good"
+optional = false
+crc32 = "f05069ff"
+sha1 = "bd95761036c2fad8ddf4e169d899b173822ee4b0"
+merge = "epr-10550.b3"
+
+[[regions.sprites.roms]]
+file = "epr-10554.b7"
+size = 32768
+offset = 262144
+status = "good"
+optional = false
+crc32 = "dc64f809"
+sha1 = "ea85eefa98ec55e9e872940821a959ff4eb1bd1c"
+merge = "epr-10554.b7"
+
+[[regions.sprites.roms]]
+file = "epr-10551.b4"
+size = 32768
+offset = 393217
+status = "good"
+optional = false
+crc32 = "435d811f"
+sha1 = "b28eb09620113cd7578387c4d96029f2acb8ec06"
+merge = "epr-10551.b4"
+
+[[regions.sprites.roms]]
+file = "epr-10555.b8"
+size = 32768
+offset = 393216
+status = "good"
+optional = false
+crc32 = "2143c471"
+sha1 = "d413aa216349ddf773a39d2826c3a940b4149229"
+merge = "epr-10555.b8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-10562.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "3f5028bf"
+sha1 = "02081569a5f4dc64771e97651a9902a98d54a952"
+merge = "epr-10562.a7"
+
+[[regions.soundcpu.roms]]
+file = "epr-10563.a8"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "9db7eddf"
+sha1 = "8b9a27442a623bee6b9b5b06275226734d132e17"
+merge = "epr-10563.a8"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0024.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "dcd41d24"
+sha1 = "2bd96bc7467ad40f4d981d767f9685ec142d6d87"
+
+[properties]
+protection = "fd1089"

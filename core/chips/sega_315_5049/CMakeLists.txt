@@ -1,0 +1,2 @@
+add_library(mamerecomp_chip_sega_315_5049 STATIC sega_315_5049.cpp)
+target_include_directories(mamerecomp_chip_sega_315_5049 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

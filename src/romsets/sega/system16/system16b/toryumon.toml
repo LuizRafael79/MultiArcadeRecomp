@@ -1,0 +1,172 @@
+module = "system16"
+board = "system16b"
+game = "toryumon"
+gamename = "Toryumon"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "toryumon"
+description = "Toryumon"
+year = "1994"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_5797"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-17689.a2"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "4f0dee19"
+sha1 = "efb5bf29e27029e9ea3fdd57ad7af54b4e1e9a97"
+
+[[regions.maincpu.roms]]
+file = "epr-17688.a1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "717d81c7"
+sha1 = "293cd9859a2a3aad89c47fdad2ca6aa48e9f74cb"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-17700.b11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "8f288b37"
+sha1 = "f0c1bb60ace8078566b51ab91fc35d2981c9f32c"
+
+[[regions.tiles.roms]]
+file = "epr-17701.b12"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "6dfb025b"
+sha1 = "502c16f650596a791fae1834f9bce6f3aa25c45f"
+
+[[regions.tiles.roms]]
+file = "epr-17702.b13"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "ae0b7eab"
+sha1 = "403ca2b50913a744e2c5e1cd0d59c69df5464836"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-17692.b1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "543c4327"
+sha1 = "9f40163aaf165f5e4f5aefd8ce083d5f72ded125"
+
+[[regions.sprites.roms]]
+file = "epr-17695.b4"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "ee60f244"
+sha1 = "21b912e12f6a56ea6b9e5e0be117b447d1ecda43"
+
+[[regions.sprites.roms]]
+file = "epr-17693.b2"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "4a350b3e"
+sha1 = "70181bf713106475cdf684f86d593ee323ded2ca"
+
+[[regions.sprites.roms]]
+file = "epr-17696.b5"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "6edb54f1"
+sha1 = "8188d76db16bcf2f6bbfd0d61499e0d0a128bb27"
+
+[[regions.sprites.roms]]
+file = "epr-17694.b3"
+size = 131072
+offset = 524289
+status = "good"
+optional = false
+crc32 = "b296d71d"
+sha1 = "28f55fa451c4856f6fd6d4d9b16b4c3ef963ee5b"
+
+[[regions.sprites.roms]]
+file = "epr-17697.b6"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "6ccb7b28"
+sha1 = "7a82230b575bfabb150141183d3c37c44a0d41ad"
+
+[[regions.sprites.roms]]
+file = "epr-17698.b7"
+size = 131072
+offset = 786433
+status = "good"
+optional = false
+crc32 = "cd4dfb82"
+sha1 = "def5847a94cd7da96f5434b62b22925fbb8da151"
+
+[[regions.sprites.roms]]
+file = "epr-17699.b8"
+size = 131072
+offset = 786432
+status = "good"
+optional = false
+crc32 = "2694ecce"
+sha1 = "85d7ab89d4fd0aa0ca942485f94c5737deaa8eff"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-17691.a13"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "14205388"
+sha1 = "0b580d4ef52eab2d71541d44fbd32676b2277aa1"
+
+[[regions.soundcpu.roms]]
+file = "epr-17690.a11"
+size = 262144
+offset = 65536
+status = "good"
+optional = false
+crc32 = "4f9ba4e4"
+sha1 = "450d821ef12dbb24cf85ac10c77e9b31c03112b1"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+
+[properties]
+protection = "none"

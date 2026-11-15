@@ -1,0 +1,110 @@
+module = "system18"
+board = "system18"
+game = "pontoon"
+gamename = "Pontoon (FD1094 317-0153)"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "pontoon"
+description = "Pontoon (FD1094 317-0153)"
+year = "1989"
+manufacturer = "Sega"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-13175.a6"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "a2a5d0f5"
+sha1 = "e22b13f152e0edadeb0f84b4a93ad366201cbae9"
+
+[[regions.maincpu.roms]]
+file = "epr-13174.a5"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "db976b13"
+sha1 = "3970968b21491beb8aac109eeb753b69ca752205"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0153.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "bcac8c7a"
+sha1 = "1ee9db8f21a55cbfc391af9731d6a1dcf7f2d4c2"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-13097.b1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "6474b245"
+sha1 = "af7db8ac8e74628a8ba61d0860960deeca4a3e3f"
+
+[[regions.tiles.roms]]
+file = "epr-13098.b2"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "89fc9a9b"
+sha1 = "d98691eb5fef8aca4ad5e416d0a3797d6ca9b012"
+
+[[regions.tiles.roms]]
+file = "epr-13099.b3"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "790e0ac6"
+sha1 = "a4999b7015ef27d6cbe4f53bc0d7fe05ee40d178"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-13173.b11"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "40a0ddfa"
+sha1 = "f3917361f627865d2f1a22791904da056ce8a93a"
+
+[[regions.sprites.roms]]
+file = "epr-13176.a11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "1184fbd2"
+sha1 = "685ee2d7c4a0134af13ccf5d15f2e56a6b905195"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12826a.a4"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "d41e2a3f"
+sha1 = "087a6515ebefc3252a1feab5bf7b8a22bff9e379"
+
+[properties]
+protection = "fd1094"

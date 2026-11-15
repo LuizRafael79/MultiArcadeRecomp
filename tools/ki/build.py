@@ -3,7 +3,7 @@
 
 This is an offline discovery/build stage. It does not produce a runnable KI
 executable yet: MameRecomp still needs the shared R4600 runtime and generated
-code ABI described in tools/mips3/UPSTREAM.md.
+code ABI described in docs/hardware/cpus/mips3/UPSTREAM.md.
 """
 from __future__ import annotations
 

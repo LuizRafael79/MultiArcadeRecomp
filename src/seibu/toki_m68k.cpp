@@ -1,9 +1,9 @@
 #include "toki_machine.hpp"
 
 #include <neogeorecomp/bus.h>
-#include "system16/system16_m68k_bus.h"
-#include "system16/m68k_recomp_dispatch.h"
-#include "system16/system16_musashi_fallback.h"
+#include "cpus/m68000/runtime/recomp_bus.h"
+#include "cpus/m68000/runtime/recomp_dispatch.h"
+#include "cpus/m68000/runtime/musashi_fallback.h"
 #include "cpus/m68000/runtime/cpu_runtime.h"
 
 #include <cstdio>
@@ -42,11 +42,11 @@ public:
     {
         if (!entries || !count) throw std::runtime_error("Toki 68000 AOT table is empty");
         const M68kBusCallbacks bus{&board, read8, read16, write8, write16};
-        m68k_system16_bus_bind(&bus);
+        mamerecomp_m68k_bus_bind(&bus);
         mame_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
         reset();
     }
-    ~Impl() { m68k_system16_bus_bind(nullptr); }
+    ~Impl() { mamerecomp_m68k_bus_bind(nullptr); }
 
     void reset()
     {
@@ -76,8 +76,8 @@ public:
             const auto before = ng_icount;
             const auto result = m68k_recomp_dispatch_once(entries, count);
             if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
-                m68k_system16_bus_clear_fault();
-                const int consumed = mamerecomp_system16_musashi_step();
+                mamerecomp_m68k_bus_clear_fault();
+                const int consumed = mamerecomp_m68k_musashi_step();
                 ng_cycles += consumed > 0 ? consumed : 1;
                 ++ng_icount;
                 ++fallback;

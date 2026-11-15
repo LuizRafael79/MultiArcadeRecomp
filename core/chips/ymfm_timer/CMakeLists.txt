@@ -1,0 +1,2 @@
+add_library(mamerecomp_chip_ymfm_timer STATIC ymfm_timer.cpp)
+target_include_directories(mamerecomp_chip_ymfm_timer PUBLIC ${PROJECT_SOURCE_DIR}/core)

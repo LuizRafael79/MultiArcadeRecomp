@@ -1,0 +1,788 @@
+module = "midway"
+board = "tunit"
+game = "jdreddp"
+gamename = "Judge Dredd (rev TA1 7/12/92, location test)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "jdreddp"
+description = "Judge Dredd (rev TA1 7/12/92, location test)"
+year = "1993"
+manufacturer = "Midway"
+sourcefile = "williams/midtunit.cpp"
+isbios = false
+
+[driver_layout]
+source = "midtunit.cpp"
+
+[[driver_layout.regions]]
+name = "adpcm:cpu"
+size_expression = "0x50000"
+size = 327680
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1772
+
+[[driver_layout.regions]]
+name = "adpcm:oki"
+size_expression = "0x100000"
+size = 1048576
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1776
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x100000"
+size = 1048576
+region_macro = "ROM_REGION16_LE"
+flags_expression = "0"
+source_line = 1780
+
+[[driver_layout.regions]]
+name = "video"
+size_expression = "0xc00000"
+size = 12582912
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1784
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "adpcm:cpu"
+size_expression = "0x50000"
+flags_expression = "0"
+source_line = 1772
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:cpu"
+file = "t1_judge_dredd_sound_rom_u3.u3"
+offset_expression = "0x010000"
+offset = 65536
+length_expression = "0x20000"
+length = 131072
+source_line = 1773
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "6154d108"
+sha1 = "54328455ec22ba815de85aa3bfe6405353c64f5c"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 65536
+length = 131072
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 196608
+length = 131072
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "adpcm:cpu"
+arguments = ["0x030000", "0x20000"]
+source_line = 1774
+offset_expression = "0x030000"
+offset = 196608
+length_expression = "0x20000"
+length = 131072
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "adpcm:cpu"
+arguments = ["0x030000", "0x20000"]
+source_line = 1774
+offset_expression = "0x030000"
+offset = 196608
+length_expression = "0x20000"
+length = 131072
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "adpcm:oki"
+size_expression = "0x100000"
+flags_expression = "0"
+source_line = 1776
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:oki"
+file = "t1_judge_dredd_sound_rom_u12.u12"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1777
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "ef32f202"
+sha1 = "16aea085e63496dec259291de1a64fbeab52f039"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:oki"
+file = "t1_judge_dredd_sound_rom_u13.u13"
+offset_expression = "0x080000"
+offset = 524288
+length_expression = "0x80000"
+length = 524288
+source_line = 1778
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "3dc70473"
+sha1 = "a3d7210301ff0579889009a075092115d9bf0600"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 524288
+length = 524288
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_REGION16_LE"
+region = "maincpu"
+size_expression = "0x100000"
+flags_expression = "0"
+source_line = 1780
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "t1_judge_dredd_game_rom_uj12.uj12"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1781
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "7e5c8d5a"
+sha1 = "65c0e887fea01846426067adfc4cf60dce4a1e24"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "t1_judge_dredd_game_rom_ug12.ug12"
+offset_expression = "0x00001"
+offset = 1
+length_expression = "0x80000"
+length = 524288
+source_line = 1782
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "a16b8a4a"
+sha1 = "77abb31e7cb3b66c63ef7c1874d8544ae9a02667"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "video"
+size_expression = "0xc00000"
+flags_expression = "0"
+source_line = 1784
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug14.ug14"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1785
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "468484d7"
+sha1 = "87e3b87051e3afff097333af90efa0eb4dd61a35"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj14.uj14"
+offset_expression = "0x000001"
+offset = 1
+length_expression = "0x80000"
+length = 524288
+source_line = 1786
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "fe6ec0ec"
+sha1 = "3e3b1774e1c5cf6629fbd3aeff36cadff1adfbf9"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug19.ug19"
+offset_expression = "0x000002"
+offset = 2
+length_expression = "0x80000"
+length = 524288
+source_line = 1787
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "e076c08e"
+sha1 = "9b52470feac66b258e62e53dfd6a6a74c1e47ac1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj19.uj19"
+offset_expression = "0x000003"
+offset = 3
+length_expression = "0x80000"
+length = 524288
+source_line = 1788
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "bd8cffe0"
+sha1 = "7690bfa82ab5c2c102dc5c6e60628f341b83a77b"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug16.ug16"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x80000"
+length = 524288
+source_line = 1790
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "1d7f12b6"
+sha1 = "beb864615a6c554097377a2f2b6dfe361c1fb084"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj16.uj16"
+offset_expression = "0x200001"
+offset = 2097153
+length_expression = "0x80000"
+length = 524288
+source_line = 1791
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "31d4a71b"
+sha1 = "703448956968f1913e5755a6aedf0f7d15ea4a4e"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097153
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug20.ug20"
+offset_expression = "0x200002"
+offset = 2097154
+length_expression = "0x80000"
+length = 524288
+source_line = 1792
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "7b8c370a"
+sha1 = "e6562782519610447657d0850481b1f9fd7c08b3"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097154
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj20.uj20"
+offset_expression = "0x200003"
+offset = 2097155
+length_expression = "0x80000"
+length = 524288
+source_line = 1793
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "8fc7bfb9"
+sha1 = "c3c31ea641a6e304b060a7938e2ac473db8a7aab"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097155
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug17.ug17"
+offset_expression = "0x400000"
+offset = 4194304
+length_expression = "0x80000"
+length = 524288
+source_line = 1795
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b6d83d74"
+sha1 = "e0e71f691af5b55fb4153a6b80d3055641cb7cf4"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194304
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj17.uj17"
+offset_expression = "0x400001"
+offset = 4194305
+length_expression = "0x80000"
+length = 524288
+source_line = 1796
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "ddc76f0b"
+sha1 = "8f3091c6a5ec1488fcd296e75bbd0572f1a4485c"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194305
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug22.ug22"
+offset_expression = "0x400002"
+offset = 4194306
+length_expression = "0x80000"
+length = 524288
+source_line = 1797
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "6705d5b3"
+sha1 = "da304ea33cd20c118b97147fe603237fe5940732"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194306
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj22.uj22"
+offset_expression = "0x400003"
+offset = 4194307
+length_expression = "0x80000"
+length = 524288
+source_line = 1798
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "7438295e"
+sha1 = "dbc28a9273897d50abf8e7bebe0753949365eb42"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194307
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug18.ug18"
+offset_expression = "0x600000"
+offset = 6291456
+length_expression = "0x80000"
+length = 524288
+source_line = 1800
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "c8a45e01"
+sha1 = "6d63a977c30d5f421baf48db55da90c75032a75f"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291456
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj18.uj18"
+offset_expression = "0x600001"
+offset = 6291457
+length_expression = "0x80000"
+length = 524288
+source_line = 1801
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "3e16e7a9"
+sha1 = "f517d42594225b06d70404f29e44dc144ad87a72"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291457
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_ug23.ug23"
+offset_expression = "0x600002"
+offset = 6291458
+length_expression = "0x80000"
+length = 524288
+source_line = 1802
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "0c9edbc4"
+sha1 = "bb3926a992efd1923d64c5bc615dac39867f426d"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291458
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "t1_judge_dredd_game_rom_uj23.uj23"
+offset_expression = "0x600003"
+offset = 6291459
+length_expression = "0x80000"
+length = 524288
+source_line = 1803
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "86ea157d"
+sha1 = "9189e07abc73b601a26ae8aaf6d49ed87d1befca"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291459
+length = 524288
+group_bytes = 1
+stride = 4
+
+[regions]
+
+[regions."adpcm:cpu"]
+
+[[regions."adpcm:cpu".roms]]
+file = "t1_judge_dredd_sound_rom_u3.u3"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "6154d108"
+sha1 = "54328455ec22ba815de85aa3bfe6405353c64f5c"
+
+[regions."adpcm:oki"]
+
+[[regions."adpcm:oki".roms]]
+file = "t1_judge_dredd_sound_rom_u12.u12"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "ef32f202"
+sha1 = "16aea085e63496dec259291de1a64fbeab52f039"
+
+[[regions."adpcm:oki".roms]]
+file = "t1_judge_dredd_sound_rom_u13.u13"
+size = 524288
+offset = 524288
+status = "good"
+optional = false
+crc32 = "3dc70473"
+sha1 = "a3d7210301ff0579889009a075092115d9bf0600"
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "t1_judge_dredd_game_rom_uj12.uj12"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "7e5c8d5a"
+sha1 = "65c0e887fea01846426067adfc4cf60dce4a1e24"
+
+[[regions.maincpu.roms]]
+file = "t1_judge_dredd_game_rom_ug12.ug12"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "a16b8a4a"
+sha1 = "77abb31e7cb3b66c63ef7c1874d8544ae9a02667"
+
+[regions.video]
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug14.ug14"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "468484d7"
+sha1 = "87e3b87051e3afff097333af90efa0eb4dd61a35"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj14.uj14"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "fe6ec0ec"
+sha1 = "3e3b1774e1c5cf6629fbd3aeff36cadff1adfbf9"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug19.ug19"
+size = 524288
+offset = 2
+status = "good"
+optional = false
+crc32 = "e076c08e"
+sha1 = "9b52470feac66b258e62e53dfd6a6a74c1e47ac1"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj19.uj19"
+size = 524288
+offset = 3
+status = "good"
+optional = false
+crc32 = "bd8cffe0"
+sha1 = "7690bfa82ab5c2c102dc5c6e60628f341b83a77b"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug16.ug16"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "1d7f12b6"
+sha1 = "beb864615a6c554097377a2f2b6dfe361c1fb084"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj16.uj16"
+size = 524288
+offset = 2097153
+status = "good"
+optional = false
+crc32 = "31d4a71b"
+sha1 = "703448956968f1913e5755a6aedf0f7d15ea4a4e"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug20.ug20"
+size = 524288
+offset = 2097154
+status = "good"
+optional = false
+crc32 = "7b8c370a"
+sha1 = "e6562782519610447657d0850481b1f9fd7c08b3"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj20.uj20"
+size = 524288
+offset = 2097155
+status = "good"
+optional = false
+crc32 = "8fc7bfb9"
+sha1 = "c3c31ea641a6e304b060a7938e2ac473db8a7aab"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug17.ug17"
+size = 524288
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "b6d83d74"
+sha1 = "e0e71f691af5b55fb4153a6b80d3055641cb7cf4"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj17.uj17"
+size = 524288
+offset = 4194305
+status = "good"
+optional = false
+crc32 = "ddc76f0b"
+sha1 = "8f3091c6a5ec1488fcd296e75bbd0572f1a4485c"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug22.ug22"
+size = 524288
+offset = 4194306
+status = "good"
+optional = false
+crc32 = "6705d5b3"
+sha1 = "da304ea33cd20c118b97147fe603237fe5940732"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj22.uj22"
+size = 524288
+offset = 4194307
+status = "good"
+optional = false
+crc32 = "7438295e"
+sha1 = "dbc28a9273897d50abf8e7bebe0753949365eb42"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug18.ug18"
+size = 524288
+offset = 6291456
+status = "good"
+optional = false
+crc32 = "c8a45e01"
+sha1 = "6d63a977c30d5f421baf48db55da90c75032a75f"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj18.uj18"
+size = 524288
+offset = 6291457
+status = "good"
+optional = false
+crc32 = "3e16e7a9"
+sha1 = "f517d42594225b06d70404f29e44dc144ad87a72"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_ug23.ug23"
+size = 524288
+offset = 6291458
+status = "good"
+optional = false
+crc32 = "0c9edbc4"
+sha1 = "bb3926a992efd1923d64c5bc615dac39867f426d"
+
+[[regions.video.roms]]
+file = "t1_judge_dredd_game_rom_uj23.uj23"
+size = 524288
+offset = 6291459
+status = "good"
+optional = false
+crc32 = "86ea157d"
+sha1 = "9189e07abc73b601a26ae8aaf6d49ed87d1befca"
+
+[properties]
+protection = "none"

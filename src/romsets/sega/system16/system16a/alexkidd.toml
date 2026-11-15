@@ -1,0 +1,201 @@
+module = "system16"
+board = "system16a"
+game = "alexkidd"
+gamename = "Alex Kidd: The Lost Stars (set 2, unprotected)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "alexkidd"
+description = "Alex Kidd: The Lost Stars (set 2, unprotected)"
+year = "1986"
+manufacturer = "Sega"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-10447.43"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "29e87f71"
+sha1 = "af980e55c02b3de1121c144fee23af74d24042ac"
+
+[[regions.maincpu.roms]]
+file = "epr-10445.26"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "25ce5b6f"
+sha1 = "dfec64df7e8d145d30740808bc94bdbbe667c4e8"
+
+[[regions.maincpu.roms]]
+file = "epr-10448.42"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "05baedb5"
+sha1 = "fc15989bf3d850170e4e018d74f18553f0268576"
+
+[[regions.maincpu.roms]]
+file = "epr-10446.25"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "cd61d23c"
+sha1 = "c235c4fef28556e9f2d07e815ad213c308e85598"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-10431.95"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "a7962c39"
+sha1 = "c816fc5d9f21b2ba32b9841e64b634bce7ea78c8"
+
+[[regions.gfx1.roms]]
+file = "epr-10432.94"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "db8cd24e"
+sha1 = "656d98844ad9ccaa68e3f501137dddd0a27d999d"
+
+[[regions.gfx1.roms]]
+file = "epr-10433.93"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "e163c8c2"
+sha1 = "ac54c5ecedca5b1a2c550de32687ca57c4d3a411"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-10437.10"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "522f7618"
+sha1 = "9a6bc857dfef1dd1b7bffa034523c1c4cd8b3f4c"
+
+[[regions.sprites.roms]]
+file = "epr-10441.11"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "74e3a35c"
+sha1 = "26b980a0a3aee94ac38e0e0c7d305bb35a60d1c4"
+
+[[regions.sprites.roms]]
+file = "epr-10438.17"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "738a6362"
+sha1 = "a3c5f10c263cb216d275875f6333484a1cca281b"
+
+[[regions.sprites.roms]]
+file = "epr-10442.18"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "86cb9c14"
+sha1 = "42bd0ed985de61ff183eed0192257966caa01594"
+
+[[regions.sprites.roms]]
+file = "epr-10439.23"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "b391aca7"
+sha1 = "ca9d80b67e5365f709f90a5342b5e3aa7c7126e1"
+
+[[regions.sprites.roms]]
+file = "epr-10443.24"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "95d32635"
+sha1 = "788af2af1ae783128bcdc8cd44d17cd2f1542231"
+
+[[regions.sprites.roms]]
+file = "epr-10440.29"
+size = 32768
+offset = 196609
+status = "good"
+optional = false
+crc32 = "23939508"
+sha1 = "68450a18fc7e35f5b0155632aa68cffd251be38c"
+
+[[regions.sprites.roms]]
+file = "epr-10444.30"
+size = 32768
+offset = 196608
+status = "good"
+optional = false
+crc32 = "82115823"
+sha1 = "e4103003cda949bebe57815115a5028f4fe8e7d7"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-10434.12"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "77141cce"
+sha1 = "6c5e83527f7e11a5ff5cc4fa75d55618a55e1a58"
+
+[regions.upd7751]
+
+[[regions.upd7751.roms]]
+file = "7751.bin"
+size = 1024
+offset = 0
+status = "good"
+optional = false
+crc32 = "6a9534fc"
+sha1 = "67ad94674db5c2aab75785668f610f6f4eccd158"
+
+[regions.upd7751data]
+
+[[regions.upd7751data.roms]]
+file = "epr-10435.1"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "ad89f6e3"
+sha1 = "812a132142065b0fe13b5f0ac534b6d8830ba102"
+
+[[regions.upd7751data.roms]]
+file = "epr-10436.2"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "96c76613"
+sha1 = "fe3e4e649fd2cb2453eec0c92015bd54b3b9a1b5"
+
+[properties]
+protection = "none"

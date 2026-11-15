@@ -1,0 +1,299 @@
+module = "system16"
+board = "system16a"
+game = "quarteta"
+gamename = "Quartet (8751 315-5194)"
+parent = "quartet"
+romof = "quartet"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "quarteta"
+description = "Quartet (8751 315-5194)"
+cloneof = "quartet"
+romof = "quartet"
+year = "1986"
+manufacturer = "Sega"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a_i8751"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-7458.9b"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "0096499f"
+sha1 = "dcf8e33513ce7c6660ea546c8e1c574fde629a22"
+
+[[regions.maincpu.roms]]
+file = "epr-7455.6b"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "da934390"
+sha1 = "d40eb65b6a36a4c1ebeadb76e47a61bd8b2e4b89"
+
+[[regions.maincpu.roms]]
+file = "epr-7459.10b"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "d130cf61"
+sha1 = "3a065f5c296b10b97c78d49aa285ae7afb16e881"
+
+[[regions.maincpu.roms]]
+file = "epr-7456.7b"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "7847149f"
+sha1 = "fc8ad669f2bc426cb7af78d92ea147cbd1e181af"
+
+[[regions.maincpu.roms]]
+file = "epr-7460.11b"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "a444ea13"
+sha1 = "884ed22d606e3bd30d8401fe1750687e54674e82"
+merge = "epr-7460.11b"
+
+[[regions.maincpu.roms]]
+file = "epr-7457.8b"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "3b282c23"
+sha1 = "95de41a97f50f6169887c6d9724d5c42a41bb264"
+merge = "epr-7457.8b"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-7461.9c"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "f6af07f2"
+sha1 = "546fabbda936d61a90d2395d033fd4d6bb0bc38a"
+merge = "epr-7461.9c"
+
+[[regions.gfx1.roms]]
+file = "epr-7462.10c"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "7914af28"
+sha1 = "4bf59fe4a0b0aa5d4cc0b6f9375ffab3c96e8a2b"
+merge = "epr-7462.10c"
+
+[[regions.gfx1.roms]]
+file = "epr-7463.11c"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "827c5603"
+sha1 = "8db3bd6eae5aeeb229e017471049ef5347974df5"
+merge = "epr-7463.11c"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-7465.5c"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "8a1ab7d7"
+sha1 = "a2f317538c70a1603b65d795223407cbaaf88524"
+merge = "epr-7465.5c"
+
+[[regions.sprites.roms]]
+file = "epr-7469.2b"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "cb65ae4f"
+sha1 = "3ee7b3b4cce113a6f394e8dfd317cdb6ffae64f7"
+merge = "epr-7469.2b"
+
+[[regions.sprites.roms]]
+file = "epr-7466.6c"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "b2d3f4f3"
+sha1 = "65e654fde10bee4cb5eee8234d0babb78fe41cfb"
+merge = "epr-7466.6c"
+
+[[regions.sprites.roms]]
+file = "epr-7470.3b"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "16fc67b1"
+sha1 = "788fe2878c5c9faea43c2f166f32c22ee51c7d09"
+merge = "epr-7470.3b"
+
+[[regions.sprites.roms]]
+file = "epr-7467.7c"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "0af68de2"
+sha1 = "81163baf3f0e45bac950a6d9c24b3a886db1509c"
+merge = "epr-7467.7c"
+
+[[regions.sprites.roms]]
+file = "epr-7471.4b"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "13fad5ac"
+sha1 = "75b480083fbb14cbef969126989bf9b2235fd31e"
+merge = "epr-7471.4b"
+
+[[regions.sprites.roms]]
+file = "epr-7468.8c"
+size = 32768
+offset = 196609
+status = "good"
+optional = false
+crc32 = "ddfd40c0"
+sha1 = "6c12ad668cd0c82e7d7d46bfbdcee8b9d46ebd09"
+merge = "epr-7468.8c"
+
+[[regions.sprites.roms]]
+file = "epr-7472.5b"
+size = 32768
+offset = 196608
+status = "good"
+optional = false
+crc32 = "8e2762ec"
+sha1 = "872e19a6aab81d7a2472367d0e31dc1295da7182"
+merge = "epr-7472.5b"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-7464.1b"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "9f291306"
+sha1 = "96a09542a863ccf2ded43e2df6f913722b3f97b1"
+merge = "epr-7464.1b"
+
+[regions.upd7751]
+
+[[regions.upd7751.roms]]
+file = "7751.bin"
+size = 1024
+offset = 0
+status = "good"
+optional = false
+crc32 = "6a9534fc"
+sha1 = "67ad94674db5c2aab75785668f610f6f4eccd158"
+merge = "7751.bin"
+
+[regions.upd7751data]
+
+[[regions.upd7751data.roms]]
+file = "epr-7473.1c"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "06ec75fa"
+sha1 = "5f14bc887449122700c46ad22c0379a1682e0bdb"
+merge = "epr-7473.1c"
+
+[[regions.upd7751data.roms]]
+file = "epr-7475.2c"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "7abd1206"
+sha1 = "54d52dc0b9c245cd2df647e714310a71b803cbcf"
+merge = "epr-7475.2c"
+
+[[regions.upd7751data.roms]]
+file = "epr-7474.3c"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "dbf853b8"
+sha1 = "e82f497e1144f23f3233b5c45ef182bfc7923715"
+merge = "epr-7474.3c"
+
+[[regions.upd7751data.roms]]
+file = "epr-7476.4c"
+size = 32768
+offset = 98304
+status = "good"
+optional = false
+crc32 = "5eba655a"
+sha1 = "6713ef12037cba3139d0f469c82bd90b44bae8ce"
+merge = "epr-7476.4c"
+
+[regions.mcu]
+
+[[regions.mcu.roms]]
+file = "315-5194.mcu"
+size = 4096
+offset = 0
+status = "good"
+optional = false
+crc32 = "b7298f66"
+sha1 = "9c579903bcf48a72ad9dfe7bf3962729dabe2d34"
+merge = "315-5194.mcu"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5147.pal16r6a.23g"
+size = 260
+offset = 0
+status = "nodump"
+optional = false
+
+[[regions.plds.roms]]
+file = "315-5143.pal16r6a.24g"
+size = 260
+offset = 512
+status = "nodump"
+optional = false
+
+[[regions.plds.roms]]
+file = "315-5193.pls153.8j"
+size = 235
+offset = 1024
+status = "good"
+optional = false
+crc32 = "0fe1eefd"
+sha1 = "38ba6f57006af8c0d4d7f74aa4778ac1ee2a21fc"
+merge = "315-5193.pls153.8j"
+
+[properties]
+protection = "i8751"

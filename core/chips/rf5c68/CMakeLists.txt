@@ -1,0 +1,2 @@
+add_library(mamerecomp_chip_rf5c68 STATIC rf5c68.cpp)
+target_include_directories(mamerecomp_chip_rf5c68 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

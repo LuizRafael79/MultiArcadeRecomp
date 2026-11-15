@@ -40,9 +40,16 @@ std::uint8_t Mapper3155195::read(std::uint8_t offset) {
     case 0x00:
     case 0x01: return m_regs[offset];
     case 0x02: return (m_regs[0x02] & 3U) == 3U ? 0x00 : 0x0f;
-    case 0x03: return m_sound_reply;
+    case 0x03:
+        if (m_callbacks.mcu_irq) m_callbacks.mcu_irq(false);
+        return m_sound_reply;
     default: return 0xff;
     }
+}
+
+void Mapper3155195::set_sound_reply(std::uint8_t data) {
+    m_sound_reply = data;
+    if (m_callbacks.mcu_irq) m_callbacks.mcu_irq(true);
 }
 
 std::uint16_t Mapper3155195::read_mapped(std::uint32_t address) {
@@ -66,7 +73,9 @@ void Mapper3155195::write(std::uint8_t offset, std::uint8_t data) {
         if (m_callbacks.to_sound) m_callbacks.to_sound(data);
         break;
     case 0x04:
-        if ((data & 7U) != 7U && m_callbacks.irq) m_callbacks.irq((~data) & 7U);
+        // Negative logic. HOLD_LINE is asserted for the selected 68000 IRQ,
+        // while $07 clears every IRQ line.
+        if (m_callbacks.irq) m_callbacks.irq((data & 7U) == 7U ? 0U : ((~data) & 7U));
         break;
     case 0x05:
         if (data == 0x01) {

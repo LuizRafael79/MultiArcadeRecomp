@@ -1,0 +1,207 @@
+module = "system16"
+board = "system16b"
+game = "afighterf"
+gamename = "Action Fighter (System 16B, FD1089B 317-unknown, analog controls)"
+parent = "afighter"
+romof = "afighter"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "afighterf"
+description = "Action Fighter (System 16B, FD1089B 317-unknown, analog controls)"
+cloneof = "afighter"
+romof = "afighter"
+year = "1986"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_fd1089b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr10033.bin"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "1b836a91"
+sha1 = "a770a0ca9db052553184ffb0f647d033a0a4ab63"
+
+[[regions.maincpu.roms]]
+file = "epr10036.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "d0589391"
+sha1 = "55ceb189a48a5664955650e2d4e8ad1da2209295"
+
+[[regions.maincpu.roms]]
+file = "epr10034.bin"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "423e983e"
+sha1 = "4437d4988c52b5033611ee4d6b4c50955ba70200"
+
+[[regions.maincpu.roms]]
+file = "epr10037.bin"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "3a312b9e"
+sha1 = "ea371474b0ca5ead93b788e17192f80e6c8cf939"
+
+[[regions.maincpu.roms]]
+file = "epr10035.bin"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "68177755"
+sha1 = "7f498a7932079cecb5908b11722244961a9d4927"
+
+[[regions.maincpu.roms]]
+file = "epr10038.bin"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "22c2b533"
+sha1 = "9256888884dcfcf51ebcf64a1f60164a57891676"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr10048.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "643ca883"
+sha1 = "dd2ffdeca5b06992fe71e5a9e59dcadf98f9e888"
+
+[[regions.tiles.roms]]
+file = "epr10049.bin"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "f8b5058b"
+sha1 = "ff62c220200e23c2f35f657175c0cd5123b6a1ba"
+
+[[regions.tiles.roms]]
+file = "epr10050.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0ffb48dd"
+sha1 = "2a88913ed177ec406ad7f788ab36ba12a8398a1b"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr10044.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "71d0db1f"
+sha1 = "db2766474fc1f160bf886f65894259dfce891ed7"
+
+[[regions.sprites.roms]]
+file = "epr10040.bin"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "5a9f81f9"
+sha1 = "fedd427c95ccc8251bf713b6ae05c2efb74cd976"
+
+[[regions.sprites.roms]]
+file = "epr10045.bin"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "39354223"
+sha1 = "d8a73d3f7fc2d83d23bb7434f43bc8804f35cc16"
+merge = "epr-10290"
+
+[[regions.sprites.roms]]
+file = "epr10041.bin"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "8da050cf"
+sha1 = "c28e8968dbd9c110672581f4486f70d5f45df7f5"
+merge = "epr-10286"
+
+[[regions.sprites.roms]]
+file = "epr10046.bin"
+size = 32768
+offset = 262144
+status = "good"
+optional = false
+crc32 = "b49b3136"
+sha1 = "afb992acf4529204419707f0870e9a259e6fe00f"
+
+[[regions.sprites.roms]]
+file = "epr10042.bin"
+size = 32768
+offset = 262145
+status = "good"
+optional = false
+crc32 = "dd706d18"
+sha1 = "95c10f7ca29898f531bf8e3c0e8c9d0484d96b4a"
+
+[[regions.sprites.roms]]
+file = "epr10047.bin"
+size = 32768
+offset = 393216
+status = "good"
+optional = false
+crc32 = "84a49518"
+sha1 = "4f3c89d8f736889931ec09af3694d3891371c9e4"
+
+[[regions.sprites.roms]]
+file = "epr10043.bin"
+size = 32768
+offset = 393217
+status = "good"
+optional = false
+crc32 = "645ccfb9"
+sha1 = "84ba9a33bbf4ecc9909f543e798a2b3687872a71"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr10039.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "b04757b0"
+sha1 = "24bface5a23ed658675f414c9937bf9d7f7ed5ec"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0018.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "65b5b1af"
+sha1 = "9a236c0c223064f9a2a56561e10b9ffed0f567a3"
+merge = "317-0018.key"
+
+[properties]
+protection = "fd1089"

@@ -1,0 +1,199 @@
+module = "system16"
+board = "system16b"
+game = "riotcity"
+gamename = "Riot City (Japan)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "riotcity"
+description = "Riot City (Japan)"
+year = "1991"
+manufacturer = "Sega / Westone"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-14612.a7"
+size = 131072
+offset = 0
+status = "baddump"
+optional = false
+crc32 = "a1b331ec"
+sha1 = "49136ffed35ecc9e5e9a6ea7acbe534e6ccc9dd8"
+
+[[regions.maincpu.roms]]
+file = "epr-14610.a5"
+size = 131072
+offset = 1
+status = "baddump"
+optional = false
+crc32 = "cd4f2c50"
+sha1 = "c7a7e95901c664a72195c202b50a159db8d5981d"
+
+[[regions.maincpu.roms]]
+file = "epr-14613.a8"
+size = 131072
+offset = 262144
+status = "baddump"
+optional = false
+crc32 = "0659df4c"
+sha1 = "a24005ce354113732306c318de373c818400a9c8"
+
+[[regions.maincpu.roms]]
+file = "epr-14611.a6"
+size = 131072
+offset = 262145
+status = "baddump"
+optional = false
+crc32 = "d9e6f80b"
+sha1 = "5ac56b3685bb121a4f07be3d81209807436e76ec"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-14616.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "46d30368"
+sha1 = "a791ef0e881345b6be0b28f32af17127edb5b590"
+
+[[regions.tiles.roms]]
+file = "epr-14625.b14"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "abfb80fe"
+sha1 = "5f0d61d55f27e8f776b573e3193164c4d70ec12b"
+
+[[regions.tiles.roms]]
+file = "epr-14617.a15"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "884e40f9"
+sha1 = "f7eeae57544e7d95139588137605986732937d38"
+
+[[regions.tiles.roms]]
+file = "epr-14626.b15"
+size = 131072
+offset = 393216
+status = "good"
+optional = false
+crc32 = "4ef55846"
+sha1 = "2f23474e7d1d8880dc251ada55c5fca2fc19256a"
+
+[[regions.tiles.roms]]
+file = "epr-14618.a16"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "00eb260e"
+sha1 = "f293180fb9a053c98022ef086bf4002563752f61"
+
+[[regions.tiles.roms]]
+file = "epr-14627.b16"
+size = 131072
+offset = 655360
+status = "good"
+optional = false
+crc32 = "961e5f82"
+sha1 = "dc88b511dff6cdebf96fe8bf388bf76098296b0f"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-14619.b1"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "6f2b5ef7"
+sha1 = "a0186fcc5b12c31b65b84355f88bcb10b1434135"
+
+[[regions.sprites.roms]]
+file = "epr-14622.b5"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "7ca7e40d"
+sha1 = "57d26cc1b530cb867b2a4779bb5108ac457b2154"
+
+[[regions.sprites.roms]]
+file = "epr-14620.b2"
+size = 262144
+offset = 262145
+status = "good"
+optional = false
+crc32 = "66183333"
+sha1 = "44bb9d57cd0308c0d7b6a10ba9bd95763ceea775"
+
+[[regions.sprites.roms]]
+file = "epr-14623.b6"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "98630049"
+sha1 = "216ae0b4a59f306b51bd50dfcbf831c3186a4d2a"
+
+[[regions.sprites.roms]]
+file = "epr-14621.b3"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "c0f2820e"
+sha1 = "ae433f6c5065ed495f5f57f50d6abe5ff98b041e"
+
+[[regions.sprites.roms]]
+file = "epr-14624.b7"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "d1a68448"
+sha1 = "7591f0476e899a11042d9b7e93f99b64de48b0ef"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-14614.a10"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "c65cc69a"
+sha1 = "28a75dd2085b8e1447fe4e6af210a54a6666fcb1"
+
+[[regions.soundcpu.roms]]
+file = "epr-14615.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "46653db1"
+sha1 = "7a43d8742ee451d93bb5f1b0f4f261b274c3f0ef"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+
+[properties]
+protection = "none"

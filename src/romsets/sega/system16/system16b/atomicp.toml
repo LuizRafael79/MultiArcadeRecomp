@@ -1,0 +1,67 @@
+module = "system16"
+board = "system16b"
+game = "atomicp"
+gamename = "Atomic Point (Korea)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "atomicp"
+description = "Atomic Point (Korea)"
+year = "1990"
+manufacturer = "Philko"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "atomicp"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "ap-t2.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "97421047"
+sha1 = "18d61260470da7a0bef532f81df567a613c0d821"
+
+[[regions.maincpu.roms]]
+file = "ap-t1.bin"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "5c65fe56"
+sha1 = "aaf3b6f932c090b839817140c105f13c7d6b4ae2"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "ap-t4.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "332e58f4"
+sha1 = "cf5aeb6c14018cbd8f222a0ecf85ccf467f294a8"
+
+[[regions.tiles.roms]]
+file = "ap-t3.bin"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "dddc122c"
+sha1 = "3411eae360ccd615636fb85e9738affc33c2c0ad"
+
+[[regions.tiles.roms]]
+file = "ap-t5.bin"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "ef5ecd6b"
+sha1 = "07edc8ea4c0a5ad421df7f97e7a62a5e12a8dbd0"
+
+[properties]
+protection = "none"

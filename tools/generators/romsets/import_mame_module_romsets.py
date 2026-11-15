@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from driver_layout import parse_driver
+from manifest_io import load_manifest_file, write_manifest_file
 
 
 MODULES = {
     "capcom/cps1.cpp": ("capcom", "cps1", "cps1"),
     "capcom/cps2.cpp": ("capcom", "cps2", "cps2"),
     "snk/neogeo.cpp": ("snk", "neogeo", "neogeo_mvs"),
+    "williams/midtunit.cpp": ("midway", "midway", "tunit"),
 }
 RUNTIME_ONLY_FIELDS = ("bios_candidates", "system_roms", "game_transforms")
 
@@ -83,7 +84,7 @@ def make_manifest(machine: ET.Element, sourcefile: str,
 
 
 def merge_existing(path: Path, imported: dict, source_path: Path | None = None) -> None:
-    old = json.loads((source_path or path).read_text())
+    old = load_manifest_file(source_path or path)
     runtime = old.get("runtime", {})
     old_regions = old.get("regions", {})
     if any("segments" in rom for region in old_regions.values() for rom in region.get("roms", [])):
@@ -113,7 +114,7 @@ def merge_existing(path: Path, imported: dict, source_path: Path | None = None) 
         old["runtime"] = runtime
     else:
         old.pop("runtime", None)
-    path.write_text(json.dumps(old, indent=2, ensure_ascii=False) + "\n")
+    write_manifest_file(path, old)
 
 
 def main() -> int:
@@ -141,7 +142,7 @@ def main() -> int:
     if stream is None:
         raise SystemExit("could not read MAME -listxml output")
     manifests = []
-    machine_modules: dict[str, str] = {}
+    machine_profiles: dict[str, tuple[str, str]] = {}
     try:
         for _event, machine in ET.iterparse(stream, events=("end",)):
             if machine.tag != "machine":
@@ -151,7 +152,7 @@ def main() -> int:
                 layouts, aliases = driver_data[sourcefile]
                 manifest = make_manifest(machine, sourcefile, layouts, aliases)
                 manifests.append(manifest)
-                machine_modules[manifest["game"]] = manifest["module"]
+                machine_profiles[manifest["game"]] = (manifest["module"], manifest["board"])
             machine.clear()
     finally:
         stream.close()
@@ -161,28 +162,34 @@ def main() -> int:
     for manifest in manifests:
         for relation in ("parent", "romof"):
             related = manifest.get(relation)
-            related_module = machine_modules.get(related) if related else None
-            if related_module and related_module != manifest["module"]:
-                manifest[f"{relation}_module"] = related_module
+            related_profile = machine_profiles.get(related) if related else None
+            if related_profile:
+                related_module, related_board = related_profile
+                if related_module != manifest["module"]:
+                    manifest[f"{relation}_module"] = related_module
+                if related_board != manifest["board"]:
+                    manifest[f"{relation}_board"] = related_board
 
     written = 0
     missing = []
     for manifest in manifests:
         publisher, module, board = next(
-            values for values in MODULES.values() if values[1] == manifest["module"]
+            values for values in MODULES.values()
+            if values[1] == manifest["module"] and values[2] == manifest["board"]
         )
         directory = args.output / publisher / module / board
-        destination = directory / f"{manifest['game']}.json"
+        destination = directory / f"{manifest['game']}.toml"
         directory.mkdir(parents=True, exist_ok=True)
         module_dir = args.output / publisher / module
-        other_paths = [path for path in module_dir.rglob(f"{manifest['game']}.json") if path != destination]
+        other_paths = [path for path in module_dir.rglob(f"{manifest['game']}.toml")
+                       if path != destination]
         legacy_path = other_paths[0] if other_paths else None
         if destination.exists() or legacy_path:
             merge_existing(destination, manifest, source_path=legacy_path or destination)
             if legacy_path and legacy_path.exists() and legacy_path != destination:
                 legacy_path.unlink()
         else:
-            destination.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+            write_manifest_file(destination, manifest)
         written += 1
 
     if not written:
@@ -192,7 +199,7 @@ def main() -> int:
                        if manifest["driver_layout"].get("status") == "ROM_START not found"]
     if missing_layouts:
         print("Driver layout missing for: " + ", ".join(missing_layouts), file=sys.stderr)
-    print(f"Imported {written} CPS-1/CPS-2/Neo Geo MAME game entries")
+    print(f"Imported {written} ROM-set entries from configured MAME drivers")
     return 0
 
 

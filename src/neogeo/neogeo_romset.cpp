@@ -1,14 +1,13 @@
 #include "neogeo_romset.hpp"
 #include "kof98_romset_data.hpp"
 
-extern "C" void mamerecomp_kof98_decrypt(std::uint8_t* program, std::size_t size);
-
 #include <archive.h>
 #include <archive_entry.h>
 #include <zlib.h>
 
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -64,12 +63,9 @@ std::vector<std::string_view> member_names(const Entries& entries) {
 }
 }
 
-void decrypt_kof98_program(std::vector<std::uint8_t>& program) {
-    if (program.size() < 0x600000) throw std::runtime_error("KOF98 program region must be at least 0x600000 bytes");
-    mamerecomp_kof98_decrypt(program.data(), program.size());
-}
-
-RomSetInfo load_kof98(const std::filesystem::path& path, const std::filesystem::path& bios_path) {
+RomSetInfo load_kof98(const std::filesystem::path& path,
+                      const std::filesystem::path& bios_path,
+                      std::string_view bios_name) {
     const auto load_names = member_names(data::loads);
     auto files = read_roms(path, load_names);
 
@@ -103,11 +99,10 @@ RomSetInfo load_kof98(const std::filesystem::path& path, const std::filesystem::
             }
         }
     }
-    decrypt_kof98_program(out.maincpu);
-
     const auto bios_names = member_names(data::bios_candidates);
     auto bioses = read_roms(bios_path, bios_names);
     for (const auto& candidate : data::bios_candidates) {
+        if (!bios_name.empty() && std::string_view(candidate.name) != bios_name) continue;
         const auto it = bioses.find(candidate.name);
         if (it == bioses.end()) continue;
         const auto crc = static_cast<std::uint32_t>(crc32(0, it->second.data(), static_cast<uInt>(it->second.size())));
@@ -119,20 +114,30 @@ RomSetInfo load_kof98(const std::filesystem::path& path, const std::filesystem::
             for (std::size_t i = 0; i + 1 < out.bios.size(); i += 2) std::swap(out.bios[i], out.bios[i + 1]);
         break;
     }
-    if (out.bios.empty()) throw std::runtime_error("no supported 0x20000 MVS BIOS found in " + bios_path.string());
+    if (out.bios.empty()) throw std::runtime_error("no supported 0x20000 Neo Geo BIOS found in " + bios_path.string());
     return out;
 }
 
 void extract_kof98_inputs(const std::filesystem::path& game_zip,
                           const std::filesystem::path& bios_zip,
                           const std::filesystem::path& game_directory,
-                          const std::filesystem::path& bios_directory) {
-    (void)load_kof98(game_zip, bios_zip); // verify set, BIOS and decryption prerequisites first
+                          const std::filesystem::path& bios_directory,
+                          const std::filesystem::path& system_rom_zip) {
+    (void)load_kof98(game_zip, bios_zip); // verify the set and BIOS before extraction
     const auto game_names = member_names(data::loads);
     auto game_files=read_roms(game_zip, game_names);
     auto bios_names = member_names(data::bios_candidates);
     for (const auto& rom : data::system_roms) bios_names.emplace_back(rom.name);
     auto bios_files=read_roms(bios_zip,bios_names);
+    const auto shared_system_rom_zip = system_rom_zip.empty() ? bios_zip : system_rom_zip;
+    if (shared_system_rom_zip != bios_zip) {
+        std::vector<std::string_view> missing_system_roms;
+        for (const auto& rom : data::system_roms)
+            if (!bios_files.contains(rom.name)) missing_system_roms.emplace_back(rom.name);
+        auto shared_files = read_roms(shared_system_rom_zip, missing_system_roms);
+        bios_files.insert(std::make_move_iterator(shared_files.begin()),
+                          std::make_move_iterator(shared_files.end()));
+    }
     for (const auto& rom : data::system_roms) {
         const auto it=bios_files.find(rom.name);
         if (it==bios_files.end()) throw std::runtime_error("missing Neo Geo system ROM " + std::string(rom.name));

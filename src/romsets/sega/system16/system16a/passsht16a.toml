@@ -1,0 +1,205 @@
+module = "system16"
+board = "system16a"
+game = "passsht16a"
+gamename = "Passing Shot (Japan, 4 Players, System 16A) (FD1094 317-0071)"
+parent = "passsht"
+romof = "passsht"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "passsht16a"
+description = "Passing Shot (Japan, 4 Players, System 16A) (FD1094 317-0071)"
+cloneof = "passsht"
+romof = "passsht"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-11833.43"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "5eb1405c"
+sha1 = "0a68d3fcc074475d38f999c93082d4a9dff0f19a"
+
+[[regions.maincpu.roms]]
+file = "epr-11832.26"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "718a3fe4"
+sha1 = "bd6844c53ce3b64b113795360175df92d095b467"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0071.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "c69949ec"
+sha1 = "1c63f42404ee1d8333e734e892b1c4cac0cb440e"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-11834.95"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "df4e18ab"
+sha1 = "ac9b424eded18f128e6cc743bbddf9afd869c8c4"
+
+[[regions.gfx1.roms]]
+file = "epr-11835.94"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "6a07acc0"
+sha1 = "218071612ee6fa89b16a47a77325a962ba38926d"
+
+[[regions.gfx1.roms]]
+file = "epr-11836.93"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "93c74928"
+sha1 = "43ea7855d5d4dcc4921b3a7b814acc75c5cfde15"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-11842.10"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "b6e94727"
+sha1 = "0838e034f1f10d9cd1312c8c94b5c57387c0c271"
+merge = "opr-11862.b1"
+
+[[regions.sprites.roms]]
+file = "epr-11845.11"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "17e8d5d5"
+sha1 = "ac1074b0a705be13c6e3391441e6cfec1d2b3f8a"
+merge = "opr-11865.b5"
+
+[[regions.sprites.roms]]
+file = "epr-11843.17"
+size = 65536
+offset = 65537
+status = "good"
+optional = false
+crc32 = "3e670098"
+sha1 = "2cfc83f4294be30cd868738886ac546bd8489962"
+merge = "opr-11863.b2"
+
+[[regions.sprites.roms]]
+file = "epr-11846.18"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "50eb71cc"
+sha1 = "463b4917ca19c7f4ad2c2845caa104d5e4a2dda3"
+merge = "opr-11866.b6"
+
+[[regions.sprites.roms]]
+file = "epr-11844.23"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "05733ca8"
+sha1 = "1dbc7c99450ebe6a9fd8c0244fd3cb38b74984ef"
+merge = "opr-11864.b3"
+
+[[regions.sprites.roms]]
+file = "epr-11847.24"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "81e49697"
+sha1 = "a70fa409e3555ad6c8f28930a7026fdf2deb8c65"
+merge = "opr-11867.b7"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-11837.12"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "74d11552"
+sha1 = "5a0f0c3fb858ed2bad8002fce4e29d730f102bcd"
+
+[regions.upd7751]
+
+[[regions.upd7751.roms]]
+file = "7751.bin"
+size = 1024
+offset = 0
+status = "good"
+optional = false
+crc32 = "6a9534fc"
+sha1 = "67ad94674db5c2aab75785668f610f6f4eccd158"
+
+[regions.upd7751data]
+
+[[regions.upd7751data.roms]]
+file = "epr-11838.1"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "a465cd69"
+sha1 = "25da3809824fb3df1f93bbfa88355a7c50e44211"
+
+[[regions.upd7751data.roms]]
+file = "epr-11839.2"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "99de6197"
+sha1 = "f7de6a34fa185754c12276a94b1513234d352f3f"
+
+[[regions.upd7751data.roms]]
+file = "epr-11840.4"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "9854e8b3"
+sha1 = "bc9d8a17ff96cf03f9a955223c11d9f1fb0309c5"
+
+[[regions.upd7751data.roms]]
+file = "epr-11841.5"
+size = 32768
+offset = 98304
+status = "good"
+optional = false
+crc32 = "1e89877e"
+sha1 = "bbceb4f3cafae40d1e256f4336d3ee0bcdf8d077"
+
+[properties]
+protection = "fd1094"

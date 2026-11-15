@@ -13,6 +13,8 @@ extern "C" {
 unsigned mamerecomp_neogeo_game_module_abi();
 const char* mamerecomp_neogeo_game_module_id();
 unsigned mamerecomp_neogeo_game_module_revision();
+const ng_game_t* mamerecomp_neogeo_game_descriptor();
+void mamerecomp_neogeo_game_reset();
 const ng_func_entry_t* mamerecomp_neogeo_game_recomp_table(std::size_t* count);
 const void* mamerecomp_neogeo_game_z80_bios_code();
 const void* mamerecomp_neogeo_game_z80_cart_code();

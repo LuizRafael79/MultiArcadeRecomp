@@ -1,0 +1,209 @@
+module = "system18"
+board = "system18"
+game = "lghost"
+gamename = "Laser Ghost (World) (FD1094 317-0166)"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "lghost"
+description = "Laser Ghost (World) (FD1094 317-0166)"
+year = "1990"
+manufacturer = "Sega"
+sourcefile = "sega/segas18.cpp"
+machine_config = "lghost_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-13429.a4"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "09bd65c0"
+sha1 = "f2b332a86d52af3c5270f668bdd43a0d44eca346"
+
+[[regions.maincpu.roms]]
+file = "epr-13430.a6"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "51009fe0"
+sha1 = "f1e6e3714c01c15c0e932470a9e1a17abb59e958"
+
+[[regions.maincpu.roms]]
+file = "epr-13411.a5"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "5160167b"
+sha1 = "3d176a18c7527b1e485f10b144bb4db1b945e709"
+
+[[regions.maincpu.roms]]
+file = "epr-13413.a7"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "656b3bd8"
+sha1 = "db81d4ae3138308dce1e3db7a859f1d63c4ff815"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0166.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "8379961f"
+sha1 = "44e0662e92ece65ad2049b2cd804f516e631166e"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-13414.c1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "dada2419"
+sha1 = "f6ffd02d75232a09ea83fd199e5e30b2773b0cf5"
+
+[[regions.tiles.roms]]
+file = "epr-13415.c2"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "bbb62c48"
+sha1 = "7a4c5bd11b73a92deece72b55627f48ac167acd6"
+
+[[regions.tiles.roms]]
+file = "epr-13416.c3"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "1d11dbae"
+sha1 = "331aa49c6b38d32ec33184dbd0851888463ddbc7"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-13603.a10"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "5350a94e"
+sha1 = "47e99803cab4b508feb51069c940d6c824d6961d"
+
+[[regions.sprites.roms]]
+file = "epr-13604.c10"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "4009c8e5"
+sha1 = "97f513d312f4c90f8bffdf797afa3749779989a5"
+
+[[regions.sprites.roms]]
+file = "mpr-13421.a11"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "2fc75890"
+sha1 = "9f97f07dba3b978df8eb357894168ad74f151d30"
+
+[[regions.sprites.roms]]
+file = "mpr-13424.c11"
+size = 524288
+offset = 2097153
+status = "good"
+optional = false
+crc32 = "fb98d920"
+sha1 = "cebdebe88902e96c631df6053ac2589f794da155"
+
+[[regions.sprites.roms]]
+file = "mpr-13422.a12"
+size = 524288
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "48a0754d"
+sha1 = "9fead9f8319593adb4bddaaa4d053b21ca726009"
+
+[[regions.sprites.roms]]
+file = "mpr-13425.c12"
+size = 524288
+offset = 4194305
+status = "good"
+optional = false
+crc32 = "f8252589"
+sha1 = "5a1ed24296d0609393e53df3ee585a366da4ee46"
+
+[[regions.sprites.roms]]
+file = "mpr-13423.a13"
+size = 524288
+offset = 6291456
+status = "good"
+optional = false
+crc32 = "335bbc9d"
+sha1 = "78793335b2f8a1bb05809259521db193c17c9b98"
+
+[[regions.sprites.roms]]
+file = "mpr-13426.c13"
+size = 524288
+offset = 6291457
+status = "good"
+optional = false
+crc32 = "5cfb1e25"
+sha1 = "1dd57475604f339e58bf946e17ae0dc5cf4a3dba"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13417.c7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "cd7beb49"
+sha1 = "2435ce000f1eefdd06b27ea93e22fd82c0e999d2"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13420.c6"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "3de0dee4"
+sha1 = "31833684df5a34d5e9ef04f2ab42355b8e9cbb45"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13419.c5"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "e7021b0a"
+sha1 = "82e390fac63965d4f80ae01758c19ae951c39475"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13418.c4"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "0732594d"
+sha1 = "9fbeae29f1a31d136ddc9a49c786b2a08a523e0d"
+
+[properties]
+protection = "fd1094"

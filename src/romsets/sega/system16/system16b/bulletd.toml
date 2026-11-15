@@ -1,0 +1,218 @@
+module = "system16"
+board = "system16b"
+game = "bulletd"
+gamename = "Bullet (bootleg of FD1094 317-0041 set)"
+parent = "bullet"
+romof = "bullet"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "bulletd"
+description = "Bullet (bootleg of FD1094 317-0041 set)"
+cloneof = "bullet"
+romof = "bullet"
+year = "1987"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-11010.a4"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "c4b7cb63"
+sha1 = "c35fceab2a03f23d9690432a582064d12de950f6"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-11007.a1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "2afa84c5"
+sha1 = "97f74ba4b9f83314c9e1f61afe7db3d7fa7a9935"
+
+[[regions.maincpu.roms]]
+file = "epr-11011.a5"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "7f446b9f"
+sha1 = "0b92ab100c13bdcdd0f770da5da5e19cb79afde1"
+merge = "epr-11011.a5"
+
+[[regions.maincpu.roms]]
+file = "epr-11008.a2"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "34824d3b"
+sha1 = "7a3134a71ad176b8a08a919c0acb75ae1e05743b"
+merge = "epr-11008.a2"
+
+[[regions.maincpu.roms]]
+file = "epr-11012.a6"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "3992f159"
+sha1 = "50686b394693ab01cbd159ae661f326c8eee50b8"
+merge = "epr-11012.a6"
+
+[[regions.maincpu.roms]]
+file = "epr-11009.a3"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "df199999"
+sha1 = "2669e923aa4f1bedc788401f44ad19c318658f00"
+merge = "epr-11009.a3"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-10994.b9"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "3035468a"
+sha1 = "778366815a2a74188d72d64c5e1e95215bc4ca81"
+merge = "epr-10994.b9"
+
+[[regions.tiles.roms]]
+file = "epr-10995.b10"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "6b97aff1"
+sha1 = "323bafe43a703476f6f4e68b46ec86bb9152f88e"
+merge = "epr-10995.b10"
+
+[[regions.tiles.roms]]
+file = "epr-10996.b11"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "501bddd6"
+sha1 = "545273b1b874b3e68d23b0dcae81c8531bd98756"
+merge = "epr-10996.b11"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-10999.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "119f0008"
+sha1 = "6a39b537bb58ea19ed3b0322ebca37e6574289fd"
+merge = "epr-10999.b1"
+
+[[regions.sprites.roms]]
+file = "epr-11003.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "2f429089"
+sha1 = "08bf9d9c15fafbcb26604ff30be367ecf25404b2"
+merge = "epr-11003.b5"
+
+[[regions.sprites.roms]]
+file = "epr-11000.b2"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "f5482bbe"
+sha1 = "d8482ba73622798b15e78ab2c123d0fd4c33480a"
+merge = "epr-11000.b2"
+
+[[regions.sprites.roms]]
+file = "epr-11004.b6"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "8c886df0"
+sha1 = "348f9111fe45fc94cb32b101d0a1a6a39ef1ec50"
+merge = "epr-11004.b6"
+
+[[regions.sprites.roms]]
+file = "epr-11001.b3"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "65ea71e0"
+sha1 = "79224c445ceaa1d13a3616e58e9d4eb595e920cb"
+merge = "epr-11001.b3"
+
+[[regions.sprites.roms]]
+file = "epr-11005.b7"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "ea2f9d50"
+sha1 = "db62584591d62780f81de651869bc74a61363793"
+merge = "epr-11005.b7"
+
+[[regions.sprites.roms]]
+file = "epr-11002.b4"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "9e25042b"
+sha1 = "cb0e20ca8ca1c42ad2a95b83ea8711b7ad8e42f5"
+merge = "epr-11002.b4"
+
+[[regions.sprites.roms]]
+file = "epr-11006.b8"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "6b7384f2"
+sha1 = "5201e3b5e4aeb4bc8f5b3ba3d8a9ffb3705eccf4"
+merge = "epr-11006.b8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-10997.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "5dd9cab5"
+sha1 = "b9b27bbdc19feacb83cc5b33a74d910d86ac8f33"
+merge = "epr-10997.a7"
+
+[[regions.soundcpu.roms]]
+file = "epr-10998.a8"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "f971a817"
+sha1 = "502c95638e4fd5f87e5fc837cb44b39a5d62f4e4"
+merge = "epr-10998.a8"
+
+[properties]
+protection = "none"

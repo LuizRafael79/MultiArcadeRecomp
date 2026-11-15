@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(MameRecomp LANGUAGES C CXX)
 include(CTest)
+
+# The emulator's runtime/video loops need optimization in ordinary single-config
+# builds. Keep explicit Debug/RelWithDebInfo/Release choices from presets intact.
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -9,7 +16,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(LibArchive REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+add_library(mamerecomp_rom_hash STATIC core/roms/sha1.cpp)
+target_include_directories(mamerecomp_rom_hash PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/roms)
+set_property(TARGET mamerecomp_rom_hash PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 option(MAMERECOMP_ENABLE_OPENGL_VIDEO "Build the optional OpenGL tilemap renderer" ON)
 option(MAMERECOMP_ENABLE_VUNIT_OPENGL "Build the optional V-Unit OpenGL DMA rasterizer" OFF)
 option(MAMERECOMP_ENABLE_PSX_GPU_OPENGL "Build the optional PSX GP0 OpenGL rasterizer" ON)
@@ -30,8 +40,14 @@ set(MAMERECOMP_SEIBU_TOKI_AOT_DIR "" CACHE PATH "Generated Toki 68000 AOT source
 set(MAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR "" CACHE PATH "Generated Toki Z80 AOT sources")
 set(MAMERECOMP_CPS1_M68K_GENERATED_DIR "" CACHE PATH "Generated CPS-1 68000 source directory for one game")
 set(MAMERECOMP_CPS1_GAME_ID "unknown" CACHE STRING "CPS-1 game identifier used for generated game module output")
-set(MAMERECOMP_NEOGEO_GENERATED_DIR "" CACHE PATH "KOF98 Neo Geo AOT output directory")
-set(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR "" CACHE PATH "KOF98 Neo Geo Z80 AOT output root (BIOS and cart subdirectories)")
+set(MAMERECOMP_NEOGEO_HARDWARE_MODE "aes" CACHE STRING "KOF98 hardware mode for this generated game module (aes or mvs)")
+set_property(CACHE MAMERECOMP_NEOGEO_HARDWARE_MODE PROPERTY STRINGS aes mvs)
+if(NOT MAMERECOMP_NEOGEO_HARDWARE_MODE MATCHES "^(aes|mvs)$")
+    message(FATAL_ERROR "MAMERECOMP_NEOGEO_HARDWARE_MODE must be aes or mvs")
+endif()
+set(MAMERECOMP_NEOGEO_MODULE_ID "${MAMERECOMP_NEOGEO_HARDWARE_MODE}" CACHE STRING "KOF98 BIOS-specific module id")
+set(MAMERECOMP_NEOGEO_GENERATED_DIR "${CMAKE_BINARY_DIR}/neogeo/kof98/${MAMERECOMP_NEOGEO_HARDWARE_MODE}/generated" CACHE PATH "Mode-specific KOF98 Neo Geo AOT output directory")
+set(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR "${CMAKE_BINARY_DIR}/neogeo/kof98/z80_generated" CACHE PATH "KOF98 Neo Geo Z80 AOT output root (BIOS and cart subdirectories)")
 set(MAMERECOMP_TMS34010_AOT_SOURCE "" CACHE FILEPATH "Generated per-game TMS34010 AOT C++ source for the T-Unit board module")
 set(MAMERECOMP_M6809_AOT_SOURCE "" CACHE FILEPATH "Generated per-game MC6809(E) sound CPU AOT C++ source")
 set(MAMERECOMP_ADSP2105_AOT_SOURCE "" CACHE FILEPATH "Generated per-game ADSP-2105 sound CPU AOT C++ source")
@@ -51,30 +67,19 @@ option(MAMERECOMP_NAOMI_HAS_OBSERVED_ROM_ROOTS "Build observed MvC2 ROM-backed d
 add_executable(mamerecomp
     src/main.cpp
     src/naomi/naomi_romset.cpp
-    src/system16/m68k_debugger.cpp
-    src/system16/system16_profiles.cpp
-    src/system16/system16.cpp
-    src/system18/system18_board.cpp
-    src/system18/system18_bus.cpp
-    src/romsets/shinobi.cpp
-    src/romsets/shinobi5.cpp
-    src/romsets/goldnaxe.cpp
-    src/romsets/goldnaxeud.cpp
-    src/romsets/goldnaxe_shared.cpp
-    src/romsets/shdancer.cpp
-    src/romsets/mwalkd.cpp
-    src/romsets/eswat.cpp
-    src/system16/system16_video.cpp
-    src/system16/system16_bus.cpp
-    src/system16/system16b_mapper.cpp
-    src/system16/system16_config.cpp
-    src/system16/system16a_sound.cpp
-    src/system16/system16b_sound.cpp
-    src/system18/system18_sound.cpp
-    core/cpus/mcs48/mcs48.cpp
-    src/system16/system16_m68k_bus.cpp
+    src/commands/machine_game_command.cpp
+    src/commands/neogeo_commands.cpp
+    src/commands/sega_commands.cpp
+    src/commands/naomi_commands.cpp
+    src/commands/konami/tmnt2_runner.cpp
+    src/commands/konami/tmnt_runner.cpp
+    src/commands/seibu/toki_runner.cpp
+    src/commands/sony/zn_runner.cpp
 )
 set_property(TARGET mamerecomp PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+target_include_directories(mamerecomp PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/sega
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/sega/system16)
 
 # Shared PlayStation-derived GPU device. The command processor and VRAM are
 # independent from the R3000A core so Sony-derived boards can select a common
@@ -145,20 +150,16 @@ target_include_directories(mamerecomp_psx_cpu PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
 target_link_libraries(mamerecomp_psx_cpu PUBLIC mamerecomp_psx_gpu)
 set_property(TARGET mamerecomp_psx_cpu PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
-if(NOT CMAKE_CROSSCOMPILING AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # The R3000A core is host code, so use this host's ISA and scheduler when
-    # compiling local machine modules. Cross builds keep the compiler default.
-    target_compile_options(mamerecomp_psx_cpu PRIVATE -march=native)
-endif()
 
 # H8/300H interpreter shared by Namco System 12 and other compatible boards.
 # MAME-generated handlers are kept separate from the board-specific register map.
 add_library(mamerecomp_h8 STATIC core/cpus/h8/h8_cpu.cpp)
 target_include_directories(mamerecomp_h8 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/h8)
 
-# FD1094 opcode-space decryption shared by Sega System 16B game profiles.
-add_library(mamerecomp_fd1094 STATIC src/system16/fd1094.cpp)
-target_include_directories(mamerecomp_fd1094 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/system16)
+add_subdirectory(core/cpus/mcs48)
+add_subdirectory(core/cpus/mcs51)
+add_subdirectory(core/cpus/m68000/fd1094)
+add_subdirectory(src/runtime/sega)
 
 # PSXRecomp's static R3000A translator is built as a project tool. This keeps
 # game-image translation available without requiring the user's separate
@@ -256,12 +257,11 @@ target_include_directories(mamerecomp_zn_runtime PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zn
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/h8
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000)
 target_include_directories(mamerecomp_zn_runtime PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound)
 target_link_libraries(mamerecomp_zn_runtime PUBLIC
-    LibArchive::LibArchive ZLIB::ZLIB mamerecomp_psx_cpu mamerecomp_h8 mamerecomp_z80_core mamerecomp_qsound mamerecomp_c352 mamerecomp_at28c16)
+    LibArchive::LibArchive ZLIB::ZLIB mamerecomp_psx_cpu mamerecomp_z80_core mamerecomp_qsound mamerecomp_c352 mamerecomp_at28c16 mamerecomp_namco_system12_runtime)
 set_property(TARGET mamerecomp_zn_runtime PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 set(MAMERECOMP_ZN2_SFEX2PA_AOT_DIR "" CACHE PATH
@@ -324,10 +324,6 @@ if(MAMERECOMP_ZN2_SFEX2PA_AOT_DIR)
         target_compile_definitions(mamerecomp_zn2_sfex2pa PRIVATE
             MAMERECOMP_PSX_AOT_INLINE_MEMORY=1
             MAMERECOMP_PSX_AOT_INLINE_PIPELINE=1)
-        if(NOT CMAKE_CROSSCOMPILING AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-            # This .so is built and loaded on the same host.
-            target_compile_options(mamerecomp_zn2_sfex2pa PRIVATE -march=native)
-        endif()
         # The module contains both the generated blocks and the PSX runtime.
         # Bind calls between their own runtime helpers locally instead of
         # routing every memory/exception helper through ELF PLT stubs.
@@ -350,6 +346,25 @@ target_include_directories(mamerecomp_at28c16 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 add_library(mamerecomp_c352 STATIC core/chips/c352.cpp)
 target_include_directories(mamerecomp_c352 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core)
 
+# Namco System 12 board wiring is independent from the shared PSX-derived SoC
+# and from the ZN-1/ZN-2 board adapters.
+add_library(mamerecomp_namco_system12_board STATIC
+    src/boards/namco/system12/system12_board.cpp)
+target_include_directories(mamerecomp_namco_system12_board PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
+target_link_libraries(mamerecomp_namco_system12_board PUBLIC mamerecomp_c352)
+add_library(mamerecomp_namco_system12_runtime STATIC
+    src/runtime/namco/system12/system12_runtime.cpp)
+target_include_directories(mamerecomp_namco_system12_runtime PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/h8
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/psx)
+target_link_libraries(mamerecomp_namco_system12_runtime PUBLIC
+    mamerecomp_namco_system12_board mamerecomp_h8)
+
 add_library(mamerecomp_ymf271 STATIC core/chips/ymf271.cpp)
 target_include_directories(mamerecomp_ymf271 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/chips)
 target_link_libraries(mamerecomp_zn_runtime PUBLIC mamerecomp_ymf271)
@@ -366,7 +381,7 @@ target_include_directories(mamerecomp_konami_tmnt2 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/ymfm)
 target_link_libraries(mamerecomp_konami_tmnt2 PUBLIC
     LibArchive::LibArchive ZLIB::ZLIB mamerecomp_z80_core mamerecomp_serial_eeprom ymfm_opm
-    m68k_cpu_runtime mamerecomp_system16_runtime mamerecomp_system16_musashi)
+    m68k_cpu_runtime mamerecomp_m68k_recomp_runtime mamerecomp_m68k_musashi)
 
 # Original 1989 TMNT ROM geometry/loader. Its board runtime is implemented
 # independently from the later TMNT2/Sunset Riders hardware.
@@ -381,7 +396,7 @@ target_include_directories(mamerecomp_konami_tmnt PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/ymfm)
 target_link_libraries(mamerecomp_konami_tmnt PUBLIC
     LibArchive::LibArchive ZLIB::ZLIB mamerecomp_z80_core ymfm_opm
-    m68k_cpu_runtime mamerecomp_system16_runtime mamerecomp_system16_musashi)
+    m68k_cpu_runtime mamerecomp_m68k_recomp_runtime mamerecomp_m68k_musashi)
 
 if(MAMERECOMP_KONAMI_TMNT_AOT_DIR)
     file(GLOB MAMERECOMP_KONAMI_TMNT_M68K_SOURCES CONFIGURE_DEPENDS
@@ -399,11 +414,11 @@ if(MAMERECOMP_KONAMI_TMNT_AOT_DIR)
         "${MAMERECOMP_KONAMI_TMNT_AOT_DIR}/z80/z80_table.cpp")
     target_include_directories(mamerecomp_konami_tmnt_aot PRIVATE
         "${MAMERECOMP_KONAMI_TMNT_AOT_DIR}/z80"
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound)
     target_link_libraries(mamerecomp_konami_tmnt_aot PRIVATE
-        m68k_cpu_runtime mamerecomp_system16_runtime mamerecomp_z80_core)
+        m68k_cpu_runtime mamerecomp_m68k_recomp_runtime mamerecomp_z80_core)
     set_target_properties(mamerecomp_konami_tmnt_aot PROPERTIES
         OUTPUT_NAME mamerecomp_konami_tmnt
         PREFIX ""
@@ -427,13 +442,13 @@ if(MAMERECOMP_KONAMI_TMNT2_AOT_DIR)
         "${MAMERECOMP_KONAMI_TMNT2_AOT_DIR}/z80/z80_table.cpp")
     target_include_directories(mamerecomp_konami_tmnt2_aot PRIVATE
         "${MAMERECOMP_KONAMI_TMNT2_AOT_DIR}/z80"
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound)
     target_compile_definitions(mamerecomp_konami_tmnt2_aot PRIVATE
         MAMERECOMP_KONAMI_TMNT2_GAME_ID=${MAMERECOMP_KONAMI_TMNT2_GAME_ID})
     target_link_libraries(mamerecomp_konami_tmnt2_aot PRIVATE
-        m68k_cpu_runtime mamerecomp_system16_runtime mamerecomp_z80_core)
+        m68k_cpu_runtime mamerecomp_m68k_recomp_runtime mamerecomp_z80_core)
     set_target_properties(mamerecomp_konami_tmnt2_aot PROPERTIES
         OUTPUT_NAME "mamerecomp_konami_${MAMERECOMP_KONAMI_TMNT2_GAME_ID}"
         PREFIX ""
@@ -460,10 +475,10 @@ target_include_directories(mamerecomp_seibu_toki PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include)
 target_link_libraries(mamerecomp_seibu_toki PUBLIC
     LibArchive::LibArchive ZLIB::ZLIB m68k_cpu_runtime
-    mamerecomp_system16_runtime mamerecomp_system16_musashi mamerecomp_z80_core ymfm_opl
+    mamerecomp_m68k_recomp_runtime mamerecomp_m68k_musashi mamerecomp_z80_core ymfm_opl
     mamerecomp_oki6295)
 if(MAMERECOMP_SEIBU_TOKI_AOT_DIR AND MAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR)
     file(GLOB MAMERECOMP_SEIBU_TOKI_M68K_SOURCES CONFIGURE_DEPENDS
@@ -483,7 +498,7 @@ if(MAMERECOMP_SEIBU_TOKI_AOT_DIR AND MAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR)
         ${MAMERECOMP_SEIBU_TOKI_AOT_DIR}
         ${MAMERECOMP_SEIBU_TOKI_Z80_AOT_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include)
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include)
     target_link_libraries(mamerecomp_seibu_toki_aot PRIVATE m68k_cpu_runtime mamerecomp_z80_core)
     set_target_properties(mamerecomp_seibu_toki_aot PROPERTIES
         OUTPUT_NAME mamerecomp_seibu_toki PREFIX ""
@@ -498,6 +513,14 @@ if(BUILD_TESTING)
             target_compile_options(${target} PRIVATE -UNDEBUG)
         endif()
     endfunction()
+    add_test(NAME z80_aot_decoder_test
+        COMMAND ${Python3_EXECUTABLE} -m unittest tests.z80_aot.test_isa)
+    set_tests_properties(z80_aot_decoder_test PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME z80_aot_routine_grouping_test
+        COMMAND ${Python3_EXECUTABLE} -m unittest tests.z80_aot.test_routines)
+    set_tests_properties(z80_aot_routine_grouping_test PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../mame/roms/eswat.zip")
         add_executable(system16_fd1094_test tests/system16/fd1094_test.cpp)
         target_link_libraries(system16_fd1094_test PRIVATE mamerecomp_fd1094 LibArchive::LibArchive)
@@ -566,23 +589,23 @@ if(BUILD_TESTING)
     add_executable(zn_boot_smoke tools/psx/zn_boot_smoke.cpp)
     target_link_libraries(zn_boot_smoke PRIVATE mamerecomp_zn_runtime m68k_cpu_runtime)
     add_executable(konami_tmnt2_board_test tests/konami/tmnt2_board_test.cpp)
-    target_link_libraries(konami_tmnt2_board_test PRIVATE mamerecomp_konami_tmnt2)
+    target_link_libraries(konami_tmnt2_board_test PRIVATE mamerecomp_konami_tmnt2 mamerecomp_neogeo)
     mamerecomp_enable_test_asserts(konami_tmnt2_board_test)
     add_test(NAME konami_tmnt2_board_test COMMAND konami_tmnt2_board_test)
     add_executable(konami_tmnt2_cpu_test tests/konami/tmnt2_cpu_test.cpp)
-    target_link_libraries(konami_tmnt2_cpu_test PRIVATE mamerecomp_konami_tmnt2)
+    target_link_libraries(konami_tmnt2_cpu_test PRIVATE mamerecomp_konami_tmnt2 mamerecomp_neogeo)
     mamerecomp_enable_test_asserts(konami_tmnt2_cpu_test)
     add_test(NAME konami_tmnt2_cpu_test COMMAND konami_tmnt2_cpu_test)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../mame/roms/tmnt.zip")
         add_executable(konami_tmnt_rom_test tests/konami/tmnt_rom_test.cpp)
-        target_link_libraries(konami_tmnt_rom_test PRIVATE mamerecomp_konami_tmnt)
+        target_link_libraries(konami_tmnt_rom_test PRIVATE mamerecomp_konami_tmnt mamerecomp_neogeo)
         mamerecomp_enable_test_asserts(konami_tmnt_rom_test)
         add_test(NAME konami_tmnt_rom_test COMMAND konami_tmnt_rom_test
             "${CMAKE_CURRENT_SOURCE_DIR}/../mame/roms/tmnt.zip")
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../mame/roms/tmnt2.zip")
         add_executable(konami_tmnt2_rom_test tests/konami/tmnt2_rom_test.cpp)
-        target_link_libraries(konami_tmnt2_rom_test PRIVATE mamerecomp_konami_tmnt2)
+        target_link_libraries(konami_tmnt2_rom_test PRIVATE mamerecomp_konami_tmnt2 mamerecomp_neogeo)
         mamerecomp_enable_test_asserts(konami_tmnt2_rom_test)
         add_test(NAME konami_tmnt2_rom_test COMMAND konami_tmnt2_rom_test
             "${CMAKE_CURRENT_SOURCE_DIR}/../mame/roms/tmnt2.zip"
@@ -768,7 +791,7 @@ set_target_properties(mamerecomp_tunit_mk2 PROPERTIES
     OUTPUT_NAME mamerecomp_tunit_mk2
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 add_executable(mamerecomp_mk2_trace tools/mk2/trace.cpp)
-target_link_libraries(mamerecomp_mk2_trace PRIVATE mamerecomp_tunit_mk2)
+target_link_libraries(mamerecomp_mk2_trace PRIVATE mamerecomp_tunit_mk2 mamerecomp_tms34010)
 set_target_properties(mamerecomp_mk2_trace PROPERTIES BUILD_RPATH "$ORIGIN")
 
 # Midway V-Unit prototype module. C31 and ADSP-2105 instruction backends are
@@ -901,10 +924,10 @@ endif()
 target_include_directories(mamerecomp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/core
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/mcs48
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/z80)
 target_compile_definitions(mamerecomp PRIVATE
     MAMERECOMP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    MAMERECOMP_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
     MAMERECOMP_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}")
 
 # Shared MIPS III/R4600 backend used by Killer Instinct board modules. The
@@ -1075,7 +1098,7 @@ endif()
 target_include_directories(mamerecomp_cps1 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1/core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1"
-    "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/musashi"
     "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime"
     "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/sound"
@@ -1118,7 +1141,7 @@ if(MAMERECOMP_CPS1_M68K_GENERATED_DIR)
     endif()
     target_include_directories(mamerecomp_cps1 PRIVATE
         "${MAMERECOMP_CPS1_M68K_GENERATED_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include")
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include")
 
     file(GLOB cps1_game_tables CONFIGURE_DEPENDS "${MAMERECOMP_CPS1_M68K_GENERATED_DIR}/*recomp_table.c")
     list(LENGTH cps1_game_tables cps1_game_table_count)
@@ -1159,7 +1182,7 @@ if(MAMERECOMP_CPS1_M68K_GENERATED_DIR)
         "${MAMERECOMP_CPS1_M68K_GENERATED_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1/core"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1"
-        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime")
     target_compile_options(mamerecomp_game_${MAMERECOMP_CPS1_GAME_ID} PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-O1>)
@@ -1176,7 +1199,7 @@ if(MAMERECOMP_CPS1_M68K_GENERATED_DIR)
     add_executable(cps1_boot src/cps1/cps1_boot.cpp)
     target_include_directories(cps1_boot PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src/cps1"
-        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime")
     target_link_libraries(cps1_boot PRIVATE
         mamerecomp_cps1 mamerecomp_game_${MAMERECOMP_CPS1_GAME_ID}
@@ -1251,7 +1274,7 @@ set_target_properties(mamerecomp_naomi PROPERTIES
 # Neo Geo has its own ROM/profile and board runtime module; it does not use the
 # Sega System 16/18 bus or video implementations.
 set(MAMERECOMP_NEOGEO_KOF98_MANIFEST
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/romsets/snk/neogeo/neogeo_mvs/kof98.json")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/romsets/snk/neogeo/neogeo_mvs/kof98.toml")
 set(MAMERECOMP_NEOGEO_KOF98_DATA
     "${CMAKE_CURRENT_BINARY_DIR}/generated/neogeo/kof98_romset_data.hpp")
 add_custom_command(
@@ -1260,29 +1283,26 @@ add_custom_command(
         --manifest "${MAMERECOMP_NEOGEO_KOF98_MANIFEST}"
         --output "${MAMERECOMP_NEOGEO_KOF98_DATA}"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/romsets/emit_neogeo_runtime.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/romsets/manifest_io.py"
         "${MAMERECOMP_NEOGEO_KOF98_MANIFEST}"
     VERBATIM)
 add_library(mamerecomp_neogeo SHARED
     src/neogeo/neogeo_romset.cpp
     src/neogeo/neogeo_protection_state.c
     "${MAMERECOMP_NEOGEO_KOF98_DATA}")
-target_sources(mamerecomp_neogeo PRIVATE src/neogeo/kof98_game.c)
 target_include_directories(mamerecomp_neogeo PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/neogeo")
 target_link_libraries(mamerecomp_neogeo PRIVATE LibArchive::LibArchive ZLIB::ZLIB)
 set_target_properties(mamerecomp_neogeo PROPERTIES
     OUTPUT_NAME mamerecomp_neogeo
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-target_link_libraries(mamerecomp PRIVATE LibArchive::LibArchive ZLIB::ZLIB mamerecomp_neogeo mamerecomp_konami_tmnt mamerecomp_konami_tmnt2 mamerecomp_seibu_toki mamerecomp_zn_runtime mamerecomp_upd7759 mamerecomp_fd1094 m68k_cpu_runtime mamerecomp_system16_runtime mamerecomp_system16_musashi m68krecomp_frontend mamerecomp_z80_core ymfm_opm ymfm_opn mamerecomp_chip_3155195 mamerecomp_chip_3155296 mamerecomp_chip_3155313 ${CMAKE_DL_LIBS})
-
 if(MAMERECOMP_ENABLE_WINDOW AND SDL3_FOUND)
     target_sources(mamerecomp PRIVATE
         core/video/sdl_video_presenter.cpp
-        src/system16/system16_presenter.cpp
         src/naomi/naomi_presenter.cpp
         src/konami/tmnt_presenter.cpp
         src/seibu/toki_presenter.cpp
@@ -1310,31 +1330,10 @@ if(MAMERECOMP_ENABLE_WINDOW AND SDL3_FOUND)
         target_link_libraries(mamerecomp_cps1 PRIVATE SDL3::SDL3)
         target_compile_definitions(mamerecomp_cps1 PRIVATE MAMERECOMP_CPS1_SDL=1)
     endif()
-else()
-    target_sources(mamerecomp PRIVATE src/system16/system16_presenter_stub.cpp)
-endif()
-
-if(MAMERECOMP_ENABLE_OPENGL_VIDEO)
-    find_package(OpenGL QUIET)
-    if(SDL3_FOUND AND OpenGL_FOUND)
-        target_sources(mamerecomp PRIVATE src/system16/system16_video_gl.cpp)
-        target_link_libraries(mamerecomp PRIVATE SDL3::SDL3 OpenGL::GL)
-        configure_file(src/system16/system16a_tilemap.comp ${CMAKE_CURRENT_BINARY_DIR}/system16a_tilemap.comp COPYONLY)
-        configure_file(src/system16/system16b_tilemap.comp ${CMAKE_CURRENT_BINARY_DIR}/system16b_tilemap.comp COPYONLY)
-        configure_file(src/system16/system16b_sprite_mix.comp ${CMAKE_CURRENT_BINARY_DIR}/system16b_sprite_mix.comp COPYONLY)
-        target_compile_definitions(mamerecomp PRIVATE
-            MAMERECOMP_HAS_OPENGL_VIDEO=1
-            MAMERECOMP_SYSTEM16A_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/system16a_tilemap.comp"
-            MAMERECOMP_SYSTEM16B_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/system16b_tilemap.comp"
-            MAMERECOMP_SYSTEM16B_SPRITE_MIX_SHADER_PATH="${CMAKE_CURRENT_BINARY_DIR}/system16b_sprite_mix.comp")
-        message(STATUS "MameRecomp OpenGL tilemap backend enabled")
-    else()
-        message(STATUS "SDL3/OpenGL development files not found; building CPU video backend only")
-    endif()
 endif()
 
 # Musashi (MIT) is the independent 68000 oracle/cycle source. Native code
-# generation remains in m68krecomp_frontend.
+# generation remains in the local MameRecomp M68K AoT frontend target.
 set(MUSASHI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/musashi)
 set(MUSASHI_GEN ${CMAKE_CURRENT_BINARY_DIR}/musashi_gen)
 file(MAKE_DIRECTORY ${MUSASHI_GEN})
@@ -1349,80 +1348,92 @@ add_library(musashi STATIC
     ${MUSASHI_DIR}/m68kdasm.c
     ${MUSASHI_DIR}/softfloat/softfloat.c
     ${MUSASHI_GEN}/m68kops.c
-    core/third_party/neogeorecomp-m68krecomp/runtime/musashi_glue.c)
+    core/third_party/m68krecomp/runtime/musashi_glue.c)
 target_include_directories(musashi PUBLIC
     ${MUSASHI_DIR}
     ${MUSASHI_GEN}
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/runtime)
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/runtime)
 target_compile_definitions(musashi PUBLIC MUSASHI_CNF=\"ng_musashi_conf.h\")
 target_link_libraries(musashi PUBLIC m)
 
-# Full raw 68000 frontend/emitter/discovery from NeoGeoRecomp (MIT).
+# Local vendored 68000 frontend/emitter/discovery (MIT), imported from
+# NeoGeoRecomp; provenance and notices are kept under docs/third_party.
 # Generated code uses the CPU ABI adapters built below; board devices remain ours.
-add_library(m68krecomp_frontend STATIC
+add_library(mamerecomp_m68k_aot_frontend STATIC
     core/cpus/m68000/recomp_board_profile.c
-    core/third_party/neogeorecomp-m68krecomp/decode.c
-    core/third_party/neogeorecomp-m68krecomp/emit.c
-    core/third_party/neogeorecomp-m68krecomp/recomp.c
-    core/third_party/neogeorecomp-m68krecomp/runtime/romload.c)
-target_include_directories(m68krecomp_frontend
+    core/third_party/m68krecomp/decode.c
+    core/third_party/m68krecomp/emit.c
+    core/third_party/m68krecomp/recomp.c
+    core/third_party/m68krecomp/runtime/romload.c)
+target_include_directories(mamerecomp_m68k_aot_frontend
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/runtime)
-target_link_libraries(m68krecomp_frontend PUBLIC musashi)
-add_executable(m68krecomp core/third_party/neogeorecomp-m68krecomp/main.c)
-target_link_libraries(m68krecomp PRIVATE m68krecomp_frontend)
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/runtime)
+target_link_libraries(mamerecomp_m68k_aot_frontend PUBLIC musashi)
+add_executable(m68krecomp core/third_party/m68krecomp/main.c)
+target_link_libraries(m68krecomp PRIVATE mamerecomp_m68k_aot_frontend)
+add_library(m68krecomp_frontend ALIAS mamerecomp_m68k_aot_frontend)
 
-# CPU register/flag helpers use the shared m68krecomp ABI. The local exception
-# adapter routes stack/vector accesses through the System 16 bus callbacks;
-# the common runtime must not import Neo Geo protection or bus state.
+# Shared 68000 register, exception, and AOT-dispatch helpers use the
+# m68krecomp ABI. Each board installs its own bus callbacks and device hooks.
 add_library(m68k_cpu_runtime SHARED core/cpus/m68000/runtime/cpu_runtime.c)
 target_include_directories(m68k_cpu_runtime
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000/runtime
 )
 set_target_properties(m68k_cpu_runtime PROPERTIES
     OUTPUT_NAME mamerecomp_cpu_m68000
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_library(mamerecomp_system16_runtime SHARED
-    src/system16/system16_m68k_bus.c
-    src/system16/m68k_recomp_dispatch.c)
-target_include_directories(mamerecomp_system16_runtime
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+add_library(mamerecomp_m68k_recomp_runtime SHARED
+    core/cpus/m68000/runtime/recomp_bus.c
+    core/cpus/m68000/runtime/recomp_dispatch.c)
+target_include_directories(mamerecomp_m68k_recomp_runtime
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/core)
-target_link_libraries(mamerecomp_system16_runtime PRIVATE m68k_cpu_runtime)
-set_target_properties(mamerecomp_system16_runtime PROPERTIES
-    OUTPUT_NAME mamerecomp_system16_runtime
+target_link_libraries(mamerecomp_m68k_recomp_runtime PRIVATE m68k_cpu_runtime)
+set_target_properties(mamerecomp_m68k_recomp_runtime PROPERTIES
+    OUTPUT_NAME mamerecomp_m68k_recomp_runtime
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-# Runtime-only Musashi instance for System 16/18 handoff when static
-# discovery has no entry. Keep its symbols local to avoid colliding with the
-# frontend's Musashi instance in the host executable.
-add_library(mamerecomp_system16_musashi SHARED
+# Shared Musashi 68000 interpreter fallback for boards using this CPU. Keep
+# its symbols local to avoid colliding with the compiler frontend instance.
+add_library(mamerecomp_m68k_musashi SHARED
     ${MUSASHI_DIR}/m68kcpu.c
+    ${MUSASHI_DIR}/m68kdasm.c
     ${MUSASHI_DIR}/softfloat/softfloat.c
     ${MUSASHI_GEN}/m68kops.c
-    core/third_party/neogeorecomp-m68krecomp/runtime/musashi_glue.c
-    src/system16/system16_musashi_fallback.cpp)
-target_include_directories(mamerecomp_system16_musashi PRIVATE
+    core/third_party/m68krecomp/runtime/musashi_glue.c
+    core/cpus/m68000/runtime/musashi_fallback.cpp)
+target_include_directories(mamerecomp_m68k_musashi PRIVATE
     ${MUSASHI_DIR}
     ${MUSASHI_GEN}
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/runtime
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/system16)
-target_compile_definitions(mamerecomp_system16_musashi PRIVATE MUSASHI_CNF=\"ng_musashi_conf.h\")
-target_link_libraries(mamerecomp_system16_musashi PRIVATE
-    m68k_cpu_runtime mamerecomp_system16_runtime)
-set_target_properties(mamerecomp_system16_musashi PROPERTIES
-    OUTPUT_NAME mamerecomp_system16_musashi
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/runtime
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000/runtime)
+target_compile_definitions(mamerecomp_m68k_musashi PRIVATE
+    MUSASHI_CNF=\"mamerecomp_musashi_conf.h\"
+    MAMERECOMP_MUSASHI_YIELD_BEFORE_INSTRUCTION=1)
+target_link_libraries(mamerecomp_m68k_musashi PRIVATE
+    m68k_cpu_runtime mamerecomp_m68k_recomp_runtime)
+set_target_properties(mamerecomp_m68k_musashi PROPERTIES
+    OUTPUT_NAME mamerecomp_m68k_musashi
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
     BUILD_RPATH "$ORIGIN"
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)
+
+if(BUILD_TESTING)
+    add_executable(m68k_musashi_boundary_test tests/system16/musashi_boundary_test.cpp)
+    target_include_directories(m68k_musashi_boundary_test PRIVATE ${PROJECT_SOURCE_DIR}/core)
+    target_link_libraries(m68k_musashi_boundary_test PRIVATE
+        mamerecomp_m68k_musashi mamerecomp_m68k_recomp_runtime m68k_cpu_runtime)
+    mamerecomp_enable_test_asserts(m68k_musashi_boundary_test)
+    add_test(NAME m68k_musashi_boundary_test COMMAND m68k_musashi_boundary_test)
+endif()
 
 # Board-independent Musashi 68000 runtime. Keep its symbols local so it can
 # coexist with other Musashi instances loaded by the host.
@@ -1433,7 +1444,7 @@ add_library(mamerecomp_musashi_68000 SHARED
     core/cpus/m68000/musashi_runtime.cpp)
 target_include_directories(mamerecomp_musashi_68000 PRIVATE
     ${MUSASHI_DIR} ${MUSASHI_GEN}
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/runtime
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/core/cpus/m68000)
 target_compile_definitions(mamerecomp_musashi_68000 PRIVATE MUSASHI_CNF=\"mamerecomp_musashi_conf.h\")
@@ -1451,6 +1462,11 @@ if(TARGET mamerecomp_cps1)
     target_link_libraries(mamerecomp_cps1 PRIVATE m68k_cpu_runtime)
 endif()
 target_link_options(mamerecomp PRIVATE "LINKER:-rpath,$ORIGIN")
+if(UNIX AND NOT APPLE)
+    # Optional per-game settings panels in loadable game modules call the
+    # host-owned ImGui context through this exported executable ABI.
+    target_link_options(mamerecomp PRIVATE "LINKER:--export-dynamic")
+endif()
 
 function(add_mamerecomp_game_module board_id revision_value generated_dir)
     if(NOT IS_DIRECTORY "${generated_dir}")
@@ -1502,10 +1518,16 @@ function(add_mamerecomp_game_module board_id revision_value generated_dir)
     set(adapter_path "${CMAKE_CURRENT_BINARY_DIR}/${target_name}_adapter.cpp")
     file(WRITE "${adapter_path}" "${module_adapter}")
     add_library(${target_name} MODULE ${module_sources} "${adapter_path}")
+    set(MAMERECOMP_GAME_MODULE_TARGET "${target_name}")
+    set(game_module_cmake "${PROJECT_SOURCE_DIR}/src/games/sega/${board_id}/${game_id}/CMakeLists.txt")
+    if(EXISTS "${game_module_cmake}")
+        include("${game_module_cmake}")
+    endif()
+    unset(MAMERECOMP_GAME_MODULE_TARGET)
     target_include_directories(${target_name} PRIVATE
         "${generated_dir}"
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include)
-    target_link_libraries(${target_name} PRIVATE mamerecomp_system16_runtime)
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include)
+    target_link_libraries(${target_name} PRIVATE mamerecomp_m68k_recomp_runtime)
     if(sega_z80_generated_dir)
         target_include_directories(${target_name} PRIVATE
             "${sega_z80_generated_dir}"
@@ -1543,7 +1565,7 @@ if(MAMERECOMP_GENERATED_DIR)
 endif()
 
 add_mamerecomp_board_modules(system16a 16 "${MAMERECOMP_SYSTEM16A_GENERATED_DIRS}")
-add_mamerecomp_board_modules(system16b 17 "${MAMERECOMP_SYSTEM16B_GENERATED_DIRS}")
+add_mamerecomp_board_modules(system16b 18 "${MAMERECOMP_SYSTEM16B_GENERATED_DIRS}")
 add_mamerecomp_board_modules(system18 18 "${MAMERECOMP_SYSTEM18_GENERATED_DIRS}")
 target_compile_definitions(mamerecomp PRIVATE MAMERECOMP_HAS_GENERATED_RECOMP=1)
 
@@ -1564,108 +1586,166 @@ set_target_properties(mamerecomp_z80_core PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
     BUILD_RPATH "$ORIGIN")
 
-# YMFM's generic FM engine and YM2151 OPM implementation (BSD-3-Clause).
-add_library(ymfm_opm STATIC core/third_party/ymfm/ymfm_opm.cpp)
-target_include_directories(ymfm_opm SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/ymfm)
-set_target_properties(ymfm_opm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(core/chips/yamaha)
 if(TARGET mamerecomp_cps1)
     target_link_libraries(mamerecomp_cps1 PRIVATE ymfm_opm)
 endif()
 
-# YM3812 OPL2 implementation from the same YMFM revision as OPM/OPN.
-add_library(ymfm_opl STATIC
-    core/third_party/ymfm/ymfm_opl.cpp
-    core/third_party/ymfm/ymfm_pcm.cpp)
-target_include_directories(ymfm_opl SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/ymfm)
-set_target_properties(ymfm_opl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(core/audio)
+add_subdirectory(core/chips/rf5c68)
+add_subdirectory(core/chips/sega_psg)
+add_subdirectory(core/chips/sega_315_5196)
+add_subdirectory(core/chips/sega_315_5197)
+add_subdirectory(core/chips/sega_315_5248)
+add_subdirectory(core/chips/sega_315_5250)
+add_subdirectory(core/chips/sega_315_5049)
+add_subdirectory(core/chips/sega_315_5011)
+add_subdirectory(core/chips/sega_315_5012)
+add_subdirectory(core/chips/sega_i8751)
+add_subdirectory(core/chips/i8255)
+add_subdirectory(core/chips/i8243)
+add_subdirectory(core/chips/ymfm_timer)
+add_subdirectory(src/boards/sega)
+add_subdirectory(src/runtime/sega/runner)
 
-# YM3438 OPN implementation from the same YMFM revision as the existing OPM
-# implementation. System 18 has two independent YM3438 devices.
-add_library(ymfm_opn STATIC
-    core/third_party/ymfm/ymfm_opn.cpp
-    core/third_party/ymfm/ymfm_adpcm.cpp
-    core/third_party/ymfm/ymfm_ssg.cpp
-    core/third_party/ymfm/ymfm_misc.cpp)
-target_include_directories(ymfm_opn SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/ymfm)
+if(BUILD_TESTING)
+    add_executable(sega_video_cache_test tests/system16/video_cache_test.cpp)
+    target_include_directories(sega_video_cache_test PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/core)
+    target_link_libraries(sega_video_cache_test PRIVATE mamerecomp_chip_sega_315_5197 mamerecomp_sega_board_common)
+    mamerecomp_enable_test_asserts(sega_video_cache_test)
+    add_test(NAME sega_video_cache_test COMMAND sega_video_cache_test)
+    add_executable(rf5c68_test tests/audio/rf5c68_test.cpp)
+    target_link_libraries(rf5c68_test PRIVATE mamerecomp_chip_rf5c68)
+    mamerecomp_enable_test_asserts(rf5c68_test)
+    add_test(NAME rf5c68_test COMMAND rf5c68_test)
+endif()
 
-# The Neo Geo board runtime is kept separate from the Sega runners. It is the
-# existing neogeorecomp MVS model, extended with the KOF98 cart callbacks.
-add_library(neogeorecomp_runtime STATIC
-    core/third_party/neogeorecomp-runtime/src/neogeo.c
-    core/third_party/neogeorecomp-runtime/src/exec.c
-    core/third_party/neogeorecomp-runtime/src/cpu.c
-    core/third_party/neogeorecomp-runtime/src/bus.c
-    core/third_party/neogeorecomp-runtime/src/lspc.c
-    core/third_party/neogeorecomp-runtime/src/video.c
-    core/third_party/neogeorecomp-runtime/src/io.c
-    core/third_party/neogeorecomp-runtime/src/audio.c
-    core/third_party/neogeorecomp-runtime/src/ym2610.cpp
+target_link_libraries(mamerecomp PRIVATE
+    LibArchive::LibArchive ZLIB::ZLIB
+    mamerecomp_rom_hash
+    mamerecomp_neogeo mamerecomp_konami_tmnt mamerecomp_konami_tmnt2
+    mamerecomp_seibu_toki mamerecomp_zn_runtime mamerecomp_upd7759
+    m68k_cpu_runtime mamerecomp_m68k_recomp_runtime
+    mamerecomp_m68k_musashi mamerecomp_z80_core
+    mamerecomp_sega_runtime mamerecomp_sega_runner
+    ymfm_opm ymfm_opn ${CMAKE_DL_LIBS})
+
+# The local Neo Geo board runtime is kept separate from the Sega runners.
+# Game profile and AoT data are compiled into the selected game's module.
+add_library(mamerecomp_neogeo_runtime SHARED
+    core/third_party/neogeo-runtime/src/neogeo.c
+    core/third_party/neogeo-runtime/src/exec.c
+    core/third_party/neogeo-runtime/src/cpu.c
+    core/third_party/neogeo-runtime/src/bus.c
+    core/third_party/neogeo-runtime/src/lspc.c
+    core/third_party/neogeo-runtime/src/video.c
+    core/third_party/neogeo-runtime/src/io.c
+    core/third_party/neogeo-runtime/src/audio.c
+    core/third_party/neogeo-runtime/src/ym2610.cpp
     core/third_party/z80-aot/sound/z80.cpp
     core/third_party/z80-aot/runtime/recomp_z80.cpp
     src/neogeo/kof98_z80_host.cpp
-    core/third_party/neogeorecomp-runtime/src/platform.c
-    core/third_party/neogeorecomp-runtime/src/romload.c)
-target_include_directories(neogeorecomp_runtime
+    src/neogeo/neogeo_board_module.cpp
+    core/third_party/neogeo-runtime/src/platform.c
+    core/third_party/neogeo-runtime/src/romload.c)
+target_include_directories(mamerecomp_neogeo_runtime
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-m68krecomp/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/m68krecomp/include
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/src
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/superzazu-z80
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime
         ${CMAKE_CURRENT_SOURCE_DIR}/src/neogeo)
-target_link_libraries(neogeorecomp_runtime PUBLIC musashi z80_core ymfm_opn)
+target_link_libraries(mamerecomp_neogeo_runtime PUBLIC
+    musashi z80_core ymfm_opn mamerecomp_neogeo ${CMAKE_DL_LIBS})
+if(UNIX AND NOT APPLE)
+    # The application also loads the shared generic MameRecomp Musashi
+    # runtime. This module contains its own Musashi instance with Neo Geo bus
+    # callbacks; bind its internal Musashi references locally so ELF symbol
+    # interposition cannot route BIOS execution through the generic CPU copy.
+    target_link_options(mamerecomp_neogeo_runtime PRIVATE "LINKER:-Bsymbolic")
+endif()
+target_compile_definitions(mamerecomp_neogeo_runtime PRIVATE
+    MAMERECOMP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    MAMERECOMP_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(mamerecomp_neogeo_runtime PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME mamerecomp_neogeo_runtime
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    BUILD_RPATH "$ORIGIN")
 find_package(SDL2 CONFIG QUIET)
 if(TARGET SDL2::SDL2)
-    target_sources(neogeorecomp_runtime PRIVATE core/third_party/neogeorecomp-runtime/src/window_sdl.c)
-    target_compile_definitions(neogeorecomp_runtime PRIVATE NG_HAVE_SDL=1)
-    target_link_libraries(neogeorecomp_runtime PUBLIC SDL2::SDL2)
+    # Keep SDL2 in a C-only helper DSO. The app links SDL3; loading this
+    # helper with glibc RTLD_DEEPBIND isolates only SDL entry points without
+    # deep-binding the C++ Neo Geo runtime and its standard-library state.
+    add_library(mamerecomp_neogeo_window SHARED
+        core/third_party/neogeo-runtime/src/window_sdl.c)
+    target_include_directories(mamerecomp_neogeo_window PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/src)
+    target_link_libraries(mamerecomp_neogeo_window PRIVATE SDL2::SDL2)
+    set_target_properties(mamerecomp_neogeo_window PROPERTIES
+        PREFIX ""
+        SUFFIX ".so"
+        OUTPUT_NAME mamerecomp_neogeo_window
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        BUILD_RPATH "$ORIGIN")
+    target_compile_definitions(mamerecomp_neogeo_runtime PRIVATE NG_HAVE_SDL=1)
+    target_link_libraries(mamerecomp_neogeo_runtime PUBLIC mamerecomp_neogeo_window)
 endif()
 
-add_executable(kof98_aot src/neogeo/kof98_aot_main.cpp)
-target_link_libraries(kof98_aot PRIVATE mamerecomp_neogeo m68krecomp_frontend)
+add_executable(kof98_aot src/neogeo/kof98_aot_main.cpp src/neogeo/kof98_game.c)
+target_link_libraries(kof98_aot PRIVATE mamerecomp_neogeo mamerecomp_m68k_aot_frontend)
 
-add_executable(kof98recomp src/neogeo/kof98_main.cpp)
-target_link_libraries(kof98recomp PRIVATE neogeorecomp_runtime mamerecomp_neogeo)
-if(MAMERECOMP_NEOGEO_GENERATED_DIR)
-    if(NOT IS_DIRECTORY "${MAMERECOMP_NEOGEO_GENERATED_DIR}")
-        message(FATAL_ERROR "Neo Geo AOT directory does not exist: ${MAMERECOMP_NEOGEO_GENERATED_DIR}")
-    endif()
+# Pacrecomp MIT frontend probe used to develop the project-owned Z80 emitter.
+# It is deliberately excluded from the default build and is not linked into
+# any production board or game module.
+add_executable(mamerecomp_z80_pacrecomp_probe EXCLUDE_FROM_ALL
+    tools/z80_aot/pacrecomp_probe.c
+    tools/z80_aot/pacrecomp/analyze.c
+    tools/z80_aot/pacrecomp/decode.c
+    tools/z80_aot/pacrecomp/emit.c)
+target_include_directories(mamerecomp_z80_pacrecomp_probe PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/z80_aot")
+set_target_properties(mamerecomp_z80_pacrecomp_probe PROPERTIES
+    C_STANDARD 11 C_STANDARD_REQUIRED ON)
+
+if(MAMERECOMP_NEOGEO_GENERATED_DIR AND IS_DIRECTORY "${MAMERECOMP_NEOGEO_GENERATED_DIR}")
     file(GLOB neogeo_aot_sources CONFIGURE_DEPENDS
         "${MAMERECOMP_NEOGEO_GENERATED_DIR}/recomp_*.c")
     if(NOT neogeo_aot_sources)
         message(FATAL_ERROR "No KOF98 AOT C files found in ${MAMERECOMP_NEOGEO_GENERATED_DIR}")
     endif()
     set(neogeo_z80_aot_sources)
-    if(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR)
+    if(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR AND IS_DIRECTORY "${MAMERECOMP_NEOGEO_Z80_GENERATED_DIR}")
         file(GLOB_RECURSE neogeo_z80_aot_sources CONFIGURE_DEPENDS
             "${MAMERECOMP_NEOGEO_Z80_GENERATED_DIR}/*/z80_*.cpp")
         if(NOT neogeo_z80_aot_sources)
             message(FATAL_ERROR "No generated KOF98 Z80 sources found in ${MAMERECOMP_NEOGEO_Z80_GENERATED_DIR}")
         endif()
     endif()
-    add_library(mamerecomp_game_kof98 MODULE
+    # The 68000 AoT embeds the selected BIOS image, so AES and MVS must never
+    # share a CMake target/object directory even though their runtime ABI is
+    # identical.
+    set(neogeo_game_target "mamerecomp_game_kof98_${MAMERECOMP_NEOGEO_MODULE_ID}")
+    add_library(${neogeo_game_target} MODULE
         ${neogeo_aot_sources}
         ${neogeo_z80_aot_sources}
+        src/neogeo/kof98_game.c
         src/neogeo/kof98_module.cpp)
-    target_include_directories(mamerecomp_game_kof98 PRIVATE
+    target_include_directories(${neogeo_game_target} PRIVATE
         ${MAMERECOMP_NEOGEO_GENERATED_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeorecomp-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/neogeo-runtime/include
         ${CMAKE_CURRENT_SOURCE_DIR}/core/third_party/z80-aot/runtime)
-    set_target_properties(mamerecomp_game_kof98 PROPERTIES
+    set_target_properties(${neogeo_game_target} PROPERTIES
         PREFIX "" SUFFIX ".so"
-        OUTPUT_NAME "mamerecomp_game_kof98"
+        OUTPUT_NAME "mamerecomp_game_kof98_${MAMERECOMP_NEOGEO_MODULE_ID}"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-    add_dependencies(kof98recomp mamerecomp_game_kof98)
-    target_link_libraries(kof98recomp PRIVATE ${CMAKE_DL_LIBS})
-    # Generated code in the game module resolves the shared Neo Geo runtime
-    # through the runner executable; do not link a second runtime into the .so.
-    set_target_properties(kof98recomp PROPERTIES ENABLE_EXPORTS ON)
-    target_compile_definitions(kof98recomp PRIVATE MAMERECOMP_KOF98_HAS_AOT=1)
+    target_link_libraries(${neogeo_game_target} PRIVATE mamerecomp_neogeo_runtime)
     if(MAMERECOMP_NEOGEO_Z80_GENERATED_DIR)
-        target_compile_definitions(mamerecomp_game_kof98 PRIVATE MAMERECOMP_KOF98_HAS_Z80_AOT=1)
-        target_compile_definitions(kof98recomp PRIVATE MAMERECOMP_KOF98_HAS_Z80_AOT=1)
-        target_include_directories(mamerecomp_game_kof98 PRIVATE
+        target_compile_definitions(${neogeo_game_target} PRIVATE MAMERECOMP_KOF98_HAS_Z80_AOT=1)
+        target_include_directories(${neogeo_game_target} PRIVATE
             "${MAMERECOMP_NEOGEO_Z80_GENERATED_DIR}/bios"
             "${MAMERECOMP_NEOGEO_Z80_GENERATED_DIR}/cart")
     endif()

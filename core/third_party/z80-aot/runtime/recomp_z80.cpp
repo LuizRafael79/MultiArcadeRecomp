@@ -13,13 +13,14 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
-
-extern "C" int64_t ng_cycles;
 
 namespace mamerecomp::z80 {
 
@@ -29,6 +30,7 @@ namespace {
     FILE *s_step_trace = nullptr;
     bool s_step_trace_initialized = false;
     uint64_t s_step_trace_until = 1000000;
+    z80native::HostCycleProvider s_host_cycle_provider;
     struct FallbackKey {
         Z80FallbackKind kind;
         bool bios;
@@ -86,12 +88,17 @@ namespace {
         if (!s_step_trace || cpu.cycles > s_step_trace_until) return;
         std::fprintf(s_step_trace,
                      "%llu HOST=%lld PC=%04X OP=%02X DELTA=%llu NEXT=%04X AF=%04X BC=%04X DE=%04X HL=%04X IX=%04X IY=%04X SP=%04X IFF=%d%d IRQ=%d EIDELAY=%d\n",
-                     static_cast<unsigned long long>(before), static_cast<long long>(ng_cycles), pc, opcode,
+                     static_cast<unsigned long long>(before),
+                     static_cast<long long>(s_host_cycle_provider ? s_host_cycle_provider() : 0), pc, opcode,
                      static_cast<unsigned long long>(cpu.cycles - before), cpu.pc,
                      cpu.AF(), cpu.BC(), cpu.DE(), cpu.HL(), cpu.ix, cpu.iy, cpu.sp,
                      cpu.iff1, cpu.iff2, cpu.InterruptLineAsserted(), cpu.EiDelayPending());
     }
 } // namespace
+
+void z80native::SetHostCycleProvider(HostCycleProvider provider) {
+    s_host_cycle_provider = std::move(provider);
+}
 
 void z80native::NoteInterpreted(uint16_t address) {
     ++s_interpreted_pc[address];
@@ -156,16 +163,41 @@ void z80native::ReportInterpreterProfile() {
 
 void z80native::PersistFallbackLog(const char *path) {
     if (!path || !*path) return;
+    std::map<std::string, uint64_t> observed;
+    {
+        std::ifstream previous(path);
+        std::string line;
+        while (std::getline(previous, line)) {
+            std::istringstream record(line);
+            std::string kind, source, pc, opcode, mapping, count;
+            if (!(record >> kind >> source >> pc >> opcode >> mapping >> count)
+                || !pc.starts_with("PC=") || !opcode.starts_with("OPCODE=")
+                || !mapping.starts_with("MAP=") || !count.starts_with("COUNT=")) continue;
+            try {
+                const auto value = static_cast<uint64_t>(std::stoull(count.substr(6)));
+                const auto key = kind + ' ' + source + ' ' + pc + ' ' + opcode + ' ' + mapping;
+                auto& peak = observed[key];
+                peak = std::max(peak, value);
+            } catch (const std::exception&) {
+                continue;
+            }
+        }
+    }
+    for (const auto &r : s_fallbacks) {
+        std::ostringstream key;
+        key << fallback_name(r.key.kind) << ' ' << (r.key.bios ? "BIOS" : "CART")
+            << " PC=" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << r.key.pc
+            << " OPCODE=" << std::setw(2) << static_cast<unsigned>(r.key.opcode)
+            << " MAP=" << std::setw(8) << r.key.mapping;
+        auto& peak = observed[key.str()];
+        peak = std::max(peak, r.count);
+    }
     std::ofstream out(path, std::ios::trunc);
     if (!out) {
         fprintf(stderr, "[z80-fallback] cannot write %s\n", path);
         return;
     }
-    for (const auto &r : s_fallbacks)
-        out << fallback_name(r.key.kind) << ' ' << (r.key.bios ? "BIOS" : "CART")
-            << " PC=" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << r.key.pc
-            << " OPCODE=" << std::setw(2) << static_cast<unsigned>(r.key.opcode)
-            << " MAP=" << std::setw(8) << r.key.mapping << std::dec << " COUNT=" << r.count << '\n';
+    for (const auto& [key, count] : observed) out << key << " COUNT=" << count << '\n';
     fprintf(stderr, "[z80-fallback] wrote categorized log %s\n", path);
 }
 

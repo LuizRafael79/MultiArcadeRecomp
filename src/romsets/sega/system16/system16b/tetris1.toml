@@ -1,0 +1,116 @@
+module = "system16"
+board = "system16b"
+game = "tetris1"
+gamename = "Tetris (set 1, Japan, System 16B) (FD1094 317-0091)"
+parent = "tetris"
+romof = "tetris"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "tetris1"
+description = "Tetris (set 1, Japan, System 16B) (FD1094 317-0091)"
+cloneof = "tetris"
+romof = "tetris"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-12163.a1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "d372d3f3"
+sha1 = "e88fa5e66cc2d3cb9eb6d0f60d81c537e4642500"
+
+[[regions.maincpu.roms]]
+file = "epr-12164.a4"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "b329cd6f"
+sha1 = "409322f32ee676dc72a3b007e3f8d691ca991e60"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0091.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "a7937661"
+sha1 = "a1f74749641fe5a25696dc328530377c7707adaf"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-12165.b9"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "62640221"
+sha1 = "c311d3847a981d0e1609f9b3d80481565d32d78c"
+
+[[regions.tiles.roms]]
+file = "epr-12166.b10"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "9abd183b"
+sha1 = "621b017cb34973f9227be383e26b5cd41aea9422"
+
+[[regions.tiles.roms]]
+file = "epr-12167.b11"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "2495fd4e"
+sha1 = "2db94ead9223a67238a97e724668076fc43e5534"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-12169.b1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "dacc6165"
+sha1 = "87b1a7643e3630ff73b2b117752496e1ea5da23d"
+merge = "epr-12169.b1"
+
+[[regions.sprites.roms]]
+file = "epr-12170.b5"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "87354e42"
+sha1 = "e7fd55aee59b51d82cb9b619fbb815ad6839560c"
+merge = "epr-12170.b5"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12168.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "bd9ba01b"
+sha1 = "fafa7dc36cc057a50ae4cdf7a35f3594292336f4"
+
+[properties]
+protection = "fd1094"

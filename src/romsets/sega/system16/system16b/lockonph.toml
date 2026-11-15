@@ -1,0 +1,154 @@
+module = "system16"
+board = "system16b"
+game = "lockonph"
+gamename = "Lock On (Philko)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "lockonph"
+description = "Lock On (Philko)"
+year = "1991"
+manufacturer = "Philko"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "lockonph"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "b2"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "fc1c9f81"
+sha1 = "09c51fbf4cc440ad3166407d1b96b4a4dcc9e412"
+
+[[regions.maincpu.roms]]
+file = "b4"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "fbb896f4"
+sha1 = "36fe1199d27c6b106164ed359ddd735a75bcb85b"
+
+[[regions.maincpu.roms]]
+file = "b1"
+size = 131072
+offset = 524289
+status = "good"
+optional = false
+crc32 = "f11a72ac"
+sha1 = "e3010114abc79e4787f9e68fac40fdc231a22a5f"
+
+[[regions.maincpu.roms]]
+file = "b3"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "3f8c0215"
+sha1 = "3d8081c2e2a8dea398b390d5bcde5b1684c136ad"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "b6"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "aa7b1880"
+sha1 = "866c057e076178da2395ce0351f7060cccd7bd81"
+
+[regions.oki]
+
+[[regions.oki.roms]]
+file = "b5"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "d6369a39"
+sha1 = "354075ec6eb7861567917f61d2dda23652dbec60"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "b10"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "d3a8bd15"
+sha1 = "06fc030d4325aaf181578ae8b7da671190ca9548"
+
+[[regions.tiles.roms]]
+file = "b7"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "787c382e"
+sha1 = "4e1912c891d69a9fbeecfa16ff0fc1377ae5ad8e"
+
+[[regions.tiles.roms]]
+file = "b9"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "aae2cef1"
+sha1 = "3f83cf8b605822561bd0f745f7568cae86d3a3b8"
+
+[[regions.tiles.roms]]
+file = "b8"
+size = 131072
+offset = 393216
+status = "good"
+optional = false
+crc32 = "cd30abe0"
+sha1 = "9fb19b9d2bee033fc81a47fb00ab4a59ea77ecb1"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "b12"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "9088d980"
+sha1 = "bc6c24d4b56472a4bd2f2b0999b850fc99b6c556"
+
+[[regions.sprites.roms]]
+file = "b14"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "af943525"
+sha1 = "fe1accca30602c8b5db799c7cb038230b0113810"
+
+[[regions.sprites.roms]]
+file = "b11"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "5da3dfcd"
+sha1 = "02d409c2fff4fdc405f7d5b4e0ca0c43dc6f6899"
+
+[[regions.sprites.roms]]
+file = "b13"
+size = 131072
+offset = 524289
+status = "good"
+optional = false
+crc32 = "62f4b64f"
+sha1 = "719f9d4faf2bd04bb47131fe4082def3d809c56b"
+
+[properties]
+protection = "none"

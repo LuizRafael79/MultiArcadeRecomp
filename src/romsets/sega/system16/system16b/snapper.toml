@@ -1,0 +1,67 @@
+module = "system16"
+board = "system16b"
+game = "snapper"
+gamename = "Snapper (Korea)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "snapper"
+description = "Snapper (Korea)"
+year = "1990"
+manufacturer = "Philko"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "atomicp"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "snap2.r01"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "9a9e4ed3"
+sha1 = "df3df13b70d4c0d1caaf42e78d355c0492fac96b"
+
+[[regions.maincpu.roms]]
+file = "snap1.r02"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "cd468d6a"
+sha1 = "28b5e1f533f5e3fd9ebffe63bda7e6d9ebe4ffaa"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "snap4.r03"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "0f848e1e"
+sha1 = "79a63ff0e5775400716f7294eabda9a0b838d656"
+
+[[regions.tiles.roms]]
+file = "snap3.r04"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "c7f8cf0e"
+sha1 = "08376f7941bc740ce85c6f32be7b54ced192599c"
+
+[[regions.tiles.roms]]
+file = "snap5.r05"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "378e08eb"
+sha1 = "f2c10bd9e885c185ac2d0d51d907ceca1f21dd7a"
+
+[properties]
+protection = "none"

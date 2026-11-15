@@ -1,0 +1,112 @@
+module = "system18"
+board = "system18"
+game = "pontoona"
+gamename = "Pontoon (FD1094 317-?)"
+parent = "pontoon"
+romof = "pontoon"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "pontoona"
+description = "Pontoon (FD1094 317-?)"
+cloneof = "pontoon"
+romof = "pontoon"
+year = "1989"
+manufacturer = "Sega"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-12828.a6"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "f78e7e25"
+sha1 = "d0449be17e553f4bdebfe209b948287e14f9ca5a"
+
+[[regions.maincpu.roms]]
+file = "epr-12827.a5"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "8dfe7859"
+sha1 = "3c98d68d787a392892bdc46091791fcd6803df88"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0___.key"
+size = 8192
+offset = 0
+status = "nodump"
+optional = false
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-12817.b1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "e34834a9"
+sha1 = "855569a29890a8a099c925b008c480aeb1837fbb"
+
+[[regions.tiles.roms]]
+file = "epr-12818.b2"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "79a55a3f"
+sha1 = "e901d11918a2f087ed0b252a72bc2a26bad881ee"
+
+[[regions.tiles.roms]]
+file = "epr-12819.b3"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "05cc079a"
+sha1 = "5a1796ba680eb02b30a5e196b6a43b65144ac38b"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-12823.b11"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "a4c520a9"
+sha1 = "ba7e14077bf67152023034ed481f1a445cef0e76"
+
+[[regions.sprites.roms]]
+file = "epr-12832.a11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "225766e8"
+sha1 = "24fc0a7d83dd50c37aa35d8878d7095b6cb59685"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12826.a4"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "dc167e51"
+sha1 = "16f9d0b181fac5898d4d6ccdd88c96b6b3bc2393"
+
+[properties]
+protection = "fd1094"

@@ -97,20 +97,10 @@ ZnMachineRuntime::ZnMachineRuntime(std::string_view set,
         zn1_sound_ = std::make_unique<Zn1SoundCpu>(*zn1_, roms_);
         board_bus_ = zn1_->make_bus();
     } else if (set == "tekken3") {
-        system12_ = std::make_unique<NamcoSystem12Board>(roms_);
-        system12_audio_cpu_ = std::make_unique<mamerecomp::h8::H8Advanced>(
-            [this](mamerecomp::h8::u32 address) {
-                uint32_t value = 0xff;
-                if (system12_->sub_read(address, 1, &value))
-                    return static_cast<mamerecomp::h8::u8>(value);
-                return static_cast<mamerecomp::h8::u8>(0xff);
-            },
-            [this](mamerecomp::h8::u32 address, mamerecomp::h8::u8 value) {
-                system12_->sub_write(address, 1, value);
-            });
-        board_bus_ = system12_->make_bus();
+        system12_runtime_ = std::make_unique<mamerecomp::namco::system12::System12Runtime>(roms_);
+        board_bus_ = system12_runtime_->make_bus();
         memory_->set_dma_device_read(5, [this](uint32_t, size_t words) {
-            return system12_->dma_rom_read(words);
+            return system12_runtime_->dma_rom_read(words);
         });
     } else {
         throw std::runtime_error("unsupported PSX-derived set profile");
@@ -164,15 +154,7 @@ void ZnMachineRuntime::sync_zn2_sound_command(void *opaque, uint64_t main_cycles
 
 void ZnMachineRuntime::sync_secondary_processors()
 {
-    if (system12_audio_cpu_ &&
-        cpu_.cycles - system12_h8_main_cycles_ >= 4096) {
-        const uint64_t elapsed = cpu_.cycles - system12_h8_main_cycles_;
-        // MAME's System 12 clocks H8/3002 at 16.9344 MHz against the
-        // 67.7376 MHz R3000A. Sync in bounded slices while preserving phase.
-        const unsigned budget = static_cast<unsigned>(elapsed / 4);
-        if (budget) system12_audio_cpu_->run_cycles(budget);
-        system12_h8_main_cycles_ += uint64_t(budget) * 4;
-    }
+    if (system12_runtime_) system12_runtime_->sync_maincpu_cycles(cpu_.cycles);
     if (zn2_sound_ &&
         (cpu_.cycles - zn2_sound_main_cycles_ >= 4096 || zn2_->sound_pending())) {
         zn2_sound_->run_to_main_cycles(cpu_.cycles);

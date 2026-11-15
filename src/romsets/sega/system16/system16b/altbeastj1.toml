@@ -1,0 +1,212 @@
+module = "system16"
+board = "system16b"
+game = "altbeastj1"
+gamename = "Juuouki (set 1, Japan) (FD1094 317-0065)"
+parent = "altbeast"
+romof = "altbeast"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "altbeastj1"
+description = "Juuouki (set 1, Japan) (FD1094 317-0065)"
+cloneof = "altbeast"
+romof = "altbeast"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_fd1094"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-11670.a7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "b748eb07"
+sha1 = "f3663831610bcb358340f14c2c96833dd7591bfb"
+
+[[regions.maincpu.roms]]
+file = "epr-11669.a5"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "005ecd11"
+sha1 = "c392195955cf727752f03db92414701cc2bf1f4a"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0065.key"
+size = 8192
+offset = 0
+status = "baddump"
+optional = false
+crc32 = "9e0f619d"
+sha1 = "b0392e84d1c9af681dc9bb2ca3636e7cc41a605b"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "opr-11674.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "a57a66d5"
+sha1 = "5103583d48997abad12a0c5fee26431c486ced52"
+merge = "opr-11674.a14"
+
+[[regions.tiles.roms]]
+file = "opr-11675.a15"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "2ef2f144"
+sha1 = "38d22d609db2d9b6067b5d12f6499436de4605cb"
+merge = "opr-11675.a15"
+
+[[regions.tiles.roms]]
+file = "opr-11676.a16"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "0c04acac"
+sha1 = "87fe2a0dd9913f9550e9b4cbc7e7465b61640e07"
+merge = "opr-11676.a16"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-11677.b1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "a01425cd"
+sha1 = "72be5ec29e476601f9bf6aaedef9b73cedeb42f0"
+merge = "epr-11677.b1"
+
+[[regions.sprites.roms]]
+file = "epr-11681.b5"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "d9e03363"
+sha1 = "995a7c6a8f0c61468b57a3bb407461a2a3ae8adc"
+merge = "epr-11681.b5"
+
+[[regions.sprites.roms]]
+file = "epr-11678.b2"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "17a9fc53"
+sha1 = "85a9a605742ae5aab86db37189b9ee4d54c70e56"
+merge = "epr-11678.b2"
+
+[[regions.sprites.roms]]
+file = "epr-11682.b6"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "e3f77c5e"
+sha1 = "6b3cb7918ab0c7c97a51cc5ea19ced3374ff3914"
+merge = "epr-11682.b6"
+
+[[regions.sprites.roms]]
+file = "epr-11679.b3"
+size = 131072
+offset = 524289
+status = "good"
+optional = false
+crc32 = "14dcc245"
+sha1 = "1ca1b6e0f2b7bedad2a8ab70f52da8c54d40d3cf"
+merge = "epr-11679.b3"
+
+[[regions.sprites.roms]]
+file = "epr-11683.b7"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "f9a60f06"
+sha1 = "0cffcfdb02733feaa869198b7e668c58b47c321a"
+merge = "epr-11683.b7"
+
+[[regions.sprites.roms]]
+file = "epr-11680.b4"
+size = 131072
+offset = 786433
+status = "good"
+optional = false
+crc32 = "f43dcdec"
+sha1 = "2941500cf33afca487f19f2329033d5d17aad826"
+merge = "epr-11680.b4"
+
+[[regions.sprites.roms]]
+file = "epr-11684.b8"
+size = 131072
+offset = 786432
+status = "good"
+optional = false
+crc32 = "b20c0edb"
+sha1 = "6c8694d05e3adac37c9015037ab800233371db36"
+merge = "epr-11684.b8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-11671.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "2b71343b"
+sha1 = "8a657f787de2b9d5161ed2c109642a148348af09"
+merge = "epr-11671.a10"
+
+[[regions.soundcpu.roms]]
+file = "opr-11672.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "bbd7f460"
+sha1 = "bbc5c2219cb3a827d84062b19affd9780da2a3cf"
+merge = "opr-11672.a11"
+
+[[regions.soundcpu.roms]]
+file = "opr-11673.a12"
+size = 131072
+offset = 196608
+status = "good"
+optional = false
+crc32 = "400c4a36"
+sha1 = "de4bdfa91734410e0a7f6a16bf8336db172f458a"
+merge = "opr-11673.a12"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+merge = "315-5298.b9"
+
+[properties]
+protection = "fd1094"

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from manifest_io import load_manifest_file, write_manifest_file
 
 
 SOURCE_FILES = {
@@ -272,9 +272,9 @@ def main() -> int:
         return 2
 
     for manifest in manifests:
-        existing = next(args.output.rglob(f"{manifest['game']}.json"), None) if args.output.exists() else None
+        existing = next(args.output.rglob(f"{manifest['game']}.toml"), None) if args.output.exists() else None
         if existing:
-            old = json.loads(existing.read_text())
+            old = load_manifest_file(existing)
             # Keep one canonical MAME layout at the top level. The runtime's
             # hand-authored transforms are an optional, separate projection.
             runtime = old.get("runtime", {})
@@ -297,11 +297,11 @@ def main() -> int:
                 old["runnable"] = False
             elif old.get("runnable") is False and old.get("romset_source") == "MAME -listxml":
                 old.pop("runnable", None)
-            existing.write_text(json.dumps(old, indent=2, ensure_ascii=False) + "\n")
+            write_manifest_file(existing, old)
         else:
             directory = args.output / "sega" / manifest["module"] / manifest["board"]
             directory.mkdir(parents=True, exist_ok=True)
-            (directory / f"{manifest['game']}.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+            write_manifest_file(directory / f"{manifest['game']}.toml", manifest)
 
     print(f"Imported {len(manifests)} System 16/18 game entries (MAME machine registrations)")
     return 0

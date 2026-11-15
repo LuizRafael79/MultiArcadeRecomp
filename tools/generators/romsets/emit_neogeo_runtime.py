@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Emit the small C++ KOF98 runtime table from its JSON manifest."""
+"""Emit the small C++ KOF98 runtime table from its TOML manifest."""
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
+from manifest_io import load_manifest_file
 
 
 def cpp(value: str) -> str:
@@ -69,7 +69,7 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    manifest = json.loads(args.manifest.read_text())
+    manifest = load_manifest_file(args.manifest)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(emit(manifest))
     return 0

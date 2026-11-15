@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from driver_layout import parse_driver
+from manifest_io import write_manifest_file
 
 SETS = {
     "eswat": ("sega/segas16b.cpp", "sega", "system16b"),
@@ -100,9 +100,9 @@ def main() -> int:
             "runtime": {"regions": runtime_regions},
             "properties": {"protection": "fd1094" if game == "eswat" else "none"},
         }
-        out = args.output / module / board / f"{game}.json"
+        out = args.output / module / board / f"{game}.toml"
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        write_manifest_file(out, manifest)
         print(f"{game}: {sum(len(r['roms']) for r in regions.values())} ROM files, {len(layout.get('operations', []))} MAME layout operations -> {out}")
     return 0
 

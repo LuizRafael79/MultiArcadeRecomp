@@ -226,7 +226,9 @@ else()
   set(FMT_SOURCES src/format.cc)
 endif ()
 
-add_library(fmt ${FMT_SOURCES} ${FMT_HEADERS} README.rst ChangeLog.rst)
+# Documentation is kept under the repository's docs/ tree; it is not needed
+# to build the library and may be absent in source-only vendored copies.
+add_library(fmt ${FMT_SOURCES} ${FMT_HEADERS})
 add_library(fmt::fmt ALIAS fmt)
 
 if (FMT_WERROR)

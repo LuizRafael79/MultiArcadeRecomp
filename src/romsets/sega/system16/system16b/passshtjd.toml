@@ -1,0 +1,188 @@
+module = "system16"
+board = "system16b"
+game = "passshtjd"
+gamename = "Passing Shot (Japan, 4 Players) (bootleg of FD1094 317-0070 set)"
+parent = "passsht"
+romof = "passsht"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "passshtjd"
+description = "Passing Shot (Japan, 4 Players) (bootleg of FD1094 317-0070 set)"
+cloneof = "passsht"
+romof = "passsht"
+year = "1988"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-11853.a4"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "af289531"
+sha1 = "5b02add14a3b75efa0fca0de8c5b5f88d3ef276e"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-11852.a1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "ce765977"
+sha1 = "86b47d7701f33f8371e54ad0b076a207f1922de0"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "opr-11854.b9"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "d31c0b6c"
+sha1 = "610d04988da70c30300cc5614817eda9d2204f39"
+merge = "opr-11854.b9"
+
+[[regions.tiles.roms]]
+file = "opr-11855.b10"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "b78762b4"
+sha1 = "d594ef846bd7fed8da91a89906b39c1a2867a1fe"
+merge = "opr-11855.b10"
+
+[[regions.tiles.roms]]
+file = "opr-11856.b11"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "ea49f666"
+sha1 = "36ccd32cdcbb7fcc300628bb59c220ec3c324d82"
+merge = "opr-11856.b11"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "opr-11862.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "b6e94727"
+sha1 = "0838e034f1f10d9cd1312c8c94b5c57387c0c271"
+merge = "opr-11862.b1"
+
+[[regions.sprites.roms]]
+file = "opr-11865.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "17e8d5d5"
+sha1 = "ac1074b0a705be13c6e3391441e6cfec1d2b3f8a"
+merge = "opr-11865.b5"
+
+[[regions.sprites.roms]]
+file = "opr-11863.b2"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "3e670098"
+sha1 = "2cfc83f4294be30cd868738886ac546bd8489962"
+merge = "opr-11863.b2"
+
+[[regions.sprites.roms]]
+file = "opr-11866.b6"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "50eb71cc"
+sha1 = "463b4917ca19c7f4ad2c2845caa104d5e4a2dda3"
+merge = "opr-11866.b6"
+
+[[regions.sprites.roms]]
+file = "opr-11864.b3"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "05733ca8"
+sha1 = "1dbc7c99450ebe6a9fd8c0244fd3cb38b74984ef"
+merge = "opr-11864.b3"
+
+[[regions.sprites.roms]]
+file = "opr-11867.b7"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "81e49697"
+sha1 = "a70fa409e3555ad6c8f28930a7026fdf2deb8c65"
+merge = "opr-11867.b7"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-11857.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "789edc06"
+sha1 = "8c89c94e503513c287807d187de78a7fbd75a7cf"
+merge = "epr-11857.a7"
+
+[[regions.soundcpu.roms]]
+file = "epr-11858.a8"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "08ab0018"
+sha1 = "0685f80a7d403208c9cfffea3f2035324f3924fe"
+merge = "epr-11858.a8"
+
+[[regions.soundcpu.roms]]
+file = "epr-11859.a9"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "8673e01b"
+sha1 = "e79183ab30e683fdf61ced2e9dbe010567c324cb"
+merge = "epr-11859.a9"
+
+[[regions.soundcpu.roms]]
+file = "epr-11860.a10"
+size = 32768
+offset = 196608
+status = "good"
+optional = false
+crc32 = "10263746"
+sha1 = "1f981fb185c6a9795208ecdcfba36cf892a99ed5"
+merge = "epr-11860.a10"
+
+[[regions.soundcpu.roms]]
+file = "epr-11861.a11"
+size = 32768
+offset = 262144
+status = "good"
+optional = false
+crc32 = "38b54a71"
+sha1 = "68ec4ef5b115844214ff2213be1ce6678904fbd2"
+merge = "epr-11861.a11"
+
+[properties]
+protection = "none"

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mamerecomp::neogeo {
@@ -24,14 +25,15 @@ struct RomSetInfo {
     std::vector<std::uint8_t> bios;
 };
 
-// KOF98 bootstrap prototype: BIOS is loaded from neogeo.zip and the game's
-// PROGSF1 program transform is applied before the image is returned.
+// ROM/profile validation for KOF98. Program bytes remain raw here; the game
+// module supplies its PROGSF1 transform to the board runtime.
 RomSetInfo load_kof98(const std::filesystem::path& game_zip,
-                      const std::filesystem::path& bios_zip);
-void decrypt_kof98_program(std::vector<std::uint8_t>& program);
+                      const std::filesystem::path& bios_zip,
+                      std::string_view bios_name = {});
 void extract_kof98_inputs(const std::filesystem::path& game_zip,
                           const std::filesystem::path& bios_zip,
                           const std::filesystem::path& game_directory,
-                          const std::filesystem::path& bios_directory);
+                          const std::filesystem::path& bios_directory,
+                          const std::filesystem::path& system_rom_zip = {});
 
 } // namespace mamerecomp::neogeo

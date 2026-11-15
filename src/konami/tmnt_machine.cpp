@@ -5,9 +5,9 @@
 #include <zlib.h>
 #include <neogeorecomp/neogeo.h>
 #include <neogeorecomp/cpu.h>
-#include "system16/system16_m68k_bus.h"
-#include "system16/m68k_recomp_dispatch.h"
-#include "system16/system16_musashi_fallback.h"
+#include "cpus/m68000/runtime/recomp_bus.h"
+#include "cpus/m68000/runtime/recomp_dispatch.h"
+#include "cpus/m68000/runtime/musashi_fallback.h"
 #include "cpus/m68000/runtime/cpu_runtime.h"
 #include <neogeorecomp/bus.h>
 #include "z80.h"
@@ -747,14 +747,14 @@ TmntMainCpu::TmntMainCpu(TmntBoard& board, const ng_func_entry_t* entries, size_
 {
     if (!entries_ || entry_count_ == 0) throw std::runtime_error("TMNT 68000 AOT table is empty");
     const M68kBusCallbacks bus{&board_, tmnt_read8, tmnt_read16, tmnt_write8, tmnt_write16};
-    m68k_system16_bus_bind(&bus);
+    mamerecomp_m68k_bus_bind(&bus);
     mame_recomp_m68k_set_exception_bus(tmnt_exception_read16, tmnt_exception_write16);
     reset();
 }
 
 TmntMainCpu::~TmntMainCpu()
 {
-    m68k_system16_bus_bind(nullptr);
+    mamerecomp_m68k_bus_bind(nullptr);
 }
 
 void TmntMainCpu::reset()
@@ -785,8 +785,8 @@ int TmntMainCpu::execute_until(uint64_t cycle_deadline)
         const uint64_t instruction_count_before = ng_icount;
         const auto result = m68k_recomp_dispatch_once(entries_, entry_count_);
         if (result.status == M68K_RECOMP_DISPATCH_NO_ENTRY) {
-            m68k_system16_bus_clear_fault();
-            const int consumed = mamerecomp_system16_musashi_step();
+            mamerecomp_m68k_bus_clear_fault();
+            const int consumed = mamerecomp_m68k_musashi_step();
             ng_cycles += consumed > 0 ? consumed : 1;
             ++ng_icount;
             ++fallback_instructions_;

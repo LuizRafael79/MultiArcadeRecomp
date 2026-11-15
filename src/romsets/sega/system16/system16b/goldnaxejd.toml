@@ -1,0 +1,428 @@
+module = "system16"
+board = "system16b"
+game = "goldnaxejd"
+gamename = "Golden Axe (set 4, Japan) (bootleg of FD1094 317-0121 set)"
+parent = "goldnaxe"
+romof = "goldnaxe"
+romset_source = "MAME -listxml"
+runtime_profile = true
+
+[mame]
+name = "goldnaxejd"
+description = "Golden Axe (set 4, Japan) (bootleg of FD1094 317-0121 set)"
+cloneof = "goldnaxe"
+romof = "goldnaxe"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-12540.a7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "601bb784"
+sha1 = "eb6eea4d3b54ac59a82de76e5e5d8f4b60d34cf4"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-12539.a5"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "c76c0969"
+sha1 = "d6b4902e7ed8a936dfe7aba8f242668269ce1059"
+
+[[regions.maincpu.roms]]
+file = "epr-12521.a8"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "5001d713"
+sha1 = "68cf3f48d6e440e5b800503a211adda02107d956"
+
+[[regions.maincpu.roms]]
+file = "epr-12519.a6"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "4438ca8e"
+sha1 = "0af53d64f06abf41f4c46540d28d5f008a4835a3"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-12385.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "b8a4e7e0"
+sha1 = "9b36f50209d45a835ded53eb045f63c649b02fc9"
+merge = "epr-12385.ic19"
+
+[[regions.tiles.roms]]
+file = "epr-12386.a15"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "25d7d779"
+sha1 = "2de14a76a5176d5abc7e7f7f723146c620927610"
+merge = "epr-12386.ic20"
+
+[[regions.tiles.roms]]
+file = "epr-12387.a16"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "c7fcadf3"
+sha1 = "5f0fd600a75a02749935af21e1e0d2c714c6417e"
+merge = "epr-12387.ic21"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-12378.b1"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "119e5a82"
+sha1 = "261ed2bc4ebac7142e2ecca9f03c91242e792a98"
+merge = "mpr-12378.ic9"
+
+[[regions.sprites.roms]]
+file = "mpr-12379.b5"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "1a0e8c57"
+sha1 = "674f1ae7db632876fff346e76786801ae19d9799"
+merge = "mpr-12379.ic12"
+
+[[regions.sprites.roms]]
+file = "mpr-12380.b2"
+size = 262144
+offset = 262145
+status = "good"
+optional = false
+crc32 = "bb2c0853"
+sha1 = "3f3b546d078f22d787c93ee74d9ad3a6e84383ac"
+merge = "mpr-12380.ic10"
+
+[[regions.sprites.roms]]
+file = "mpr-12381.b6"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "81ba6ecc"
+sha1 = "7f59e4d86a192b97e92729371b78c3f1c784a0b5"
+merge = "mpr-12381.ic13"
+
+[[regions.sprites.roms]]
+file = "mpr-12382.b3"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "81601c6f"
+sha1 = "604bc5613c6c734a06860303ba36d61bb54508a0"
+merge = "mpr-12382.ic11"
+
+[[regions.sprites.roms]]
+file = "mpr-12383.b7"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "5dbacf7a"
+sha1 = "236866fb94672b13cbb2cb479324e61de87eeb34"
+merge = "mpr-12383.ic14"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12390.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "399fc5f5"
+sha1 = "6f290b36dc71ff4759598e2a9c185a8945a3c9e7"
+merge = "epr-12390.ic8"
+
+[[regions.soundcpu.roms]]
+file = "mpr-12384.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "6218d8e7"
+sha1 = "5a745c750efb4a61716f99befb7ed14cc84e9973"
+merge = "mpr-12384.ic6"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+merge = "315-5298.b9"
+
+[properties]
+protection = "none"
+mapper = "sega5521"
+
+[runtime]
+default_dsw1 = 255
+default_dsw2 = 61
+
+[runtime.regions]
+
+[runtime.regions.maincpu]
+size = 524288
+fill = 0
+
+[[runtime.regions.maincpu.roms]]
+file = "bootleg_epr-12540.a7"
+size = 131072
+crc32 = "601bb784"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 0
+length = 131072
+stride = 2
+
+[[runtime.regions.maincpu.roms]]
+file = "bootleg_epr-12539.a5"
+size = 131072
+crc32 = "c76c0969"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 1
+length = 131072
+stride = 2
+
+[[runtime.regions.maincpu.roms]]
+file = "epr-12521.a8"
+size = 131072
+crc32 = "5001d713"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 262144
+length = 131072
+stride = 2
+
+[[runtime.regions.maincpu.roms]]
+file = "epr-12519.a6"
+size = 131072
+crc32 = "4438ca8e"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 262145
+length = 131072
+stride = 2
+
+[runtime.regions.tiles]
+size = 393216
+fill = 0
+
+[[runtime.regions.tiles.roms]]
+file = "epr-12385.a14"
+size = 131072
+crc32 = "b8a4e7e0"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 0
+length = 131072
+stride = 1
+
+[[runtime.regions.tiles.roms]]
+file = "epr-12386.a15"
+size = 131072
+crc32 = "25d7d779"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 131072
+length = 131072
+stride = 1
+
+[[runtime.regions.tiles.roms]]
+file = "epr-12387.a16"
+size = 131072
+crc32 = "c7fcadf3"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 262144
+length = 131072
+stride = 1
+
+[runtime.regions.sprites]
+size = 1835008
+fill = 0
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12378.b1"
+size = 262144
+crc32 = "119e5a82"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1048577
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12379.b5"
+size = 262144
+crc32 = "1a0e8c57"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 0
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1048576
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12380.b2"
+size = 262144
+crc32 = "bb2c0853"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 262145
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1310721
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12381.b6"
+size = 262144
+crc32 = "81ba6ecc"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 262144
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1310720
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12382.b3"
+size = 262144
+crc32 = "81601c6f"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 524289
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1572865
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-12383.b7"
+size = 262144
+crc32 = "5dbacf7a"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 524288
+length = 131072
+stride = 2
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 131072
+destination = 1572864
+length = 131072
+stride = 2
+
+[runtime.regions.soundcpu]
+size = 327680
+fill = 0
+
+[[runtime.regions.soundcpu.roms]]
+file = "epr-12390.a10"
+size = 32768
+crc32 = "399fc5f5"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 0
+length = 32768
+stride = 1
+
+[[runtime.regions.soundcpu.roms]]
+file = "mpr-12384.a11"
+size = 131072
+crc32 = "6218d8e7"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 65536
+length = 131072
+stride = 1
+
+[runtime.regions.plds]
+size = 256
+fill = 0
+
+[[runtime.regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+crc32 = "39b47212"
+
+[[runtime.regions.plds.roms.segments]]
+source_offset = 0
+destination = 0
+length = 235
+stride = 1

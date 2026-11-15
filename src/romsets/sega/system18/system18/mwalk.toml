@@ -1,0 +1,442 @@
+module = "system18"
+board = "system18"
+game = "mwalk"
+gamename = "Michael Jackson's Moonwalker (World) (FD1094/8751 317-0159)"
+runnable = false
+romset_source = "MAME -listxml"
+
+[mame]
+name = "mwalk"
+description = "Michael Jackson's Moonwalker (World) (FD1094/8751 317-0159)"
+year = "1990"
+manufacturer = "Sega"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18_fd1094_i8751"
+
+[properties]
+dependency_only = true
+protection = "fd1094"
+rom_board = "sega5874"
+soundcpu_fill = 255
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-13235.a6"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "6983e129"
+sha1 = "a8dd430620ab8ce11df46aa208d762d47f510464"
+
+[[regions.maincpu.roms]]
+file = "epr-13234.a5"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "c9fd20f2"
+sha1 = "9476e6481e6d8f223acd52f543fa04f408d48dc3"
+
+[regions."maincpu:key"]
+
+[[regions."maincpu:key".roms]]
+file = "317-0159.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "507838f0"
+sha1 = "0c92d313da40b5dec7398c05b57698de6153b4b0"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "mpr-13216.b1"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "862d2c03"
+sha1 = "3c5446d702a639b62a602c6d687f9875d8450218"
+
+[[regions.tiles.roms]]
+file = "mpr-13217.b2"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "7d1ac3ec"
+sha1 = "8495357304f1df135bba77ef3b96e79a883b8ff0"
+
+[[regions.tiles.roms]]
+file = "mpr-13218.b3"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "56d3393c"
+sha1 = "50a2d065060692c9ecaa56046a781cb21d93e554"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-13224.b11"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "c59f107b"
+sha1 = "10fa60fca6e34eda277c483bb1c0e81bb88c8a47"
+
+[[regions.sprites.roms]]
+file = "mpr-13231.a11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "a5e96346"
+sha1 = "a854f4dd5dc16975373255110fdb8ab3d121b1af"
+
+[[regions.sprites.roms]]
+file = "mpr-13223.b10"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "364f60ff"
+sha1 = "9ac887ec0b2e32b504b7c6a5f3bb1ce3fe41a15a"
+
+[[regions.sprites.roms]]
+file = "mpr-13230.a10"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "9550091f"
+sha1 = "bb6e898f7b540e130fd338c10f74609a7604cef4"
+
+[[regions.sprites.roms]]
+file = "mpr-13222.b9"
+size = 262144
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "523df3ed"
+sha1 = "2e496125e75decd674c3a08404fbdb53791a965d"
+
+[[regions.sprites.roms]]
+file = "mpr-13229.a9"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "f40dc45d"
+sha1 = "e9468cef428f52ecdf6837c6d9a9fea934e7676c"
+
+[[regions.sprites.roms]]
+file = "epr-13221.b8"
+size = 262144
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "9ae7546a"
+sha1 = "5413b0131881b0b32bac8de51da9a299835014bb"
+
+[[regions.sprites.roms]]
+file = "epr-13228.a8"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "de3786be"
+sha1 = "2279bb390aa3efab9aeee0a643e5cb6a4f5933b6"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13225.a4"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "56c2e82b"
+sha1 = "d5755a1bb6e889d274dc60e883d4d65f12fdc877"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13219.b4"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "19e2061f"
+sha1 = "2dcf1718a43dab4da53b4f67722664e70ddd2169"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13220.b5"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "58d4d9ce"
+sha1 = "725e73a656845b02702ef131b4c0aa2a73cdd02e"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13249.b6"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "623edc5d"
+sha1 = "c32d9f818d40f311877fbe6532d9e95b6045c3c4"
+
+[regions.mcu]
+
+[[regions.mcu.roms]]
+file = "315-5437.ic4"
+size = 4096
+offset = 0
+status = "good"
+optional = false
+crc32 = "4bf63bc1"
+sha1 = "2766ab30b466b079febb30c488adad9ea56813f7"
+
+[runtime]
+
+[runtime.regions]
+
+[runtime.regions.maincpu]
+size = 524288
+fill = 255
+
+[[runtime.regions.maincpu.roms]]
+file = "epr-13235.a6"
+size = 262144
+crc32 = "6983e129"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 0
+length = 262144
+stride = 2
+
+[[runtime.regions.maincpu.roms]]
+file = "epr-13234.a5"
+size = 262144
+crc32 = "c9fd20f2"
+
+[[runtime.regions.maincpu.roms.segments]]
+source_offset = 0
+destination = 1
+length = 262144
+stride = 2
+
+[runtime.regions.key]
+size = 8192
+fill = 0
+
+[[runtime.regions.key.roms]]
+file = "317-0159.key"
+size = 8192
+crc32 = "507838f0"
+
+[[runtime.regions.key.roms.segments]]
+source_offset = 0
+destination = 0
+length = 8192
+stride = 1
+
+[runtime.regions.tiles]
+size = 786432
+fill = 0
+
+[[runtime.regions.tiles.roms]]
+file = "mpr-13216.b1"
+size = 262144
+crc32 = "862d2c03"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 0
+length = 262144
+stride = 1
+
+[[runtime.regions.tiles.roms]]
+file = "mpr-13217.b2"
+size = 262144
+crc32 = "7d1ac3ec"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 262144
+length = 262144
+stride = 1
+
+[[runtime.regions.tiles.roms]]
+file = "mpr-13218.b3"
+size = 262144
+crc32 = "56d3393c"
+
+[[runtime.regions.tiles.roms.segments]]
+source_offset = 0
+destination = 524288
+length = 262144
+stride = 1
+
+[runtime.regions.sprites]
+size = 2097152
+fill = 0
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13224.b11"
+size = 262144
+crc32 = "c59f107b"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13231.a11"
+size = 262144
+crc32 = "a5e96346"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 0
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13223.b10"
+size = 262144
+crc32 = "364f60ff"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 524289
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13230.a10"
+size = 262144
+crc32 = "9550091f"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 524288
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13222.b9"
+size = 262144
+crc32 = "523df3ed"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1048577
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "mpr-13229.a9"
+size = 262144
+crc32 = "f40dc45d"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1048576
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "epr-13221.b8"
+size = 262144
+crc32 = "9ae7546a"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1572865
+length = 262144
+stride = 2
+
+[[runtime.regions.sprites.roms]]
+file = "epr-13228.a8"
+size = 262144
+crc32 = "de3786be"
+
+[[runtime.regions.sprites.roms.segments]]
+source_offset = 0
+destination = 1572864
+length = 262144
+stride = 2
+
+[runtime.regions.soundcpu]
+size = 2097152
+fill = 255
+
+[[runtime.regions.soundcpu.roms]]
+file = "epr-13225.a4"
+size = 131072
+crc32 = "56c2e82b"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 0
+length = 131072
+stride = 1
+
+[[runtime.regions.soundcpu.roms]]
+file = "mpr-13219.b4"
+size = 262144
+crc32 = "19e2061f"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 524288
+length = 262144
+stride = 1
+
+[[runtime.regions.soundcpu.roms]]
+file = "mpr-13220.b5"
+size = 262144
+crc32 = "58d4d9ce"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 1048576
+length = 262144
+stride = 1
+
+[[runtime.regions.soundcpu.roms]]
+file = "mpr-13249.b6"
+size = 262144
+crc32 = "623edc5d"
+
+[[runtime.regions.soundcpu.roms.segments]]
+source_offset = 0
+destination = 1572864
+length = 262144
+stride = 1
+
+[runtime.regions.mcu]
+size = 65536
+fill = 0
+
+[[runtime.regions.mcu.roms]]
+file = "315-5437.ic4"
+size = 4096
+crc32 = "4bf63bc1"
+
+[[runtime.regions.mcu.roms.segments]]
+source_offset = 0
+destination = 0
+length = 4096
+stride = 1

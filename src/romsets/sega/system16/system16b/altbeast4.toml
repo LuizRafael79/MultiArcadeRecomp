@@ -1,0 +1,281 @@
+module = "system16"
+board = "system16b"
+game = "altbeast4"
+gamename = "Altered Beast (set 4) (MC-8123B 317-0066)"
+parent = "altbeast"
+romof = "altbeast"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "altbeast4"
+description = "Altered Beast (set 4) (MC-8123B 317-0066)"
+cloneof = "altbeast"
+romof = "altbeast"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_mc8123"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-11740.a7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "ce227542"
+sha1 = "54adcc1246943360bb68498e971809a0d4f9fe0c"
+
+[[regions.maincpu.roms]]
+file = "epr-11739.a5"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "e466eb65"
+sha1 = "c9bb57818eb81a43abdf2ad2a79a0bd45c25d208"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-11722.a14"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "adaa8db5"
+sha1 = "3262c98d13d08c333d16052cac841f44d2f99743"
+
+[[regions.tiles.roms]]
+file = "epr-11736.b14"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "e9ad5e89"
+sha1 = "769628eee6e194a84aa8a3729f4e7d07dd3ba25c"
+
+[[regions.tiles.roms]]
+file = "epr-11723.a15"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "131a3f9a"
+sha1 = "8182c3b8ce7a2f02b226cfa2081187593c9d0d0b"
+
+[[regions.tiles.roms]]
+file = "epr-11737.b15"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "2e420023"
+sha1 = "3aa2c3b6fccafb4d53b6ab99b95181d3eed7c77f"
+
+[[regions.tiles.roms]]
+file = "epr-11724.a16"
+size = 65536
+offset = 524288
+status = "good"
+optional = false
+crc32 = "6f2ed50a"
+sha1 = "55d0c4299e7240b0ef5316b48db7a158145c76ab"
+
+[[regions.tiles.roms]]
+file = "epr-11738.b16"
+size = 65536
+offset = 655360
+status = "good"
+optional = false
+crc32 = "de3d6d02"
+sha1 = "428811f21c68761022521a17fc4716f6e7214b20"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-11725.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "f8b3684e"
+sha1 = "3de2685cae5fb3c954b8440fafce313072747469"
+
+[[regions.sprites.roms]]
+file = "epr-11729.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "ae3c2793"
+sha1 = "c4f46861ea63ffa3c038a1ef931479b94e5382df"
+
+[[regions.sprites.roms]]
+file = "epr-11726.b2"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "3cce5419"
+sha1 = "fccdbd6d05f5927272e7d6e5f997418d4fa2baf5"
+
+[[regions.sprites.roms]]
+file = "epr-11730.b6"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "3af62b55"
+sha1 = "9f079af88aaf2447948c9ac01c6cbd1e79539704"
+
+[[regions.sprites.roms]]
+file = "epr-11727.b3"
+size = 65536
+offset = 524289
+status = "good"
+optional = false
+crc32 = "b0390078"
+sha1 = "9035d9f45c67bdc802710018722943f5b63e8b5d"
+
+[[regions.sprites.roms]]
+file = "epr-11731.b7"
+size = 65536
+offset = 524288
+status = "good"
+optional = false
+crc32 = "2a87744a"
+sha1 = "421b3926de046ddeddad05f65fc6b5078af28dbd"
+
+[[regions.sprites.roms]]
+file = "epr-11728.b4"
+size = 65536
+offset = 786433
+status = "good"
+optional = false
+crc32 = "f3a43fd8"
+sha1 = "d42833ecd0c1920f1a6904d32c096f12d8622141"
+
+[[regions.sprites.roms]]
+file = "epr-11732.b8"
+size = 65536
+offset = 786432
+status = "good"
+optional = false
+crc32 = "2fb3e355"
+sha1 = "960e0a66b23f79833b011ea35a5a412dffb47083"
+
+[[regions.sprites.roms]]
+file = "epr-11717.a1"
+size = 65536
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "676be0cb"
+sha1 = "1e7d4c5f231992f111cc7885e97bc5a7267a5e89"
+
+[[regions.sprites.roms]]
+file = "epr-11733.b10"
+size = 65536
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "802cac94"
+sha1 = "24e5aa74ce8b6c53c78cc33a41a473df3fbce639"
+
+[[regions.sprites.roms]]
+file = "epr-11718.a2"
+size = 65536
+offset = 1310721
+status = "good"
+optional = false
+crc32 = "882864c2"
+sha1 = "bd44bbdc13e5fd1b5c31c343da00a75b9dd90478"
+
+[[regions.sprites.roms]]
+file = "epr-11734.b11"
+size = 65536
+offset = 1310720
+status = "good"
+optional = false
+crc32 = "76c704d2"
+sha1 = "35b393071e29b8d122d3f904b923689a7dddc808"
+
+[[regions.sprites.roms]]
+file = "epr-11719.a3"
+size = 65536
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "339987f7"
+sha1 = "b5650f8bdbd44510e84686b20daf70bc4a564f28"
+
+[[regions.sprites.roms]]
+file = "epr-11735.b12"
+size = 65536
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "4fe406aa"
+sha1 = "7f068b81f35be4cc4785824ed524d28f201ff0a5"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-11686.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "828a45b3"
+sha1 = "df921701b411afac1b6716b6798a1bffc2180133"
+
+[[regions.soundcpu.roms]]
+file = "opr-11672.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "bbd7f460"
+sha1 = "bbc5c2219cb3a827d84062b19affd9780da2a3cf"
+merge = "opr-11672.a11"
+
+[[regions.soundcpu.roms]]
+file = "opr-11673.a12"
+size = 131072
+offset = 196608
+status = "good"
+optional = false
+crc32 = "400c4a36"
+sha1 = "de4bdfa91734410e0a7f6a16bf8336db172f458a"
+merge = "opr-11673.a12"
+
+[regions."soundcpu:key"]
+
+[[regions."soundcpu:key".roms]]
+file = "317-0066.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "ed85a054"
+sha1 = "dcc84ec077a8a489f45abfd2bf4a9ba377da28a5"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+merge = "315-5298.b9"
+
+[properties]
+protection = "mc8123"

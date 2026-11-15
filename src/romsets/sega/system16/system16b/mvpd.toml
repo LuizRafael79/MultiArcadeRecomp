@@ -1,0 +1,178 @@
+module = "system16"
+board = "system16b"
+game = "mvpd"
+gamename = "MVP (set 2, US) (bootleg of FD1094 317-0143 set)"
+parent = "mvp"
+romof = "mvp"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "mvpd"
+description = "MVP (set 2, US) (bootleg of FD1094 317-0143 set)"
+cloneof = "mvp"
+romof = "mvp"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_5797"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13000.a2"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "fa72e415"
+sha1 = "2ab8c2239f05b5df4dbff3c283f90e4e7ddf612d"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-12999.a1"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "0af75927"
+sha1 = "9984c7c2ab957c05d6a15e9287bd8653261f1806"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-13011.b11"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "1cb871fc"
+sha1 = "d20a46e538d57b25d78faa7deb9c11519b4111d3"
+merge = "epr-13011.b11"
+
+[[regions.tiles.roms]]
+file = "epr-13012.b12"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "b75e6821"
+sha1 = "a2b049995755d79a136a4b4b0dc78d902c5b9eed"
+merge = "epr-13012.b12"
+
+[[regions.tiles.roms]]
+file = "epr-13013.b13"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "f1944a3c"
+sha1 = "db59cadb435c26f3a957bd4996a083fa30c8bbd0"
+merge = "epr-13013.b13"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-13003.b1"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "21424151"
+sha1 = "156e15eee9ff7122c30a42bfec0b307073b7a375"
+merge = "epr-13003.b1"
+
+[[regions.sprites.roms]]
+file = "epr-13006.b4"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "2e9afd2f"
+sha1 = "7fe0929e70e061878065fab2d26309066d14c038"
+merge = "epr-13006.b4"
+
+[[regions.sprites.roms]]
+file = "epr-13004.b2"
+size = 262144
+offset = 262145
+status = "good"
+optional = false
+crc32 = "0aa09dd3"
+sha1 = "0cd58d29efa714e52c494ee1ec8a0e90c0a03e3c"
+merge = "epr-13004.b2"
+
+[[regions.sprites.roms]]
+file = "epr-13007.b5"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "55c8605b"
+sha1 = "6c81e5f9bcd61f6e67c87ea5b25a8fe1ee50f14d"
+merge = "epr-13007.b5"
+
+[[regions.sprites.roms]]
+file = "epr-13005.b3"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "c899c810"
+sha1 = "a251cfd8f99f2c2f98585cc9ba1d86f08b2eca51"
+merge = "epr-13005.b3"
+
+[[regions.sprites.roms]]
+file = "epr-13008.b6"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "b3d46dfc"
+sha1 = "27a5c58d5fd974fbbb12b535a49aa7fb3f7d3f6a"
+merge = "epr-13008.b6"
+
+[[regions.sprites.roms]]
+file = "epr-13009.b7"
+size = 262144
+offset = 786433
+status = "good"
+optional = false
+crc32 = "126d2e37"
+sha1 = "91317d3bcc4f918a8607cc0c383181c3641ebccf"
+merge = "epr-13009.b7"
+
+[[regions.sprites.roms]]
+file = "epr-13010.b8"
+size = 262144
+offset = 786432
+status = "good"
+optional = false
+crc32 = "df37c567"
+sha1 = "05c959e379a3e20fe5e70912410e3bae4db13905"
+merge = "epr-13010.b8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13002.a13"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "1b6e1515"
+sha1 = "1816d48dcb1bfd819a2cfa55fb51e1ca04ad4feb"
+merge = "epr-13002.a13"
+
+[[regions.soundcpu.roms]]
+file = "epr-13001.a11"
+size = 262144
+offset = 65536
+status = "good"
+optional = false
+crc32 = "e8cace8c"
+sha1 = "5f47b935d927f2aa5f7a5f6dc52f5380baebe1bb"
+merge = "epr-13001.a11"
+
+[properties]
+protection = "none"

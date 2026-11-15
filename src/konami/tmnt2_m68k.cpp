@@ -2,9 +2,9 @@
 
 #include <neogeorecomp/cpu.h>
 #include <neogeorecomp/bus.h>
-#include "system16/system16_m68k_bus.h"
-#include "system16/m68k_recomp_dispatch.h"
-#include "system16/system16_musashi_fallback.h"
+#include "cpus/m68000/runtime/recomp_bus.h"
+#include "cpus/m68000/runtime/recomp_dispatch.h"
+#include "cpus/m68000/runtime/musashi_fallback.h"
 #include "cpus/m68000/runtime/cpu_runtime.h"
 
 #include <cstdio>
@@ -48,14 +48,14 @@ Tmnt2MainCpu::Tmnt2MainCpu(Tmnt2Board& board, const ng_func_entry_t* entries, si
 {
     if (!entries_ || entry_count_ == 0) throw std::runtime_error("TMNT2-family 68000 AOT table is empty");
     const M68kBusCallbacks bus{&board_, bus_read8, bus_read16, bus_write8, bus_write16};
-    m68k_system16_bus_bind(&bus);
+    mamerecomp_m68k_bus_bind(&bus);
     mame_recomp_m68k_set_exception_bus(exception_read16, exception_write16);
     reset();
 }
 
 Tmnt2MainCpu::~Tmnt2MainCpu()
 {
-    m68k_system16_bus_bind(nullptr);
+    mamerecomp_m68k_bus_bind(nullptr);
 }
 
 void Tmnt2MainCpu::reset()
@@ -108,8 +108,8 @@ int Tmnt2MainCpu::execute_until(uint64_t cycle_deadline)
                               board_.main_read(ng_cpu.a[7] + 2)) << '\n'
                           << disassembly_before_pc();
             }
-            m68k_system16_bus_clear_fault();
-            const int consumed = mamerecomp_system16_musashi_step();
+            mamerecomp_m68k_bus_clear_fault();
+            const int consumed = mamerecomp_m68k_musashi_step();
             ng_cycles += consumed > 0 ? consumed : 1;
             ++ng_icount;
             ++fallback_instructions_;

@@ -10,6 +10,9 @@ static const M68kRecompBoardProfile s_profiles[] = {
     /* CPS-2 decrypted program images use runtime roots plus tracked jump tables;
      * whole-ROM pointer scanning is too broad for encrypted/data-heavy regions. */
     {"cps2", 0, 1},
+    /* Sega 16-bit sets contain enough data words that whole-ROM pointer scans
+     * over-seed code heavily. Runtime-observed PCs can still use the fallback. */
+    {"sega", 0, 1},
     /* The imported Neo Geo flow relies on pointer and jump-table inference. */
     {"neogeo", 1, 1},
 };

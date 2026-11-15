@@ -1,0 +1,208 @@
+module = "system16"
+board = "system16b"
+game = "cencourt"
+gamename = "Center Court (World, 4 Players, prototype) (MC-8123B)"
+parent = "passsht"
+romof = "passsht"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "cencourt"
+description = "Center Court (World, 4 Players, prototype) (MC-8123B)"
+cloneof = "passsht"
+romof = "passsht"
+year = "1988"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_mc8123"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "a4_56f6.a4"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "7116dce6"
+sha1 = "058faf5f1980f811e2e1d5f7d09660ff51b0c0dc"
+
+[[regions.maincpu.roms]]
+file = "a1_478b.a1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "37beb770"
+sha1 = "694a7f7977226997e06a198b311b355505e45b0b"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-b-9.b9"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "9a55cd88"
+sha1 = "4a6cf4aa5dde8d50148381aee8c141c98bb86fe8"
+
+[[regions.tiles.roms]]
+file = "epr-b-10.b10"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "fc13ca35"
+sha1 = "3dc9d7c7f28d5605c6ce93243c79f63839aec8f4"
+
+[[regions.tiles.roms]]
+file = "epr-b-11.b11"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "1503c203"
+sha1 = "95e9634bdcfd8027c1b0a47fa87736180ec39b08"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-b-1.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "b18bfccf"
+sha1 = "7bce8da08849f5d0f580a2cdc905f0094c83fe13"
+
+[[regions.sprites.roms]]
+file = "epr-b-5.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "3481a8e8"
+sha1 = "13b972af6d4bc3d47258b3ff810e091f3b98a02b"
+
+[[regions.sprites.roms]]
+file = "epr-b-2.b2"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "61a996c0"
+sha1 = "22fb91c1a0102a10b68133051c593eef8ac5748f"
+
+[[regions.sprites.roms]]
+file = "epr-b-6.b6"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "2116bcb1"
+sha1 = "b5fee6b2dca5e51ff1e4d4466ca0802bef662bc4"
+
+[[regions.sprites.roms]]
+file = "epr-b-3.b3"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "69a2e109"
+sha1 = "2a3c4af711c5cf02deaac5236c8088cdadcd85cd"
+
+[[regions.sprites.roms]]
+file = "epr-b-7.b7"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "ccf6b09f"
+sha1 = "d8173b189356245a6b7bdec370829e8580b13c93"
+
+[[regions.sprites.roms]]
+file = "epr-b-4.b4"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "bdf63cd2"
+sha1 = "2a7af7046d66a9542d8ae9fce93a6088a8ff0938"
+
+[[regions.sprites.roms]]
+file = "epr-b-8.b8"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "88a90641"
+sha1 = "15c127a3cbf86807f181cb87967ce8825102b645"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-a-7.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "9e1b81c6"
+sha1 = "fde901dad473c0b3fd3c153f0739998a67ed05d6"
+
+[[regions.soundcpu.roms]]
+file = "epr-a-8.a8"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "08ab0018"
+sha1 = "0685f80a7d403208c9cfffea3f2035324f3924fe"
+merge = "epr-11858.a8"
+
+[[regions.soundcpu.roms]]
+file = "epr-a-9.a9"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "8673e01b"
+sha1 = "e79183ab30e683fdf61ced2e9dbe010567c324cb"
+merge = "epr-11859.a9"
+
+[[regions.soundcpu.roms]]
+file = "epr-a-10.a10"
+size = 32768
+offset = 196608
+status = "good"
+optional = false
+crc32 = "10263746"
+sha1 = "1f981fb185c6a9795208ecdcfba36cf892a99ed5"
+merge = "epr-11860.a10"
+
+[[regions.soundcpu.roms]]
+file = "epr-a-11.a11"
+size = 32768
+offset = 262144
+status = "good"
+optional = false
+crc32 = "38b54a71"
+sha1 = "68ec4ef5b115844214ff2213be1ce6678904fbd2"
+merge = "epr-11861.a11"
+
+[regions."soundcpu:key"]
+
+[[regions."soundcpu:key".roms]]
+file = "mc-8123b_center_court.key"
+size = 8192
+offset = 0
+status = "good"
+optional = false
+crc32 = "2be5c90b"
+sha1 = "e98d989237f2b001950b876efdb21c1507162830"
+
+[properties]
+protection = "mc8123"

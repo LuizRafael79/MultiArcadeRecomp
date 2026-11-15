@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
 namespace mamerecomp::z80 {
 
@@ -43,6 +44,8 @@ bool HasZ80Code();
 
 namespace z80native {
     constexpr unsigned kMaxDepth = 32;
+    using HostCycleProvider = std::function<std::int64_t()>;
+    void SetHostCycleProvider(HostCycleProvider provider);
     [[noreturn]] void NotHere(Z80 &c, uint16_t routine);
     void NoteInterpreted(uint16_t address);
     void SetImage(bool bios);

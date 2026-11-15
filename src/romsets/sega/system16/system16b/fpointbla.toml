@@ -1,0 +1,103 @@
+module = "system16"
+board = "system16b"
+game = "fpointbla"
+gamename = "Flash Point (Japan, bootleg set 2)"
+parent = "fpoint"
+romof = "fpoint"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "fpointbla"
+description = "Flash Point (Japan, bootleg set 2)"
+cloneof = "fpoint"
+romof = "fpoint"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "fpointbla"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "b3-ic59.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "3b7d3b3a"
+sha1 = "6c440f7706d392336a1e9165ac125b45695b9e0c"
+
+[[regions.maincpu.roms]]
+file = "b2-ic55.bin"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "4b7e2a54"
+sha1 = "598d16be99491fe13485ec2b546444d92dad49c7"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "b8-9.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "c539727d"
+sha1 = "56674effe1d273128dddd2ff9e02974ec10f3fff"
+
+[[regions.tiles.roms]]
+file = "b7-8.bin"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "82c0b8b0"
+sha1 = "e1e2e721cb8ad53df33065582dc90edeba9c3cab"
+
+[[regions.tiles.roms]]
+file = "b6-7.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "522426ae"
+sha1 = "90fd0a19b30a8a61dc4cfa66a64115596333dcc6"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "b5-5.bin"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "93181d2e"
+sha1 = "1d25bfea889012a9616ed03791f830f2a8139367"
+
+[[regions.sprites.roms]]
+file = "b4-3.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "ae466f37"
+sha1 = "5fb423695a1d862f628ad2ea7651831ef48f6f0b"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "b1-ic19.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "9a8c11bb"
+sha1 = "399f8e9bdd7aaa4d25817fa9cd4bbf413e5baebe"
+merge = "epr-12592.a10"
+
+[properties]
+protection = "none"

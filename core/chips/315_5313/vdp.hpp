@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <utility>
 
 namespace mamerecomp::chips {
 
@@ -23,6 +24,9 @@ public:
     };
 
     explicit Sega3155313(Callbacks callbacks = {});
+    void set_psg_write_callback(std::function<void(std::uint8_t)> callback) {
+        m_callbacks.psg_write = std::move(callback);
+    }
     void reset();
     std::uint16_t read(std::uint32_t byte_offset);
     void write(std::uint32_t byte_offset, std::uint16_t data, std::uint8_t lanes = 3);

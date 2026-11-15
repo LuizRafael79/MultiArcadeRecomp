@@ -25,10 +25,12 @@ def main() -> int:
     parser.add_argument("--source-dir", type=Path, help="override the source toolkit checkout for CPS backends")
     args, backend_args = parser.parse_known_args()
 
-    if args.system == "neogeo" and args.game.lower() in {"kof98", "kof98p", "kof98n"}:
-        # Keep the frozen Neo Geo prototype's established entry point intact.
-        command = [sys.executable, str(ROOT / "tools/neogeo/build_kof98_prototype.py"),
-                   "--jobs", str(args.jobs), *backend_args]
+    if args.system == "neogeo" and args.game.lower() == "kof98":
+        command = [sys.executable, str(ROOT / "tools/neogeo/build.py"),
+                   "--game", args.game.lower(), "--jobs", str(args.jobs)]
+        if args.rom_dir:
+            command.extend(["--rom-dir", str(args.rom_dir)])
+        command.extend(backend_args)
     elif args.system in {"cps1", "cps2"}:
         backend_root = ROOT / "tools" / "generators" if args.system == "cps1" else ROOT / "tools"
         backend = backend_root / args.system / "build.py"

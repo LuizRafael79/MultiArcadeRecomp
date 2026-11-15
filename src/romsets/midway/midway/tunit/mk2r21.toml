@@ -1,0 +1,896 @@
+module = "midway"
+board = "tunit"
+game = "mk2r21"
+gamename = "Mortal Kombat II (rev L2.1)"
+parent = "mk2"
+romof = "mk2"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "mk2r21"
+description = "Mortal Kombat II (rev L2.1)"
+cloneof = "mk2"
+romof = "mk2"
+year = "1993"
+manufacturer = "Midway"
+sourcefile = "williams/midtunit.cpp"
+isbios = false
+
+[driver_layout]
+source = "midtunit.cpp"
+
+[[driver_layout.regions]]
+name = "dcs"
+size_expression = "0xc00000"
+size = 12582912
+region_macro = "ROM_REGION16_LE"
+flags_expression = "ROMREGION_ERASEFF"
+source_line = 923
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x100000"
+size = 1048576
+region_macro = "ROM_REGION16_LE"
+flags_expression = "0"
+source_line = 938
+
+[[driver_layout.regions]]
+name = "video"
+size_expression = "0xc00000"
+size = 12582912
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 942
+
+[[driver_layout.operations]]
+macro = "ROM_REGION16_LE"
+region = "dcs"
+size_expression = "0xc00000"
+flags_expression = "ROMREGION_ERASEFF"
+source_line = 923
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u2.u2"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 924
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "5f23d71d"
+sha1 = "54c2afef243759e0f3dbe2907edbc4302f5c8bad"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1048576
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x100000", "0x80000"]
+source_line = 925
+offset_expression = "0x100000"
+offset = 1048576
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x100000", "0x80000"]
+source_line = 925
+offset_expression = "0x100000"
+offset = 1048576
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u3.u3"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x80000"
+length = 524288
+source_line = 926
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "d6d92bf9"
+sha1 = "397351c6b707f2595e36360471015f9fa494e894"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3145728
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x300000", "0x80000"]
+source_line = 927
+offset_expression = "0x300000"
+offset = 3145728
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x300000", "0x80000"]
+source_line = 927
+offset_expression = "0x300000"
+offset = 3145728
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u4.u4"
+offset_expression = "0x400000"
+offset = 4194304
+length_expression = "0x80000"
+length = 524288
+source_line = 928
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "eebc8e0f"
+sha1 = "705ab63ff7672a4857d546afda6dca4973cce1ad"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194304
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 5242880
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x500000", "0x80000"]
+source_line = 929
+offset_expression = "0x500000"
+offset = 5242880
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x500000", "0x80000"]
+source_line = 929
+offset_expression = "0x500000"
+offset = 5242880
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u5.u5"
+offset_expression = "0x600000"
+offset = 6291456
+length_expression = "0x80000"
+length = 524288
+source_line = 930
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "2b0b7961"
+sha1 = "1cdc64aab74d14afbd8c3531e3d0bd49271a281f"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291456
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 7340032
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x700000", "0x80000"]
+source_line = 931
+offset_expression = "0x700000"
+offset = 7340032
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x700000", "0x80000"]
+source_line = 931
+offset_expression = "0x700000"
+offset = 7340032
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u6.u6"
+offset_expression = "0x800000"
+offset = 8388608
+length_expression = "0x80000"
+length = 524288
+source_line = 932
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "f694b27f"
+sha1 = "d43e38a124665f49ebb4ffc5a55e8f19a1a64686"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388608
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 9437184
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x900000", "0x80000"]
+source_line = 933
+offset_expression = "0x900000"
+offset = 9437184
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0x900000", "0x80000"]
+source_line = 933
+offset_expression = "0x900000"
+offset = 9437184
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "dcs"
+file = "l1_mortal_kombat_ii_sound_rom_u7.u7"
+offset_expression = "0xa00000"
+offset = 10485760
+length_expression = "0x80000"
+length = 524288
+source_line = 934
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "20387e0a"
+sha1 = "505d05173b2a1f1ee3ebc2898ccd3a95c98dd04a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 10485760
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 11534336
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0xb00000", "0x80000"]
+source_line = 935
+offset_expression = "0xb00000"
+offset = 11534336
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "dcs"
+arguments = ["0xb00000", "0x80000"]
+source_line = 935
+offset_expression = "0xb00000"
+offset = 11534336
+length_expression = "0x80000"
+length = 524288
+
+[[driver_layout.operations]]
+macro = "ROM_REGION16_LE"
+region = "maincpu"
+size_expression = "0x100000"
+flags_expression = "0"
+source_line = 938
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "l2.1_mortal_kombat_ii_game_rom_uj12.uj12"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 939
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "d6a35699"
+sha1 = "17feee7886108d6f946bf04669479d35c2edac76"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "l2.1_mortal_kombat_ii_game_rom_ug12.ug12"
+offset_expression = "0x00001"
+offset = 1
+length_expression = "0x80000"
+length = 524288
+source_line = 940
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "aeb703ff"
+sha1 = "e94cd9e6feb45e3de85661ca12452aff6e14d3ae"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "video"
+size_expression = "0xc00000"
+flags_expression = "0"
+source_line = 942
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug14.ug14"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x100000"
+length = 1048576
+source_line = 943
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "01e73af6"
+sha1 = "6598cfd704cc92a7f358a0e1f1c973ab79dcc493"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj14.uj14"
+offset_expression = "0x000001"
+offset = 1
+length_expression = "0x100000"
+length = 1048576
+source_line = 944
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "d4985cbb"
+sha1 = "367865da7efae38d83de3c0868d02a705177ae63"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug19.ug19"
+offset_expression = "0x000002"
+offset = 2
+length_expression = "0x100000"
+length = 1048576
+source_line = 945
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "fec137be"
+sha1 = "f11ecb8a7993f5c4f4449564b4911f69bd6e9bf8"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj19.uj19"
+offset_expression = "0x000003"
+offset = 3
+length_expression = "0x100000"
+length = 1048576
+source_line = 946
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "2d763156"
+sha1 = "06536006da49ab5fb6b75b25f801b83fad000ff5"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug16.ug16"
+offset_expression = "0x400000"
+offset = 4194304
+length_expression = "0x100000"
+length = 1048576
+source_line = 948
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "8ba6ae18"
+sha1 = "465fe907de4a1e502180c4e41642998dd3abc8e6"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194304
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj16.uj16"
+offset_expression = "0x400001"
+offset = 4194305
+length_expression = "0x100000"
+length = 1048576
+source_line = 949
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "39d885b4"
+sha1 = "2251826d247c3c6df421124718401fb35a672f83"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194305
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug20.ug20"
+offset_expression = "0x400002"
+offset = 4194306
+length_expression = "0x100000"
+length = 1048576
+source_line = 950
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "809118c1"
+sha1 = "86153e648834c749e34573151cd4fee403a81962"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194306
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj20.uj20"
+offset_expression = "0x400003"
+offset = 4194307
+length_expression = "0x100000"
+length = 1048576
+source_line = 951
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "b96824f0"
+sha1 = "d42b122f9a57da330192abc7e5f97abc4065d718"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194307
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug17.ug17"
+offset_expression = "0x800000"
+offset = 8388608
+length_expression = "0x100000"
+length = 1048576
+source_line = 953
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "937d8620"
+sha1 = "8b9f80a460b124a747a6d1495b53f01f580e28f1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388608
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj17.uj17"
+offset_expression = "0x800001"
+offset = 8388609
+length_expression = "0x100000"
+length = 1048576
+source_line = 954
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "218de160"
+sha1 = "87aea173720d2a33d8183903f4fe8ba1d47e3348"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388609
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_ug22.ug22"
+offset_expression = "0x800002"
+offset = 8388610
+length_expression = "0x100000"
+length = 1048576
+source_line = 955
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "154d53b1"
+sha1 = "58ff0aa59101f40a9a3b5fbae1c904d0b0b31612"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388610
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_mortal_kombat_ii_game_rom_uj22.uj22"
+offset_expression = "0x800003"
+offset = 8388611
+length_expression = "0x100000"
+length = 1048576
+source_line = 956
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 1048576
+crc32 = "8891d785"
+sha1 = "fd460df1ef8f4306ea42f7dc41488a80fd2c8f53"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388611
+length = 1048576
+group_bytes = 1
+stride = 4
+
+[regions]
+
+[regions.dcs]
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u2.u2"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "5f23d71d"
+sha1 = "54c2afef243759e0f3dbe2907edbc4302f5c8bad"
+merge = "l1_mortal_kombat_ii_sound_rom_u2.u2"
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u3.u3"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "d6d92bf9"
+sha1 = "397351c6b707f2595e36360471015f9fa494e894"
+merge = "l1_mortal_kombat_ii_sound_rom_u3.u3"
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u4.u4"
+size = 524288
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "eebc8e0f"
+sha1 = "705ab63ff7672a4857d546afda6dca4973cce1ad"
+merge = "l1_mortal_kombat_ii_sound_rom_u4.u4"
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u5.u5"
+size = 524288
+offset = 6291456
+status = "good"
+optional = false
+crc32 = "2b0b7961"
+sha1 = "1cdc64aab74d14afbd8c3531e3d0bd49271a281f"
+merge = "l1_mortal_kombat_ii_sound_rom_u5.u5"
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u6.u6"
+size = 524288
+offset = 8388608
+status = "good"
+optional = false
+crc32 = "f694b27f"
+sha1 = "d43e38a124665f49ebb4ffc5a55e8f19a1a64686"
+merge = "l1_mortal_kombat_ii_sound_rom_u6.u6"
+
+[[regions.dcs.roms]]
+file = "l1_mortal_kombat_ii_sound_rom_u7.u7"
+size = 524288
+offset = 10485760
+status = "good"
+optional = false
+crc32 = "20387e0a"
+sha1 = "505d05173b2a1f1ee3ebc2898ccd3a95c98dd04a"
+merge = "l1_mortal_kombat_ii_sound_rom_u7.u7"
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "l2.1_mortal_kombat_ii_game_rom_uj12.uj12"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "d6a35699"
+sha1 = "17feee7886108d6f946bf04669479d35c2edac76"
+
+[[regions.maincpu.roms]]
+file = "l2.1_mortal_kombat_ii_game_rom_ug12.ug12"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "aeb703ff"
+sha1 = "e94cd9e6feb45e3de85661ca12452aff6e14d3ae"
+
+[regions.video]
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug14.ug14"
+size = 1048576
+offset = 0
+status = "good"
+optional = false
+crc32 = "01e73af6"
+sha1 = "6598cfd704cc92a7f358a0e1f1c973ab79dcc493"
+merge = "l1_mortal_kombat_ii_game_rom_ug14.ug14"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj14.uj14"
+size = 1048576
+offset = 1
+status = "good"
+optional = false
+crc32 = "d4985cbb"
+sha1 = "367865da7efae38d83de3c0868d02a705177ae63"
+merge = "l1_mortal_kombat_ii_game_rom_uj14.uj14"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug19.ug19"
+size = 1048576
+offset = 2
+status = "good"
+optional = false
+crc32 = "fec137be"
+sha1 = "f11ecb8a7993f5c4f4449564b4911f69bd6e9bf8"
+merge = "l1_mortal_kombat_ii_game_rom_ug19.ug19"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj19.uj19"
+size = 1048576
+offset = 3
+status = "good"
+optional = false
+crc32 = "2d763156"
+sha1 = "06536006da49ab5fb6b75b25f801b83fad000ff5"
+merge = "l1_mortal_kombat_ii_game_rom_uj19.uj19"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug16.ug16"
+size = 1048576
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "8ba6ae18"
+sha1 = "465fe907de4a1e502180c4e41642998dd3abc8e6"
+merge = "l1_mortal_kombat_ii_game_rom_ug16.ug16"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj16.uj16"
+size = 1048576
+offset = 4194305
+status = "good"
+optional = false
+crc32 = "39d885b4"
+sha1 = "2251826d247c3c6df421124718401fb35a672f83"
+merge = "l1_mortal_kombat_ii_game_rom_uj16.uj16"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug20.ug20"
+size = 1048576
+offset = 4194306
+status = "good"
+optional = false
+crc32 = "809118c1"
+sha1 = "86153e648834c749e34573151cd4fee403a81962"
+merge = "l1_mortal_kombat_ii_game_rom_ug20.ug20"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj20.uj20"
+size = 1048576
+offset = 4194307
+status = "good"
+optional = false
+crc32 = "b96824f0"
+sha1 = "d42b122f9a57da330192abc7e5f97abc4065d718"
+merge = "l1_mortal_kombat_ii_game_rom_uj20.uj20"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug17.ug17"
+size = 1048576
+offset = 8388608
+status = "good"
+optional = false
+crc32 = "937d8620"
+sha1 = "8b9f80a460b124a747a6d1495b53f01f580e28f1"
+merge = "l1_mortal_kombat_ii_game_rom_ug17.ug17"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj17.uj17"
+size = 1048576
+offset = 8388609
+status = "good"
+optional = false
+crc32 = "218de160"
+sha1 = "87aea173720d2a33d8183903f4fe8ba1d47e3348"
+merge = "l1_mortal_kombat_ii_game_rom_uj17.uj17"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_ug22.ug22"
+size = 1048576
+offset = 8388610
+status = "good"
+optional = false
+crc32 = "154d53b1"
+sha1 = "58ff0aa59101f40a9a3b5fbae1c904d0b0b31612"
+merge = "l1_mortal_kombat_ii_game_rom_ug22.ug22"
+
+[[regions.video.roms]]
+file = "l1_mortal_kombat_ii_game_rom_uj22.uj22"
+size = 1048576
+offset = 8388611
+status = "good"
+optional = false
+crc32 = "8891d785"
+sha1 = "fd460df1ef8f4306ea42f7dc41488a80fd2c8f53"
+merge = "l1_mortal_kombat_ii_game_rom_uj22.uj22"
+
+[properties]
+protection = "none"

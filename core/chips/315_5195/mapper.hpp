@@ -22,6 +22,7 @@ public:
         std::function<void(std::uint8_t)> to_sound;
         std::function<void(unsigned)> irq;
         std::function<void(bool)> maincpu_reset;
+        std::function<void(bool)> mcu_irq;
     };
 
     explicit Mapper3155195(std::array<Wiring, 8> wiring, Callbacks callbacks = {});
@@ -30,8 +31,11 @@ public:
     void configure_explicit(std::span<const std::uint8_t, 16> config);
     std::span<const std::uint8_t, 32> registers() const { return m_regs; }
     std::span<const Mapping> mappings() const { return m_mappings; }
-    void set_sound_reply(std::uint8_t data) { m_sound_reply = data; }
+    void set_sound_reply(std::uint8_t data);
     void set_sound_callback(std::function<void(std::uint8_t)> callback) { m_callbacks.to_sound = std::move(callback); }
+    void set_irq_callback(std::function<void(unsigned)> callback) { m_callbacks.irq = std::move(callback); }
+    void set_maincpu_reset_callback(std::function<void(bool)> callback) { m_callbacks.maincpu_reset = std::move(callback); }
+    void set_mcu_irq_callback(std::function<void(bool)> callback) { m_callbacks.mcu_irq = std::move(callback); }
     std::uint8_t sound_latch_read();
 
 private:

@@ -993,6 +993,12 @@ int m68k_execute(int num_cycles)
 
 			/* Call external hook to peek at CPU */
 			m68ki_instr_hook(REG_PC); /* auto-disable (see m68kcpu.h) */
+			/* The AOT fallback may request a yield at this instruction boundary.
+			 * In that case the instruction belongs to the next execution segment. */
+#if defined(MAMERECOMP_MUSASHI_YIELD_BEFORE_INSTRUCTION)
+			if (GET_CYCLES() <= 0)
+				break;
+#endif
 
 			/* Record previous program counter */
 			REG_PPC = REG_PC;

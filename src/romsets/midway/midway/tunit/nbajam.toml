@@ -1,0 +1,788 @@
+module = "midway"
+board = "tunit"
+game = "nbajam"
+gamename = "NBA Jam (rev 3.01 4/07/93)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "nbajam"
+description = "NBA Jam (rev 3.01 4/07/93)"
+year = "1993"
+manufacturer = "Midway"
+sourcefile = "williams/midtunit.cpp"
+isbios = false
+
+[driver_layout]
+source = "midtunit.cpp"
+
+[[driver_layout.regions]]
+name = "adpcm:cpu"
+size_expression = "0x50000"
+size = 327680
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1262
+
+[[driver_layout.regions]]
+name = "adpcm:oki"
+size_expression = "0x100000"
+size = 1048576
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1266
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x100000"
+size = 1048576
+region_macro = "ROM_REGION16_LE"
+flags_expression = "0"
+source_line = 1270
+
+[[driver_layout.regions]]
+name = "video"
+size_expression = "0xc00000"
+size = 12582912
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 1274
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "adpcm:cpu"
+size_expression = "0x50000"
+flags_expression = "0"
+source_line = 1262
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:cpu"
+file = "l2_nba_jam_u3_sound_rom.u3"
+offset_expression = "0x010000"
+offset = 65536
+length_expression = "0x20000"
+length = 131072
+source_line = 1263
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "3a3ea480"
+sha1 = "d12a45cba5c35f046b176661d7877fa4fd0e6c13"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 65536
+length = 131072
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 196608
+length = 131072
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_RELOAD"
+region = "adpcm:cpu"
+arguments = ["0x030000", "0x20000"]
+source_line = 1264
+offset_expression = "0x030000"
+offset = 196608
+length_expression = "0x20000"
+length = 131072
+
+[[driver_layout.operations]]
+macro = "ROM_RELOAD"
+region = "adpcm:cpu"
+arguments = ["0x030000", "0x20000"]
+source_line = 1264
+offset_expression = "0x030000"
+offset = 196608
+length_expression = "0x20000"
+length = 131072
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "adpcm:oki"
+size_expression = "0x100000"
+flags_expression = "0"
+source_line = 1266
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:oki"
+file = "l1_nba_jam_u12_sound_rom.u12"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1267
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b94847f1"
+sha1 = "e7efa0a379bfa91fe4ffb75f07a5dfbfde9a96b4"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "adpcm:oki"
+file = "l1_nba_jam_u13_sound_rom.u13"
+offset_expression = "0x080000"
+offset = 524288
+length_expression = "0x80000"
+length = 524288
+source_line = 1268
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b6fe24bd"
+sha1 = "f70f75b5570a2b368ebc74d2a7d264c618940430"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 524288
+length = 524288
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations]]
+macro = "ROM_REGION16_LE"
+region = "maincpu"
+size_expression = "0x100000"
+flags_expression = "0"
+source_line = 1270
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "l3_nba_jam_game_rom_uj12.uj12"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1271
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b93e271c"
+sha1 = "b0e9f055376a4a4cd1115a81f71c933903c251b1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_BYTE"
+region = "maincpu"
+file = "l3_nba_jam_game_rom_ug12.ug12"
+offset_expression = "0x00001"
+offset = 1
+length_expression = "0x80000"
+length = 524288
+source_line = 1272
+group_bytes = 1
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "407d3390"
+sha1 = "a319bc890d94310e44fe2ec98bfc95665a662701"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 524288
+group_bytes = 1
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "video"
+size_expression = "0xc00000"
+flags_expression = "0"
+source_line = 1274
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug14.ug14"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 1275
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "04bb9f64"
+sha1 = "9e1a8c37e14cb6fe67f4aa3caa9022f356f1ca64"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj14.uj14"
+offset_expression = "0x000001"
+offset = 1
+length_expression = "0x80000"
+length = 524288
+source_line = 1276
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b34b7af3"
+sha1 = "0abb74d2f414bc9da0380a81beb134f3a87c1a0a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 1
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug19.ug19"
+offset_expression = "0x000002"
+offset = 2
+length_expression = "0x80000"
+length = 524288
+source_line = 1277
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "a8f22fbb"
+sha1 = "514208a9d6d0c8c2d7847cc02d4387eac90be659"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj19.uj19"
+offset_expression = "0x000003"
+offset = 3
+length_expression = "0x80000"
+length = 524288
+source_line = 1278
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "8130a8a2"
+sha1 = "f23f124024285d07d8cf822817b62e42c38b82db"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 3
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug16.ug16"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x80000"
+length = 524288
+source_line = 1280
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "8591c572"
+sha1 = "237bab2e93abf438a84be3603505db5de59922af"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj16.uj16"
+offset_expression = "0x200001"
+offset = 2097153
+length_expression = "0x80000"
+length = 524288
+source_line = 1281
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "d2e554f1"
+sha1 = "139aa39bd48b8605058ece188f9f5e6793561fcb"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097153
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug20.ug20"
+offset_expression = "0x200002"
+offset = 2097154
+length_expression = "0x80000"
+length = 524288
+source_line = 1282
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "44fd6221"
+sha1 = "1d6754bf2c24950080523f66b77407931babba29"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097154
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj20.uj20"
+offset_expression = "0x200003"
+offset = 2097155
+length_expression = "0x80000"
+length = 524288
+source_line = 1283
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "f9cebbb6"
+sha1 = "6202e490bc5658bd0741422f841540fcd037cfee"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097155
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug17.ug17"
+offset_expression = "0x400000"
+offset = 4194304
+length_expression = "0x80000"
+length = 524288
+source_line = 1285
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "6f921886"
+sha1 = "72542249ca6602dc4816952765c1810f064ff394"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194304
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj17.uj17"
+offset_expression = "0x400001"
+offset = 4194305
+length_expression = "0x80000"
+length = 524288
+source_line = 1286
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "b2e14981"
+sha1 = "5cec9b7fcaa6d0ce5bff689541fc98db435c5b5f"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194305
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug22.ug22"
+offset_expression = "0x400002"
+offset = 4194306
+length_expression = "0x80000"
+length = 524288
+source_line = 1287
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "ab05ed89"
+sha1 = "4153d098fbaeac963d93f26dcd9d8bc33a48a734"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194306
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj22.uj22"
+offset_expression = "0x400003"
+offset = 4194307
+length_expression = "0x80000"
+length = 524288
+source_line = 1288
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "59a95878"
+sha1 = "b95165987853f164842ab2b5895ea95484a1d78b"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 4194307
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug18.ug18"
+offset_expression = "0x600000"
+offset = 6291456
+length_expression = "0x80000"
+length = 524288
+source_line = 1290
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "5162d3d6"
+sha1 = "14d377977510b7793e4006a7a5089dbfd785d7d1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291456
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj18.uj18"
+offset_expression = "0x600001"
+offset = 6291457
+length_expression = "0x80000"
+length = 524288
+source_line = 1291
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "fdee0037"
+sha1 = "3bcc740f4bdb3236822cd6e7ed06241804351cca"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291457
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_ug23.ug23"
+offset_expression = "0x600002"
+offset = 6291458
+length_expression = "0x80000"
+length = 524288
+source_line = 1292
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "7b934c7a"
+sha1 = "a6992fb3c50429ac4fa15bd91612ae0c0b8f961d"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291458
+length = 524288
+group_bytes = 1
+stride = 4
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD32_BYTE"
+region = "video"
+file = "l1_nba_jam_game_rom_uj23.uj23"
+offset_expression = "0x600003"
+offset = 6291459
+length_expression = "0x80000"
+length = 524288
+source_line = 1293
+group_bytes = 1
+stride = 4
+source_offset = 0
+source_bytes_consumed = 524288
+crc32 = "427d2eee"
+sha1 = "4985e3dd9c9e1bedd5a900958bf549656debd494"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 6291459
+length = 524288
+group_bytes = 1
+stride = 4
+
+[regions]
+
+[regions."adpcm:cpu"]
+
+[[regions."adpcm:cpu".roms]]
+file = "l2_nba_jam_u3_sound_rom.u3"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "3a3ea480"
+sha1 = "d12a45cba5c35f046b176661d7877fa4fd0e6c13"
+
+[regions."adpcm:oki"]
+
+[[regions."adpcm:oki".roms]]
+file = "l1_nba_jam_u12_sound_rom.u12"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "b94847f1"
+sha1 = "e7efa0a379bfa91fe4ffb75f07a5dfbfde9a96b4"
+
+[[regions."adpcm:oki".roms]]
+file = "l1_nba_jam_u13_sound_rom.u13"
+size = 524288
+offset = 524288
+status = "good"
+optional = false
+crc32 = "b6fe24bd"
+sha1 = "f70f75b5570a2b368ebc74d2a7d264c618940430"
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "l3_nba_jam_game_rom_uj12.uj12"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "b93e271c"
+sha1 = "b0e9f055376a4a4cd1115a81f71c933903c251b1"
+
+[[regions.maincpu.roms]]
+file = "l3_nba_jam_game_rom_ug12.ug12"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "407d3390"
+sha1 = "a319bc890d94310e44fe2ec98bfc95665a662701"
+
+[regions.video]
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug14.ug14"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "04bb9f64"
+sha1 = "9e1a8c37e14cb6fe67f4aa3caa9022f356f1ca64"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj14.uj14"
+size = 524288
+offset = 1
+status = "good"
+optional = false
+crc32 = "b34b7af3"
+sha1 = "0abb74d2f414bc9da0380a81beb134f3a87c1a0a"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug19.ug19"
+size = 524288
+offset = 2
+status = "good"
+optional = false
+crc32 = "a8f22fbb"
+sha1 = "514208a9d6d0c8c2d7847cc02d4387eac90be659"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj19.uj19"
+size = 524288
+offset = 3
+status = "good"
+optional = false
+crc32 = "8130a8a2"
+sha1 = "f23f124024285d07d8cf822817b62e42c38b82db"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug16.ug16"
+size = 524288
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "8591c572"
+sha1 = "237bab2e93abf438a84be3603505db5de59922af"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj16.uj16"
+size = 524288
+offset = 2097153
+status = "good"
+optional = false
+crc32 = "d2e554f1"
+sha1 = "139aa39bd48b8605058ece188f9f5e6793561fcb"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug20.ug20"
+size = 524288
+offset = 2097154
+status = "good"
+optional = false
+crc32 = "44fd6221"
+sha1 = "1d6754bf2c24950080523f66b77407931babba29"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj20.uj20"
+size = 524288
+offset = 2097155
+status = "good"
+optional = false
+crc32 = "f9cebbb6"
+sha1 = "6202e490bc5658bd0741422f841540fcd037cfee"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug17.ug17"
+size = 524288
+offset = 4194304
+status = "good"
+optional = false
+crc32 = "6f921886"
+sha1 = "72542249ca6602dc4816952765c1810f064ff394"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj17.uj17"
+size = 524288
+offset = 4194305
+status = "good"
+optional = false
+crc32 = "b2e14981"
+sha1 = "5cec9b7fcaa6d0ce5bff689541fc98db435c5b5f"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug22.ug22"
+size = 524288
+offset = 4194306
+status = "good"
+optional = false
+crc32 = "ab05ed89"
+sha1 = "4153d098fbaeac963d93f26dcd9d8bc33a48a734"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj22.uj22"
+size = 524288
+offset = 4194307
+status = "good"
+optional = false
+crc32 = "59a95878"
+sha1 = "b95165987853f164842ab2b5895ea95484a1d78b"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug18.ug18"
+size = 524288
+offset = 6291456
+status = "good"
+optional = false
+crc32 = "5162d3d6"
+sha1 = "14d377977510b7793e4006a7a5089dbfd785d7d1"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj18.uj18"
+size = 524288
+offset = 6291457
+status = "good"
+optional = false
+crc32 = "fdee0037"
+sha1 = "3bcc740f4bdb3236822cd6e7ed06241804351cca"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_ug23.ug23"
+size = 524288
+offset = 6291458
+status = "good"
+optional = false
+crc32 = "7b934c7a"
+sha1 = "a6992fb3c50429ac4fa15bd91612ae0c0b8f961d"
+
+[[regions.video.roms]]
+file = "l1_nba_jam_game_rom_uj23.uj23"
+size = 524288
+offset = 6291459
+status = "good"
+optional = false
+crc32 = "427d2eee"
+sha1 = "4985e3dd9c9e1bedd5a900958bf549656debd494"
+
+[properties]
+protection = "none"

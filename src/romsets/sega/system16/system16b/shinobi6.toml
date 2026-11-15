@@ -1,0 +1,140 @@
+module = "system16"
+board = "system16b"
+game = "shinobi6"
+gamename = "Shinobi (set 6, System 16B) (unprotected)"
+parent = "shinobi"
+romof = "shinobi"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "shinobi6"
+description = "Shinobi (set 6, System 16B) (unprotected)"
+cloneof = "shinobi"
+romof = "shinobi"
+year = "1987"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-11360.a7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "b1f67ab9"
+sha1 = "83eddd1ef3fbe58f1f8e8d57229fabf1907fc371"
+
+[[regions.maincpu.roms]]
+file = "epr-11359.a5"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "0f0306e1"
+sha1 = "eebe7c88e5f665d1d0920fb9b545e20b05be9b52"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "mpr-11363.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "40914168"
+sha1 = "cf0508e8c852c24ec3d2fc4a4013aec631d2271f"
+
+[[regions.tiles.roms]]
+file = "mpr-11364.a15"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "e63649a4"
+sha1 = "042dded1ff964889571f63d2642b2b21b75f9763"
+
+[[regions.tiles.roms]]
+file = "mpr-11365.a16"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "1ef55d20"
+sha1 = "314590881a2f18339b7b9c16010e408aa0164e04"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-11366.b1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "319ede73"
+sha1 = "c48ba4694ff677f30cc1ced3a3ad11c0feb1122d"
+
+[[regions.sprites.roms]]
+file = "mpr-11368.b5"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "0377d7ce"
+sha1 = "14f9674c142b78bf8b458beccfef93cc3e722c03"
+
+[[regions.sprites.roms]]
+file = "mpr-11367.b2"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "1d06c5c7"
+sha1 = "3a44f5a2058b96f212930c2e838eda1ce1036818"
+
+[[regions.sprites.roms]]
+file = "mpr-11369.b6"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "d751d2a2"
+sha1 = "3659948beacfc8dde5c50775859aa3fed537f768"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-11361.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "1f47ebcb"
+sha1 = "32837f3f1dd5ff309d1d955c1a738c444b248d3d"
+
+[[regions.soundcpu.roms]]
+file = "mpr-11362.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "256af749"
+sha1 = "041bd007ea7708c6d69f07865828b9bd17a139f5"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+
+[properties]
+protection = "none"

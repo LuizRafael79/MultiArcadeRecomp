@@ -1,0 +1,320 @@
+module = "system16"
+board = "system16b"
+game = "aurail1d"
+gamename = "Aurail (set 2, World) (bootleg of FD1089B 317-0168 set)"
+parent = "aurail"
+romof = "aurail"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "aurail1d"
+description = "Aurail (set 2, World) (bootleg of FD1089B 317-0168 set)"
+cloneof = "aurail"
+romof = "aurail"
+year = "1990"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13469.a7"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "75ef3eec"
+sha1 = "40749dd33d6218c116de3555eae4667c10c50a6e"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13468.a5"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "e46e4f55"
+sha1 = "4be6a261f19ac0e14ca0b66c10f8af94bba27e63"
+
+[[regions.maincpu.roms]]
+file = "epr-13447.a8"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "70a52167"
+sha1 = "51512d4ee1e63902375b197cf04170744b099d88"
+merge = "epr-13447.a8"
+
+[[regions.maincpu.roms]]
+file = "epr-13445.a6"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "28dfc3dd"
+sha1 = "b1d6d3e31a48062a91cc9b7b6ff68bfde0a3ea1c"
+merge = "epr-13445.a6"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "mpr-13450.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "0fc4a7a8"
+sha1 = "b46b22a6b0ead19551e67abfb3304c52b02b8d29"
+merge = "mpr-13450.a14"
+
+[[regions.tiles.roms]]
+file = "mpr-13465.b14"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "e08135e0"
+sha1 = "cd748f4a8f67f562174fa9c6edb966c77b488e75"
+merge = "mpr-13465.b14"
+
+[[regions.tiles.roms]]
+file = "mpr-13451.a15"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "1c49852f"
+sha1 = "d08d6991c203400f685fada2445a22a7eceeee04"
+merge = "mpr-13451.a15"
+
+[[regions.tiles.roms]]
+file = "mpr-13466.b15"
+size = 131072
+offset = 393216
+status = "good"
+optional = false
+crc32 = "e14c6684"
+sha1 = "f9b0d45e01a6df2b3875b493db9fa41bf37d79f0"
+merge = "mpr-13466.b15"
+
+[[regions.tiles.roms]]
+file = "mpr-13452.a16"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "047bde5e"
+sha1 = "e759baedcbb637a6c14af461b8a492554cadc9e4"
+merge = "mpr-13452.a16"
+
+[[regions.tiles.roms]]
+file = "mpr-13467.b16"
+size = 131072
+offset = 655360
+status = "good"
+optional = false
+crc32 = "6309fec4"
+sha1 = "f90c9679bade3cfbaa7949e412410c29d5bfa4d3"
+merge = "mpr-13467.b16"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-13453.b1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "5fa0a9f8"
+sha1 = "d9d67cc006a608d48e37aa89359f1a9403172b00"
+merge = "mpr-13453.b1"
+
+[[regions.sprites.roms]]
+file = "mpr-13457.b5"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "0d1b54da"
+sha1 = "c7a6393f9e13adabe93b7a86aa7845c5f4d188f1"
+merge = "mpr-13457.b5"
+
+[[regions.sprites.roms]]
+file = "mpr-13454.b2"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "5f6b33b1"
+sha1 = "5d397bdaa2c7a9ce82cc9134bfeb78418dc613b0"
+merge = "mpr-13454.b2"
+
+[[regions.sprites.roms]]
+file = "mpr-13458.b6"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "bad340c3"
+sha1 = "e04ef028e44054d34831d3617c5a6348823cfebd"
+merge = "mpr-13458.b6"
+
+[[regions.sprites.roms]]
+file = "mpr-13455.b3"
+size = 131072
+offset = 524289
+status = "good"
+optional = false
+crc32 = "4e80520b"
+sha1 = "8147793ee0023ac18f633d756ecc53aef1980e95"
+merge = "mpr-13455.b3"
+
+[[regions.sprites.roms]]
+file = "mpr-13459.b7"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "7e9165ac"
+sha1 = "32114095f96fb0ae385c9bf31dd97a99ef182aaa"
+merge = "mpr-13459.b7"
+
+[[regions.sprites.roms]]
+file = "mpr-13456.b4"
+size = 131072
+offset = 786433
+status = "good"
+optional = false
+crc32 = "5733c428"
+sha1 = "865203ebee9d98e67324c46915d8835d0289ee0c"
+merge = "mpr-13456.b4"
+
+[[regions.sprites.roms]]
+file = "mpr-13460.b8"
+size = 131072
+offset = 786432
+status = "good"
+optional = false
+crc32 = "66b8f9b3"
+sha1 = "4bf003a9bed40673d88df51a314eb6bd10f0d039"
+merge = "mpr-13460.b8"
+
+[[regions.sprites.roms]]
+file = "mpr-13440.a1"
+size = 131072
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "4f370b2b"
+sha1 = "66beb4264d569520d80f8915e1c1fddbf61efb21"
+merge = "mpr-13440.a1"
+
+[[regions.sprites.roms]]
+file = "mpr-13461.b10"
+size = 131072
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "f76014bf"
+sha1 = "b44f0b6fb9dee927d81c62282aa946d8c35766ca"
+merge = "mpr-13461.b10"
+
+[[regions.sprites.roms]]
+file = "mpr-13441.a2"
+size = 131072
+offset = 1310721
+status = "good"
+optional = false
+crc32 = "37cf9cb4"
+sha1 = "f51cee874ad8a824462d2475a23e7016ef64c6b4"
+merge = "mpr-13441.a2"
+
+[[regions.sprites.roms]]
+file = "mpr-13462.b11"
+size = 131072
+offset = 1310720
+status = "good"
+optional = false
+crc32 = "1061e7da"
+sha1 = "bad3560f1ed6a5a79f4ecf85d3843b24ecf22d19"
+merge = "mpr-13462.b11"
+
+[[regions.sprites.roms]]
+file = "mpr-13442.a3"
+size = 131072
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "049698ef"
+sha1 = "dca1a78f0156cfac9acbfb6e47eb3897b579d2ec"
+merge = "mpr-13442.a3"
+
+[[regions.sprites.roms]]
+file = "mpr-13463.b12"
+size = 131072
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "7dbcfbf1"
+sha1 = "0b7be1de57f83b1213805489c6ebfc0f1e5fb4b0"
+merge = "mpr-13463.b12"
+
+[[regions.sprites.roms]]
+file = "mpr-13443.a4"
+size = 131072
+offset = 1835009
+status = "good"
+optional = false
+crc32 = "77a8989e"
+sha1 = "0ad0877a9814fb7c2fb79062a50b1f9ce9420768"
+merge = "mpr-13443.a4"
+
+[[regions.sprites.roms]]
+file = "mpr-13464.b13"
+size = 131072
+offset = 1835008
+status = "good"
+optional = false
+crc32 = "551df422"
+sha1 = "cf4cd2b66335853c7c6cce949e79c05e93a39666"
+merge = "mpr-13464.b13"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13448.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "b5183fb9"
+sha1 = "c8372b57fa486256d49dc5851d6b17c92de593fb"
+merge = "epr-13448.a10"
+
+[[regions.soundcpu.roms]]
+file = "mpr-13449.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "d3d9aaf9"
+sha1 = "0fb3a8cb11033accceb3a43a691fb424cf8b9619"
+merge = "mpr-13449.a11"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+merge = "315-5298.b9"
+
+[properties]
+protection = "none"

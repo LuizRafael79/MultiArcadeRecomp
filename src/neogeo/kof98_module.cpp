@@ -1,3 +1,4 @@
+#include "kof98_game.h"
 #include "kof98_module_abi.h"
 
 #ifdef MAMERECOMP_KOF98_HAS_Z80_AOT
@@ -22,6 +23,14 @@ const char* mamerecomp_neogeo_game_module_id() {
 
 unsigned mamerecomp_neogeo_game_module_revision() {
     return 98;
+}
+
+const ng_game_t* mamerecomp_neogeo_game_descriptor() {
+    return &mamerecomp_kof98_game;
+}
+
+void mamerecomp_neogeo_game_reset() {
+    mamerecomp_kof98_prot_reset();
 }
 
 const ng_func_entry_t* mamerecomp_neogeo_game_recomp_table(std::size_t* count) {

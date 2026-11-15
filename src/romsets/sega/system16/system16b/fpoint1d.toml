@@ -1,0 +1,119 @@
+module = "system16"
+board = "system16b"
+game = "fpoint1d"
+gamename = "Flash Point (set 1, Japan) (bootleg of FD1094 317-0127A set)"
+parent = "fpoint"
+romof = "fpoint"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "fpoint1d"
+description = "Flash Point (set 1, Japan) (bootleg of FD1094 317-0127A set)"
+cloneof = "fpoint"
+romof = "fpoint"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-12591b.a7"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "f778e067"
+sha1 = "91b941bdeedbf037228c526cc9a9bfc926404bd6"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-12590b.a5"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "e6e2f2cc"
+sha1 = "6f7fecf7ce4e48bbfe91f02eb876e668c7f2fc67"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "opr-12593.a14"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "cc0582d8"
+sha1 = "92c7d125a6dcb9c5e6e7bd92a5bf3008385ed487"
+merge = "opr-12593.a14"
+
+[[regions.tiles.roms]]
+file = "opr-12594.a15"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "8bfc4815"
+sha1 = "08d28b65e5024c592a9a289b270774ef5c553cbf"
+merge = "opr-12594.a15"
+
+[[regions.tiles.roms]]
+file = "opr-12595.a16"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "5b18d60b"
+sha1 = "8e9c81635dcefa52d1cf53c2937ae560191b5202"
+merge = "opr-12595.a16"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "opr-12596.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "4a4041f3"
+sha1 = "4c52b30223d8aa80ccdbb196098cb17e64ad6583"
+merge = "opr-12596.b1"
+
+[[regions.sprites.roms]]
+file = "opr-12597.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "6961e676"
+sha1 = "7639d2da086b57a9a8d6100fdacf40d97d7c4772"
+merge = "opr-12597.b5"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12592.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "9a8c11bb"
+sha1 = "399f8e9bdd7aaa4d25817fa9cd4bbf413e5baebe"
+merge = "epr-12592.a10"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+
+[properties]
+protection = "none"

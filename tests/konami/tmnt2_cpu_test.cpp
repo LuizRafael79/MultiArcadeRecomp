@@ -35,10 +35,10 @@ int main()
     sound_program[0x66] = 0xed; sound_program[0x67] = 0x45; // RETN
 
     mamerecomp::konami::Tmnt2Board board("tmnt2", std::move(roms));
-    mamerecomp::konami::Tmnt2MainCpu cpu(board);
+    mamerecomp::konami::Tmnt2MainCpu cpu(board, nullptr, 0);
     assert(cpu.pc() == 8);
-    cpu.execute(200); // Musashi accounts for reset cycles on its first execute call.
-    cpu.execute(20);
+    cpu.execute_until(200); // Musashi accounts for reset cycles on its first execute call.
+    cpu.execute_until(220);
     assert(cpu.data_register(0) == 0x42);
     assert(cpu.pc() >= 8 && cpu.pc() <= 12);
 

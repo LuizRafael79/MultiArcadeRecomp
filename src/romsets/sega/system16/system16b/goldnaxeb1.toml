@@ -1,0 +1,423 @@
+module = "system16"
+board = "system16b"
+game = "goldnaxeb1"
+gamename = "Golden Axe (encrypted bootleg)"
+parent = "goldnaxe"
+romof = "goldnaxe"
+romset_source = "MAME -listxml"
+runnable = false
+
+[mame]
+name = "goldnaxeb1"
+description = "Golden Axe (encrypted bootleg)"
+cloneof = "goldnaxe"
+romof = "goldnaxe"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/system16.cpp"
+machine_config = "goldnaxeb1"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "6.6"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "f95b459f"
+sha1 = "dadf66d63454ed62fefa521d4fed249d28c63778"
+
+[[regions.maincpu.roms]]
+file = "4.4"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "83eabdf5"
+sha1 = "1effef966f513fbdec2026d535658e17ef7dea51"
+
+[[regions.maincpu.roms]]
+file = "11.11"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "f4ef9349"
+sha1 = "3ffa335e74ffbc10f80387268da659643c566897"
+
+[[regions.maincpu.roms]]
+file = "8.8"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "37a65839"
+sha1 = "6e8055d91b840afd8526041d3752c0a55eaebe0c"
+
+[[regions.maincpu.roms]]
+file = "7.7"
+size = 65536
+offset = 524288
+status = "good"
+optional = false
+crc32 = "056879fd"
+sha1 = "fc0a910c1dc4cf535ad589f482f57379798b5524"
+
+[[regions.maincpu.roms]]
+file = "5.5"
+size = 65536
+offset = 524289
+status = "good"
+optional = false
+crc32 = "8c77d958"
+sha1 = "f7c5abfec2a9d1724c83b1de2cd994bb4c42857c"
+
+[[regions.maincpu.roms]]
+file = "10.10"
+size = 65536
+offset = 655360
+status = "good"
+optional = false
+crc32 = "b69ab892"
+sha1 = "9b426058a80abb8dd3d6c0c55574fdc841889a72"
+
+[[regions.maincpu.roms]]
+file = "9.9"
+size = 65536
+offset = 655361
+status = "good"
+optional = false
+crc32 = "3cf2f725"
+sha1 = "1f620fcebe8533cba50736ae1d97c095abf1bc25"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "32.16"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "84587263"
+sha1 = "3a88c8578a477a487a0a214a367042b9739f39eb"
+
+[[regions.tiles.roms]]
+file = "31.15"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "63d72388"
+sha1 = "ba0a582b1daf3a1e316237efbad17fcc0381643f"
+
+[[regions.tiles.roms]]
+file = "30.14"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "f8b6ae4f"
+sha1 = "55132c98955107e4b247992f7917a6ce588460a7"
+
+[[regions.tiles.roms]]
+file = "29.13"
+size = 65536
+offset = 196608
+status = "good"
+optional = false
+crc32 = "e29baf4f"
+sha1 = "3761cb2217599fe3f2f860f9395930b96ec52f47"
+
+[[regions.tiles.roms]]
+file = "28.12"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "22f0667e"
+sha1 = "2d11b2ce105a3db9c914942cace85aff17deded9"
+
+[[regions.tiles.roms]]
+file = "27.11"
+size = 65536
+offset = 327680
+status = "good"
+optional = false
+crc32 = "afb1a7e4"
+sha1 = "726fded9db72a881128b43f449d2baf450131f63"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "33.17"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "28ba70c8"
+sha1 = "a6f33e1404928b6d1006943494646d6cfbd60a4b"
+
+[[regions.sprites.roms]]
+file = "34.18"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "2ed96a26"
+sha1 = "edcf915243e6f92d31cdfc53965438f6b6bff51d"
+
+[[regions.sprites.roms]]
+file = "37.bin"
+size = 65536
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "84dccc5b"
+sha1 = "10263d98d663f1170c3203066f391075a1d64ff5"
+
+[[regions.sprites.roms]]
+file = "13.bin"
+size = 65536
+offset = 1179649
+status = "good"
+optional = false
+crc32 = "3d41b995"
+sha1 = "913d2a0c9a2ac6d36589966d7eb5537120ea6ff0"
+
+[[regions.sprites.roms]]
+file = "21.7"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "ede51fe0"
+sha1 = "c05a2b51095a322bac5a67ee8886aecc186cbdfe"
+
+[[regions.sprites.roms]]
+file = "22.8"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "30989141"
+sha1 = "f6e7ae258deedec11b1f80c19575c884aac26c56"
+
+[[regions.sprites.roms]]
+file = "38.bin"
+size = 65536
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "38e4c92a"
+sha1 = "8b8a596da0726bc02c412a68e5163770fe3e62e4"
+
+[[regions.sprites.roms]]
+file = "14.bin"
+size = 65536
+offset = 1179648
+status = "good"
+optional = false
+crc32 = "9fb1f9b6"
+sha1 = "a193ff48f2bfbb4afbc322ae33cdf360afcb681e"
+
+[[regions.sprites.roms]]
+file = "35.19"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "101d2fff"
+sha1 = "1de1390c5f55f192491053c8aac31be3389aab2b"
+
+[[regions.sprites.roms]]
+file = "36.20"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "677e64a6"
+sha1 = "e3d0d31097017c6cb1a7f41292783f18ce13b41c"
+
+[[regions.sprites.roms]]
+file = "15.bin"
+size = 65536
+offset = 1310721
+status = "good"
+optional = false
+crc32 = "11794d05"
+sha1 = "eef52d7a644dbcc5f983222f163445a725286a32"
+
+[[regions.sprites.roms]]
+file = "17.bin"
+size = 65536
+offset = 1441793
+status = "good"
+optional = false
+crc32 = "ad1c1c90"
+sha1 = "155f17593cfab1a117bb755b1edd0c473d455f91"
+
+[[regions.sprites.roms]]
+file = "23.9"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "5853000d"
+sha1 = "db7adf1de74c66f667ea7ccc41702576de081ff5"
+
+[[regions.sprites.roms]]
+file = "24.10"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "697b3276"
+sha1 = "a8aeb2cfaca9368d5bfa14a67de36dbadd4a0585"
+
+[[regions.sprites.roms]]
+file = "16.bin"
+size = 65536
+offset = 1310720
+status = "good"
+optional = false
+crc32 = "753b01e8"
+sha1 = "0180cf893d63e60e14e2fb0f5836b302f08f0228"
+
+[[regions.sprites.roms]]
+file = "18.bin"
+size = 65536
+offset = 1441792
+status = "good"
+optional = false
+crc32 = "5dd6d8db"
+sha1 = "270886aebf4549c5cf456b1e90927b759a53e2e1"
+
+[[regions.sprites.roms]]
+file = "40.23"
+size = 65536
+offset = 524289
+status = "good"
+optional = false
+crc32 = "a9519afe"
+sha1 = "0550f596ef080db25241d88242d57edb3c7fb685"
+
+[[regions.sprites.roms]]
+file = "39.22"
+size = 65536
+offset = 655361
+status = "good"
+optional = false
+crc32 = "74df9232"
+sha1 = "61286c83eb6f31983c0ed24ca2151c58a95238f1"
+
+[[regions.sprites.roms]]
+file = "19.bin"
+size = 65536
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "a8c8c784"
+sha1 = "8e998019b4dbf509179d41eb2b446647db3d00a6"
+
+[[regions.sprites.roms]]
+file = "25.bin"
+size = 65536
+offset = 1703937
+status = "good"
+optional = false
+crc32 = "cc3a922c"
+sha1 = "3c96459d95961d463909b6b0e8c77916c3a018e3"
+
+[[regions.sprites.roms]]
+file = "42.26"
+size = 65536
+offset = 524288
+status = "good"
+optional = false
+crc32 = "ac6ad195"
+sha1 = "3c3fe38047698e28cae9193438fe0b85941476c5"
+
+[[regions.sprites.roms]]
+file = "41.25"
+size = 65536
+offset = 655360
+status = "good"
+optional = false
+crc32 = "03a905c4"
+sha1 = "c526a744021a392c860ded37afd54a78e9f47778"
+
+[[regions.sprites.roms]]
+file = "20.bin"
+size = 65536
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "cba013c7"
+sha1 = "a0658aaf7893bc9fb8f0435cab9f77ceb1fb4e1d"
+
+[[regions.sprites.roms]]
+file = "26.bin"
+size = 65536
+offset = 1703936
+status = "good"
+optional = false
+crc32 = "bea4d237"
+sha1 = "46e51e89b4ee1e2701da1004758d7da547a2e4c2"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "2.3"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "399fc5f5"
+sha1 = "6f290b36dc71ff4759598e2a9c185a8945a3c9e7"
+merge = "epr-12390.ic8"
+
+[[regions.soundcpu.roms]]
+file = "3.1"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "50eb5a56"
+sha1 = "d59ba04254000de5577e8a58d0b51c73112a4c80"
+
+[[regions.soundcpu.roms]]
+file = "1.2"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "b372eb94"
+sha1 = "8f82530633589de003a5462b227335526a6a61a6"
+
+[regions.decryption]
+
+[[regions.decryption.roms]]
+file = "12.12"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "81ce4576"
+sha1 = "84eea0ab8d8ea8869c12f0b603b91b1188d0e288"
+
+[regions.prom]
+
+[[regions.prom.roms]]
+file = "82s129.bin"
+size = 256
+offset = 0
+status = "good"
+optional = false
+crc32 = "88962e80"
+sha1 = "ebf3d57d53fcba727cf20e4bb26f12934f7d1bc7"
+
+[properties]
+protection = "mame-identified"

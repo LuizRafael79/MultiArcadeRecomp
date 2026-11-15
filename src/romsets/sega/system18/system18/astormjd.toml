@@ -1,0 +1,197 @@
+module = "system18"
+board = "system18"
+game = "astormjd"
+gamename = "Alien Storm (Japan, 2 Players) (bootleg of FD1094 317-0146 set)"
+parent = "astorm"
+romof = "astorm"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "astormjd"
+description = "Alien Storm (Japan, 2 Players) (bootleg of FD1094 317-0146 set)"
+cloneof = "astorm"
+romof = "astorm"
+year = "1990"
+manufacturer = "bootleg"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13085.a6"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "c0d7f3c2"
+sha1 = "1123f0d4cf25c3ee82a57212d9ffee49667c9f84"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13084.a5"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "006635f0"
+sha1 = "7b4fce33151c7cfe5a33065a5b33ff678bac933c"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-13073.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "df5d0a61"
+sha1 = "79ad71de348f280bad847566c507b7a31f022292"
+merge = "epr-13073.bin"
+
+[[regions.tiles.roms]]
+file = "epr-13074.bin"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "787afab8"
+sha1 = "a119042bb2dad54e9733bfba4eaab0ac5fc0f9e7"
+merge = "epr-13074.bin"
+
+[[regions.tiles.roms]]
+file = "epr-13075.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "4e01b477"
+sha1 = "4178ce4a87ea427c3b0195e64acef6cddfb3485f"
+merge = "epr-13075.bin"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "mpr-13082.bin"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "a782b704"
+sha1 = "ba15bdfbc267b8d86f03e5310ce60846ff846de3"
+merge = "mpr-13082.bin"
+
+[[regions.sprites.roms]]
+file = "mpr-13089.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "2a4227f0"
+sha1 = "47284dce8f896f8e8eace9c20302842cacb479c1"
+merge = "mpr-13089.bin"
+
+[[regions.sprites.roms]]
+file = "mpr-13081.bin"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "eb510228"
+sha1 = "4cd387b160ec7050e1300ebe708853742169e643"
+merge = "mpr-13081.bin"
+
+[[regions.sprites.roms]]
+file = "mpr-13088.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "3b6b4c55"
+sha1 = "970495c54b3e1893ee8060f6ca1338c2cbbd1074"
+merge = "mpr-13088.bin"
+
+[[regions.sprites.roms]]
+file = "mpr-13080.bin"
+size = 262144
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "e668eefb"
+sha1 = "d4a087a238b4d3ac2d23fe148d6a73018e348a89"
+merge = "mpr-13080.bin"
+
+[[regions.sprites.roms]]
+file = "mpr-13087.bin"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "2293427d"
+sha1 = "4fd07763ff060afd594e3f64fa4750577f56c80e"
+merge = "mpr-13087.bin"
+
+[[regions.sprites.roms]]
+file = "epr-13079.bin"
+size = 262144
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "de9221ed"
+sha1 = "5e2e434d1aa547be1e5652fc906d2e18c5122023"
+merge = "epr-13079.bin"
+
+[[regions.sprites.roms]]
+file = "epr-13086.bin"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "8c9a71c4"
+sha1 = "40b774765ac888792aad46b6351a24b7ef40d2dc"
+merge = "epr-13086.bin"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13083b.bin"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "169b4b5f"
+sha1 = "bb3dfc4aff939df5ad04cf3ecb8e7de366097743"
+
+[[regions.soundcpu.roms]]
+file = "epr-13076.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "94e6c76e"
+sha1 = "f99e58a9bf372c41af211bd9b9ea3ac5b924c6ed"
+merge = "epr-13076.bin"
+
+[[regions.soundcpu.roms]]
+file = "epr-13077.bin"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "e2ec0d8d"
+sha1 = "225b0d223b7282cba7710300a877fb4a2c6dbabb"
+merge = "epr-13077.bin"
+
+[[regions.soundcpu.roms]]
+file = "epr-13078.bin"
+size = 262144
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "15684dc5"
+sha1 = "595051006de24f791dae937584e502ff2fa31d9c"
+merge = "epr-13078.bin"
+
+[properties]
+protection = "none"

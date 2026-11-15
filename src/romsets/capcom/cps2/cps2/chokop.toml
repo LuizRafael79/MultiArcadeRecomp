@@ -1,0 +1,474 @@
+module = "cps2"
+board = "cps2"
+game = "chokop"
+gamename = "Janpai Puzzle Choukou (Japan 010820 Publicity)"
+parent = "choko"
+romof = "choko"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "chokop"
+description = "Janpai Puzzle Choukou (Japan 010820 Publicity)"
+cloneof = "choko"
+romof = "choko"
+year = "2001"
+manufacturer = "Mitchell (Capcom license)"
+sourcefile = "capcom/cps2.cpp"
+isbios = false
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "tkojp_03.bin"
+size = 524288
+offset = 0
+status = "good"
+optional = false
+crc32 = "4d857f39"
+sha1 = "bc941e8333889345da58f20370e758d4a15f587f"
+
+[[regions.maincpu.roms]]
+file = "tkojp_04.bin"
+size = 524288
+offset = 524288
+status = "good"
+optional = false
+crc32 = "137afb29"
+sha1 = "a020b5f2d8cdcd9d6c8302f1535a3502297a55c2"
+
+[regions.gfx]
+
+[[regions.gfx.roms]]
+file = "tko_14.bin"
+size = 2097152
+offset = 8388608
+status = "good"
+optional = false
+crc32 = "336e8aa2"
+sha1 = "bebe4f56bcd96d573a4fa0e887b8b9aaabff58eb"
+
+[[regions.gfx.roms]]
+file = "tko_16.bin"
+size = 2097152
+offset = 8388610
+status = "good"
+optional = false
+crc32 = "e8429b54"
+sha1 = "9833db4c6378f1f04d1747a0daa268503bc7cc5e"
+
+[[regions.gfx.roms]]
+file = "tko_18.bin"
+size = 2097152
+offset = 8388612
+status = "good"
+optional = false
+crc32 = "62092fbd"
+sha1 = "293abb3ab4f43323ea4b11a1786532549bcac8e1"
+
+[[regions.gfx.roms]]
+file = "tko_20.bin"
+size = 2097152
+offset = 8388614
+status = "good"
+optional = false
+crc32 = "b468a666"
+sha1 = "86c228152ae778ab8459e813a80c67e7e1eee80e"
+
+[regions.audiocpu]
+
+[[regions.audiocpu.roms]]
+file = "tko_01.bin"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "6eda50c2"
+sha1 = "7e67c104094a3ced8b3fdd81f52ee42483b30fc5"
+merge = "tko.01"
+
+[regions.qsound]
+
+[[regions.qsound.roms]]
+file = "tko_11.bin"
+size = 2097152
+offset = 0
+status = "good"
+optional = false
+crc32 = "ca7179b1"
+sha1 = "98d0c9d8766843b289d49ccae7083b262adfc83a"
+
+[[regions.qsound.roms]]
+file = "tko_12.bin"
+size = 1048576
+offset = 2097152
+status = "good"
+optional = false
+crc32 = "83a4e635"
+sha1 = "933d02264ce922fb12a2c08b8c06167c75fe2241"
+
+[regions.key]
+
+[[regions.key.roms]]
+file = "phoenix.key"
+size = 20
+offset = 0
+status = "good"
+optional = false
+crc32 = "2cf772b0"
+sha1 = "eff33c65a4f3862c231f9e4d6fefa7b34398dbf2"
+
+[properties]
+protection = "cps2-cipher"
+
+[runtime]
+
+[runtime.properties]
+
+[driver_layout]
+source = "cps2.cpp"
+
+[[driver_layout.regions]]
+name = "maincpu"
+size_expression = "0x0400000"
+size = 4194304
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2757
+
+[[driver_layout.regions]]
+name = "gfx"
+size_expression = "0x1000000"
+size = 16777216
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2761
+
+[[driver_layout.regions]]
+name = "audiocpu"
+size_expression = "0x50000"
+size = 327680
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2768
+
+[[driver_layout.regions]]
+name = "qsound"
+size_expression = "0x300000"
+size = 3145728
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2772
+
+[[driver_layout.regions]]
+name = "key"
+size_expression = "0x20"
+size = 32
+region_macro = "ROM_REGION"
+flags_expression = "0"
+source_line = 2776
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "maincpu"
+size_expression = "0x0400000"
+flags_expression = "0"
+source_line = 2757
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "tkojp_03.bin"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x80000"
+length = 524288
+source_line = 2758
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "4d857f39"
+sha1 = "bc941e8333889345da58f20370e758d4a15f587f"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "maincpu"
+file = "tkojp_04.bin"
+offset_expression = "0x080000"
+offset = 524288
+length_expression = "0x80000"
+length = 524288
+source_line = 2759
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 524288
+transform = "word_swap"
+crc32 = "137afb29"
+sha1 = "a020b5f2d8cdcd9d6c8302f1535a3502297a55c2"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 524288
+length = 524288
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "gfx"
+size_expression = "0x1000000"
+flags_expression = "0"
+source_line = 2761
+
+[[driver_layout.operations]]
+macro = "ROM_FILL"
+region = "gfx"
+arguments = ["0x000000", "0x800000", "0x00"]
+source_line = 2762
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "tko_14.bin"
+offset_expression = "0x800000"
+offset = 8388608
+length_expression = "0x200000"
+length = 2097152
+source_line = 2763
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "336e8aa2"
+sha1 = "bebe4f56bcd96d573a4fa0e887b8b9aaabff58eb"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388608
+length = 2097152
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "tko_16.bin"
+offset_expression = "0x800002"
+offset = 8388610
+length_expression = "0x200000"
+length = 2097152
+source_line = 2764
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "e8429b54"
+sha1 = "9833db4c6378f1f04d1747a0daa268503bc7cc5e"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388610
+length = 2097152
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "tko_18.bin"
+offset_expression = "0x800004"
+offset = 8388612
+length_expression = "0x200000"
+length = 2097152
+source_line = 2765
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "62092fbd"
+sha1 = "293abb3ab4f43323ea4b11a1786532549bcac8e1"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388612
+length = 2097152
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD64_WORD"
+region = "gfx"
+file = "tko_20.bin"
+offset_expression = "0x800006"
+offset = 8388614
+length_expression = "0x200000"
+length = 2097152
+source_line = 2766
+group_bytes = 2
+stride = 8
+source_offset = 0
+source_bytes_consumed = 2097152
+crc32 = "b468a666"
+sha1 = "86c228152ae778ab8459e813a80c67e7e1eee80e"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 8388614
+length = 2097152
+group_bytes = 2
+stride = 8
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "audiocpu"
+size_expression = "0x50000"
+flags_expression = "0"
+source_line = 2768
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "audiocpu"
+file = "tko_01.bin"
+offset_expression = "0x00000"
+offset = 0
+length_expression = "0x08000"
+length = 32768
+source_line = 2769
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 131072
+crc32 = "6eda50c2"
+sha1 = "7e67c104094a3ced8b3fdd81f52ee42483b30fc5"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 32768
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.segments]]
+source_offset = 32768
+destination = 65536
+length = 98304
+group_bytes = 1
+stride = 1
+
+[[driver_layout.operations.continuations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2770
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_CONTINUE"
+region = "audiocpu"
+arguments = ["0x10000", "0x18000"]
+source_line = 2770
+offset_expression = "0x10000"
+offset = 65536
+length_expression = "0x18000"
+length = 98304
+source_offset = 32768
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "qsound"
+size_expression = "0x300000"
+flags_expression = "0"
+source_line = 2772
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "qsound"
+file = "tko_11.bin"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x200000"
+length = 2097152
+source_line = 2773
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 2097152
+transform = "word_swap"
+crc32 = "ca7179b1"
+sha1 = "98d0c9d8766843b289d49ccae7083b262adfc83a"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 2097152
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD16_WORD_SWAP"
+region = "qsound"
+file = "tko_12.bin"
+offset_expression = "0x200000"
+offset = 2097152
+length_expression = "0x100000"
+length = 1048576
+source_line = 2774
+group_bytes = 2
+stride = 2
+source_offset = 0
+source_bytes_consumed = 1048576
+transform = "word_swap"
+crc32 = "83a4e635"
+sha1 = "933d02264ce922fb12a2c08b8c06167c75fe2241"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 2097152
+length = 1048576
+group_bytes = 2
+stride = 2
+
+[[driver_layout.operations]]
+macro = "ROM_REGION"
+region = "key"
+size_expression = "0x20"
+flags_expression = "0"
+source_line = 2776
+
+[[driver_layout.operations]]
+macro = "ROM_LOAD"
+region = "key"
+file = "phoenix.key"
+offset_expression = "0x000000"
+offset = 0
+length_expression = "0x000014"
+length = 20
+source_line = 2777
+group_bytes = 1
+stride = 1
+source_offset = 0
+source_bytes_consumed = 20
+crc32 = "2cf772b0"
+sha1 = "eff33c65a4f3862c231f9e4d6fefa7b34398dbf2"
+
+[[driver_layout.operations.segments]]
+source_offset = 0
+destination = 0
+length = 20
+group_bytes = 1
+stride = 1

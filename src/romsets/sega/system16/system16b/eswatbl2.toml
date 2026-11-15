@@ -1,0 +1,372 @@
+module = "system16"
+board = "system16b"
+game = "eswatbl2"
+gamename = "Cyber Police ESWAT (bootleg, set 2)"
+parent = "eswat"
+romof = "eswat"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "eswatbl2"
+description = "Cyber Police ESWAT (bootleg, set 2)"
+cloneof = "eswat"
+romof = "eswat"
+year = "1989"
+manufacturer = "bootleg"
+sourcefile = "sega/system16.cpp"
+machine_config = "eswatbl2"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "1.ic39"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "28d6f8ba"
+sha1 = "fbe9330f68a5b3f544f16c8608731ce51a8561f9"
+
+[[regions.maincpu.roms]]
+file = "4.ic53"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "f3679dfb"
+sha1 = "5dbc8098d81354983c9e25432b0455153d0bc6a7"
+
+[[regions.maincpu.roms]]
+file = "2.ic38"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "b3ee5091"
+sha1 = "5e5aa66428f503c1bfc6f2622d06eb4a3386a646"
+
+[[regions.maincpu.roms]]
+file = "5.ic52"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "d24e570f"
+sha1 = "9aede54f0311944a6c33fc1d9de76a4aecbf24b4"
+
+[[regions.maincpu.roms]]
+file = "3.ic37"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "5761a172"
+sha1 = "0d2c9064956a1bba92b0be59e532ee0398c361bb"
+
+[[regions.maincpu.roms]]
+file = "6.ic51"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "1d2ddb42"
+sha1 = "c8db262f8fc8df739303c18ff2898376492bcc00"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "35.ic16"
+size = 131072
+offset = 524288
+status = "good"
+optional = false
+crc32 = "586fb454"
+sha1 = "afe4896593e3677938f750069f2e0dda3c7057d7"
+
+[[regions.tiles.roms]]
+file = "38.ic2"
+size = 65536
+offset = 655360
+status = "good"
+optional = false
+crc32 = "798bf2b4"
+sha1 = "e7ce125c335c320a477543e4f7428718fd698225"
+
+[[regions.tiles.roms]]
+file = "34.ic17"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "583788d1"
+sha1 = "692ecee0243c54ff8fb93e3b2720656fa9b7fb1a"
+
+[[regions.tiles.roms]]
+file = "37.ic3"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "79070433"
+sha1 = "d266bc7fe9f550a099ad3bbf567e9178c3927786"
+
+[[regions.tiles.roms]]
+file = "33.ic18"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "795856da"
+sha1 = "e77c87755b055c7a376cda8b939b9cf428aa1966"
+
+[[regions.tiles.roms]]
+file = "36.ic4"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "3e9bd162"
+sha1 = "f696d2a5df31c0b632fbaee7b519e5a65b4a0899"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "20.ic58"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "1a4e791a"
+sha1 = "6d006bb048dd10b6c78e5cb39d7c9d44fbdd31ae"
+
+[[regions.sprites.roms]]
+file = "32.ic73"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "8577d83e"
+sha1 = "ad9d4508ec2db2fcecf7d9e1d9b833ac02c1abda"
+
+[[regions.sprites.roms]]
+file = "19.ic59"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "21ac537b"
+sha1 = "de41d2e77ddcbbd8db47555528a1074e9082534d"
+
+[[regions.sprites.roms]]
+file = "31.ic74"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "6a0a63ab"
+sha1 = "2cb40a61ccdf375edbffffcf4bf1c5f19c880509"
+
+[[regions.sprites.roms]]
+file = "18.ic60"
+size = 65536
+offset = 262144
+status = "good"
+optional = false
+crc32 = "d6be9c59"
+sha1 = "4e19e7a0c660b339326861b0c3594b656662c1aa"
+
+[[regions.sprites.roms]]
+file = "30.ic75"
+size = 65536
+offset = 262145
+status = "good"
+optional = false
+crc32 = "afb67fbb"
+sha1 = "a82282342e4033cf8d0d738a8fa47da17e8d29ac"
+
+[[regions.sprites.roms]]
+file = "17.ic61"
+size = 65536
+offset = 393216
+status = "good"
+optional = false
+crc32 = "64118cfc"
+sha1 = "96754ac14017363fcec39ecf176b11f4379140d9"
+
+[[regions.sprites.roms]]
+file = "29.ic76"
+size = 65536
+offset = 393217
+status = "good"
+optional = false
+crc32 = "71cca469"
+sha1 = "13582d8fd431af0996f9ed50c974989ccb09d9b2"
+
+[[regions.sprites.roms]]
+file = "16.ic62"
+size = 65536
+offset = 524288
+status = "good"
+optional = false
+crc32 = "4fc29883"
+sha1 = "ea259ac19ea4fc51daf73fe086368957a745a247"
+
+[[regions.sprites.roms]]
+file = "28.ic77"
+size = 65536
+offset = 524289
+status = "good"
+optional = false
+crc32 = "2d97225a"
+sha1 = "35d8778569b9943a1aa66dbc290ba96bb1686e67"
+
+[[regions.sprites.roms]]
+file = "15.ic63"
+size = 65536
+offset = 655360
+status = "good"
+optional = false
+crc32 = "8948186c"
+sha1 = "8b2f266be7d52e0a33cf37407dee9b50e69b474f"
+
+[[regions.sprites.roms]]
+file = "27.ic78"
+size = 65536
+offset = 655361
+status = "good"
+optional = false
+crc32 = "9ed6e80a"
+sha1 = "445f7c51b094da9f4d641a0ae9e3c9cdbe020f4e"
+
+[[regions.sprites.roms]]
+file = "14.ic64"
+size = 65536
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "2949dd53"
+sha1 = "05a7e2952f8500d7b92f08de9be3bc0a9eb0fa10"
+
+[[regions.sprites.roms]]
+file = "26.ic79"
+size = 65536
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "24f83444"
+sha1 = "41aafb8cf436bcc66f015bb0fd15431324d1c291"
+
+[[regions.sprites.roms]]
+file = "13.ic65"
+size = 65536
+offset = 1179648
+status = "good"
+optional = false
+crc32 = "4d536f6a"
+sha1 = "1da7140c46aca2460cf570f4a1b8881b3c233f57"
+
+[[regions.sprites.roms]]
+file = "25.ic80"
+size = 65536
+offset = 1179649
+status = "good"
+optional = false
+crc32 = "eeca770d"
+sha1 = "309a0df4957cfd1bf114c3bbe3215bc5a41c1ac6"
+
+[[regions.sprites.roms]]
+file = "12.ic66"
+size = 65536
+offset = 1310720
+status = "good"
+optional = false
+crc32 = "b9dc7adb"
+sha1 = "eacb4e39284f3692df588336f8df7be029085293"
+
+[[regions.sprites.roms]]
+file = "24.ic81"
+size = 65536
+offset = 1310721
+status = "good"
+optional = false
+crc32 = "16584237"
+sha1 = "fac363dc1360ddbc176d012277539f4bd1d4bb5d"
+
+[[regions.sprites.roms]]
+file = "11.ic67"
+size = 65536
+offset = 1441792
+status = "good"
+optional = false
+crc32 = "fbce3dcd"
+sha1 = "1e2a3b97e61005b96fa8e6da9144f2d539cc2157"
+
+[[regions.sprites.roms]]
+file = "23.ic82"
+size = 65536
+offset = 1441793
+status = "good"
+optional = false
+crc32 = "d7c1f15d"
+sha1 = "ee82641505a3a73090b3c2542853380be9d8c414"
+
+[[regions.sprites.roms]]
+file = "10.ic60"
+size = 65536
+offset = 1572864
+status = "good"
+optional = false
+crc32 = "523cd22c"
+sha1 = "aa471063bafbd03c346126f3321a508d8122b935"
+
+[[regions.sprites.roms]]
+file = "22.ic83"
+size = 65536
+offset = 1572865
+status = "good"
+optional = false
+crc32 = "8c495527"
+sha1 = "99d4cde16c3c15247e9a413cae52f9ec37e0e230"
+
+[[regions.sprites.roms]]
+file = "9.ic69"
+size = 65536
+offset = 1703936
+status = "good"
+optional = false
+crc32 = "3023e7dc"
+sha1 = "440f5a9b09bf9707d00629671df8058d1431fc17"
+
+[[regions.sprites.roms]]
+file = "21.ic84"
+size = 65536
+offset = 1703937
+status = "good"
+optional = false
+crc32 = "2533190e"
+sha1 = "4c5ae231a30481801abb231fc6458fdee292ddfb"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "8.ic45"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "f90b1f5f"
+sha1 = "8e7207e6563382291417247db15b08c6253e4725"
+
+[[regions.soundcpu.roms]]
+file = "7.ic46"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "a093552b"
+sha1 = "ba0c8d5f625edefa8ef63bc0f28b4ea13365e4c0"
+
+[properties]
+protection = "none"

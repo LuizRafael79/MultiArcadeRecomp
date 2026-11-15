@@ -1,0 +1,120 @@
+module = "system16"
+board = "system16b"
+game = "fantzoneta"
+gamename = "Fantasy Zone (Time Attack, bootleg)"
+parent = "fantzone"
+romof = "fantzone"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "fantzoneta"
+description = "Fantasy Zone (Time Attack, bootleg)"
+cloneof = "fantzone"
+romof = "fantzone"
+year = "2008"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "fzta__a07.bin"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "ad07d1fd"
+sha1 = "63fbaa135a3860bd956d5147a5f64d951d2ebdba"
+
+[[regions.maincpu.roms]]
+file = "fzta__a05.bin"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "47dbe11b"
+sha1 = "edc6960506745235bb8668eaf71139cef4a2cd16"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "fzta__a14.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "9468ab33"
+sha1 = "714660b9eafb78ef5d3aed218367b4e5708376f6"
+
+[[regions.tiles.roms]]
+file = "fzta__a15.bin"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "22a3cf75"
+sha1 = "6f21bc2a565738b997f898ed6ee631e9452662ca"
+
+[[regions.tiles.roms]]
+file = "fzta__a16.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "25cba87f"
+sha1 = "abece2c27cd9d299319fa3ea87e016606426abc2"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "fzta__b01.bin"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "0beb4a22"
+sha1 = "e35f6d92b88f0730ccf03a090900ca2ed9824e74"
+
+[[regions.sprites.roms]]
+file = "fzta__b05.bin"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "7f676c69"
+sha1 = "231e7829b4ddb039f9075aebd1f2a123c79d396d"
+
+[[regions.sprites.roms]]
+file = "fzta__a01.bin"
+size = 131072
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "40e1db9a"
+sha1 = "305cd5e2d8512774638dfa724df6696ffa81ebb2"
+
+[[regions.sprites.roms]]
+file = "fzta__b10.bin"
+size = 131072
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "acbb5cff"
+sha1 = "bd356f664ec1c0e955161aa3afd06f2aeda80357"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "fzta__a10.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "dab6fcd0"
+sha1 = "151b62c5353533ae8660cbeebd8fe3219adbf4b5"
+
+[properties]
+protection = "none"

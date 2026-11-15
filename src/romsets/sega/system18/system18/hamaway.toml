@@ -1,0 +1,188 @@
+module = "system18"
+board = "system18"
+game = "hamaway"
+gamename = "Hammer Away (Japan, prototype)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "hamaway"
+description = "Hammer Away (Japan, prototype)"
+year = "1991"
+manufacturer = "Sega / Santos"
+sourcefile = "sega/segas18.cpp"
+machine_config = "system18"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "4.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "cc0981e1"
+sha1 = "63528bd36f27e62fdf40715101e6d05b73e48f16"
+
+[[regions.maincpu.roms]]
+file = "6.bin"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "e8599ee6"
+sha1 = "3e32b025403aecbaecfcdd0325e4acd676e99c4e"
+
+[[regions.maincpu.roms]]
+file = "5.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "fdb247fd"
+sha1 = "ee9db799fb5de27f81904f8ef792203415b6d4a6"
+
+[[regions.maincpu.roms]]
+file = "7.bin"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "63711470"
+sha1 = "6c4be3a0cf0f897c34ef0b3bf549f52b185bb915"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "c10.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "c55cb5cf"
+sha1 = "396179632b29ac5f8b7f8f3c91d7cf834e548bdf"
+
+[[regions.tiles.roms]]
+file = "1.bin"
+size = 262144
+offset = 262144
+status = "good"
+optional = false
+crc32 = "33be003f"
+sha1 = "134fa6b3347c306d9e30882dfcf24632b49f85ea"
+
+[[regions.tiles.roms]]
+file = "c11.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "37787915"
+sha1 = "c8d251be6c41de3aed2da6da70aa87071b70b1f6"
+
+[[regions.tiles.roms]]
+file = "2.bin"
+size = 262144
+offset = 786432
+status = "good"
+optional = false
+crc32 = "60ca5c9f"
+sha1 = "6358ea00125a5e3f55acf73aeb9c36b1db6e711e"
+
+[[regions.tiles.roms]]
+file = "c12.bin"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "f12f1cf3"
+sha1 = "45e883029c58e617a2a20ac1ab5c5f598c95f4bd"
+
+[[regions.tiles.roms]]
+file = "3.bin"
+size = 262144
+offset = 1310720
+status = "good"
+optional = false
+crc32 = "520aa7ae"
+sha1 = "9584206aedd8be5ce9dca0ed370f8fe77aabaf76"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "c17.bin"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "aa28d7aa"
+sha1 = "3dd5d95b05e408c023f9bd77753c37080714239d"
+
+[[regions.sprites.roms]]
+file = "10.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "c4c95161"
+sha1 = "2e313a4ca9506f53a2062b4a8e5ba7b381ba93ae"
+
+[[regions.sprites.roms]]
+file = "c18.bin"
+size = 262144
+offset = 524289
+status = "good"
+optional = false
+crc32 = "0f8fe8bb"
+sha1 = "e6f68442b8d4def29b106458496a47344f70d511"
+
+[[regions.sprites.roms]]
+file = "11.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "2b5eacbc"
+sha1 = "ba3690501588b9c88a31022b44bc3c82b44ae26b"
+
+[[regions.sprites.roms]]
+file = "c19.bin"
+size = 262144
+offset = 1048577
+status = "good"
+optional = false
+crc32 = "3c616caa"
+sha1 = "d48a6239b7a52ac13971f7513a65a17af492bfdf"
+
+[[regions.sprites.roms]]
+file = "12.bin"
+size = 262144
+offset = 1048576
+status = "good"
+optional = false
+crc32 = "c7bbd579"
+sha1 = "ab87bfdad66ea241cb23c9bbfea05f5a1574d6c9"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "c16.bin"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "913cc18c"
+sha1 = "4bf4ec14937586c3ae77fcad57dcb21f6433ef81"
+
+[[regions.soundcpu.roms]]
+file = "c15.bin"
+size = 262144
+offset = 524288
+status = "good"
+optional = false
+crc32 = "b53694fc"
+sha1 = "0e42be2730abce1b52ea94a9fe61cbd1c9a0ccae"
+
+[properties]
+protection = "none"

@@ -11,6 +11,7 @@ namespace mamerecomp {
 // cycle is one 15-clock MCS-48 machine cycle.
 class Mcs48 {
 public:
+    static constexpr std::uint32_t clocks_per_machine_cycle = 15;
     struct Bus {
         std::function<std::uint8_t()> read_bus;
         std::function<void(std::uint8_t)> write_bus;

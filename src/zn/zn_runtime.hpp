@@ -1,6 +1,7 @@
 #pragma once
 
 #include "zn_romset.hpp"
+#include "runtime/namco/system12/system12_runtime.hpp"
 
 #include <memory>
 #include <optional>
@@ -9,7 +10,6 @@
 #include "zn2_sound.hpp"
 #include "zn1_sound.hpp"
 #include "native_z80.h"
-#include "h8_cpu.hpp"
 #include "../../core/runtime/machine_io.hpp"
 
 namespace mamerecomp::zn {
@@ -82,22 +82,22 @@ public:
         return zn1_sound_ ? zn1_sound_->instructions() : 0;
     }
     uint64_t system12_h8_cycles() const {
-        return system12_audio_cpu_ ? system12_audio_cpu_->cycles() : 0;
+        return system12_runtime_ ? system12_runtime_->h8_cycles() : 0;
     }
     uint32_t system12_h8_pc() const {
-        return system12_audio_cpu_ ? system12_audio_cpu_->pc() : 0;
+        return system12_runtime_ ? system12_runtime_->h8_pc() : 0;
     }
     uint32_t system12_audio_sample_rate() const {
-        return system12_ ? system12_->audio_sample_rate() : 0;
+        return system12_runtime_ ? system12_runtime_->audio_sample_rate() : 0;
     }
     unsigned system12_active_audio_voices() const {
-        return system12_ ? system12_->active_audio_voices() : 0;
+        return system12_runtime_ ? system12_runtime_->active_audio_voices() : 0;
     }
     uint64_t system12_c352_writes() const {
-        return system12_ ? system12_->c352_writes() : 0;
+        return system12_runtime_ ? system12_runtime_->c352_writes() : 0;
     }
     std::vector<int16_t> render_system12_audio(size_t frames) {
-        return system12_ ? system12_->render_audio(frames) : std::vector<int16_t>{};
+        return system12_runtime_ ? system12_runtime_->render_audio(frames) : std::vector<int16_t>{};
     }
     uint64_t zn1_ymf_writes() const {
         return zn1_sound_ ? zn1_sound_->ymf_writes() : 0;
@@ -250,11 +250,9 @@ private:
     std::unique_ptr<mamerecomp::psx::MachineMemory> memory_;
     std::unique_ptr<CapcomZn2Board> zn2_;
     std::unique_ptr<RaizingZn1Board> zn1_;
-    std::unique_ptr<NamcoSystem12Board> system12_;
+    std::unique_ptr<mamerecomp::namco::system12::System12Runtime> system12_runtime_;
     std::unique_ptr<Zn2SoundCpu> zn2_sound_;
     std::unique_ptr<Zn1SoundCpu> zn1_sound_;
-    std::unique_ptr<mamerecomp::h8::H8Advanced> system12_audio_cpu_;
-    uint64_t system12_h8_main_cycles_ = 0;
     uint64_t zn2_sound_main_cycles_ = 0;
     uint64_t zn1_sound_main_cycles_ = 0;
     uint64_t zn1_sound_cycle_remainder_ = 0;

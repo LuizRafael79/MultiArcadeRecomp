@@ -1,0 +1,170 @@
+module = "system16"
+board = "system16a"
+game = "fantzone"
+gamename = "Fantasy Zone (Rev A, unprotected)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "fantzone"
+description = "Fantasy Zone (Rev A, unprotected)"
+year = "1986"
+manufacturer = "Sega"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a_no7751"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-7385a.43"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "4091af42"
+sha1 = "1d4fdd32db9f75e5ccaab5766a50249ad71a60af"
+
+[[regions.maincpu.roms]]
+file = "epr-7382a.26"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "77d67bfd"
+sha1 = "886ce4c2d779cedd81f85737ef55fce3c94baa18"
+
+[[regions.maincpu.roms]]
+file = "epr-7386a.42"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "b0a67cd0"
+sha1 = "2e2bf2b7306fc567f7d13f89977543b368c19027"
+
+[[regions.maincpu.roms]]
+file = "epr-7383a.25"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "5f79b2a9"
+sha1 = "de3125bbd0a126fc5a67ba3134cd3f4608ebdfce"
+
+[[regions.maincpu.roms]]
+file = "epr-7387.41"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0acd335d"
+sha1 = "f39566a2069eefa7682c57c6521ea7a328738d06"
+
+[[regions.maincpu.roms]]
+file = "epr-7384.24"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "fd909341"
+sha1 = "2f1e01eb7d7b330c9c0dd98e5f8ed4973f0e93fb"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-7388.95"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "8eb02f6b"
+sha1 = "80511b944b57541669010bd5a0ca52bc98eabd62"
+
+[[regions.gfx1.roms]]
+file = "epr-7389.94"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "2f4f71b8"
+sha1 = "ceb39e95cd43904b8e4f89c7227491e139fb3ca6"
+
+[[regions.gfx1.roms]]
+file = "epr-7390.93"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "d90609c6"
+sha1 = "4232f6ecb21f242c0c8d81e06b88bc742668609f"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-7392.10"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "5bb7c8b6"
+sha1 = "eaa0ed63ac4f66ee285757e842bdd7b005292600"
+
+[[regions.sprites.roms]]
+file = "epr-7396.11"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "74ae4b57"
+sha1 = "1f24b1faea765994b85f0e7ac8e944c8da22103f"
+
+[[regions.sprites.roms]]
+file = "epr-7393.17"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "14fc7e82"
+sha1 = "ca7caca989a3577dd30ad4f66b0fcce712a454ef"
+
+[[regions.sprites.roms]]
+file = "epr-7397.18"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "e05a1e25"
+sha1 = "9691d9f0763b7483ee6912437902f22ab4b78a05"
+
+[[regions.sprites.roms]]
+file = "epr-7394.23"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "531ca13f"
+sha1 = "19e68bc515f6021e1145cff4f3f0e083839ee8f3"
+
+[[regions.sprites.roms]]
+file = "epr-7398.24"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "68807b49"
+sha1 = "0a189da8cdd2090e76d6d06c55b478abce60542d"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-7535a.12"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "bc1374fa"
+sha1 = "ed2c87ae024dc251e175239f1bccc728fc096548"
+
+[properties]
+protection = "none"

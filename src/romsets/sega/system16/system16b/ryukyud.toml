@@ -1,0 +1,150 @@
+module = "system16"
+board = "system16b"
+game = "ryukyud"
+gamename = "RyuKyu (Japan) (bootleg of FD1094 317-5023 set)"
+parent = "ryukyu"
+romof = "ryukyu"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "ryukyud"
+description = "RyuKyu (Japan) (bootleg of FD1094 317-5023 set)"
+cloneof = "ryukyu"
+romof = "ryukyu"
+year = "1990"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13348.a7"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "3a96bdcd"
+sha1 = "5097a5d022eb046826c9e06f61db2c482306abeb"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr-13347.a5"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "99fddef0"
+sha1 = "e05a1b50430a22c2425e7cf8903aeb4f24140cae"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "opr-13351.a14"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "a68a4e6d"
+sha1 = "ee3e317c7184b41af5dd383d41f7be3eebff0d04"
+merge = "opr-13351.a14"
+
+[[regions.tiles.roms]]
+file = "opr-13352.a15"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "5e5531e4"
+sha1 = "e8e16b35f7985e6cdd77353ca5235db518914744"
+merge = "opr-13352.a15"
+
+[[regions.tiles.roms]]
+file = "opr-13353.a16"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "6d23dfd8"
+sha1 = "21266340290b9854cee0b62fc107cc2981519a80"
+merge = "opr-13353.a16"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "opr-13354.b1"
+size = 131072
+offset = 1
+status = "good"
+optional = false
+crc32 = "f07aad99"
+sha1 = "71759525a5b7fe76d112cec93984f0f89cadbc00"
+merge = "opr-13354.b1"
+
+[[regions.sprites.roms]]
+file = "opr-13356.b5"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "5498290b"
+sha1 = "b3115b636d8cb6ecac22d5264b7961e3b807cf04"
+merge = "opr-13356.b5"
+
+[[regions.sprites.roms]]
+file = "opr-13355.b2"
+size = 131072
+offset = 262145
+status = "good"
+optional = false
+crc32 = "67890019"
+sha1 = "165c6a32f305273396ec0e9499e00329caadc484"
+merge = "opr-13355.b2"
+
+[[regions.sprites.roms]]
+file = "opr-13357.b6"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "f9e7cf03"
+sha1 = "2258111499c79443faf84fb0495007016282bb3c"
+merge = "opr-13357.b6"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-13349.a10"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "b83183f8"
+sha1 = "9d6127f51c04a16bb2637dc9992b843b94613c2b"
+merge = "epr-13349.a10"
+
+[[regions.soundcpu.roms]]
+file = "opr-13350.a11"
+size = 131072
+offset = 65536
+status = "good"
+optional = false
+crc32 = "3c59a658"
+sha1 = "2cef13ee9e666bb850fe6c6e6954d7b75df665a9"
+merge = "opr-13350.a11"
+
+[regions.plds]
+
+[[regions.plds.roms]]
+file = "315-5298.b9"
+size = 235
+offset = 0
+status = "good"
+optional = false
+crc32 = "39b47212"
+sha1 = "432b47aee5ecbf08a8a6dc2f8379c816feb86328"
+merge = "315-5298.b9"
+
+[properties]
+protection = "none"

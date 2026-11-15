@@ -148,14 +148,19 @@ Sega3155313::Scanline Sega3155313::render_scanline(unsigned line) const {
     const bool window_down = (m_regs[0x12] & 0x80U) != 0;
 
     const auto pattern_pen = [&](unsigned code, unsigned x, unsigned y) {
-        const unsigned pattern = (code * 16U + (y & 7U) * 2U) & 0x7fffU;
-        const std::uint16_t planes01 = m_vram[pattern];
-        const std::uint16_t planes23 = m_vram[(pattern + 1U) & 0x7fffU];
-        const unsigned bit = 7U - (x & 7U);
-        return static_cast<unsigned>((((planes01 >> (8U + bit)) & 1U) << 0)
-            | (((planes01 >> bit) & 1U) << 1)
-            | (((planes23 >> (8U + bit)) & 1U) << 2)
-            | (((planes23 >> bit) & 1U) << 3));
+        // Match MAME's md_debug_8x8_layout: each row is four bytes with
+        // pixels addressed in nibble order 2,3,0,1,6,7,4,5. VRAM is stored
+        // as 16-bit words here, so select the corresponding byte explicitly.
+        static constexpr unsigned nibble_order[8] = {2, 3, 0, 1, 6, 7, 4, 5};
+        const unsigned nibble = nibble_order[x & 7U];
+        const unsigned byte_in_row = nibble >> 1U;
+        const unsigned word = (code * 16U + (y & 7U) * 2U + (byte_in_row >> 1U)) & 0x7fffU;
+        const unsigned byte = (byte_in_row & 1U) ? (m_vram[word] >> 8U) : (m_vram[word] & 0xffU);
+        // MAME's gfx decoder numbers bit 0 as the byte's most significant
+        // bit, and assigns plane 0 to the most significant pen bit.
+        const unsigned packed = (byte >> ((nibble & 1U) ? 0U : 4U)) & 0x0fU;
+        return ((packed & 0x01U) << 3U) | ((packed & 0x02U) << 1U)
+            | ((packed & 0x04U) >> 1U) | ((packed & 0x08U) >> 3U);
     };
 
     std::array<Pixel, 320> low_priority{};
@@ -228,8 +233,14 @@ Sega3155313::Scanline Sega3155313::render_scanline(unsigned line) const {
     unsigned sprite_mask = 0;
     for (unsigned visited = 0; visited < max_sprites && sprite_budget != 0; ++visited) {
         const unsigned entry = ((sprite_base >> 1) + sprite_index * 4U) & 0x7fffU;
-        const std::uint16_t y_word = m_vram[entry];
-        const std::uint16_t size_link = m_vram[(entry + 1U) & 0x7fffU];
+        // The VDP keeps an internal copy of sprite Y and size/link words as
+        // they are written to the sprite attribute table. MAME models those
+        // fields from that latch while X and pattern attributes remain live
+        // VRAM reads; using VRAM for all four words can tear multi-tile sprites
+        // during updates (including Moonwalker's hostage/help effect).
+        const unsigned sprite_attribute = (sprite_index * 4U) & 0x01ffU;
+        const std::uint16_t y_word = m_internal_sprite_attributes[sprite_attribute];
+        const std::uint16_t size_link = m_internal_sprite_attributes[(sprite_attribute + 1U) & 0x01ffU];
         const std::uint16_t attributes = m_vram[(entry + 2U) & 0x7fffU];
         const std::uint16_t x_word = m_vram[(entry + 3U) & 0x7fffU];
         const unsigned height = ((size_link >> 8) & 3U) + 1U;

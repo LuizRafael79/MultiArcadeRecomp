@@ -1,0 +1,20 @@
+{
+  "bootleg_epr-12542.ic1": {
+    "size": 262144,
+    "changed_bytes": 1033,
+    "first_changed_offset": "0x1865",
+    "last_changed_offset": "0x1d0fb",
+    "source_sha1": "46515ff47db08cd7d01c1857c1533bb278bdd89a",
+    "target_sha1": "60535ef8b2751161ff6082769d4fa889295552d1",
+    "target_crc32": "3efb5d05"
+  },
+  "bootleg_epr-12543.ic2": {
+    "size": 262144,
+    "changed_bytes": 1050,
+    "first_changed_offset": "0x1865",
+    "last_changed_offset": "0x1d0fb",
+    "source_sha1": "4e46c1a84f4d599e9f43b3009f24a2856e24615d",
+    "target_sha1": "f3a8063732179efb4fb85272d1a185f1bcdca705",
+    "target_crc32": "4a40bef2"
+  }
+}

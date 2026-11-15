@@ -1,0 +1,97 @@
+#version 430 core
+layout(local_size_x=8, local_size_y=8) in;
+layout(binding=0) uniform usampler2D uTileAtlas;
+layout(binding=1) uniform usampler2D uTileRam;
+layout(binding=2) uniform usampler2D uTextRam;
+layout(std430, binding=0) buffer PaletteOutput { uint outPalette[]; };
+layout(std430, binding=1) buffer PriorityOutput { uint outPriority[]; };
+uniform int uDisplayEnable;
+uniform int uFlip;
+uniform int uRegistersLatched;
+uniform uint uBanks[8];
+uniform uint uBankSize;
+uniform uint uLatchedPages[4];
+uniform uint uLatchedYscroll[4];
+uniform uint uLatchedXscroll[4];
+
+uint tileByte(uint a) { return texelFetch(uTileRam, ivec2(int(a & 255u), int(a >> 8)), 0).r; }
+uint textByte(uint a) { return texelFetch(uTextRam, ivec2(int(a & 255u), int(a >> 8)), 0).r; }
+uint tileWord(uint a) { return (tileByte(a) << 8) | tileByte(a + 1u); }
+uint textWord(uint a) { return (textByte(a) << 8) | textByte(a + 1u); }
+uint tilePen(uint code, uint x, uint y) {
+    uint atlasX = (code & 127u) * 8u + (x & 7u);
+    uint atlasY = (code >> 7) * 8u + (y & 7u);
+    return texelFetch(uTileAtlas, ivec2(int(atlasX), int(atlasY)), 0).r;
+}
+uint pageNibble(uint pages, uint q) { return (pages >> (q * 4u)) & 15u; }
+uint layerPixel(bool foreground, uint x, uint y, out uint category, out uint pen) {
+    uint layer = foreground ? 0u : 1u;
+    uint pages = uRegistersLatched != 0 ? uLatchedPages[layer] : textWord(0xe80u + layer * 2u);
+    uint xs = uRegistersLatched != 0 ? uLatchedXscroll[layer] : textWord(0xe98u + layer * 2u);
+    uint ys = uRegistersLatched != 0 ? uLatchedYscroll[layer] : textWord(0xe90u + layer * 2u);
+    uint altPages = uRegistersLatched != 0 ? uLatchedPages[layer + 2u] : textWord(0xe84u + layer * 2u);
+    uint altXs = uRegistersLatched != 0 ? uLatchedXscroll[layer + 2u] : textWord(0xe9cu + layer * 2u);
+    uint altYs = uRegistersLatched != 0 ? uLatchedYscroll[layer + 2u] : textWord(0xe94u + layer * 2u);
+    uint row = uint((uFlip != 0 ? (216 - int(y & ~7u)) : int(y & ~7u)) / 8);
+    uint col = (x + 8u) / 16u;
+    uint rowScroll = textWord(0xf80u + layer * 0x40u + row * 2u);
+    uint effectiveX = (xs & 0x8000u) != 0u ? rowScroll : xs;
+    uint effectiveY = (ys & 0x8000u) != 0u
+        ? textWord(0xf16u + layer * 0x40u + col * 2u) : ys;
+    if ((rowScroll & 0x8000u) != 0u) {
+        pages = altPages;
+        effectiveX = altXs;
+        effectiveY = altYs;
+    }
+    uint drawX = uFlip != 0 ? 319u - x : x;
+    uint drawY = uFlip != 0 ? 223u - y : y;
+    uint sx = (drawX + ((0xc0u - effectiveX) & 0x3ffu)) & 0x3ffu;
+    uint sy = (drawY + (effectiveY & 0x1ffu)) & 0x1ffu;
+    uint quadrant = (sy >> 8) * 2u + (sx >> 9);
+    uint page = pageNibble(pages, quadrant);
+    uint tx = (sx & 0x1ffu) >> 3;
+    uint ty = (sy & 0xffu) >> 3;
+    uint data = tileWord((page * 2048u + ty * 64u + tx) * 2u);
+    category = data >> 15;
+    uint rawCode = data & 0x1fffu;
+    uint bankIndex = rawCode / uBankSize;
+    uint code = uBanks[bankIndex] * uBankSize + rawCode % uBankSize;
+    pen = tilePen(code, sx, sy);
+    return (((data >> 6) & 0x7fu) * 8u) + pen;
+}
+void main() {
+    uvec2 p = gl_GlobalInvocationID.xy;
+    if (p.x >= 320u || p.y >= 224u) return;
+    uint i = p.y * 320u + p.x;
+    uint color = 0u;
+    uint priority = 0u;
+    if (uDisplayEnable != 0) {
+        uint category, pen;
+        for (uint c = 0u; c < 2u; ++c) {
+            uint value = layerPixel(false, p.x, p.y, category, pen);
+            if (category == c) color = value;
+        }
+        for (uint c = 0u; c < 2u; ++c) {
+            layerPixel(false, p.x, p.y, category, pen);
+            if (pen != 0u && category == c) priority |= 1u << c;
+        }
+        uint fgCategory, fgPen;
+        uint fgColor = layerPixel(true, p.x, p.y, fgCategory, fgPen);
+        if (fgPen != 0u) {
+            color = fgColor;
+            priority |= 2u << fgCategory;
+        }
+        uint drawX = uFlip != 0 ? 319u - p.x : p.x;
+        uint drawY = uFlip != 0 ? 223u - p.y : p.y;
+        uint mapX = (drawX + 192u) & 0x1ffu;
+        uint mapY = drawY & 0xffu;
+        uint data = textWord(((mapY >> 3) * 64u + (mapX >> 3)) * 2u);
+        uint textPen = tilePen(uBanks[0] * uBankSize + (data & 0x1ffu), mapX, mapY);
+        if (textPen != 0u) {
+            color = ((data >> 9) & 7u) * 8u + textPen;
+            priority |= 4u << (data >> 15);
+        }
+    }
+    outPalette[i] = color;
+    outPriority[i] = priority;
+}

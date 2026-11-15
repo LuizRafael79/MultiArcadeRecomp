@@ -1,0 +1,197 @@
+module = "system16"
+board = "system16b"
+game = "timescan"
+gamename = "Time Scanner (set 2, System 16B)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "timescan"
+description = "Time Scanner (set 2, System 16B)"
+year = "1987"
+manufacturer = "Sega"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-10853.a4"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "24d7c5fb"
+sha1 = "b1796e77cf968f9bdae7a47c5c02b93aaec10ade"
+
+[[regions.maincpu.roms]]
+file = "epr-10850.a1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "f1575732"
+sha1 = "d0c8fc42171c436cc1cd55a33295bd019a474d47"
+
+[[regions.maincpu.roms]]
+file = "epr-10854.a5"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "82d0b237"
+sha1 = "c1defda4785014ccd7164f49f53f77e36fcb3a8d"
+
+[[regions.maincpu.roms]]
+file = "epr-10851.a2"
+size = 32768
+offset = 65537
+status = "good"
+optional = false
+crc32 = "f5ce271b"
+sha1 = "8b4f1178c87e657d8d5805d908100f0d5fb030da"
+
+[[regions.maincpu.roms]]
+file = "epr-10855.a6"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "63e95a53"
+sha1 = "60c42bbb1c316deb493a237990a7938551f8bc2e"
+
+[[regions.maincpu.roms]]
+file = "epr-10852.a3"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "7cd1382b"
+sha1 = "6263cc863cbf0ef66a7ba8cc1c98212917d7c131"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-10543.b9"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "07dccc37"
+sha1 = "544cc6a3b3ef64727ecf5098b84ade2dd5330614"
+
+[[regions.tiles.roms]]
+file = "epr-10544.b10"
+size = 32768
+offset = 32768
+status = "good"
+optional = false
+crc32 = "84fb9a3a"
+sha1 = "efde54cc9582f68e58cae05f717a4fc8f620c0fc"
+
+[[regions.tiles.roms]]
+file = "epr-10545.b11"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "c8694bc0"
+sha1 = "e48fc349ef454ded86141937f70b006e64da6b6b"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-10548.b1"
+size = 32768
+offset = 1
+status = "good"
+optional = false
+crc32 = "aa150735"
+sha1 = "b6e6ff9229c641e196fc7a0a2cf7aa362f554676"
+
+[[regions.sprites.roms]]
+file = "epr-10552.b5"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "6fcbb9f7"
+sha1 = "0a0fab930477d8b79e500263bbc80d3bf73778f8"
+
+[[regions.sprites.roms]]
+file = "epr-10549.b2"
+size = 32768
+offset = 131073
+status = "good"
+optional = false
+crc32 = "2f59f067"
+sha1 = "1fb64cce2f98ddcb5ecb662e63ea636a8da08bcd"
+
+[[regions.sprites.roms]]
+file = "epr-10553.b6"
+size = 32768
+offset = 131072
+status = "good"
+optional = false
+crc32 = "8a220a9f"
+sha1 = "c17547d85721fa19e5f445b5be30b3fbf5e8cc6e"
+
+[[regions.sprites.roms]]
+file = "epr-10550.b3"
+size = 32768
+offset = 262145
+status = "good"
+optional = false
+crc32 = "f05069ff"
+sha1 = "bd95761036c2fad8ddf4e169d899b173822ee4b0"
+
+[[regions.sprites.roms]]
+file = "epr-10554.b7"
+size = 32768
+offset = 262144
+status = "good"
+optional = false
+crc32 = "dc64f809"
+sha1 = "ea85eefa98ec55e9e872940821a959ff4eb1bd1c"
+
+[[regions.sprites.roms]]
+file = "epr-10551.b4"
+size = 32768
+offset = 393217
+status = "good"
+optional = false
+crc32 = "435d811f"
+sha1 = "b28eb09620113cd7578387c4d96029f2acb8ec06"
+
+[[regions.sprites.roms]]
+file = "epr-10555.b8"
+size = 32768
+offset = 393216
+status = "good"
+optional = false
+crc32 = "2143c471"
+sha1 = "d413aa216349ddf773a39d2826c3a940b4149229"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-10562.a7"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "3f5028bf"
+sha1 = "02081569a5f4dc64771e97651a9902a98d54a952"
+
+[[regions.soundcpu.roms]]
+file = "epr-10563.a8"
+size = 32768
+offset = 65536
+status = "good"
+optional = false
+crc32 = "9db7eddf"
+sha1 = "8b9a27442a623bee6b9b5b06275226734d132e17"
+
+[properties]
+protection = "none"

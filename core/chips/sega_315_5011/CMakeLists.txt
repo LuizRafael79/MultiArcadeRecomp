@@ -1,0 +1,2 @@
+add_library(mamerecomp_chip_sega_315_5011 STATIC sega_315_5011.cpp)
+target_include_directories(mamerecomp_chip_sega_315_5011 PUBLIC ${PROJECT_SOURCE_DIR}/core)

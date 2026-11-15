@@ -1,0 +1,107 @@
+module = "system16"
+board = "system16b"
+game = "wwthomas"
+gamename = "Waku Waku Thomas (Japan)"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "wwthomas"
+description = "Waku Waku Thomas (Japan)"
+year = "1993"
+manufacturer = "Banpresto"
+sourcefile = "sega/segas16b.cpp"
+machine_config = "system16b_5797"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "epr-15843.ic1"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "3b1bc91c"
+sha1 = "5dc7f69ba461d57a90844d0accdc4fb618f1de69"
+
+[[regions.maincpu.roms]]
+file = "epr-15844.ic2"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "d6cc327e"
+sha1 = "325c254f9aa03b46a5e280bfa48416b988ce0a13"
+
+[regions.tiles]
+
+[[regions.tiles.roms]]
+file = "epr-15849.ic19"
+size = 131072
+offset = 0
+status = "good"
+optional = false
+crc32 = "733b7b96"
+sha1 = "58b3b65f67db31da517ef9f7ae75ea728c236f9c"
+
+[[regions.tiles.roms]]
+file = "epr-15850.ic20"
+size = 131072
+offset = 131072
+status = "good"
+optional = false
+crc32 = "3c9450c3"
+sha1 = "9f7b124484ff0b2613fdd192009e087a689783f8"
+
+[[regions.tiles.roms]]
+file = "epr-15851.ic21"
+size = 131072
+offset = 262144
+status = "good"
+optional = false
+crc32 = "5cc1075f"
+sha1 = "ad33ccfd9a3b7ac32edb0b3258538039c7709290"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-15847.ic9"
+size = 262144
+offset = 1
+status = "good"
+optional = false
+crc32 = "409d7636"
+sha1 = "98b85491b75bf34b4dbd51278be8b05db5c7791a"
+
+[[regions.sprites.roms]]
+file = "epr-15848.ic12"
+size = 262144
+offset = 0
+status = "good"
+optional = false
+crc32 = "310625ea"
+sha1 = "1c9081f3fde28790ef7eb965223fb2a6868819aa"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-18846.ic8"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "84b541a2"
+sha1 = "bf8bf329b4ecc7061072cc00b9a1c41528fa112f"
+
+[[regions.soundcpu.roms]]
+file = "epr-15845.ic6"
+size = 262144
+offset = 65536
+status = "good"
+optional = false
+crc32 = "9d6939ce"
+sha1 = "d9494bc53f9a38d9e58f42e72430f8d41f5e11ba"
+
+[properties]
+protection = "none"

@@ -1,0 +1,182 @@
+module = "system16"
+board = "system16a"
+game = "wb31d"
+gamename = "Wonder Boy III - Monster Lair (set 1, Japan, System 16A) (bootleg of FD1094 317-0084 set)"
+parent = "wb3"
+romof = "wb3"
+romset_source = "MAME -listxml"
+
+[mame]
+name = "wb31d"
+description = "Wonder Boy III - Monster Lair (set 1, Japan, System 16A) (bootleg of FD1094 317-0084 set)"
+cloneof = "wb3"
+romof = "wb3"
+year = "1988"
+manufacturer = "bootleg"
+sourcefile = "sega/segas16a.cpp"
+machine_config = "system16a_no7751"
+
+[regions]
+
+[regions.maincpu]
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr12084.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "0cfe1b00"
+sha1 = "b4e50bb0d677647a71c1d3adac9f955774e3fa0e"
+
+[[regions.maincpu.roms]]
+file = "bootleg_epr12082.bin"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "9e324162"
+sha1 = "49cbec212bec832722b4816e2186e6cb1c204b0e"
+
+[[regions.maincpu.roms]]
+file = "epr-12085.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0962098b"
+sha1 = "150fc439dd5e773bef706f058abdb4d2ec44e355"
+
+[[regions.maincpu.roms]]
+file = "epr-12083.bin"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "3d631a8e"
+sha1 = "4940ff6cf380fb914876ade39ea37f42b79bf11d"
+
+[regions.gfx1]
+
+[[regions.gfx1.roms]]
+file = "epr-12086.bin"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "45b949df"
+sha1 = "84390d16da00b775988e5f6c20950cb2304b1a74"
+
+[[regions.gfx1.roms]]
+file = "epr-12087.bin"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "6f0396b7"
+sha1 = "0a340f2b58e5ecfe504197a8fd2111181e868a3e"
+
+[[regions.gfx1.roms]]
+file = "epr-12088.bin"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "ba8c0749"
+sha1 = "7d996c7a1ad249c06ef7ec9c87a83710c98005d3"
+
+[regions.sprites]
+
+[[regions.sprites.roms]]
+file = "epr-12090.b1"
+size = 65536
+offset = 1
+status = "good"
+optional = false
+crc32 = "aeeecfca"
+sha1 = "496124b170a725ad863c741d4e021ab947511e4c"
+merge = "epr-12090.b1"
+
+[[regions.sprites.roms]]
+file = "epr-12094.b5"
+size = 65536
+offset = 0
+status = "good"
+optional = false
+crc32 = "615e4927"
+sha1 = "d23f164973afa770714e284a77ddf10f18cc596b"
+merge = "epr-12094.b5"
+
+[[regions.sprites.roms]]
+file = "epr-12091.b2"
+size = 65536
+offset = 65537
+status = "good"
+optional = false
+crc32 = "8409a243"
+sha1 = "bcbb9510a6499d8147543d6befa5a49f4ac055d9"
+merge = "epr-12091.b2"
+
+[[regions.sprites.roms]]
+file = "epr-12095.b6"
+size = 65536
+offset = 65536
+status = "good"
+optional = false
+crc32 = "e774ec2c"
+sha1 = "a4aa15ec7be5539a740ad02ff720458018dbc536"
+merge = "epr-12095.b6"
+
+[[regions.sprites.roms]]
+file = "epr-12092.b3"
+size = 65536
+offset = 131073
+status = "good"
+optional = false
+crc32 = "5c2f0d90"
+sha1 = "e0fbc0f841e4607ad232931368b16e81440a75c4"
+merge = "epr-12092.b3"
+
+[[regions.sprites.roms]]
+file = "epr-12096.b7"
+size = 65536
+offset = 131072
+status = "good"
+optional = false
+crc32 = "0cd59d6e"
+sha1 = "caf754a461feffafcfe7bfc6e89da76c4db257c5"
+merge = "epr-12096.b7"
+
+[[regions.sprites.roms]]
+file = "epr-12093.b4"
+size = 65536
+offset = 196609
+status = "good"
+optional = false
+crc32 = "4891e7bb"
+sha1 = "1be04fcabe9bfa8cf746263a5bcca67902a021a0"
+merge = "epr-12093.b4"
+
+[[regions.sprites.roms]]
+file = "epr-12097.b8"
+size = 65536
+offset = 196608
+status = "good"
+optional = false
+crc32 = "e645902c"
+sha1 = "497cfcf6c25cc2e042e16dbcb1963d2223def15a"
+merge = "epr-12097.b8"
+
+[regions.soundcpu]
+
+[[regions.soundcpu.roms]]
+file = "epr-12089.bin"
+size = 32768
+offset = 0
+status = "good"
+optional = false
+crc32 = "8321eb0b"
+sha1 = "61cf95833c0aa38e35fc18db39d4ec74e4aaf01e"
+
+[properties]
+protection = "none"
