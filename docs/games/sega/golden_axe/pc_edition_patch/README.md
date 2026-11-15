@@ -7,7 +7,7 @@ This patch uses the `goldnaxeud` ROM set as its source and creates a separate `g
 Keep the original archive unchanged and write the patched copy elsewhere:
 
 ```sh
-python3 apply_patch.py ~/git/mame/roms/goldnaxeud.zip /tmp/goldnaxepc.zip
+python3 apply_patch.py /path/to/roms/goldnaxeud.zip build/goldnaxepc.zip
 ```
 
 The patcher checks the SHA-1 and size of each source program chip before writing. It changes only the two interleaved 68000 program ROMs, preserves their lengths and ZIP member names, and leaves all other ROM data untouched. It refuses to overwrite the input archive.
@@ -23,8 +23,8 @@ The `.bps` files are binary diffs for the two interleaved 68000 program ROMs. No
 The `goldnaxepc` profile selects Free Play by default. Build and run it with:
 
 ```sh
-build/multiarcaderecomp build --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip
-build/multiarcaderecomp run --machine=sega --board=system16b --game=goldnaxepc --rom-dir ~/git/mame/roms/goldnaxepc.zip --audio --arranged-bgm
+build/multiarcaderecomp build --machine=sega --board=system16b --game=goldnaxepc --rom-dir /path/to/roms/goldnaxepc.zip
+build/multiarcaderecomp run --machine=sega --board=system16b --game=goldnaxepc --rom-dir /path/to/roms/goldnaxepc.zip --audio --arranged-bgm
 ```
 
 The patch is based on `goldnaxeud`; other Golden Axe revisions have different program ROM layouts and need their own analysis.

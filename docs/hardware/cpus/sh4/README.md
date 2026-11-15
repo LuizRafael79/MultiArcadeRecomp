@@ -38,7 +38,7 @@ outside this CPU backend.
 
 Flycast's SH-4 interpreter is the source of truth for this runtime port,
 including opcode semantics, variants, and execution behavior. Use the local
-MAME SH-4 sources at `~/git/mame/src/devices/cpu/sh/` only as a secondary
+MAME SH-4 sources at `/path/to/mame/src/devices/cpu/sh/` only as a secondary
 reference for documentation and opcode coverage. Do not use MAME runtime
 behavior to replace or extend Flycast semantics in the Naomi port.
 

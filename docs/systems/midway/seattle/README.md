@@ -29,9 +29,9 @@ Build and launch through the main dispatcher:
 
 ```sh
 build/multiarcaderecomp build --machine=ki --board=seattle --game=ki1 \
-  --rom-dir ~/git/mame/roms --jobs 4
+  --rom-dir /path/to/roms --jobs 4
 build/multiarcaderecomp run --machine=ki --board=seattle --game=ki1 \
-  --rom-dir ~/git/mame/roms --window
+  --rom-dir /path/to/roms --window
 ```
 
 Replace `ki1` with `ki2` to build or launch KI2.

@@ -103,7 +103,7 @@ From the repository root:
 
 ```sh
 python3 tools/mk2/build.py \
-  --romset /home/luiz/git/mame/roms/mk2.zip \
+  --romset /path/to/roms/mk2.zip \
   --out build/mk2/work
 cmake -S . -B build \
   -DMULTIARCADERECOMP_MK2_TMS34010_AOT_SOURCE="$PWD/build/mk2/work/tms34010_aot.cpp" \
@@ -147,8 +147,10 @@ ADSP instructions natively, then stopped at TMS PC `0xffa5add0`, opcode
 the T-Unit DMA had issued no commands, and the DCS had produced no samples.
 The run advanced past an earlier TMS indirect target `0xffa5ad30` after that
 target was added as an extra root; the next target remains uncovered. Artifacts
-from this checkpoint are `/tmp/mk2-overlay-strict-v3.log`,
-`/tmp/mk2-overlay-strict-v3.ppm`, and `/tmp/mk2-overlay-strict-v3.bin`.
+from this checkpoint are the generated files
+`build/diagnostics/mk2-overlay-strict-v3.log`,
+`build/diagnostics/mk2-overlay-strict-v3.ppm`, and
+`build/diagnostics/mk2-overlay-strict-v3.bin`.
 
 The ADSP generator also accepts offline program-image variants captured by
 `--adsp-overlay`. Each record is 5 bytes: 16-bit PC followed by a 24-bit opcode,

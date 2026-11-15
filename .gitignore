@@ -5,6 +5,7 @@
 /artifacts/
 /generated/
 /out/
+/snap/
 
 # ROM and emulator output
 # Keep captures accidentally written to the repository root out of Git.

@@ -300,7 +300,7 @@ common Z80 core.
 
 ```sh
 python3 tools/recompile.py --system cps1 --game sf2ce \
-  --rom-dir /home/luiz/git/mame/roms/sf2ce.zip
+  --rom-dir /path/to/roms/sf2ce.zip
 ```
 
 This generates a game-specific table under `build/cps1/work/sf2ce/gen/z80/`

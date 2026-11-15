@@ -164,7 +164,7 @@ framebuffer conversion and SDL presentation time; SDL prefers an accelerated
 renderer with software fallback. Fallback-site collection now avoids the
 global mutex on every interpreted instruction while keeping categorized logs.
 
-Compared `core/chips/dcs/audio_2k.*` with `~/git/mame/src/mame/shared/dcs.cpp`:
+Compared `core/chips/dcs/audio_2k.*` with `/path/to/mame/src/mame/shared/dcs.cpp`:
 the DCS 2K memory map, 10 MHz ADSP clock, 31.25 kHz SPORT1 external clock,
 half-buffer size/increment, AS_DATA reads and mono DAC transfer match the MAME
 path. A scheduling mismatch was found: MultiArcadeRecomp previously

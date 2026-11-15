@@ -86,7 +86,7 @@ output. The sound-board implementation remains separate from the CPU core.
 Generate the ROM regions/AOT source, then build the module and bounded runner:
 
 ```sh
-python3 tools/mk/build.py --romset ~/git/mame/roms/mk.zip --out build/mk/work \
+python3 tools/mk/build.py --romset /path/to/roms/mk.zip --out build/mk/work \
   --entry-list tools/mk/aot_entries_mk.txt
 cmake -S . -B build/mk/native \
   -DMULTIARCADERECOMP_TMS34010_AOT_SOURCE="$PWD/build/mk/work/tms34010_aot.cpp" \

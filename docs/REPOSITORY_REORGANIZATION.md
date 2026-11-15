@@ -23,15 +23,15 @@ boundary.
 
 ## Repository setup completed — 2026-11-09
 
-1. Confirmed `/home/luiz/git/MultiArcadeRecomp` was the official repository. The
-   directory `/home/luiz/.codex/worktrees/7c98/MultiArcadeRecomp` is a linked,
+1. Confirmed the primary Multi Arcade Recomp checkout was the official repository. The
+   secondary worktree was a linked,
    detached Codex worktree, not a second official source checkout.
-2. Renamed the official checkout to `/home/luiz/git/multiarcaderecomp_dev`. This was a
+2. Renamed the official checkout to a separate development directory. This was a
    filesystem rename, preserving tracked edits and untracked files there.
 3. Repaired the Codex worktree's Git metadata to point to
-   `/home/luiz/git/multiarcaderecomp_dev/.git/worktrees/MultiArcadeRecomp`. Its pre-existing
+   linked worktree Git metadata. Its pre-existing
    local edits remain in that worktree.
-4. Created `/home/luiz/git/multiarcaderecomp` as a separate local clone of the last
+4. Created the current checkout as a separate local clone of the last
    committed revision, `9b695046a8decf84fbe50b8441922af626a606a0`
    (`Reuse PSX texture cache across ABR modes`). The new checkout starts clean;
    uncommitted work from `multiarcaderecomp_dev` was deliberately not copied into it.
@@ -131,8 +131,8 @@ multiply definitions solely for visual directory symmetry.
 
 ### 2026-11-09 — repository creation and first System 16/18 slice
 
-- Preserved the official working tree as `~/git/multiarcaderecomp_dev`.
-- Created a clean `~/git/multiarcaderecomp` clone at baseline commit `9b69504`.
+- Preserved the former working tree as a separate development checkout.
+- Created a clean current checkout at baseline commit `9b69504`.
 - Removed the clone's local origin; the new repository has no remote configured.
 - Added `CMakePresets.json` with distinct Linux x64 and Windows x64 `dev`,
   `debug`, and `release` build/test presets. Linux uses Ninja + GCC; Windows
@@ -164,7 +164,7 @@ multiply definitions solely for visual directory symmetry.
   No Vulkan or DirectX backend is claimed by these presets.
 - Targeted Release validation: compiled the 23 System16A/System16B/System18
   board/profile translation units; built and passed `system16_fd1094_test`
-  using `/home/luiz/git/mame/roms/eswat.zip`.
+  using `/path/to/roms/eswat.zip`.
 - First game-owned source move: moved Shinobi's C++ profile from
   `src/romsets/shinobi.cpp` to `src/games/sega/system16a/shinobi/profile.cpp`
   and updated CMake. Its object compiles in the Release preset. The proposed

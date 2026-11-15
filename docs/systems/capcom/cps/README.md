@@ -52,7 +52,7 @@ and Dino and need gameplay validation.
 
 For a gameplay run, set `MULTIARCADERECOMP_CPS1_TRACE_COMPOSITION=1` to log changes
 to the CPS-B layer-control word, decoded order/enables, CPS-A video control and
-the four active priority registers. `MULTIARCADERECOMP_CPS1_DUMP_LAYERS=/tmp/cps1`
+the four active priority registers. `MULTIARCADERECOMP_CPS1_DUMP_LAYERS=build/cps1/layers`
 also writes one PPM per source layer at each framebuffer capture.
 
 Scroll 2 row-scroll indexing follows MAME's `screen_update_cps1`: MAME assigns

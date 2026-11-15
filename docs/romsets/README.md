@@ -33,11 +33,11 @@ an installed MAME executable:
 
 ```sh
 python3 tools/generators/romsets/import_mame_module_romsets.py \
-  --mame-source /home/luiz/git/mame --xml /tmp/multiarcaderecomp-listxml.xml \
+  --mame-source /path/to/mame --xml build/multiarcaderecomp-listxml.xml \
   --output src/romsets
 
 python3 tools/generators/romsets/import_sega_mame.py \
-  --mame-source /home/luiz/git/mame --xml /tmp/multiarcaderecomp-listxml.xml \
+  --mame-source /path/to/mame --xml build/multiarcaderecomp-listxml.xml \
   --output src/romsets
 ```
 
