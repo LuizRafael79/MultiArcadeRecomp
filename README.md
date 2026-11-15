@@ -1,3 +1,5 @@
+## This project is a WIP (Work-in-progress) eternal status
+
 # Multi Arcade Recomp
 
 Multi Arcade Recomp is an experimental, modular arcade game recompiler and
