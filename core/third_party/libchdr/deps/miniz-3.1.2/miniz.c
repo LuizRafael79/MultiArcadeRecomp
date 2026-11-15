@@ -7636,9 +7636,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         if ((!status) && (created_new_archive))
         {
-            /* It's a new archive and something went wrong, so just delete it. */
-            int ignoredStatus = MZ_DELETE_FILE(pZip_filename);
-            (void)ignoredStatus;
+            /* A prior existence check was performed using path-based stat().
+             * Avoid deleting by pathname here to prevent a TOCTOU race where
+             * the path could be swapped before unlink. */
         }
 
         if (pErr)
