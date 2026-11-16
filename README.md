@@ -90,6 +90,12 @@ current boundaries and planned work.
 
 ## ROMs, licensing, and contributions
 
+The MultiArcadeRecomp license is MIT, third-party licenses is maintened as original
+ones, like neogeorecomp that is a MIT too, cps2recomp code project and others 
+restrictives licenses is planned to be removed soon, all the code under GPL-Only
+or restrictives licenses like Creative Commons or PolyForm Noncommercial is planned
+to be removed as soon as possible.
+
 No game ROMs are included. Use only ROM dumps that you are legally entitled to
 use. Third-party code may have different license terms; consult
 [`docs/license/`](docs/license/README.md) and the relevant upstream notices
