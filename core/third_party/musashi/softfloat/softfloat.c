@@ -1702,7 +1702,7 @@ float32 float32_rem( float32 a, float32 b )
 		q64 = ( 2 < q64 ) ? q64 - 2 : 0;
 		q = q64>>( 64 - expDiff );
 		bSig <<= 6;
-		aSig = ( ( aSig64>>33 )<<( expDiff - 1 ) ) - bSig * q;
+		aSig = ( ( aSig64>>33 )<<( expDiff - 1 ) ) - ( (bits64) bSig ) * q;
 	}
 	do {
 		alternateASig = aSig;
